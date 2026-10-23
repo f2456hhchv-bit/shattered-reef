@@ -46,7 +46,11 @@ const { chromium } = require(path.join(require('child_process').execSync('npm ro
   res.slotTaps = `${opened}/3`;
   await p.evaluate(() => { window.__reef.game.p.hp = 4; });
   await tap(...Object.values(await center('[data-slot="3"]')), 160);
-  await p.waitForTimeout(1500);
+  const popped = await p.waitForSelector('#itempop [data-a="use"]', { timeout: 8000 }).then(() => true, () => false);
+  if (!popped) {
+    res.diag = await p.evaluate(() => { const u = window.__reef.ui, pop = document.getElementById('itempop'); return { pop: u.pop, popHtml: pop ? pop.outerHTML.slice(0, 400) : null, slot: !!document.querySelector('[data-slot="3"]'), inv3: window.__reef.game.p.inv[3], hp: window.__reef.game.p.hp, dead: window.__reef.game.dead }; });
+    console.log(JSON.stringify(res)); await b.close(); process.exit(1);
+  }
   const before = await p.evaluate(() => window.__reef.game.p.inv[3]?.qty);
   await tap(...Object.values(await center('#itempop [data-a="use"]')), 180);
   await p.waitForTimeout(1500);
