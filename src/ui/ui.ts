@@ -12,7 +12,7 @@ import { count, displayName, type Stack } from '../game/sim/inventory';
 import { levelForXp, levelProgress, xpForLevel, MAX_LEVEL } from '../game/sim/xp';
 import type { Game, GameEvent, MsgKind } from '../game/sim/game';
 import type { GameRenderer } from '../render/renderer';
-import { itemIcon, rarityColour, TAB_ICONS } from './icons';
+import { itemIcon, rarityColour, TAB_ICONS, SKILL_ICONS, SLOT_ICONS } from './icons';
 
 type Tab = 'pack' | 'gear' | 'skills' | 'quests' | 'map' | 'settings';
 const TABS: { id: Tab; name: string; key: string }[] = [
@@ -312,10 +312,13 @@ export class UI {
       if (!d.live) continue;
       d.t += dt;
       if (d.t > 0.9) { d.live = false; d.el.style.display = 'none'; continue; }
-      const s = r.project(d.x, d.y + d.t * 1.4, d.z);
+      const s = r.project(d.x, d.y + Math.max(0, d.t - 0.25) * 1.1, d.z);
+      // pop: overshoot in, settle, hold, then drift up and fade
+      const k = d.t < 0.1 ? 0.45 + (d.t / 0.1) * 0.8 : Math.max(1, 1.25 - (d.t - 0.1) * 2.5);
       d.el.style.left = `${s.x}px`;
       d.el.style.top = `${s.y}px`;
-      d.el.style.opacity = String(Math.min(1, 2.2 - d.t * 2.4));
+      d.el.style.transform = `translate(-50%, -50%) scale(${k.toFixed(3)})`;
+      d.el.style.opacity = String(Math.min(1, 2.6 - d.t * 2.8));
     }
     const seen = new Set<number>();
     for (const e of g.enemies) {
@@ -412,7 +415,7 @@ export class UI {
   }
 
   private slotHtml(s: Stack | null, attrs: string, label = '') {
-    if (!s) return `<button class="slot empty" ${attrs} aria-label="Empty ${label || 'slot'}">${label ? `<span class="lbl">${label}</span>` : ''}</button>`;
+    if (!s) return `<button class="slot empty" ${attrs} aria-label="Empty ${label || 'slot'}">${label ? `${SLOT_ICONS[label] ?? ''}<span class="lbl">${label}</span>` : ''}</button>`;
     const rar = s.inst && s.inst.rarity !== 'common';
     const q = item(s.id).stackable && s.qty > 1 ? `<span class="q">${s.qty >= 100000 ? Math.floor(s.qty / 1000) + 'k' : s.qty}</span>` : '';
     const c = condOf(s);
@@ -470,9 +473,9 @@ export class UI {
       total += lvl;
       const next = lvl >= MAX_LEVEL ? 'Maximum level' : `${fmt(Math.ceil(xpForLevel(lvl + 1) - xp))} XP to ${lvl + 1}`;
       const unlock = UNLOCKS[sk.id].find((u) => u.level > lvl);
-      return `<div class="skill" title="${esc(sk.blurb)}"><b style="color:${sk.colour}">${sk.name}</b><span class="lv">${lvl}</span>
-        <div class="xpbar" style="--c:${sk.colour}"><i style="width:${levelProgress(xp) * 100}%"></i></div>
-        <small>${fmt(Math.floor(xp))} XP · ${next}${unlock ? `<br>Next: ${esc(unlock.text)} (${unlock.level})` : ''}</small></div>`;
+      return `<div class="skill" title="${esc(sk.blurb)}" style="--c:${sk.colour}"><span class="medal">${SKILL_ICONS[sk.id]}</span><b>${sk.name}</b><span class="lv">${lvl}</span>
+        <div class="xpbar"><i style="width:${levelProgress(xp) * 100}%"></i></div>
+        <small>${fmt(Math.floor(xp))} XP · ${next}${unlock ? `<br><span class="nx">Lv ${unlock.level}</span> ${esc(unlock.text)}` : ''}</small></div>`;
     };
     const groups = (['Combat', 'Gathering', 'Production'] as const).map((grp) => `<h2 class="title" style="font-size:13px;margin:12px 0 0">${grp}</h2>${SKILLS.filter((s) => s.group === grp).map(row).join('')}`).join('');
     return `<div class="row" style="justify-content:space-between"><h2 class="title" style="margin:0">Skills</h2><span class="muted">Total ${total} · Combat ${g.stats.combatLevel}</span></div>${groups}

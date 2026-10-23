@@ -83,6 +83,7 @@ Reflects the actual repository, not the roadmap.
 
 ## Known issues / limitations
 - Sound is synthesised, not recorded: decent for hits and surf, thinner than real samples. Not yet heard on a real phone speaker.
+- Visual pass 1 (done): RuneScape-style outlined item icons (lathed items no longer vanish), skill medallions + XP bars, empty-slot silhouettes, hit splats, per-stone cobbles, cloth tents with ropes, smooth shoreline (beach toe slope + per-pixel water depth), less phone haze.
 - Overlapping enemy name labels when two enemies stand close (seen in screenshots).
 - No naval combat; sea is for travel, fishing and discovery only.
 - Buildings and the Guardian are still blocky; next art target after characters/UI.
@@ -95,7 +96,7 @@ Reflects the actual repository, not the roadmap.
 
 ## Next
 1. Tom plays the content build on his phone: tap fixes, frame rate, difficulty of the new zones.
-2. Further visual pass (sprites, items, UI, HUD).
+2. Visual pass, part 2: enemies and NPC detail, HUD orbs/minimap polish, particles on hits and gathering.
 3. New skills one at a time (docs/SKILLS.md), each with real content.
 4. Survivor.io-style encounter upgrades for the camp and boss fights.
 5. Naval combat (raider skiffs) and the Kraken.

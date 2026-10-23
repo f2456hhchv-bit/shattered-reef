@@ -155,8 +155,10 @@ function shapedHeight(x: number, z: number, levelled: boolean): number {
   let h: number;
   if (d > 0) {
     const broad = fbm(x * 0.022 + 3, z * 0.022 + 3, 3, 9);
-    // a wide, gently climbing beach, then the island's rolling ground
-    h = 0.05 + Math.min(d / BEACH, 1) * 0.45 + smooth(d, BEACH - 1, BEACH + 12) * (0.5 + n * 2.0 + broad * 1.6);
+    // a wide, gently climbing beach, then the island's rolling ground. The toe keeps the seabed's slope
+    // going for the first few metres, so the waterline crosses a real slope instead of hugging a flat shelf
+    // (a shelf just above the water makes the shoreline trace the height grid as a staircase)
+    h = 0.05 + 0.3 * (1 - Math.exp(-d / 1.1)) + Math.min(d / BEACH, 1) * 0.3 + smooth(d, BEACH - 1, BEACH + 12) * (0.5 + n * 2.0 + broad * 1.6);
     for (const hl of HILLS) {
       const k = Math.exp(-((x - hl.x) ** 2 + (z - hl.z) ** 2) / (hl.r * hl.r));
       h += hl.h * k * smooth(d, BEACH * 0.4, BEACH + 6);

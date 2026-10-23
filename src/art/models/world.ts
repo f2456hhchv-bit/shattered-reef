@@ -79,34 +79,94 @@ export function buildCookfire(): { group: THREE.Group; flames: THREE.Mesh[] } {
   return { group: g, flames };
 }
 
+const canvasTex = new Map<number, THREE.CanvasTexture>();
+/** Weathered sailcloth: panel seams, a couple of stitched patches, grime and a dark hem toward the pegs. */
+function tentCloth(base: number): THREE.CanvasTexture {
+  const hit = canvasTex.get(base);
+  if (hit) return hit;
+  const n = 128, c = document.createElement('canvas');
+  c.width = c.height = n;
+  const x = c.getContext('2d')!, rnd = mulberry32(base & 0xffff);
+  const col = new THREE.Color(base), hex = (k: number) => `#${col.clone().multiplyScalar(k).getHexString()}`;
+  x.fillStyle = hex(1); x.fillRect(0, 0, n, n);
+  for (let i = 0; i < 260; i++) { x.fillStyle = `rgba(${rnd() > 0.5 ? '255,240,210' : '30,20,10'},${0.04 + rnd() * 0.05})`; x.fillRect(rnd() * n, rnd() * n, 1 + rnd() * 3, 1 + rnd() * 3); }
+  // u (texture x) runs ridge→hem on each slope, both edges are hems; v (texture y) runs along the tent
+  const hem = x.createLinearGradient(0, 0, n, 0);
+  hem.addColorStop(0, 'rgba(25,15,8,0.55)'); hem.addColorStop(0.18, 'rgba(25,15,8,0)'); hem.addColorStop(0.82, 'rgba(25,15,8,0)'); hem.addColorStop(1, 'rgba(25,15,8,0.55)');
+  x.fillStyle = hem; x.fillRect(0, 0, n, n);
+  x.strokeStyle = hex(0.62); x.lineWidth = 1.5;
+  for (let y = 21; y < n; y += 21 + Math.floor(rnd() * 6)) { x.beginPath(); x.moveTo(0, y); x.lineTo(n, y); x.stroke(); }
+  for (let k = 0; k < 2; k++) {
+    const px = 18 + rnd() * 80, py = 10 + rnd() * 90, w = 14 + rnd() * 14, h = 12 + rnd() * 14;
+    x.fillStyle = hex(0.78 + rnd() * 0.35); x.fillRect(px, py, w, h);
+    x.setLineDash([2, 2]); x.strokeStyle = hex(0.45); x.lineWidth = 1; x.strokeRect(px + 1.5, py + 1.5, w - 3, h - 3); x.setLineDash([]);
+  }
+  x.fillStyle = 'rgba(255,245,220,0.12)'; x.fillRect(n / 2 - 2, 0, 4, n); // sun-bleached ridge
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 4;
+  canvasTex.set(base, t);
+  return t;
+}
+
 export function buildTent(seed: number): THREE.Group {
-  // canvas draped over a ridge: the cross-section sags between pole and pegs, the ends bell outward
+  // canvas draped over a ridge: the cross-section sags between pole and pegs, the ends bell outward,
+  // and soft folds run down the slopes; guy ropes pin the ridge and the skirts to pegs
   const rnd = mulberry32(seed);
   const g = new THREE.Group();
-  const geo = new THREE.PlaneGeometry(2.8, 3.2, 14, 12);
+  const geo = new THREE.PlaneGeometry(2.8, 3.2, 16, 14);
   const pos = geo.getAttribute('position') as THREE.BufferAttribute;
+  const ph = rnd() * 6;
   for (let i = 0; i < pos.count; i++) {
     const u = pos.getX(i) / 1.4, v = pos.getY(i) / 1.6; // u: -1..1 across, v: -1..1 along
     const across = Math.abs(u);
-    const sag = Math.sin(across * Math.PI) * 0.18; // cloth droops between ridge and ground
+    const sag = Math.sin(across * Math.PI) * 0.2 + Math.sin(across * Math.PI) * (1 - v * v) * 0.08; // droops most mid-span
+    const fold = Math.sin(v * 9 + ph + u * 2) * 0.05 * across; // folds deepen toward the hem
     const flare = 1 + Math.abs(v) ** 3 * 0.12;
-    pos.setXYZ(i, Math.sign(u) * across * 1.35 * flare, (1 - across) * 1.95 - sag - Math.abs(v) ** 4 * 0.12, v * 1.55);
+    pos.setXYZ(i, Math.sign(u) * (across * 1.35 * flare + fold), (1 - across) * 1.95 - sag - Math.abs(v) ** 4 * 0.12, v * 1.55);
   }
   geo.computeVertexNormals();
-  const cloth = mesh(geo, mat(rnd() > 0.5 ? 0x8a5a44 : 0x6f6450, { side: THREE.DoubleSide }));
+  const base = rnd() > 0.5 ? 0x9a6a50 : 0x7d725c;
+  const clothMat = new THREE.MeshStandardMaterial({ color: 0xffffff, map: tentCloth(base), roughness: 0.95, side: THREE.DoubleSide });
+  const cloth = mesh(geo, clothMat);
   const back = mesh(new THREE.CircleGeometry(1.1, 3, Math.PI / 6), mat(0x5a4a3a, { side: THREE.DoubleSide }));
   back.scale.set(1.2, 1.0, 1);
   back.position.set(0, 0.55, -1.5);
-  const flap = mesh(new THREE.CircleGeometry(0.7, 3, Math.PI / 6), mat(0x2a211b, { side: THREE.DoubleSide }));
-  flap.position.set(0, 0.36, 1.52);
-  const ridge = mesh(new THREE.CylinderGeometry(0.035, 0.035, 3.4, 8), mat('woodDark'));
+  // front: two door flaps tied back, dark interior and a bedroll just inside
+  const dark = mesh(new THREE.CircleGeometry(0.7, 3, Math.PI / 6), mat(0x17110c, { side: THREE.DoubleSide }));
+  dark.position.set(0, 0.36, 1.45);
+  for (const sx of [-1, 1]) {
+    const f = mesh(new THREE.CircleGeometry(0.42, 3, Math.PI / 6), mat(base, { side: THREE.DoubleSide }));
+    f.scale.set(0.6, 1.1, 1);
+    f.position.set(sx * 0.55, 0.5, 1.56);
+    f.rotation.set(0, sx * 0.5, sx * 0.25);
+    g.add(f);
+  }
+  const roll = mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.7, 10), mat(0x5d6b4a));
+  roll.rotation.z = Math.PI / 2;
+  roll.position.set(0.1, 0.16, 0.9);
+  const ridge = mesh(new THREE.CylinderGeometry(0.035, 0.035, 3.6, 8), mat('woodDark'));
   ridge.rotation.x = Math.PI / 2;
   ridge.position.y = 1.95;
   const poleF = mesh(new THREE.CylinderGeometry(0.045, 0.05, 2.2, 8), mat('woodDark'));
   poleF.position.set(0, 1.0, 1.62);
   const poleB = poleF.clone();
   poleB.position.z = -1.62;
-  g.add(cloth, back, flap, ridge, poleF, poleB);
+  g.add(cloth, back, dark, roll, ridge, poleF, poleB);
+  // guy ropes to pegs
+  const ropeMat = mat(0xc9b28a), pegMat = mat('woodDark');
+  const rope = (a: THREE.Vector3, b: THREE.Vector3) => {
+    const len = a.distanceTo(b);
+    const r = mesh(new THREE.CylinderGeometry(0.012, 0.012, len, 4), ropeMat, false);
+    r.position.copy(a).add(b).multiplyScalar(0.5);
+    r.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize());
+    const peg = mesh(new THREE.CylinderGeometry(0.03, 0.02, 0.22, 5), pegMat, false);
+    peg.position.copy(b).setY(0.06);
+    peg.rotation.set(0.3, 0, 0.2);
+    g.add(r, peg);
+  };
+  for (const z of [1.8, -1.8]) rope(new THREE.Vector3(0, 1.98, z), new THREE.Vector3(0, 0.02, z * 1.55));
+  for (const sx of [-1, 1]) for (const z of [-0.9, 0.9]) rope(new THREE.Vector3(sx * 0.95, 0.62, z), new THREE.Vector3(sx * 2.0, 0.02, z * 1.15));
   return g;
 }
 
