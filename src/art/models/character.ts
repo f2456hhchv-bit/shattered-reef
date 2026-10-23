@@ -13,7 +13,7 @@ export interface HumanoidLook {
   hat: PalKey | number;
   hair: PalKey | number;
   hatStyle?: 'tricorn' | 'bandana' | 'cap' | 'none';
-  held?: 'cutlass' | 'musket' | 'hammer' | 'none';
+  held?: 'cutlass' | 'musket' | 'hammer' | 'pistol' | 'staff' | 'none';
   beard?: boolean;
   apron?: PalKey | number;
   spectacles?: boolean;
@@ -170,6 +170,19 @@ export function buildHumanoid(look: HumanoidLook): HumanoidRig {
     const stock = mesh(new THREE.BoxGeometry(0.07, 0.12, 0.45), mat('wood'));
     stock.position.set(0, -0.03, -0.05);
     held.add(barrel, stock);
+  } else if (kind === 'pistol') {
+    const barrel = mesh(new THREE.CylinderGeometry(0.03, 0.035, 0.45, 6), mat('iron'));
+    barrel.rotation.x = Math.PI / 2;
+    barrel.position.set(0, 0.03, 0.28);
+    const grip = mesh(new THREE.BoxGeometry(0.06, 0.16, 0.1), mat('wood'));
+    grip.position.set(0, -0.05, 0.02);
+    held.add(barrel, grip);
+  } else if (kind === 'staff') {
+    const pole = mesh(new THREE.CylinderGeometry(0.03, 0.04, 1.5, 5), mat('wood'));
+    pole.position.set(0, 0.25, 0.08);
+    const orb = mesh(new THREE.IcosahedronGeometry(0.1, 0), mat(0x59d0c4, { emissive: 0x59d0c4, emissiveIntensity: 1.2 }), false);
+    orb.position.set(0, 1.05, 0.08);
+    held.add(pole, orb);
   } else if (kind === 'hammer') {
     const haft = mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.45, 5), mat('wood'));
     haft.rotation.x = Math.PI / 2;

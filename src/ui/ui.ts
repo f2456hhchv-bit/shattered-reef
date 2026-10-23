@@ -1,5 +1,6 @@
 import { item, RARITY, AFFIXES, type Slot, type SkillId } from '../game/data/items';
-import { SKILLS, UNLOCKS, RECIPES, SHOP, ELITE_AFFIXES, type Station } from '../game/data/content';
+import { SKILLS, UNLOCKS, RECIPES, SHOP, ELITE_AFFIXES, PLAYER_BASE, SPELLS, type Station } from '../game/data/content';
+import type { Stance } from '../game/sim/gear';
 import { NPCS, QUESTS } from '../game/data/quests';
 import { PLACES, WORLD_HALF, coastDist, nearestPathDist, FLATS } from '../game/world/island';
 import { count, displayName, type Stack } from '../game/sim/inventory';
@@ -17,7 +18,11 @@ const TABS: { id: Tab; name: string; key: string }[] = [
   { id: 'map', name: 'Map', key: 'M' },
   { id: 'settings', name: 'Settings', key: 'O' },
 ];
-const SLOT_ORDER: Slot[] = ['weapon', 'head', 'body', 'ring'];
+const SLOT_ORDER: Slot[] = ['weapon', 'ammo', 'head', 'body', 'ring'];
+const signed = (n: number) => (n > 0 ? `+${n}` : String(n));
+const WHIRL = '<svg viewBox="0 0 32 32"><path d="M16 4a12 12 0 0 1 11 7l-5-1M28 16a12 12 0 0 1-7 11l1-5M16 28a12 12 0 0 1-11-7l5 1M4 16a12 12 0 0 1 7-11l-1 5" fill="none" stroke="#e9e5d5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="16" cy="16" r="4" fill="#c9a050" stroke="#1a120a" stroke-width="2"/></svg>';
+const ROLL = '<svg viewBox="0 0 32 32"><path d="M6 22c0-8 6-14 13-14 4 0 7 2 7 2" fill="none" stroke="#e9e5d5" stroke-width="3.2" stroke-linecap="round"/><path d="M22 4l5 6-7 2" fill="none" stroke="#e9e5d5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 27h12" stroke="#c9a050" stroke-width="3" stroke-linecap="round"/></svg>';
+const SQUALL = '<svg viewBox="0 0 32 32"><path d="M4 11c6-4 12 4 18 0M4 17c6-4 12 4 18 0M8 23c6-4 10 3 16 0" fill="none" stroke="#59d0c4" stroke-width="3" stroke-linecap="round"/><circle cx="26" cy="9" r="3" fill="#e9e5d5" stroke="#1a120a" stroke-width="1.5"/></svg>';
 const PISTOL = '<svg viewBox="0 0 32 32"><path d="M4 12h18l4-3h3v6h-3l-2 2h-6l-3 9H8l2-8H4z" fill="#9aa0a4" stroke="#1a120a" stroke-width="2" stroke-linejoin="round"/><path d="M12 17l-2 7" stroke="#8a6440" stroke-width="3"/></svg>';
 
 const h = (tag: string, attrs: Record<string, string> = {}, html = '') => {
@@ -48,6 +53,7 @@ export class UI {
   private playerBar!: HTMLElement;
   private bannerT = 0;
   private portrait = false;
+  private lastPointer = '';
   onSave: () => void = () => {};
   onReset: () => void = () => {};
   onQuality: (q: 'high' | 'low') => void = () => {};
@@ -89,12 +95,20 @@ export class UI {
     const col = add('collapse', h('button', { class: 'btn', 'aria-label': 'Toggle side panel' }, '›'));
     col.addEventListener('click', () => { this.sideOpen = !this.sideOpen; this.layout(); });
     const actions = add('actions', h('div'));
-    const ab = h('button', { id: 'ability', class: 'round', 'aria-label': 'Flintlock shot (Space)', title: 'Flintlock shot (Space)' }, `${PISTOL}<div class="cd"></div>`);
-    ab.addEventListener('click', () => this.game.useAbility());
+    const mk = (id: string, label: string, icon: string, fn: () => void) => {
+      const b = h('button', { id, class: 'round ability', 'aria-label': label, title: label }, `${icon}<div class="cd"></div>`);
+      b.addEventListener('click', fn);
+      this.el[id] = b;
+      return b;
+    };
+    const roll = mk('ab-roll', 'Dodge roll (Space)', ROLL, () => this.game.useRoll());
+    const special = mk('ab-special', 'Special attack (R)', WHIRL, () => this.game.useSpecial());
     const ctx = h('button', { id: 'ctx', class: 'round', 'aria-label': 'Interact (E)' }, '<span></span><small></small>');
     ctx.addEventListener('click', () => { const t = this.game.contextTarget(); if (t) this.game.interact(t.key); });
-    actions.append(ab, ctx);
-    this.el.ability = ab;
+    const abil = h('div', { id: 'abilities' });
+    abil.append(roll, special);
+    actions.append(abil, ctx);
+    this.el.abilities = abil;
     this.el.ctx = ctx;
     add('hover', h('div')).hidden = true;
     add('stick', h('div', {}, '<i></i>')).hidden = true;
@@ -118,7 +132,11 @@ export class UI {
     const cv = this.el.mm.querySelector('canvas') as HTMLCanvasElement;
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     cv.width = cv.height = Math.round(mm * dpr);
-    requestAnimationFrame(() => this.r.resize());
+    requestAnimationFrame(() => {
+      this.r.resize();
+      const content = this.el.content;
+      this.r.coveredBottom = this.portrait && this.sideOpen ? content.getBoundingClientRect().height + 20 : 0;
+    });
   }
 
   selectTab(t: Tab, user: boolean) {
@@ -154,6 +172,7 @@ export class UI {
       case 'openStation': this.openStation(e.station); break;
       case 'openShop': this.openShop(); break;
       case 'hit': this.damageNumber(e.x, e.z, e.amount, e.target === 'player', e.crit); break;
+      case 'dodge': this.damageNumber(e.x, e.z, 'Dodged', false, true); break;
       case 'boss': if (e.state === 'defeat') this.banner('Guardian defeated', 'The Broken Ring falls silent'); break;
       case 'board': this.closeWindows(); break;
     }
@@ -201,7 +220,7 @@ export class UI {
     const hp = this.el.hp;
     (hp.querySelector('.fill') as HTMLElement).style.transform = `scaleX(${Math.max(0, p.hp / g.stats.maxHp)})`;
     (hp.querySelector('.txt') as HTMLElement).textContent = `${Math.ceil(p.hp)}`;
-    document.getElementById('cbl')!.textContent = String(g.stats.level);
+    document.getElementById('cbl')!.textContent = String(g.stats.combatLevel);
     // context + ability
     const t = g.contextTarget();
     const ctx = this.el.ctx as HTMLButtonElement;
@@ -211,10 +230,20 @@ export class UI {
       (ctx.querySelector('small') as HTMLElement).textContent = t.label;
       ctx.setAttribute('aria-label', `${t.verb} ${t.label} (E)`);
     }
-    const ab = this.el.ability;
-    ab.classList.toggle('off', g.p.onShip || g.abilityCd > 0);
-    ab.hidden = g.p.onShip;
-    (ab.querySelector('.cd') as HTMLElement).style.setProperty('--cd', `${(g.abilityCd / 7) * 360}deg`);
+    const sp = g.specialInfo();
+    const spBtn = this.el['ab-special'];
+    if (spBtn.dataset.style !== g.stats.style) {
+      spBtn.dataset.style = g.stats.style;
+      spBtn.innerHTML = `${g.stats.style === 'melee' ? WHIRL : g.stats.style === 'ranged' ? PISTOL : SQUALL}<div class="cd"></div>`;
+    }
+    spBtn.title = `${sp.name} (R)${sp.block ? ' · ' + sp.block : ''}`;
+    spBtn.setAttribute('aria-label', spBtn.title);
+    const abs: [HTMLElement, number, number, boolean][] = [[this.el['ab-roll'], g.rollCd, PLAYER_BASE.rollCooldown, false], [spBtn, g.specialCd, sp.cooldown, !!sp.block]];
+    for (const [b, cd, max, blocked] of abs) {
+      b.classList.toggle('off', cd > 0 || blocked);
+      (b.querySelector('.cd') as HTMLElement).style.setProperty('--cd', `${(cd / max) * 360}deg`);
+    }
+    this.el.abilities.hidden = g.p.onShip || g.dead > 0;
     // boss bar
     const bb = this.el.bossbar;
     if (g.boss && g.boss.alive) {
@@ -245,7 +274,7 @@ export class UI {
   }
 
   // ------------------------------------------------------------------ overlay: damage numbers, bars, tags
-  private damageNumber(x: number, z: number, amount: number, player: boolean, crit: boolean) {
+  private damageNumber(x: number, z: number, amount: number | string, player: boolean, crit: boolean) {
     if (!this.game.s.settings.showDamage) return;
     let d = this.dmgPool.find((q) => !q.live);
     if (!d) {
@@ -328,7 +357,12 @@ export class UI {
     const c = this.el.content;
     switch (this.tab) {
       case 'pack': c.innerHTML = this.packHtml(); this.bindSlots(c); break;
-      case 'gear': c.innerHTML = this.gearHtml(); this.bindSlots(c); break;
+      case 'gear':
+        c.innerHTML = this.gearHtml();
+        this.bindSlots(c);
+        c.querySelectorAll<HTMLButtonElement>('[data-stance]').forEach((b) => b.addEventListener('click', () => this.game.setStance(b.dataset.stance as Stance)));
+        c.querySelectorAll<HTMLButtonElement>('[data-spell]').forEach((b) => b.addEventListener('click', () => this.game.setSpell(b.dataset.spell!)));
+        break;
       case 'skills': c.innerHTML = this.skillsHtml(); break;
       case 'quests': c.innerHTML = this.questsHtml(); break;
       case 'map': c.innerHTML = '<h2 class="title">Bellwether Isle</h2><canvas id="mapbig" width="600" height="600" aria-label="Island map. Tap to walk there."></canvas><p class="muted" style="font-size:12px;margin:8px 0 0">Gold star: quest objective. Tap the map to walk there.</p>'; this.bindBigMap(); this.drawBigMap(); break;
@@ -355,35 +389,51 @@ export class UI {
   private gearHtml() {
     const g = this.game, st = g.stats;
     const slots = SLOT_ORDER.map((sl) => this.slotHtml(g.p.equip[sl] ?? null, `data-equip="${sl}"`, sl)).join('');
-    const pct = (v: number) => `${Math.round(v * 100)}%`;
+    const stance = g.s.combat.stance;
+    const stanceLabel: Record<Stance, [string, string]> = st.style === 'melee'
+      ? { accurate: ['Accurate', 'Attack XP'], aggressive: ['Aggressive', 'Strength XP'], defensive: ['Defensive', 'Defence XP'] }
+      : st.style === 'ranged'
+        ? { accurate: ['Accurate', 'Ranged XP'], aggressive: ['Rapid', 'Ranged XP, faster'], defensive: ['Longrange', 'Ranged + Defence XP'] }
+        : { accurate: ['Accurate', 'Magic XP'], aggressive: ['Focused', 'Magic XP'], defensive: ['Defensive', 'Magic + Defence XP'] };
+    const stances = (['accurate', 'aggressive', 'defensive'] as Stance[]).map((k) => `<button data-stance="${k}" class="${stance === k ? 'on' : ''}"><b>${stanceLabel[k][0]}</b><small>${stanceLabel[k][1]}</small></button>`).join('');
+    const spells = st.style === 'magic' ? `<div class="toggle"><span>Spell</span><span class="seg">${SPELLS.map((sp) => `<button data-spell="${sp.id}" class="${st.spell?.id === sp.id ? 'on' : ''}" ${g.level('magic') < sp.level ? 'disabled' : ''}>${sp.name} (${sp.level})</button>`).join('')}</span></div>` : '';
+    const ammo = st.style === 'ranged' ? (g.p.equip.ammo ? `${fmt(g.p.equip.ammo.qty)} × ${esc(item(g.p.equip.ammo.id).name)}` : '<span class="miss">No shot equipped</span>')
+      : st.style === 'magic' ? `${fmt(count(g.p.inv, 'charm_tide'))} tide charms (${st.spell?.charms ?? 1} per cast)` : '';
+    const sp = g.specialInfo();
     const rows: [string, string][] = [
-      ['Combat level', String(st.level)], ['Max health', String(st.maxHp)], ['Damage', `${st.damage[0]}–${st.damage[1]}`],
-      ['Swing time', `${st.swing.toFixed(2)}s`], ['Critical chance', pct(st.crit)], ['Armour', String(st.armour)],
+      ['Combat level', String(st.combatLevel)], ['Style', cap(st.style)], ['Max hit', String(st.maxHit)], ['Attack speed', `${st.speed.toFixed(1)}s`],
+      ['Accuracy roll', fmt(st.attRoll)], ['Defence vs melee', signed(st.def.melee)], ['Defence vs ranged', signed(st.def.ranged)], ['Defence vs magic', signed(st.def.magic)],
+      ['Special', `${sp.name}${sp.block ? ` (${sp.block.toLowerCase()})` : ''}`],
     ];
+    const pct = (v: number) => `${Math.round(v * 100)}%`;
+    if (st.crit) rows.push(['Max-hit chance', pct(st.crit)]);
     if (st.cleave) rows.push(['Cleave', pct(st.cleave)]);
     if (st.eliteDmg) rows.push(['Vs elites & bosses', `+${pct(st.eliteDmg)}`]);
     if (st.leech) rows.push(['Leech', pct(st.leech)]);
-    if (st.regen) rows.push(['Regen', `+${st.regen} / 5s`]);
     if (st.gather) rows.push(['Gathering', `+${pct(st.gather)}`]);
     if (st.xpBonus) rows.push(['Skill XP', `+${pct(st.xpBonus)}`]);
-    return `<h2 class="title">Equipment</h2><div class="equip">${slots}</div><div class="brass-rule"></div><div class="stats">${rows.map(([a, b]) => `<span>${a}</span><span>${b}</span>`).join('')}</div>
-      <div class="brass-rule"></div><p class="muted" style="font-size:12px;margin:0">Flintlock shot: ${7}s cooldown, 13m range. Damage grows with combat level.</p>`;
+    return `<h2 class="title">Equipment</h2><div class="equip five">${slots}</div>
+      <h2 class="title" style="font-size:13px">Stance</h2><div class="stances">${stances}</div>${spells}
+      ${ammo ? `<p class="muted" style="margin:6px 0;font-size:13px">Ammo: ${ammo}</p>` : ''}
+      <div class="brass-rule"></div><div class="stats">${rows.map(([a, b]) => `<span>${a}</span><span>${b}</span>`).join('')}</div>
+      <p class="muted" style="font-size:12px;margin:8px 0 0">Every enemy is weak to one style: melee beats gunners, ranged beats brigands, magic beats crabs and the Guardian.</p>`;
   }
 
   private skillsHtml() {
     const g = this.game;
     let total = 0;
-    const rows = SKILLS.map((s) => {
-      const xp = g.p.xp[s.id], lvl = levelForXp(xp);
+    const row = (sk: (typeof SKILLS)[number]) => {
+      const xp = g.p.xp[sk.id], lvl = levelForXp(xp);
       total += lvl;
-      const next = lvl >= MAX_LEVEL ? 'Maximum level' : `${fmt(xpForLevel(lvl + 1) - xp)} XP to level ${lvl + 1}`;
-      const unlock = UNLOCKS[s.id].find((u) => u.level > lvl);
-      return `<div class="skill"><b style="color:${s.colour}">${s.name}</b><span class="lv">${lvl}</span>
-        <div class="xpbar" style="--c:${s.colour}"><i style="width:${levelProgress(xp) * 100}%"></i></div>
-        <small>${fmt(xp)} XP · ${next}${unlock ? `<br>Next unlock: ${esc(unlock.text)} (${unlock.level})` : ''}</small></div>`;
-    }).join('');
-    return `<div class="row" style="justify-content:space-between"><h2 class="title" style="margin:0">Skills</h2><span class="muted">Total level ${total}</span></div>${rows}
-      <p class="muted" style="font-size:12px">Levels continue past 99 to ${MAX_LEVEL}. XP is capped at 200,000,000.</p>`;
+      const next = lvl >= MAX_LEVEL ? 'Maximum level' : `${fmt(Math.ceil(xpForLevel(lvl + 1) - xp))} XP to ${lvl + 1}`;
+      const unlock = UNLOCKS[sk.id].find((u) => u.level > lvl);
+      return `<div class="skill" title="${esc(sk.blurb)}"><b style="color:${sk.colour}">${sk.name}</b><span class="lv">${lvl}</span>
+        <div class="xpbar" style="--c:${sk.colour}"><i style="width:${levelProgress(xp) * 100}%"></i></div>
+        <small>${fmt(Math.floor(xp))} XP · ${next}${unlock ? `<br>Next: ${esc(unlock.text)} (${unlock.level})` : ''}</small></div>`;
+    };
+    const groups = (['Combat', 'Gathering', 'Production'] as const).map((grp) => `<h2 class="title" style="font-size:13px;margin:12px 0 0">${grp}</h2>${SKILLS.filter((s) => s.group === grp).map(row).join('')}`).join('');
+    return `<div class="row" style="justify-content:space-between"><h2 class="title" style="margin:0">Skills</h2><span class="muted">Total ${total} · Combat ${g.stats.combatLevel}</span></div>${groups}
+      <p class="muted" style="font-size:12px">RuneScape's XP curve: level 99 needs 13,034,431 XP, and levels continue to ${MAX_LEVEL} (200M XP).</p>`;
   }
 
   questObjective(): { x: number; z: number; text: string } | null {
@@ -422,9 +472,9 @@ export class UI {
       <div class="toggle"><span>Progress saves automatically<br><small class="muted">Last saved ${ago}</small></span><button class="btn" id="saveNow">Save now</button></div>
       <div class="toggle"><span>Start a new voyage<br><small class="muted">Erases this browser's save</small></span><button class="btn" id="resetSave">Reset</button></div>
       <div class="brass-rule"></div><h2 class="title">Controls</h2>
-      ${fine ? `<p>Click to walk, click things to use them. <kbd>WASD</kbd> also moves.<br><kbd>E</kbd> interact · <kbd>Space</kbd> flintlock · <kbd>I</kbd> <kbd>G</kbd> <kbd>K</kbd> <kbd>J</kbd> <kbd>M</kbd> tabs · <kbd>Esc</kbd> close · scroll to zoom.</p>`
-        : '<p>Drag anywhere on the world to move. Tap things to walk to them and use them. The round button does the nearest action. Pinch to zoom.</p>'}
-      <p class="muted" style="font-size:12px">Your cutlass swings automatically at anything in reach. Keep moving to dodge red markers on the ground.</p>`;
+      ${fine ? `<p>Click to walk, click things to use them. <kbd>WASD</kbd> also moves.<br><kbd>E</kbd> interact · <kbd>Space</kbd> dodge roll · <kbd>R</kbd> special attack · <kbd>I</kbd> <kbd>G</kbd> <kbd>K</kbd> <kbd>J</kbd> <kbd>M</kbd> tabs · <kbd>Esc</kbd> close · scroll to zoom.</p>`
+        : '<p>Drag anywhere on the world to move. Tap things to walk to them and use them. The big round button does the nearest action; the two smaller ones are dodge roll and the special attack for your weapon. Pinch to zoom.</p>'}
+      <p class="muted" style="font-size:12px">Your cutlass swings automatically at anything in reach. Pick a stance in Equipment to choose which skill you train. Roll through red markers to take no damage.</p>`;
   }
 
   private bindSettings(c: HTMLElement) {
@@ -438,12 +488,15 @@ export class UI {
   private bindSlots(c: HTMLElement) {
     c.querySelectorAll<HTMLButtonElement>('[data-slot]').forEach((b) => {
       const i = Number(b.dataset.slot);
-      b.addEventListener('click', (ev) => {
+      // Some mobile browsers report taps as 'mouse' on the click event, so trust pointerdown instead.
+      b.addEventListener('pointerdown', (ev) => { this.lastPointer = ev.pointerType; });
+      b.addEventListener('click', () => {
         const st = this.game.p.inv[i];
         if (!st) return;
-        const fine = (ev as PointerEvent).pointerType === 'mouse' || (ev as MouseEvent).detail === 0 && matchMedia('(pointer: fine)').matches;
-        if (this.shopOpen) { this.openPop({ slot: i }, b); return; }
-        if (fine) { this.game.useSlot(i); return; }
+        const d = item(st.id);
+        const mouse = this.lastPointer === 'mouse';
+        // mouse: left-click eats/equips directly (RuneScape-style); everything else opens the details panel
+        if (mouse && !this.shopOpen && (d.heal || d.equip)) { this.game.useSlot(i); return; }
         this.openPop({ slot: i }, b);
       });
       b.addEventListener('contextmenu', (ev) => { ev.preventDefault(); if (this.game.p.inv[i]) this.openPop({ slot: i }, b); });
@@ -479,9 +532,19 @@ export class UI {
     const rar = st.inst ? RARITY[st.inst.rarity] : null;
     const e = d.equip;
     const lines: string[] = [];
-    if (e?.damage) lines.push(`Damage ${e.damage[0]}–${e.damage[1]}, swing ${e.speed}s`);
-    if (e?.armour) lines.push(`Armour ${e.armour}`);
-    if (e?.maxHp) lines.push(`+${e.maxHp} max health`);
+    if (e) {
+      const b = e.bonus;
+      if (e.style) lines.push(`${cap(e.style)} weapon · ${e.speed}s${e.range ? ` · range ${e.range}m` : ''}`);
+      const parts: string[] = [];
+      if (b.acc) parts.push(`Accuracy ${signed(b.acc)}`);
+      if (b.str) parts.push(`Strength ${signed(b.str)}`);
+      if (b.rangedStr) parts.push(`Ranged strength ${signed(b.rangedStr)}`);
+      if (b.magicDmg) parts.push(`Magic damage +${b.magicDmg}%`);
+      if (b.defMelee || b.defRanged || b.defMagic) parts.push(`Defence ${signed(b.defMelee ?? 0)} / ${signed(b.defRanged ?? 0)} / ${signed(b.defMagic ?? 0)} (melee / ranged / magic)`);
+      lines.push(...parts);
+      const reqs = Object.entries(e.reqs).filter(([, v]) => (v ?? 0) > 1).map(([k, v]) => `${cap(k)} ${v}`);
+      if (reqs.length) lines.push(`Requires ${reqs.join(', ')}`);
+    }
     if (d.heal) lines.push(`Heals ${d.heal}`);
     if (d.tool) lines.push(`${cap(d.tool.skill)} tool, power ${d.tool.power}${d.tool.level > 1 ? `, needs level ${d.tool.level}` : ''}`);
     const affixes = (st.inst?.affixes ?? []).map((a) => `<li>${esc(AFFIXES[a.id].fmt(a.v))}</li>`).join('');
@@ -555,7 +618,7 @@ export class UI {
 
   private renderStation() {
     const g = this.game, st = this.station!;
-    const title = st === 'furnace' ? 'Furnace: smelt bars' : st === 'anvil' ? 'Anvil: forge' : 'Cookfire: cook';
+    const title = st === 'furnace' ? 'Furnace: smelt bars' : st === 'anvil' ? 'Anvil: forge' : st === 'bench' ? 'Gunsmith\'s bench' : 'Cookfire: cook';
     const rows = RECIPES.filter((r) => r.station === st).map((r) => {
       const block = g.recipeBlock(r);
       const max = Math.min(...r.inputs.map((i) => Math.floor(count(g.p.inv, i.id) / i.qty)));
@@ -580,9 +643,9 @@ export class UI {
   private renderShop() {
     const g = this.game;
     const coins = count(g.p.inv, 'coins');
-    const rows = SHOP.stock.map((id) => {
+    const rows = SHOP.stock.map(({ id, qty }) => {
       const price = g.buyPrice(id);
-      return `<div class="recipe"><img src="${itemIcon(id)}" alt=""><div><b>${esc(item(id).name)}</b><div class="need">${esc(item(id).desc)}</div></div><div class="btns"><button class="btn primary" data-buy="${id}" ${coins < price ? 'disabled' : ''}>Buy ${price}c</button></div></div>`;
+      return `<div class="recipe"><img src="${itemIcon(id)}" alt=""><div><b>${qty > 1 ? `${qty} × ` : ''}${esc(item(id).name)}</b><div class="need">${esc(item(id).desc)}</div></div><div class="btns"><button class="btn primary" data-buy="${id}" ${coins < price ? 'disabled' : ''}>Buy ${price}c</button></div></div>`;
     }).join('');
     const el = this.win('shopwin', SHOP.name, `<p class="muted" style="margin-top:0">You have ${fmt(coins)} coins. To sell, tap an item in your pack.</p>${rows}`);
     el.querySelectorAll<HTMLButtonElement>('[data-buy]').forEach((b) => b.addEventListener('click', () => g.buy(b.dataset.buy!)));

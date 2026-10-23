@@ -147,7 +147,8 @@ export class Input {
         if (t) g.interact(t.key);
         break;
       }
-      case ' ': case 'f': e.preventDefault(); g.useAbility(); break;
+      case ' ': e.preventDefault(); g.useRoll(); break;
+      case 'r': case 'f': g.useSpecial(); break;
       case 'i': case 'b': this.ui.selectTab('pack', true); break;
       case 'g': this.ui.selectTab('gear', true); break;
       case 'k': this.ui.selectTab('skills', true); break;

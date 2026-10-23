@@ -124,6 +124,24 @@ function paint(c: Ctx, shape: string, col: string, acc?: string) {
       poly(c, [[22, 10], [42, 10], [46, 26], [38, 56], [32, 40], [26, 56], [18, 26]], col);
       poly(c, [[29, 22], [35, 22], [35, 34], [29, 34]], acc ?? '#59d0c4', 'transparent');
       break;
+    case 'pistol':
+      poly(c, [[8, 26], [44, 22], [48, 30], [12, 34]], acc ?? '#9aa0a4');
+      poly(c, [[30, 28], [46, 26], [52, 48], [40, 54], [34, 36]], col);
+      poly(c, [[44, 18], [50, 18], [50, 24], [44, 24]], '#3b3f42');
+      break;
+    case 'shot':
+      for (const [x, y] of [[22, 40], [38, 40], [30, 28], [44, 26], [18, 26]]) { ellipse(c, x, y, 7, 7, col); ellipse(c, x - 2, y - 2, 2.5, 2.5, hi); }
+      break;
+    case 'staff':
+      poly(c, [[14, 58], [42, 14], [46, 16], [18, 60]], col);
+      ellipse(c, 46, 13, 8, 8, acc ?? '#59d0c4');
+      ellipse(c, 44, 11, 3, 3, '#e9fbf8');
+      break;
+    case 'charm':
+      poly(c, [[32, 8], [46, 26], [32, 56], [18, 26]], col);
+      poly(c, [[32, 8], [40, 20], [32, 26], [24, 20]], hi, 'transparent');
+      c.beginPath(); c.moveTo(14, 30); c.quadraticCurveTo(32, 44, 50, 30); c.lineWidth = 3; c.strokeStyle = acc ?? '#2a7f78'; c.stroke();
+      break;
     case 'shell':
       poly(c, [[10, 46], [18, 22], [32, 12], [46, 22], [54, 46]], col);
       for (const x of [20, 32, 44]) { c.beginPath(); c.moveTo(32, 14); c.lineTo(x, 46); c.lineWidth = 2; c.strokeStyle = lo; c.stroke(); }

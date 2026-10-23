@@ -1,12 +1,12 @@
 import { mulberry32 } from '../../art/noise';
-import { item, type Slot, type SkillId } from '../data/items';
-import { NODES, RECIPES, ENEMIES, LOOT, ELITE_AFFIXES, SHOP, PLAYER_BASE, type EnemyDef, type Recipe, type Station } from '../data/content';
+import { item, type Slot, type SkillId, type CombatStyle } from '../data/items';
+import { NODES, RECIPES, ENEMIES, LOOT, ELITE_AFFIXES, SHOP, PLAYER_BASE, COMBAT_SKILLS, XP_PER_DAMAGE, type EnemyDef, type Recipe, type Station } from '../data/content';
 import { NPCS, QUESTS, type DialogueNode, type Effect } from '../data/quests';
 import { PLACES } from '../world/island';
 import { buildIsland, type IslandLayout } from '../world/layout';
 import type { World } from '../world/world';
 import { add, canAdd, count, remove, displayName, stackValue, type Stack } from './inventory';
-import { computeStats, makeInstance, mitigate, rollRarity, type PlayerStats } from './gear';
+import { computeStats, makeInstance, rollRarity, hitChance, reqBlock, type PlayerStats, type Stance } from './gear';
 import { levelForXp, MAX_XP } from './xp';
 import { defaultSave, SAVE_VERSION, type SaveData } from './save';
 
@@ -21,6 +21,10 @@ export type GameEvent =
   | { type: 'gain'; id: string; qty: number; name: string }
   | { type: 'hit'; target: 'player' | 'enemy'; id: number; amount: number; crit: boolean; x: number; z: number }
   | { type: 'swing' }
+  | { type: 'whirl' }
+  | { type: 'squall' }
+  | { type: 'roll' }
+  | { type: 'dodge'; x: number; z: number }
   | { type: 'shoot'; x: number; z: number; tx: number; tz: number }
   | { type: 'enemyAttack'; id: number }
   | { type: 'enemyDeath'; id: number; x: number; z: number; elite: boolean; boss: boolean }
@@ -59,7 +63,7 @@ export interface Enemy {
 }
 
 export interface Drop { id: number; x: number; z: number; stack: Stack; t: number }
-export interface Projectile { id: number; x: number; z: number; vx: number; vz: number; life: number; damage: number; from: 'player' | 'enemy'; elite?: boolean }
+export interface Projectile { id: number; x: number; z: number; vx: number; vz: number; life: number; damage: number; from: 'player' | 'enemy'; kind?: 'shot' | 'magic'; crit?: boolean; style?: CombatStyle; spellBase?: number; knock?: number }
 export interface Telegraph { id: number; kind: 'circle' | 'cone' | 'line'; x: number; z: number; r: number; angle: number; width: number; t: number; dur: number; damage: number; source: number }
 
 type Action =
@@ -69,9 +73,11 @@ type Action =
 
 export interface Target { key: string; kind: 'node' | 'npc' | 'station' | 'ship' | 'ruin' | 'enemy' | 'drop' | 'mooring'; x: number; z: number; range: number; label: string; verb: string }
 
-const DT_GATHER = 1.4;
-const DT_CRAFT = 1.5;
+// RuneScape's 4-tick rhythm for gathering; production a little quicker.
+const DT_GATHER = 2.4;
+const DT_CRAFT = 1.8;
 const SAFE_RADIUS = 16;
+export const STATION_NAMES: Record<Station, string> = { furnace: 'Furnace', anvil: 'Anvil', fire: 'Cookfire', bench: 'Gunsmith\'s bench' };
 
 export class Game {
   readonly layout: IslandLayout;
@@ -98,7 +104,10 @@ export class Game {
   pending: string | null = null; // interaction to perform on arrival
   action: Action = null;
   attackCd = 0;
-  abilityCd = 0;
+  specialCd = 0;
+  rollCd = 0;
+  rollT = 0; // > 0 while rolling (invulnerable)
+  private rollDir = { x: 0, z: 1 };
   eatCd = 0;
   combatTimer = 99;
   regenTimer = 0;
@@ -144,11 +153,11 @@ export class Game {
   get p() { return this.s.player; }
   get ship() { return this.s.ship; }
   level(skill: SkillId) { return levelForXp(this.p.xp[skill]); }
-  recalc() { this.stats = computeStats(this.p.xp.combat, this.p.equip); this.rev++; }
+  recalc() { this.stats = computeStats(this.p.xp, this.p.equip, this.s.combat.stance, this.s.combat.spell); this.rev++; }
 
   // ------------------------------------------------------------------ xp + items
   addXp(skill: SkillId, amount: number) {
-    const amt = Math.round(amount * (1 + (skill === 'combat' ? 0 : this.stats.xpBonus)));
+    const amt = Math.round(amount * (1 + (COMBAT_SKILLS.includes(skill) ? 0 : this.stats.xpBonus)) * 10) / 10;
     if (amt <= 0) return;
     const before = this.level(skill);
     this.p.xp[skill] = Math.min(MAX_XP, this.p.xp[skill] + amt);
@@ -157,7 +166,7 @@ export class Game {
     if (after > before) {
       this.emit({ type: 'level', skill, level: after });
       this.msg(`${skill[0].toUpperCase()}${skill.slice(1)} level ${after}!`, 'good');
-      if (skill === 'combat') { this.recalc(); this.p.hp = this.stats.maxHp; }
+      if (COMBAT_SKILLS.includes(skill)) { this.recalc(); if (skill === 'hitpoints') this.p.hp = Math.min(this.stats.maxHp, this.p.hp + (after - before)); }
     }
     this.rev++;
   }
@@ -198,7 +207,7 @@ export class Game {
     }
     if (!onShip) {
       for (const n of this.layout.npcs) out.push({ key: `npc:${n.id}`, kind: 'npc', x: n.x, z: n.z, range: 2.2, label: NPCS[n.id].name, verb: NPCS[n.id].shop ? 'Trade' : 'Talk' });
-      for (const st of this.layout.stations) out.push({ key: `station:${st.id}`, kind: 'station', x: st.x, z: st.z, range: 2.3, label: st.id === 'fire' ? 'Cookfire' : st.id === 'furnace' ? 'Furnace' : 'Anvil', verb: st.id === 'fire' ? 'Cook' : st.id === 'furnace' ? 'Smelt' : 'Forge' });
+      for (const st of this.layout.stations) out.push({ key: `station:${st.id}`, kind: 'station', x: st.x, z: st.z, range: 2.3, label: STATION_NAMES[st.id], verb: st.id === 'fire' ? 'Cook' : st.id === 'furnace' ? 'Smelt' : st.id === 'bench' ? 'Craft' : 'Forge' });
       out.push({ key: 'ship', kind: 'ship', x: this.ship.x, z: this.ship.z, range: 4.2, label: 'Your sloop', verb: 'Board' });
       out.push({ key: 'ruin', kind: 'ruin', x: this.layout.plinth.x, z: this.layout.plinth.z, range: 2.2, label: 'Bell hollow', verb: 'Ring' });
       const mo = this.layout.mooring;
@@ -429,8 +438,7 @@ export class Game {
   equipBlock(st: Stack): string | null {
     const e = item(st.id).equip;
     if (!e) return 'Not wearable';
-    if (this.level('combat') < e.level) return `Needs combat level ${e.level}`;
-    return null;
+    return reqBlock(st.id, this.p.xp);
   }
 
   equip(i: number) {
@@ -441,8 +449,8 @@ export class Game {
     const block = this.equipBlock(st);
     if (block) { this.msg(`${block}.`, 'warn'); return; }
     const old = this.p.equip[e.slot];
-    this.p.inv[i] = old ?? null;
-    this.p.equip[e.slot] = st;
+    if (old && old.id === st.id && item(st.id).stackable) { old.qty += st.qty; this.p.inv[i] = null; }
+    else { this.p.inv[i] = old ?? null; this.p.equip[e.slot] = st; }
     this.recalc();
     this.p.hp = Math.min(this.p.hp, this.stats.maxHp);
     this.msg(`You equip the ${displayName(st)}.`);
@@ -451,8 +459,8 @@ export class Game {
   unequip(slot: Slot) {
     const st = this.p.equip[slot];
     if (!st) return;
-    if (!this.p.inv.includes(null)) { this.msg('Your pack is full.', 'warn'); return; }
-    this.p.inv[this.p.inv.indexOf(null)] = st;
+    if (!canAdd(this.p.inv, st.id)) { this.msg('Your pack is full.', 'warn'); return; }
+    add(this.p.inv, st);
     delete this.p.equip[slot];
     this.recalc();
     this.p.hp = Math.min(this.p.hp, this.stats.maxHp);
@@ -472,16 +480,20 @@ export class Game {
     const n = this.layout.npcs.find((x) => x.id === 'marta')!;
     return !this.p.onShip && Math.hypot(n.x - this.p.x, n.z - this.p.z) < 3.5;
   }
-  buyPrice(id: string) { return Math.max(1, Math.ceil(item(id).value * SHOP.buyMul)); }
+  buyPrice(id: string) {
+    const e = SHOP.stock.find((x) => x.id === id);
+    return Math.max(1, Math.ceil(item(id).value * (e?.qty ?? 1) * SHOP.buyMul));
+  }
   sellPrice(st: Stack) { return Math.floor(stackValue(st) * SHOP.sellMul); }
 
   buy(id: string) {
-    if (!this.nearShop() || !SHOP.stock.includes(id)) return;
+    const entry = SHOP.stock.find((x) => x.id === id);
+    if (!this.nearShop() || !entry) return;
     const price = this.buyPrice(id);
     if (count(this.p.inv, 'coins') < price) { this.msg(`You need ${price} coins.`, 'warn'); return; }
     if (!canAdd(this.p.inv, id)) { this.msg('Your pack is full.', 'warn'); return; }
     remove(this.p.inv, 'coins', price);
-    this.give(id, 1);
+    this.give(id, entry.qty);
   }
 
   sell(i: number, all = false) {
@@ -654,40 +666,183 @@ export class Game {
     e.hp = e.maxHp;
   }
 
-  useAbility() {
-    if (this.dead || this.p.onShip || this.abilityCd > 0) return;
-    let best: Enemy | null = null, bd = PLAYER_BASE.abilityRange;
-    for (const e of this.enemies) {
-      if (!e.alive || e.state === 'rise') continue;
-      const d = Math.hypot(e.x - this.p.x, e.z - this.p.z);
-      if (d < bd) { bd = d; best = e; }
+  // ---- stances, ammo, specials -------------------------------------------------
+  setStance(st: Stance) { this.s.combat.stance = st; this.recalc(); }
+  setSpell(id: string) { this.s.combat.spell = id; this.recalc(); }
+
+  /** Why the equipped weapon can't attack right now, or null. */
+  ammoBlock(n = 1): string | null {
+    const st = this.stats;
+    if (st.style === 'ranged') {
+      const a = this.p.equip.ammo;
+      if (!a || a.qty < n) return 'You have no shot in your ammo slot.';
     }
-    if (!best) { this.msg('No target in pistol range.', 'warn'); return; }
-    this.abilityCd = PLAYER_BASE.abilityCooldown;
-    const ang = Math.atan2(best.z - this.p.z, best.x - this.p.x);
-    this.facing = ang;
-    const lvl = this.stats.level;
-    const [a, b] = PLAYER_BASE.abilityDamage;
-    const dmg = Math.round((a + this.rnd() * (b - a)) * (1 + (lvl - 1) * 0.05));
-    this.projectiles.push({ id: this.nextId++, x: this.p.x, z: this.p.z, vx: Math.cos(ang) * 32, vz: Math.sin(ang) * 32, life: 0.6, damage: dmg, from: 'player' });
-    this.emit({ type: 'shoot', x: this.p.x, z: this.p.z, tx: best.x, tz: best.z });
-    this.combatTimer = 0;
+    if (st.style === 'magic' && count(this.p.inv, 'charm_tide') < (st.spell?.charms ?? 1) * n) return 'You need more tide charms to cast.';
+    return null;
   }
 
-  private damageEnemy(e: Enemy, raw: number, crit: boolean) {
+  private consumeAmmo(n = 1) {
+    if (this.stats.style === 'ranged') {
+      const a = this.p.equip.ammo!;
+      a.qty -= n;
+      if (a.qty <= 0) { delete this.p.equip.ammo; this.recalc(); this.msg('You are out of shot.', 'warn'); }
+    } else if (this.stats.style === 'magic') {
+      remove(this.p.inv, 'charm_tide', (this.stats.spell?.charms ?? 1) * n);
+    }
+    this.rev++;
+  }
+
+  private ammoWarned = 0;
+  private warnAmmo(text: string) {
+    if (this.time - this.ammoWarned > 4) { this.ammoWarned = this.time; this.msg(text, 'warn'); }
+  }
+
+  /** Accuracy roll against an enemy's defence for the current style; damage 0..max on a hit. */
+  private rollAgainst(e: Enemy, maxHit = this.stats.maxHit): { dmg: number; crit: boolean } {
+    const st = this.stats;
+    const defLvl = e.def.def + (e.elite === 'barnacled' ? 10 : 0);
+    const defRoll = (defLvl + 9) * (e.def.defBonus[st.style] + 64);
+    if (this.rnd() >= hitChance(st.attRoll, defRoll)) return { dmg: 0, crit: false };
+    const crit = this.rnd() < st.crit;
+    // a successful hit always lands at least 1, so a 0 always means a miss
+    let dmg = crit ? maxHit : 1 + Math.floor(this.rnd() * maxHit);
+    if ((e.elite || e.def.boss) && dmg > 0) dmg = Math.round(dmg * (1 + st.eliteDmg));
+    return { dmg, crit };
+  }
+
+  /** RuneScape XP: 4 per damage to the trained skill(s), 1.33 to Hitpoints; spells add base XP. */
+  private combatXp(dmg: number, style: CombatStyle, spellBase = 0) {
+    const tr = this.stats.trains;
+    if (style === 'magic') {
+      this.addXp('magic', spellBase + dmg * XP_PER_DAMAGE.magic);
+      if (tr.includes('defence') && dmg > 0) this.addXp('defence', dmg * 1);
+    } else if (dmg > 0) {
+      const each = XP_PER_DAMAGE.style / tr.length;
+      for (const k of tr) this.addXp(k, dmg * each);
+    }
+    if (dmg > 0) this.addXp('hitpoints', dmg * XP_PER_DAMAGE.hitpoints);
+  }
+
+  private nearestEnemy(range: number, from = { x: this.p.x, z: this.p.z }): Enemy | null {
+    let best: Enemy | null = null, bd = range;
+    for (const e of this.enemies) {
+      if (!e.alive || e.state === 'rise') continue;
+      const d = Math.hypot(e.x - from.x, e.z - from.z) - e.def.radius;
+      if (d < bd) { bd = d; best = e; }
+    }
+    return best;
+  }
+
+  /** One normal attack with whatever is equipped. Returns false if it couldn't fire. */
+  private performAttack(t: Enemy): boolean {
+    const st = this.stats;
+    if (st.style === 'melee') {
+      this.emit({ type: 'swing' });
+      const r = this.rollAgainst(t);
+      const tx = t.x, tz = t.z;
+      this.damageEnemy(t, r.dmg, r.crit, 'melee', 0.35);
+      if (st.cleave > 0 && r.dmg > 0) {
+        for (const e of this.enemies) if (e !== t && e.alive && Math.hypot(e.x - tx, e.z - tz) < 2.2) this.damageEnemy(e, Math.max(1, Math.round(r.dmg * st.cleave)), false, 'melee', 0.2);
+      }
+      return true;
+    }
+    const block = this.ammoBlock();
+    if (block) { this.warnAmmo(block); return false; }
+    this.consumeAmmo();
+    this.fireAt(t, this.rollAgainst(t), st.style, st.spell?.baseXp ?? 0);
+    return true;
+  }
+
+  private fireAt(t: Enemy, r: { dmg: number; crit: boolean }, style: CombatStyle, spellBase: number, angleOffset = 0, knock = 0.2) {
+    const ang = Math.atan2(t.z - this.p.z, t.x - this.p.x) + angleOffset;
+    this.facing = ang;
+    const speed = style === 'magic' ? 18 : 30;
+    const dist = Math.hypot(t.x - this.p.x, t.z - this.p.z) + 1.5;
+    this.projectiles.push({ id: this.nextId++, x: this.p.x, z: this.p.z, vx: Math.cos(ang) * speed, vz: Math.sin(ang) * speed, life: dist / speed, damage: r.dmg, from: 'player', kind: style === 'magic' ? 'magic' : 'shot', crit: r.crit, style, spellBase, knock });
+    this.emit({ type: 'shoot', x: this.p.x, z: this.p.z, tx: t.x, tz: t.z });
+  }
+
+  /** Special attack: depends on the weapon type (Whirl, Scatter shot, Squall). */
+  specialInfo(): { name: string; cooldown: number; block: string | null } {
+    const st = this.stats, sp = PLAYER_BASE.special[st.style];
+    let block: string | null = null;
+    if (this.level(sp.skill) < sp.level) block = `Needs ${sp.skill[0].toUpperCase() + sp.skill.slice(1)} level ${sp.level}`;
+    else if (st.style === 'ranged') block = this.ammoBlock(PLAYER_BASE.special.ranged.shots);
+    else if (st.style === 'magic' && count(this.p.inv, 'charm_tide') < PLAYER_BASE.special.magic.charms) block = 'Needs 3 tide charms';
+    return { name: sp.name, cooldown: sp.cooldown, block };
+  }
+
+  useSpecial() {
+    if (this.dead || this.p.onShip || this.specialCd > 0) return;
+    const info = this.specialInfo();
+    if (info.block) { this.msg(`${info.name}: ${info.block.toLowerCase()}.`, 'warn'); return; }
+    const st = this.stats;
+    this.combatTimer = 0;
+    if (st.style === 'melee') {
+      const sp = PLAYER_BASE.special.melee;
+      this.specialCd = sp.cooldown;
+      this.emit({ type: 'whirl' });
+      let hit = 0;
+      for (const e of [...this.enemies]) {
+        if (!e.alive || e.state === 'rise') continue;
+        if (Math.hypot(e.x - this.p.x, e.z - this.p.z) > sp.radius + e.def.radius) continue;
+        const r = this.rollAgainst(e, Math.max(1, Math.round(st.maxHit * sp.mul)));
+        this.damageEnemy(e, r.dmg, r.crit, 'melee', 1.4);
+        hit++;
+      }
+      if (!hit) this.msg('Your whirl hits only air.');
+    } else if (st.style === 'ranged') {
+      const sp = PLAYER_BASE.special.ranged;
+      const t = this.nearestEnemy(st.range + 1);
+      if (!t) { this.msg('No target in range.', 'warn'); return; }
+      this.specialCd = sp.cooldown;
+      this.consumeAmmo(sp.shots);
+      for (let k = 0; k < sp.shots; k++) this.fireAt(t, this.rollAgainst(t), 'ranged', 0, (k - (sp.shots - 1) / 2) * sp.spread, 0.6);
+      this.emit({ type: 'whirl' });
+    } else {
+      const sp = PLAYER_BASE.special.magic;
+      this.specialCd = sp.cooldown;
+      remove(this.p.inv, 'charm_tide', sp.charms);
+      this.emit({ type: 'squall' });
+      for (const e of [...this.enemies]) {
+        if (!e.alive || e.state === 'rise') continue;
+        if (Math.hypot(e.x - this.p.x, e.z - this.p.z) > sp.radius + e.def.radius) continue;
+        const r = this.rollAgainst(e, sp.maxHit);
+        this.damageEnemy(e, r.dmg, r.crit, 'magic', sp.knock, 4);
+      }
+      this.rev++;
+    }
+  }
+
+  /** Dodge roll: short dash, no damage taken while rolling. */
+  useRoll() {
+    if (this.dead || this.p.onShip || this.rollCd > 0 || this.rollT > 0) return;
+    const m = Math.hypot(this.moveDir.x, this.moveDir.z);
+    this.rollDir = m > 0.1 ? { x: this.moveDir.x / m, z: this.moveDir.z / m } : { x: Math.cos(this.facing), z: Math.sin(this.facing) };
+    this.rollCd = PLAYER_BASE.rollCooldown;
+    this.rollT = PLAYER_BASE.rollTime;
+    this.path = [];
+    this.pending = null;
+    if (this.action) this.stopAction();
+    this.emit({ type: 'roll' });
+  }
+
+  private damageEnemy(e: Enemy, dmg: number, crit: boolean, style: CombatStyle, knock = 0.35, spellBase = 0) {
     if (!e.alive || e.state === 'rise') return;
-    let dmg = raw;
-    if (e.elite || e.def.boss) dmg *= 1 + this.stats.eliteDmg;
-    dmg = mitigate(dmg, e.def.armour);
-    if (e.elite === 'barnacled') dmg = Math.max(1, Math.round(dmg * 0.7));
     dmg = Math.min(dmg, e.hp);
     e.hp -= dmg;
-    e.hitFlash = 0.12;
+    if (dmg > 0) e.hitFlash = 0.12;
     this.emit({ type: 'hit', target: 'enemy', id: e.id, amount: dmg, crit, x: e.x, z: e.z });
-    this.addXp('combat', dmg * e.def.xpPerDamage);
-    if (this.stats.leech > 0) this.p.hp = Math.min(this.stats.maxHp, this.p.hp + dmg * this.stats.leech);
+    this.combatXp(dmg, style, spellBase);
+    if (this.stats.leech > 0 && dmg > 0) this.p.hp = Math.min(this.stats.maxHp, this.p.hp + Math.max(1, Math.round(dmg * this.stats.leech)) * (this.rnd() < 0.5 ? 1 : 0));
     if (e.state === 'idle' || e.state === 'return') e.state = 'chase';
-    if (e.hp <= 0) this.killEnemy(e);
+    if (e.hp <= 0) { this.killEnemy(e); return; }
+    if (!e.def.boss && knock > 0 && dmg > 0) {
+      const dx = e.x - this.p.x, dz = e.z - this.p.z, d = Math.hypot(dx, dz) || 1;
+      const k = e.elite === 'barnacled' ? knock * 0.4 : knock;
+      const nx = e.x + (dx / d) * k, nz = e.z + (dz / d) * k;
+      if (this.world.walkable(nx, nz)) { e.x = nx; e.z = nz; }
+    }
   }
 
   private killEnemy(e: Enemy) {
@@ -695,7 +850,7 @@ export class Game {
     e.respawnAt = this.time + e.def.respawn;
     this.emit({ type: 'enemyDeath', id: e.id, x: e.x, z: e.z, elite: !!e.elite, boss: !!e.def.boss });
     if (this.target === e.id) this.target = null;
-    if (e.elite === 'volatile') this.telegraphs.push({ id: this.nextId++, kind: 'circle', x: e.x, z: e.z, r: 2.6, angle: 0, width: 0, t: 0, dur: 1.1, damage: 14, source: e.id });
+    if (e.elite === 'volatile') this.telegraphs.push({ id: this.nextId++, kind: 'circle', x: e.x, z: e.z, r: 2.6, angle: 0, width: 0, t: 0, dur: 1.1, damage: 4, source: e.id });
     if (!e.summoned) this.rollLoot(LOOT[e.def.loot], e.x, e.z);
     if (e.elite) this.rollLoot(LOOT.elite, e.x, e.z);
     if (e.def.boss) this.bossDefeated(e);
@@ -725,9 +880,24 @@ export class Game {
     this.drops.push({ id: this.nextId++, x: dx, z: dz, stack, t: -delay });
   }
 
+  /** Enemy accuracy vs your Defence level and armour for that style; 0..maxHit on a hit. */
+  private enemyRoll(e: Enemy): number {
+    const st = this.stats;
+    const att = (e.def.att + 9) * (e.def.accBonus + 64);
+    const def = st.defLevel * (st.def[e.def.style] + 64);
+    if (this.rnd() >= hitChance(att, def)) return 0;
+    return 1 + Math.floor(this.rnd() * (e.def.maxHit + (e.elite ? 1 : 0)));
+  }
+
+  /** Unavoidable area damage (telegraphs): only a dodge roll or armour helps. */
   damagePlayer(raw: number) {
+    const avgDef = (this.stats.def.melee + this.stats.def.ranged + this.stats.def.magic) / 3;
+    this.applyPlayerDamage(Math.max(1, Math.round(raw * (1 - Math.min(0.4, Math.max(0, avgDef) / 150)))));
+  }
+
+  applyPlayerDamage(dmg: number) {
     if (this.dead || this.p.onShip) return;
-    const dmg = mitigate(raw, this.stats.armour);
+    if (this.rollT > 0) { this.emit({ type: 'dodge', x: this.p.x, z: this.p.z }); return; }
     this.p.hp -= dmg;
     this.combatTimer = 0;
     this.emit({ type: 'hit', target: 'player', id: 0, amount: dmg, crit: false, x: this.p.x, z: this.p.z });
@@ -738,7 +908,7 @@ export class Game {
       this.stopAction();
       this.target = null;
       this.emit({ type: 'playerDeath' });
-      this.msg('You are knocked senseless...', 'warn');
+      this.msg('Oh dear, you are dead. You wake at the quay.', 'warn');
       if (this.boss) this.resetBoss();
     }
   }
@@ -750,52 +920,40 @@ export class Game {
     this.p.z = this.layout.respawn.z;
     const lost = Math.floor(count(this.p.inv, 'coins') * 0.1);
     if (lost > 0) { remove(this.p.inv, 'coins', lost); this.msg(`You wake at the quay, ${lost} coins lighter.`, 'warn'); }
-    else this.msg('You wake at the quay.', 'warn');
     for (const e of this.enemies) if (e.alive && e.state !== 'idle') { e.state = 'return'; }
     this.rev++;
   }
 
   private stepPlayerCombat(dt: number) {
     this.attackCd = Math.max(0, this.attackCd - dt);
-    if (this.p.onShip || this.dead) return;
+    if (this.p.onShip || this.dead || this.rollT > 0) return;
+    const st = this.stats;
     let tgt: Enemy | null = null;
     if (this.target !== null) {
       tgt = this.enemies.find((e) => e.id === this.target && e.alive) ?? null;
       if (!tgt) this.target = null;
     }
-    const reach = 1.6;
+    const reach = st.style === 'melee' ? PLAYER_BASE.meleeReach : st.range;
     if (tgt) {
       const d = Math.hypot(tgt.x - this.p.x, tgt.z - this.p.z);
-      if (d > reach + tgt.def.radius && !this.path.length && Math.hypot(this.moveDir.x, this.moveDir.z) < 0.05) {
-        this.chase(tgt.x, tgt.z, dt);
-      }
+      if (d > reach + tgt.def.radius && !this.path.length && Math.hypot(this.moveDir.x, this.moveDir.z) < 0.05) this.chase(tgt.x, tgt.z, dt);
     }
-    // auto-attack: nearest enemy within reach (Survivor-style), prefer explicit target
+    // auto-attack: explicit target first; otherwise anything in melee reach, or (ranged/magic) anything fighting you
     let best = tgt && Math.hypot(tgt.x - this.p.x, tgt.z - this.p.z) <= reach + tgt.def.radius ? tgt : null;
     if (!best) {
       let bd = Infinity;
       for (const e of this.enemies) {
         if (!e.alive || e.state === 'rise') continue;
         const d = Math.hypot(e.x - this.p.x, e.z - this.p.z) - e.def.radius;
-        if (d <= reach && d < bd) { bd = d; best = e; }
+        const engaged = e.state === 'chase' || e.state === 'windup' || st.style === 'melee';
+        if (engaged && d <= reach && d < bd) { bd = d; best = e; }
       }
     }
     if (best) {
       if (this.action?.type === 'gather') this.stopAction();
       this.combatTimer = 0;
       if (!this.moving) this.facing = Math.atan2(best.z - this.p.z, best.x - this.p.x);
-      if (this.attackCd <= 0) {
-        this.attackCd = this.stats.swing;
-        this.emit({ type: 'swing' });
-        const [a, b] = this.stats.damage;
-        const crit = this.rnd() < this.stats.crit;
-        const dmg = Math.round((a + this.rnd() * (b - a)) * (crit ? 1.75 : 1));
-        const tx = best.x, tz = best.z;
-        this.damageEnemy(best, dmg, crit);
-        if (this.stats.cleave > 0) {
-          for (const e of this.enemies) if (e !== best && e.alive && Math.hypot(e.x - tx, e.z - tz) < 2.2) this.damageEnemy(e, Math.max(1, Math.round(dmg * this.stats.cleave)), false);
-        }
-      }
+      if (this.attackCd <= 0 && this.performAttack(best)) this.attackCd = st.speed;
     }
   }
 
@@ -866,14 +1024,14 @@ export class Game {
           const atk = e.def.attack;
           e.cd = atk.cooldown;
           e.state = 'chase';
-          const dmg = this.roll(e.def.damage) * (e.elite ? 1.3 : 1);
+          const dmg = this.enemyRoll(e);
           if (atk.kind === 'shot' && e.aim) {
             const ang = Math.atan2(e.aim.z - e.z, e.aim.x - e.x);
             this.projectiles.push({ id: this.nextId++, x: e.x, z: e.z, vx: Math.cos(ang) * 22, vz: Math.sin(ang) * 22, life: (atk.range + 2) / 22, damage: dmg, from: 'enemy' });
             this.emit({ type: 'shoot', x: e.x, z: e.z, tx: e.aim.x, tz: e.aim.z });
             e.aim = null;
           } else if (atk.kind === 'melee' && dP <= atk.range + 0.6 && playerHittable) {
-            this.damagePlayer(dmg);
+            this.applyPlayerDamage(dmg);
           }
           break;
         }
@@ -901,7 +1059,6 @@ export class Game {
     }
   }
 
-  private roll([a, b]: [number, number]) { return Math.round(a + this.rnd() * (b - a)); }
 
   private enemyMove(e: Enemy, tx: number, tz: number, speed: number, dt: number, stopAt: number) {
     const dx = tx - e.x, dz = tz - e.z, d = Math.hypot(dx, dz);
@@ -945,8 +1102,8 @@ export class Game {
     // summons at 66% and 33%
     if ((this.bossSummons === 0 && frac < 0.66) || (this.bossSummons === 1 && frac < 0.33)) {
       this.bossSummons++;
-      for (let k = 0; k < 3; k++) {
-        const a = (k / 3) * Math.PI * 2 + this.rnd();
+      for (let k = 0; k < 2; k++) {
+        const a = (k / 2) * Math.PI * 2 + this.rnd();
         const x = R.x + Math.cos(a) * 4.5, z = R.z + Math.sin(a) * 4.5;
         const c = this.spawnEnemy(ENEMIES.reef_crab, x, z, true);
         c.state = 'chase';
@@ -959,18 +1116,20 @@ export class Game {
     const dP = Math.hypot(px - e.x, pz - e.z);
     if (e.state === 'windup') { e.t -= dt; if (e.t <= 0) e.state = 'chase'; return; }
     e.facing = Math.atan2(pz - e.z, px - e.x);
+    // one telegraph at a time: never stack two attacks to land together
+    if (this.telegraphs.some((t) => t.source === e.id)) { if (dP > 3.2) this.enemyMove(e, px, pz, e.def.speed * enrage * 0.6, dt, 3.0); return; }
     if (this.bossCast <= 0) {
       // Slam: telegraphed circle where the player stands
-      this.bossCast = 5.5;
-      this.telegraphs.push({ id: this.nextId++, kind: 'circle', x: px, z: pz, r: 3.0, angle: 0, width: 0, t: 0, dur: 1.4 / enrage, damage: 18, source: e.id });
+      this.bossCast = 7;
+      this.telegraphs.push({ id: this.nextId++, kind: 'circle', x: px, z: pz, r: 3.0, angle: 0, width: 0, t: 0, dur: 1.4 / enrage, damage: 5, source: e.id });
       e.state = 'windup'; e.t = 0.6;
       this.emit({ type: 'enemyAttack', id: e.id });
       return;
     }
     if (dP < 4.2 && e.cd <= 0) {
       // Sweep: cone in front
-      e.cd = 2.6;
-      this.telegraphs.push({ id: this.nextId++, kind: 'cone', x: e.x, z: e.z, r: 4.8, angle: e.facing, width: 1.9, t: 0, dur: 0.9 / enrage, damage: 14, source: e.id });
+      e.cd = 4;
+      this.telegraphs.push({ id: this.nextId++, kind: 'cone', x: e.x, z: e.z, r: 4.8, angle: e.facing, width: 1.9, t: 0, dur: 0.9 / enrage, damage: 3, source: e.id });
       e.state = 'windup'; e.t = 0.9 / enrage;
       this.emit({ type: 'enemyAttack', id: e.id });
       return;
@@ -1010,10 +1169,10 @@ export class Game {
       if (pr.from === 'player') {
         for (const e of this.enemies) {
           if (!e.alive || e.state === 'rise') continue;
-          if (Math.hypot(e.x - pr.x, e.z - pr.z) < e.def.radius + 0.4) { this.damageEnemy(e, pr.damage, false); pr.life = 0; break; }
+          if (Math.hypot(e.x - pr.x, e.z - pr.z) < e.def.radius + 0.4) { this.damageEnemy(e, pr.damage, pr.crit ?? false, pr.style ?? 'ranged', pr.knock ?? 0.2, pr.spellBase ?? 0); pr.life = 0; break; }
         }
       } else if (!this.dead && !this.p.onShip && Math.hypot(this.p.x - pr.x, this.p.z - pr.z) < 0.6) {
-        this.damagePlayer(pr.damage);
+        this.applyPlayerDamage(pr.damage);
         pr.life = 0;
       }
     }
@@ -1049,6 +1208,12 @@ export class Game {
   private stepFoot(dt: number) {
     const m = Math.hypot(this.moveDir.x, this.moveDir.z);
     this.moving = false;
+    if (this.rollT > 0) {
+      this.rollT = Math.max(0, this.rollT - dt);
+      this.walkStep(this.rollDir.x, this.rollDir.z, PLAYER_BASE.rollSpeed * dt);
+      this.moving = true;
+      return;
+    }
     if (m > 0.05) {
       this.moving = this.walkStep(this.moveDir.x / m, this.moveDir.z / m, PLAYER_BASE.speed * Math.min(1, m) * dt);
     } else if (this.path.length) {
@@ -1112,7 +1277,8 @@ export class Game {
     dt = Math.min(dt, 0.1);
     this.time += dt;
     this.s.playTime += dt;
-    this.abilityCd = Math.max(0, this.abilityCd - dt);
+    this.specialCd = Math.max(0, this.specialCd - dt);
+    this.rollCd = Math.max(0, this.rollCd - dt);
     this.eatCd = Math.max(0, this.eatCd - dt);
     this.combatTimer += dt;
     if (this.dead > 0) {
@@ -1124,12 +1290,12 @@ export class Game {
       if (this.action?.type === 'gather') this.tickGather(this.action);
       else if (this.action?.type === 'craft') this.tickCraft(this.action);
       this.stepPlayerCombat(dt);
-      // regeneration out of combat
+      // regeneration out of combat (RuneScape-slow, but not a minute per point)
       this.regenTimer += dt;
-      if (this.regenTimer >= 5) {
+      if (this.regenTimer >= PLAYER_BASE.regenEvery) {
         this.regenTimer = 0;
-        const amt = (this.combatTimer > 6 ? 2 : 0) + this.stats.regen;
-        if (amt > 0 && this.p.hp < this.stats.maxHp) { this.p.hp = Math.min(this.stats.maxHp, this.p.hp + amt); }
+        const amt = (this.combatTimer > 6 ? 1 : 0) + (this.rnd() < this.stats.regen * PLAYER_BASE.regenEvery / 10 ? 1 : 0);
+        if (amt > 0 && this.p.hp < this.stats.maxHp) this.p.hp = Math.min(this.stats.maxHp, this.p.hp + amt);
       }
       this.stepDiscovery();
     }

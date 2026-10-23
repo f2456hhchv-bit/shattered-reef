@@ -11,9 +11,9 @@ import { buildSloop, buildBarrel, type ShipRig } from '../art/models/ship';
 import { buildHumanoid, animateIdle, animateWalk, animateSwing, animateWork, animateFish, type HumanoidRig, type HumanoidLook } from '../art/models/character';
 import { buildCrab, animateCrab, type CrabRig } from '../art/models/crab';
 import { buildPine, buildBroadleaf, buildRock, buildOreRock, buildCrate, buildLanternPost, buildShack, buildDock, buildGrass } from '../art/models/props';
-import { buildFurnace, buildAnvil, buildCookfire, buildTent, buildSmithyShed, buildPillar, buildPlinth, buildGuardian, buildStump, buildDropPile, buildRipples, type GuardianRig } from '../art/models/world';
+import { buildBench, buildFurnace, buildAnvil, buildCookfire, buildTent, buildSmithyShed, buildPillar, buildPlinth, buildGuardian, buildStump, buildDropPile, buildRipples, type GuardianRig } from '../art/models/world';
 import { RARITY, item } from '../game/data/items';
-import { NODES } from '../game/data/content';
+import { NODES, PLAYER_BASE } from '../game/data/content';
 import type { Game, GameEvent, Enemy, Telegraph } from '../game/sim/game';
 import { coastDist, nearestPathDist, WORLD_HALF } from '../game/world/island';
 import { buildTerrainMesh } from './terrainMesh';
@@ -34,7 +34,7 @@ const GUNNER_LOOK: HumanoidLook = { ...BRIGAND_LOOK, coat: 0x2f3a2e, hat: 0x2a2a
 interface RigView { kind: 'human'; rig: HumanoidRig; mat: THREE.MeshStandardMaterial }
 interface CrabView { kind: 'crab'; rig: CrabRig; mat: THREE.MeshStandardMaterial }
 interface GuardView { kind: 'guardian'; rig: GuardianRig; mat: THREE.MeshStandardMaterial }
-type EnemyView = (RigView | CrabView | GuardView) & { root: THREE.Group; ring?: THREE.Mesh; swingT: number; seen: boolean };
+type EnemyView = (RigView | CrabView | GuardView) & { root: THREE.Group; ring?: THREE.Mesh; swingT: number; seen: boolean; baseScale: number };
 
 export class GameRenderer {
   readonly renderer: THREE.WebGLRenderer;
@@ -49,6 +49,7 @@ export class GameRenderer {
   private quality: 'high' | 'low' = 'high';
 
   private player: HumanoidRig;
+  private playerRigs = {} as Record<'melee' | 'ranged' | 'magic', HumanoidRig>;
   private playerSwing = 0;
   private ship: ShipRig;
   private npcs = new Map<string, HumanoidRig>();
@@ -60,6 +61,11 @@ export class GameRenderer {
   private flames: THREE.Mesh[] = [];
   private furnaceGlow!: THREE.MeshStandardMaterial;
   private clickMarker: THREE.Mesh;
+  private slash: THREE.Mesh;
+  private slashT = 0;
+  private whirlFx: THREE.Mesh;
+  private whirlT = 0;
+  private whirlR = 3.2;
   private clickT = 0;
   private grass: THREE.InstancedMesh | null = null;
 
@@ -68,6 +74,9 @@ export class GameRenderer {
   zoom = 1;
   private shake = 0;
   camDist = 30;
+  /** pixels of the canvas covered at the bottom by UI (portrait sheet); the view is shifted so the player stays visible */
+  coveredBottom = 0;
+  private appliedShift = -1;
   private readonly pitch = THREE.MathUtils.degToRad(54);
 
   constructor(private canvas: HTMLCanvasElement, private game: Game) {
@@ -107,10 +116,16 @@ export class GameRenderer {
     this.buildStatic();
     this.buildNodes();
 
-    this.player = buildHumanoid(PLAYER_LOOK);
-    this.player.root.scale.setScalar(HERO);
-    bakeRig(this.player.root, new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.9 }));
-    this.scene.add(this.player.root);
+    // one rig per weapon style so the right weapon is in hand
+    for (const [style, held] of [['melee', 'cutlass'], ['ranged', 'pistol'], ['magic', 'staff']] as const) {
+      const rig = buildHumanoid({ ...PLAYER_LOOK, held });
+      rig.root.scale.setScalar(HERO);
+      bakeRig(rig.root, new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.9 }));
+      rig.root.visible = false;
+      this.scene.add(rig.root);
+      this.playerRigs[style] = rig;
+    }
+    this.player = this.playerRigs.melee;
 
     this.ship = buildSloop();
     this.scene.add(this.ship.root);
@@ -131,6 +146,16 @@ export class GameRenderer {
     this.clickMarker.visible = false;
     this.clickMarker.renderOrder = 3;
     this.scene.add(this.clickMarker);
+    // swing arc: a bright crescent in front of the player
+    const arcMat = new THREE.MeshBasicMaterial({ color: 0xfff4d6, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending });
+    this.slash = new THREE.Mesh(new THREE.RingGeometry(0.7, 2.1, 20, 1, -1.1, 2.2), arcMat);
+    this.slash.rotation.x = -Math.PI / 2;
+    this.slash.renderOrder = 4;
+    this.scene.add(this.slash);
+    this.whirlFx = new THREE.Mesh(new THREE.RingGeometry(0.4, 1.0, 40), arcMat.clone());
+    this.whirlFx.rotation.x = -Math.PI / 2;
+    this.whirlFx.renderOrder = 4;
+    this.scene.add(this.whirlFx);
 
     game.on((e) => this.onEvent(e));
   }
@@ -167,6 +192,7 @@ export class GameRenderer {
     for (const st of L.stations) {
       if (st.id === 'furnace') { const f = buildFurnace(); f.group.traverse((o) => { if ((o as THREE.Mesh).material === f.glow) o.userData.glow = true; }); place(f.group, st.x, st.z, 0); }
       else if (st.id === 'anvil') place(buildAnvil(), st.x, st.z, 0.3);
+      else if (st.id === 'bench') place(buildBench(), st.x, st.z, 0);
       else { const f = buildCookfire(); f.flames.forEach((m) => (m.userData.flame = true)); place(f.group, st.x, st.z, 0); }
     }
     for (const p of L.props) {
@@ -255,16 +281,16 @@ export class GameRenderer {
       const rig = buildCrab(e.id);
       rig.root.scale.setScalar(e.def.scale * (e.elite ? 1.2 : 1));
       bakeRig(rig.root, material);
-      v = { kind: 'crab', rig, mat: material, root: rig.root, swingT: 0, seen: true };
+      v = { kind: 'crab', rig, mat: material, root: rig.root, swingT: 0, seen: true, baseScale: rig.root.scale.x };
     } else if (e.def.model === 'guardian') {
       const rig = buildGuardian();
       bakeRig(rig.root, material);
-      v = { kind: 'guardian', rig, mat: material, root: rig.root, swingT: 0, seen: true };
+      v = { kind: 'guardian', rig, mat: material, root: rig.root, swingT: 0, seen: true, baseScale: rig.root.scale.x };
     } else {
       const rig = buildHumanoid(e.def.model === 'gunner' ? GUNNER_LOOK : BRIGAND_LOOK);
       rig.root.scale.setScalar(e.def.scale * (e.elite ? 1.15 : 1));
       bakeRig(rig.root, material);
-      v = { kind: 'human', rig, mat: material, root: rig.root, swingT: 0, seen: true };
+      v = { kind: 'human', rig, mat: material, root: rig.root, swingT: 0, seen: true, baseScale: rig.root.scale.x };
     }
     if (e.elite) {
       const colour = e.elite === 'barnacled' ? 0xcfc6b0 : e.elite === 'frenzied' ? 0xe05a3c : 0xf2a43a;
@@ -299,6 +325,9 @@ export class GameRenderer {
       v.root.position.set(e.x, y, e.z);
       v.root.rotation.y = Math.PI / 2 - e.facing;
       v.mat.emissiveIntensity = e.hitFlash > 0 ? 0.6 : 0;
+      const sq = e.hitFlash / 0.12 * 0.18;
+      const base = v.baseScale;
+      v.root.scale.set(base * (1 + sq), base * (1 - sq), base * (1 + sq));
       v.swingT = Math.max(0, v.swingT - dt);
       if (v.kind === 'crab') {
         animateCrab(v.rig, t + e.id, e.moving);
@@ -354,12 +383,12 @@ export class GameRenderer {
       live.add(p.id);
       let m = this.projViews.get(p.id);
       if (!m) {
-        m = new THREE.Mesh(new THREE.SphereGeometry(p.from === 'player' ? 0.14 : 0.12, 6, 4), new THREE.MeshBasicMaterial({ color: p.from === 'player' ? 0xffe08a : 0xff6a4a }));
+        m = new THREE.Mesh(new THREE.SphereGeometry(p.kind === 'magic' ? 0.22 : p.from === 'player' ? 0.12 : 0.12, 6, 4), new THREE.MeshBasicMaterial({ color: p.kind === 'magic' ? 0x7ff0e6 : p.from === 'player' ? 0xffe08a : 0xff6a4a }));
         this.scene.add(m);
         this.projViews.set(p.id, m);
       }
       m.position.set(p.x, this.game.world.standY(p.x, p.z) + 1.1, p.z);
-      this.particles.burst(m.position.x, m.position.y, m.position.z, 1, p.from === 'player' ? 0xd8d2c0 : 0x5a5552, { speed: 0.3, up: 0.3, size: 0.1, life: 0.35, grav: -1 });
+      this.particles.burst(m.position.x, m.position.y, m.position.z, 1, p.kind === 'magic' ? 0x59d0c4 : p.from === 'player' ? 0xd8d2c0 : 0x5a5552, { speed: 0.3, up: 0.3, size: 0.1, life: 0.35, grav: -1 });
     }
     for (const [id, m] of this.projViews) if (!live.has(id)) { this.disposeObject(m); this.projViews.delete(id); }
   }
@@ -415,7 +444,28 @@ export class GameRenderer {
         else if (e.crit) this.shake = Math.max(this.shake, 0.15);
         break;
       }
-      case 'swing': this.playerSwing = 0.35; break;
+      case 'swing': this.playerSwing = 0.35; this.slashT = 0.18; break;
+      case 'squall': {
+        this.whirlT = 0.45;
+        this.whirlR = PLAYER_BASE.special.magic.radius;
+        (this.whirlFx.material as THREE.MeshBasicMaterial).color.set(0x59d0c4);
+        const p = g.p;
+        this.particles.burst(p.x, g.world.standY(p.x, p.z) + 0.6, p.z, 40, 0x9fe8f0, { speed: 10, up: 2, size: 0.12, life: 0.5, grav: 1, spread: 0.8 });
+        this.shake = Math.max(this.shake, 0.25);
+        break;
+      }
+      case 'whirl': {
+        this.whirlT = 0.35;
+        this.whirlR = PLAYER_BASE.special.melee.radius;
+        (this.whirlFx.material as THREE.MeshBasicMaterial).color.set(0xfff4d6);
+        this.playerSwing = 0.35;
+        const p = g.p;
+        this.particles.burst(p.x, g.world.standY(p.x, p.z) + 0.8, p.z, 26, 0xfff4d6, { speed: 9, up: 1.2, size: 0.1, life: 0.35, grav: 2, spread: 0.6 });
+        this.shake = Math.max(this.shake, 0.2);
+        break;
+      }
+      case 'roll': { const p = g.p; this.particles.burst(p.x, g.world.standY(p.x, p.z) + 0.1, p.z, 10, 0xc8b48a, { speed: 2, up: 1.2, size: 0.16, life: 0.5, grav: 3 }); break; }
+      case 'dodge': this.particles.burst(e.x, g.world.standY(e.x, e.z) + 1.2, e.z, 8, 0x9fe8ff, { speed: 3, up: 2, size: 0.09, life: 0.4 }); break;
       case 'enemyAttack': { const v = this.enemyViews.get(e.id); if (v) v.swingT = 0.35; break; }
       case 'enemyDeath': {
         const y = g.world.ground(e.x, e.z);
@@ -469,6 +519,7 @@ export class GameRenderer {
     this.composer.setSize(w, h);
     this.rt.samples = this.quality === 'high' ? 4 : 0;
     this.camera.aspect = w / h;
+    this.appliedShift = -1;
     this.camera.updateProjectionMatrix();
   }
 
@@ -491,10 +542,13 @@ export class GameRenderer {
     }
 
     // player
+    const want = this.playerRigs[g.stats.style];
+    if (want !== this.player) { this.player.root.visible = false; this.player = want; }
     const pr = this.player;
     pr.root.visible = true;
     this.playerSwing = Math.max(0, this.playerSwing - dt);
     pr.body.rotation.set(0, 0, 0);
+    pr.body.position.y = 0;
     pr.armR.rotation.z = 0.08;
     if (p.onShip) {
       const c = Math.cos(sh.heading), s = Math.sin(sh.heading);
@@ -507,6 +561,12 @@ export class GameRenderer {
       if (g.dead > 0) { pr.root.rotation.x = -Math.PI / 2 * Math.min(1, (3 - g.dead) * 3); pr.root.position.y += 0.3; }
       else pr.root.rotation.x = 0;
       if (g.dead > 0) { /* lying down */ }
+      else if (g.rollT > 0) {
+        const k = 1 - g.rollT / PLAYER_BASE.rollTime;
+        animateWalk(pr, t * 2);
+        pr.body.rotation.x = Math.sin(k * Math.PI) * 0.9;
+        pr.body.position.y = -Math.sin(k * Math.PI) * 0.35;
+      }
       else if (this.playerSwing > 0) animateSwing(pr, 1 - this.playerSwing / 0.35);
       else if (g.moving) animateWalk(pr, t);
       else if (g.action?.type === 'gather') {
@@ -553,6 +613,25 @@ export class GameRenderer {
     if (this.furnaceGlow) this.furnaceGlow.emissiveIntensity = 2 + Math.sin(t * 6) * 0.4;
     if (this.clickT > 0) { this.clickT -= dt; (this.clickMarker.material as THREE.MeshBasicMaterial).opacity = Math.max(0, this.clickT / 0.6); this.clickMarker.scale.setScalar(1 + (0.6 - this.clickT)); if (this.clickT <= 0) this.clickMarker.visible = false; }
 
+    // swing arc + whirl ring
+    if (this.slashT > 0) this.slashT -= dt;
+    const sm = this.slash.material as THREE.MeshBasicMaterial;
+    sm.opacity = Math.max(0, this.slashT / 0.18) * 0.75;
+    this.slash.visible = this.slashT > 0 && !p.onShip;
+    if (this.slash.visible) {
+      this.slash.position.set(p.x, world.standY(p.x, p.z) + 0.9, p.z);
+      this.slash.rotation.z = -g.facing + (1 - this.slashT / 0.18) * 0.9 - 0.45;
+    }
+    if (this.whirlT > 0) this.whirlT -= dt;
+    const wm = this.whirlFx.material as THREE.MeshBasicMaterial;
+    this.whirlFx.visible = this.whirlT > 0;
+    if (this.whirlFx.visible) {
+      const k = 1 - this.whirlT / 0.35;
+      wm.opacity = (1 - k) * 0.7;
+      this.whirlFx.scale.setScalar(1 + k * (this.whirlR - 1));
+      this.whirlFx.position.set(p.x, world.standY(p.x, p.z) + 0.6, p.z);
+      this.whirlFx.rotation.z = -k * 6;
+    }
     this.particles.update(dt);
     this.water.uniforms.uTime.value = t;
     this.updateCamera(dt);
@@ -561,6 +640,13 @@ export class GameRenderer {
 
   private updateCamera(dt: number) {
     const g = this.game;
+    const shift = Math.round(this.coveredBottom / 2);
+    if (shift !== this.appliedShift) {
+      this.appliedShift = shift;
+      const w = this.canvas.clientWidth || window.innerWidth, h = this.canvas.clientHeight || window.innerHeight;
+      if (shift > 0) this.camera.setViewOffset(w, h, 0, shift, w, h);
+      else this.camera.clearViewOffset();
+    }
     const aspect = this.camera.aspect;
     const tanHalf = Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2));
     const minWidth = 17;

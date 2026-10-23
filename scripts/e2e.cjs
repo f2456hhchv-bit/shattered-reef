@@ -42,6 +42,14 @@ const sizes = [
     const moved = Math.hypot(after.x - before.x, after.z - before.z);
     const result = { size: s.name, moved: +moved.toFixed(2), errors: errs.slice(0, 5) };
     if (moved < 0.5 || errs.length) failed++;
+    // inventory must respond to taps (phone) and clicks (laptop): non-usable item opens the details panel
+    await p.evaluate(() => { window.__reef.ui.closeWindows(); window.__reef.ui.selectTab('pack', true); window.__reef.ui.sideOpen = true; window.__reef.ui.layout(); window.__reef.ui.update(0.016); });
+    await p.waitForTimeout(300);
+    const slot = p.locator('[data-slot="0"]');
+    if (s.mobile) await slot.tap(); else await slot.click();
+    result.inventoryOpens = await p.evaluate(() => !!document.getElementById('itempop'));
+    if (!result.inventoryOpens) failed++;
+    await p.evaluate(() => window.__reef.ui.closePop());
     if (shots) {
       await p.screenshot({ path: path.join(out, `game-${s.name}.png`) });
       await p.evaluate(() => window.__reef.ui.selectTab('pack', true));

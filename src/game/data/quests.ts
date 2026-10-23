@@ -1,9 +1,10 @@
+import type { SkillId } from './items';
 // NPCs and the first quest, as data. Dialogue is chosen by quest stage; effects are interpreted by the quest system.
 
 export interface Effect {
   give?: { id: string; qty: number }[];
   take?: { id: string; qty: number }[];
-  xp?: { skill: 'combat' | 'woodcutting' | 'mining' | 'smithing' | 'fishing' | 'cooking'; amount: number }[];
+  xp?: { skill: SkillId; amount: number }[];
   stage?: number;
   flag?: string;
 }
@@ -40,7 +41,7 @@ export const QUESTS: Record<string, QuestDef> = {
     id: 'bell',
     name: 'The Bell at Low Water',
     giver: 'iven',
-    reward: '150 coins, 600 Combat XP, 200 Smithing XP',
+    reward: '150 coins, 300 Attack XP, 300 Defence XP, 200 Smithing XP',
     stages: [
       {
         text: 'Speak with Iven Marr, the cartographer at Bellwether Quay.',
@@ -77,7 +78,7 @@ export const QUESTS: Record<string, QuestDef> = {
             'This tooth fits something far out past the reef. I will chart it. When I can, I will show you.',
             'You have earned this, and more besides.',
           ],
-          effect: { take: [{ id: 'keels_tooth', qty: 1 }], give: [{ id: 'coins', qty: 150 }], xp: [{ skill: 'combat', amount: 600 }, { skill: 'smithing', amount: 200 }], stage: 4, flag: 'bell_done' },
+          effect: { take: [{ id: 'keels_tooth', qty: 1 }], give: [{ id: 'coins', qty: 150 }], xp: [{ skill: 'attack', amount: 300 }, { skill: 'defence', amount: 300 }, { skill: 'smithing', amount: 200 }], stage: 4, flag: 'bell_done' },
         } },
       },
       { text: 'Quest complete. The Guardian can be challenged again by ringing the bell at the Broken Ring.' },

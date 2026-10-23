@@ -26,8 +26,10 @@ Reflects the actual repository, not the roadmap.
 - **Art:** low-poly real-time 3D, fixed 3/4 camera (54°), look A "Bright" (see `docs/ART_DIRECTION.md`). All art built in code; no AI images.
 - **Stack:** TypeScript + Vite + Three.js. Static hosting on GitHub Pages (`.github/workflows/deploy.yml` runs typecheck, tests, build, deploy on `main`).
 - **Simulation is separate from rendering.** `src/game/**` has no Three.js import; the renderer reads state and listens to events. This is what makes headless tests (and later multiplayer) possible.
-- **XP:** RuneScape curve continued to level 126; XP stored, level derived; 200M cap.
-- **Combat:** auto-attack anything in reach (Survivor.io feel), tap/click an enemy to chase it, flintlock ability on a cooldown, telegraphed enemy attacks you can walk out of.
+- **XP:** RuneScape curve continued to level 126; XP stored, level derived; 200M cap. Rates are RuneScape's: 4 XP per damage to the stance's skill, 1.33 to Hitpoints, early gathering values (copper 17.5, logs 25). Gathering on a 2.4 s rhythm.
+- **Combat skills (RuneScape model):** Attack, Strength, Defence, Hitpoints, Ranged, Magic. Hit chance and max hit use the OSRS formulas; successful hits always do at least 1 (a 0 means a miss). Stances choose the trained skill. Combat triangle via per-style defence: crabs and the Guardian are weak to magic, brigands to ranged, gunners to melee. Combat level uses the OSRS formula (new character = 3).
+- **Skills roadmap:** `docs/SKILLS.md` (12 in game, 22 planned). A skill ships only with real content.
+- **Combat:** auto-attack anything in reach (Survivor.io feel), tap/click an enemy to chase it. Three active skills: dodge roll (3 s, no damage while rolling), whirl (6 s, hits everything within 3.2 m, knockback), flintlock (7 s, ranged). Enemy attacks are telegraphed; rolling through them is the skill play.
 - **Encounter upgrades (Survivor.io level-up choices):** not built yet; deliberately deferred so permanent skills stay the focus of the first island.
 
 ## Systems in the build
@@ -35,7 +37,8 @@ Reflects the actual repository, not the roadmap.
 |---|---|---|
 | World + collision + A* pathing | `src/game/world/` | 0.5 m walk grid, 1 m sail grid, string-pulled paths |
 | Island layout (data) | `src/game/world/island.ts`, `layout.ts` | village, dock, forest, hills, camp, ruin, strand, 3 offshore shoals, 12 sea stacks |
-| Skills (6) | `src/game/data/content.ts` | Combat, Woodcutting, Mining, Smithing, Fishing, Cooking; unlock tables shown in UI |
+| Skills (12) | `src/game/data/content.ts` | Attack, Strength, Defence, Hitpoints, Ranged, Magic, Woodcutting, Mining, Fishing, Smithing, Gunsmithing, Cooking; unlock tables in UI |
+| Combat maths | `sim/gear.ts` | OSRS hit chance, max hit, combat level; stances; specials per style (Whirl, Scatter shot, Squall) |
 | Items, rarity, affixes | `src/game/data/items.ts`, `sim/gear.ts` | Common/Fine/Rare/Relic; 11 affixes, all applied in `computeStats` |
 | Gathering | `sim/game.ts` | tool power, level, depletion + respawn; shoals need the ship |
 | Crafting | `content.ts` RECIPES | furnace, anvil, cookfire; burn chance; forged gear can roll Fine/Rare |
@@ -49,8 +52,16 @@ Reflects the actual repository, not the roadmap.
 | Input | `src/input/input.ts` | invisible joystick, tap/click to walk or use, hover labels, WASD, hotkeys, pinch/wheel zoom |
 
 ## Controls
-- **Phone:** drag anywhere to move or steer; tap things to walk to them and use them; round button = nearest action; pistol button = flintlock; pinch = zoom; tap minimap or map to walk there.
-- **Laptop:** click to walk/use (RuneScape-style); right-click items for details; WASD/arrows move; E action; Space flintlock; I G K J M O tabs; Esc closes; scroll zooms.
+- **Phone:** drag anywhere to move or steer; tap things to walk to them and use them; big round button = nearest action; small buttons = roll, whirl, flintlock; pinch = zoom; tap minimap or map to walk there.
+- **Laptop:** click to walk/use (RuneScape-style); right-click items for details; WASD/arrows move; E action; Space dodge roll; R whirl; F flintlock; I G K J M O tabs; Esc closes; scroll zooms.
+
+## Playtest log
+- **2026-10-23, Tom, iPhone (live Pages build):** smooth, no heat; joystick + tap-to-move liked; camera distance and zoom liked.
+  - Bug: inventory taps did nothing. Cause [likely]: tap reported as a mouse click, so it tried to use the item and the message went to a hidden log. Fixed: pointer type taken from pointerdown, touch always opens the details panel, log stays visible above the open sheet.
+  - Combat felt passive (one button). Added dodge roll, whirl, swing arc, knockback, hit squash.
+  - Found while fixing: with the portrait sheet open the player was hidden behind it. Camera now shifts up.
+
+- **2026-10-23, Tom:** "plays really well; combat needs a lot of work; one Combat skill is wrong; levels far too fast". Rebuilt combat on RuneScape's model (see Decisions). Measured with simulated play: crabs from level 1 give Attack 5 after 10 min, 12 after 30 min (was one level per crab). Guardian balance test: melee 8 loses, melee 12 wins with ~7 food in ~2.5 min, magic 10 wins in ~1 min, ranged 10 wins in ~2 min. Found and fixed: the Guardian could stack two warnings to land together (unfair instant death).
 
 ## Known issues / limitations
 - No sound yet.
