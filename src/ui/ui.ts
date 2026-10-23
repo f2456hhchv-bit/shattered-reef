@@ -264,7 +264,8 @@ export class UI {
     // panel content
     if (g.rev !== this.lastRev) {
       this.lastRev = g.rev;
-      if (this.sideOpen && this.tab !== 'map') this.renderTab();
+      // the map draws itself every 0.1 s below; it only needs building once when its tab opens
+      if (this.sideOpen && (this.tab !== 'map' || !document.getElementById('mapbig'))) this.renderTab();
       if (this.station) this.renderStation();
       if (this.shopOpen) this.renderShop();
       if (this.bankOpen) this.renderBank();
@@ -292,8 +293,9 @@ export class UI {
     }
     d.live = true; d.t = 0;
     d.x = x + (Math.random() - 0.5) * 0.6; d.z = z; d.y = this.game.world.standY(x, z) + 2.2;
-    d.el.className = `dmg${player ? ' player' : ''}${crit ? ' crit' : ''}`;
-    d.el.textContent = String(amount);
+    const miss = amount === 0; // RuneScape shows misses as a blue zero: make it unmistakably a miss, not a bug
+    d.el.className = `dmg${player ? ' player' : ''}${crit ? ' crit' : ''}${miss ? ' miss0' : ''}`;
+    d.el.textContent = miss ? 'Miss' : String(amount);
     d.el.style.display = '';
   }
 

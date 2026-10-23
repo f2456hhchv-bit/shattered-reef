@@ -79,8 +79,10 @@ const sizes = [
         while (r.ui.dialogOpen) r.ui.advanceDialog();
         out.shop = !!document.getElementById('shopwin');
         r.ui.closeWindows();
-        for (const t of ['pack', 'gear', 'skills', 'quests', 'map', 'settings']) { r.ui.selectTab(t, true); r.ui.update(0.016); }
-        out.tabs = document.getElementById('content').innerHTML.length > 50;
+        // each tab must show its own content (the map tab once rendered nothing and this didn't notice)
+        const expect = { pack: '[data-slot]', gear: '[data-equip]', skills: '.skill', quests: '.title', map: '#mapbig', settings: '#saveNow' };
+        out.tabs = Object.entries(expect).filter(([t, sel]) => { r.ui.selectTab(t, true); r.ui.update(0.016); return !document.querySelector('#content ' + sel); }).map(([t]) => t);
+        out.tabs = out.tabs.length ? 'blank: ' + out.tabs.join(',') : true;
         near(iven.x, iven.z + 4);
         return out;
       });
@@ -90,7 +92,7 @@ const sizes = [
       await p.waitForFunction(() => !!document.getElementById('dialog'), null, { timeout: 90000 }).catch(() => {});
       flow.clickPickedNpc = await p.evaluate(() => !!document.getElementById('dialog'));
       result.flow = flow;
-      if (!flow.dialog || !flow.station || !flow.shop || !flow.tabs || flow.questStage !== 1 || !flow.clickPickedNpc) failed++;
+      if (!flow.dialog || !flow.station || !flow.shop || flow.tabs !== true || flow.questStage !== 1 || !flow.clickPickedNpc) failed++;
       if (errs.length) failed++;
       result.errors = errs.slice(0, 5);
     }

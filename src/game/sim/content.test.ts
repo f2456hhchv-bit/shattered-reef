@@ -53,6 +53,13 @@ describe('content data', () => {
     expect(dropOnly).toEqual([]);
   });
 
+  it('starter foes (below level 9) never roll as elites', () => {
+    for (let seed = 1; seed < 12; seed++) {
+      const g = new Game({ seed, save: defaultSave(base.layout.respawn, base.layout.mooring) });
+      expect(g.enemies.filter((e) => e.def.level < 9 && e.elite).map((e) => e.def.id)).toEqual([]);
+    }
+  }, 30_000);
+
   it('enemies cover combat levels 2 to 80 without a gap over 15', () => {
     const lv = Object.values(ENEMIES).map((e) => e.level).sort((a, b) => a - b);
     expect(lv[0]).toBeLessThanOrEqual(2);
@@ -222,6 +229,19 @@ describe('the living island', () => {
     expect(c('kelp_bed')).toBeGreaterThan(10);
     expect(base.layout.nodes.filter((n) => n.def === 'dig_spot').length).toBeGreaterThan(20);
   });
+  it('no tree or rock on the island is decoration only', () => {
+    expect(base.layout.props.filter((p) => p.kind === 'pine' || p.kind === 'broadleaf' || p.kind === 'rock').length).toBe(0);
+    for (const n of base.layout.nodes.filter((x) => x.scenery)) expect(base.world.nearestWalkable(n.x, n.z, n.def === 'kelp_bed' ? 2.9 : 1.6), n.def).not.toBeNull();
+  });
+  it('every building and camp sits on level ground', () => {
+    const spots = [...base.layout.buildings.map((b) => ({ x: b.x, z: b.z, r: Math.max(b.w, b.d) / 2, id: b.kind })), ...base.layout.stations.map((s) => ({ x: s.x, z: s.z, r: 0.8, id: s.id })), ...base.layout.banks.map((b) => ({ x: b.x, z: b.z, r: 0.7, id: 'bank' }))];
+    for (const sp of spots) {
+      const hs: number[] = [];
+      for (let a = 0; a < 8; a++) hs.push(base.world.ground(sp.x + Math.cos(a) * sp.r, sp.z + Math.sin(a) * sp.r));
+      expect(Math.max(...hs) - Math.min(...hs), `${sp.id} at ${sp.x.toFixed(0)},${sp.z.toFixed(0)}`).toBeLessThan(0.45);
+    }
+  });
+
   it('fells an ordinary scenery pine and mines an ordinary boulder', () => {
     const g = fresh();
     const pine = g.layout.nodes.find((n) => n.def === 'tree_pine' && n.scenery)!;

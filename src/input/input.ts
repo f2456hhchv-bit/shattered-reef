@@ -92,15 +92,20 @@ export class Input {
     this.ui.hideStick();
   }
 
-  /** Nearest interactable under a screen point. */
+  /**
+   * Nearest interactable under a screen point. Each target is a vertical span (a tree from trunk to canopy,
+   * a person from feet to head), so clicking anywhere on it counts, not just one spot at its base.
+   */
   pick(sx: number, sy: number, radius: number): Target | null {
     const g = this.game;
     let best: Target | null = null, bd = radius;
     for (const t of g.targets()) {
-      const y = (t.kind === 'node' && t.label.includes('shoal') ? 0.05 : g.world.standY(t.x, t.z)) + PICK_Y[t.kind] * (t.kind === 'node' && t.verb === 'Chop' ? 2 : 1);
-      const s = this.r.project(t.x, y, t.z);
-      if (!s.visible) continue;
-      const d = Math.hypot(s.x - sx, s.y - sy);
+      const shoal = t.kind === 'node' && t.label.includes('shoal');
+      const base = shoal ? 0.05 : g.world.standY(t.x, t.z);
+      const [lo, hi] = t.kind === 'node' && t.verb === 'Chop' ? [0.2, 4.2] : t.kind === 'node' && t.verb === 'Mine' ? [0.05, 1.1] : [0.1, PICK_Y[t.kind] * 1.5];
+      const a = this.r.project(t.x, base + lo, t.z), b = this.r.project(t.x, base + hi, t.z);
+      if (!a.visible && !b.visible) continue;
+      const d = distToSegment(sx, sy, a.x, a.y, b.x, b.y) - (t.verb === 'Chop' ? 12 : 0); // canopies are wide
       if (d < bd) { bd = d; best = t; }
     }
     return best;
@@ -169,3 +174,9 @@ export class Input {
 }
 
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
+
+function distToSegment(px: number, py: number, ax: number, ay: number, bx: number, by: number) {
+  const dx = bx - ax, dy = by - ay;
+  const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy || 1)));
+  return Math.hypot(px - (ax + dx * t), py - (ay + dy * t));
+}

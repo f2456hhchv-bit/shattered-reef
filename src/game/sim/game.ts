@@ -779,7 +779,8 @@ export class Game {
   private rollElite(e: Enemy) {
     e.elite = null;
     e.maxHp = e.def.hp;
-    if (!e.def.boss && !e.summoned && this.rnd() < 0.1) {
+    // elites only among foes of level 9+: a starter's first crabs shouldn't be triple-health armoured ones
+    if (!e.def.boss && !e.summoned && e.def.level >= 9 && this.rnd() < 0.1) {
       e.elite = ELITE_AFFIXES[Math.floor(this.rnd() * ELITE_AFFIXES.length)].id;
       e.maxHp = Math.round(e.def.hp * (e.elite === 'barnacled' ? 3 : 2));
     }

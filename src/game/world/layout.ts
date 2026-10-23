@@ -87,7 +87,9 @@ export function buildIsland(seed = 1): IslandLayout {
   ];
   for (const n of npcs) world.solids.push({ x: n.x, z: n.z, r: 0.35 });
 
-  // ---- ruin: ring of broken pillars around a bell plinth
+  // ---- ruin: ring of broken pillars around a bell plinth, walled with fallen masonry (mineable like any rock;
+  // mining only changes its look, the wall stays)
+  const rubble: { x: number; z: number; rot: number; s: number; seed: number }[] = [];
   const R = LAYOUT.ruin;
   const props: Prop[] = [];
   for (let k = 0; k < 9; k++) {
@@ -101,7 +103,7 @@ export function buildIsland(seed = 1): IslandLayout {
     for (const f of [1 / 3, 2 / 3]) {
       const b = a + (f * Math.PI * 2) / 9;
       const rx = R.x + Math.cos(b) * 7, rz = R.z + Math.sin(b) * 7, s = 0.7 + rnd() * 0.25;
-      props.push({ kind: 'rock', x: rx, z: rz, rot: rnd() * 6.28, s, seed: 500 + k * 2 + Math.round(f * 3) });
+      rubble.push({ x: rx, z: rz, rot: rnd() * 6.28, s, seed: 500 + k * 2 + Math.round(f * 3) });
       world.solids.push({ x: rx, z: rz, r: 0.95 });
     }
   }
@@ -112,6 +114,7 @@ export function buildIsland(seed = 1): IslandLayout {
   // ---- resource nodes
   const nodes: NodePlacement[] = [];
   let uid = 0;
+  for (const r of rubble) nodes.push({ uid: `n${uid++}`, def: 'rock_boulder', x: r.x, z: r.z, seed: r.seed, scenery: true, s: r.s, rot: r.rot });
   const free = (x: number, z: number, minCoast = 4, clearance = 2.2) => {
     if (coastDist(x, z) < minCoast) return false;
     const p = nearestPathDist(x, z);
@@ -229,9 +232,9 @@ export function buildIsland(seed = 1): IslandLayout {
     const x = Math.cos(a) * r, z = Math.sin(a) * r;
     if (!free(x, z, 1, 2)) continue;
     const s = 0.35 + rnd() * 0.7;
-    // boulders big enough to swing at can be mined; pebbles stay scenery
-    if (s > 0.6) { nodes.push({ uid: `n${uid++}`, def: 'rock_boulder', x, z, seed: Math.floor(rnd() * 1e6), scenery: true, s, rot: rnd() * 6.28 }); world.solids.push({ x, z, r: s * 0.9 }); }
-    else props.push({ kind: 'rock', x, z, rot: rnd() * 6.28, s, seed: Math.floor(rnd() * 1e6) });
+    // every rock on the island can be mined
+    nodes.push({ uid: `n${uid++}`, def: 'rock_boulder', x, z, seed: Math.floor(rnd() * 1e6), scenery: true, s, rot: rnd() * 6.28 });
+    world.solids.push({ x, z, r: Math.max(0.45, s * 0.9) });
     made++;
   }
 
@@ -276,14 +279,14 @@ export function buildIsland(seed = 1): IslandLayout {
   }
 
   world.bake();
-  // scenery deep in a thicket that no one can stand beside goes back to being plain scenery
-  for (let i = nodes.length - 1; i >= 0; i--) {
-    const n = nodes[i];
-    if (!n.scenery) continue;
-    if (world.nearestWalkable(n.x, n.z, n.def === 'kelp_bed' ? 2.9 : 1.6)) continue;
-    nodes.splice(i, 1);
-    if (n.def === 'kelp_bed') continue;
-    props.push({ kind: n.def === 'tree_pine' ? 'pine' : n.def === 'tree_oak' ? 'broadleaf' : n.def === 'rock_boulder' ? 'rock' : 'rock', x: n.x, z: n.z, rot: n.rot ?? 0, s: n.s ?? 1, seed: n.seed });
+  // a tree or rock nobody can stand beside would be the one thing on the island you can't use: leave it out
+  const unreachable = nodes.filter((n) => n.scenery && !world.nearestWalkable(n.x, n.z, n.def === 'kelp_bed' ? 2.9 : 1.6));
+  if (unreachable.length) {
+    const gone = new Set(unreachable);
+    for (let i = nodes.length - 1; i >= 0; i--) if (gone.has(nodes[i])) nodes.splice(i, 1);
+    // and its collision with it, so no invisible wall is left behind
+    for (let i = world.solids.length - 1; i >= 0; i--) { const so = world.solids[i]; if (unreachable.some((n) => n.x === so.x && n.z === so.z)) world.solids.splice(i, 1); }
+    world.bake();
   }
 
   // ---- enemies, zone by zone (snapped to walkable ground)
