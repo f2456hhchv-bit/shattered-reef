@@ -36,8 +36,10 @@ export function portrait(id: string, look: HumanoidLook): string {
   rig.root.updateMatrixWorld(true);
   const head = new THREE.Vector3();
   rig.head.getWorldPosition(head);
-  head.y += 0.22;
-  cam.position.set(head.x + 0.3, head.y + 0.1, head.z + 1.35);
+  const toy = rig.head.userData.toy as { centre: number; size: number } | undefined;
+  head.y += toy ? toy.centre + 0.08 : 0.22;
+  const dist = toy ? 2.55 : 1.35; // the toy head is far bigger: step back to frame it
+  cam.position.set(head.x + 0.3 * dist / 1.35, head.y + 0.1, head.z + dist);
   cam.lookAt(head.x, head.y - 0.05, head.z);
   r.render(scene, cam);
   const url = r.domElement.toDataURL('image/png');
