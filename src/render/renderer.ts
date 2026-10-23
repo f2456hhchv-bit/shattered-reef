@@ -4,6 +4,8 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { LOOK_BRIGHT as LOOK } from '../art/looks';
 import { createGradePass } from '../art/grade';
+import { addSurfaceDetail, surfaceUniforms } from '../art/surface';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { createWater } from '../art/water';
 import { PAL, mat, recolour, type PalKey } from '../art/materials';
 import { mulberry32 } from '../art/noise';
@@ -23,6 +25,9 @@ import { InstancedField, type FieldItem } from './instanced';
 import { Particles } from './fx';
 
 const HERO = 1.2; // characters drawn larger than life so they read on phones
+/** Fine cloth/skin grain and a warm rim light so people stand out from the ground; coarser grain on props. */
+const CHAR_SURFACE = { scale: 7, tone: 0.12, bump: 0.18, rim: 0.32 };
+const PROP_SURFACE = { scale: 3, tone: 0.24, bump: 0.42 };
 
 const NPC_LOOKS: Record<string, HumanoidLook> = {
   iven: { skin: 'skin', coat: 0x55603f, coatTrim: 'brass', shirt: 'shirt', trousers: 'trousers', boots: 'leather', hat: 0x3a3a34, hair: 0x9a9a92, hatStyle: 'cap', spectacles: true },
@@ -76,6 +81,7 @@ export class GameRenderer {
   private sunDir = new THREE.Vector3();
   private water: ReturnType<typeof createWater>;
   private terrain!: ReturnType<typeof buildTerrainMesh>;
+  private bloom!: UnrealBloomPass;
   readonly particles = new Particles(500);
   private quality: 'high' | 'low' = 'high';
 
@@ -124,10 +130,17 @@ export class GameRenderer {
     this.rt = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: 4 });
     this.composer = new EffectComposer(this.renderer, this.rt);
     this.composer.addPass(new RenderPass(this.scene, this.camera));
+    // bloom only on what's genuinely bright (fires, magic, sun glints): threshold above lit surfaces
+    this.bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.5, 0.45, 0.92);
+    this.composer.addPass(this.bloom);
     this.composer.addPass(new OutputPass());
     this.composer.addPass(createGradePass(LOOK));
 
-    const hemi = new THREE.HemisphereLight(LOOK.hemi.sky, LOOK.hemi.ground, LOOK.hemi.intensity);
+    // ambient light comes from a painted sky (image-based lighting): soft directional fill, sheen on metal and stone.
+    // The hemisphere light stays as a weaker base so the overall brightness matches the old look.
+    this.scene.environment = buildSkyEnvironment(this.renderer);
+    this.scene.environmentIntensity = 0.28;
+    const hemi = new THREE.HemisphereLight(LOOK.hemi.sky, LOOK.hemi.ground, LOOK.hemi.intensity * 0.72);
     this.scene.add(hemi);
     this.sun.castShadow = true;
     this.sun.shadow.mapSize.set(2048, 2048);
@@ -153,7 +166,7 @@ export class GameRenderer {
     for (const [style, held] of [['melee', 'cutlass'], ['ranged', 'pistol'], ['magic', 'staff']] as const) {
       const rig = buildHumanoid({ ...PLAYER_LOOK, held });
       rig.root.scale.setScalar(HERO);
-      bakeRig(rig.root, new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: false, roughness: 0.9 }));
+      bakeRig(rig.root, addSurfaceDetail(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: false, roughness: 0.9 }), CHAR_SURFACE));
       rig.root.visible = false;
       this.scene.add(rig.root);
       this.playerRigs[style] = rig;
@@ -168,7 +181,7 @@ export class GameRenderer {
       rig.root.scale.setScalar(HERO);
       rig.root.position.set(n.x, world.standY(n.x, n.z), n.z);
       rig.root.rotation.y = Math.PI / 2 - n.facing;
-      bakeRig(rig.root, new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: false, roughness: 0.9 }));
+      bakeRig(rig.root, addSurfaceDetail(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: false, roughness: 0.9 }), CHAR_SURFACE));
       this.scene.add(rig.root);
       this.npcs.set(n.id, rig);
     }
@@ -326,13 +339,13 @@ export class GameRenderer {
       live.position.set(n.x, y, n.z);
       this.scene.add(live);
       if (dead) { dead.position.set(n.x, y, n.z); dead.visible = false; this.scene.add(dead); }
-      if (live !== ripples) bakeRig(live, new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: false, roughness: 0.92 }));
+      if (live !== ripples) bakeRig(live, addSurfaceDetail(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: false, roughness: 0.92 }), PROP_SURFACE));
       this.nodeViews.set(n.uid, { live, dead, ripples });
     }
   }
 
   /** The island's ordinary trees, boulders, bushes and kelp: usable, drawn instanced (stumps, rubble, picked bushes). */
-  private scenery = new InstancedField(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: false, roughness: 0.9 }));
+  private scenery = new InstancedField(addSurfaceDetail(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: false, roughness: 0.9 }), PROP_SURFACE));
   private sceneryState = new Map<string, boolean>();
   private buildScenery() {
     const w = this.game.world;
@@ -357,7 +370,7 @@ export class GameRenderer {
 
   // ------------------------------------------------------------------ dynamic views
   private makeEnemyView(e: Enemy): EnemyView {
-    const material = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: false, roughness: 0.9, emissive: 0xffffff, emissiveIntensity: 0 });
+    const material = addSurfaceDetail(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: false, roughness: 0.9, emissive: 0xffffff, emissiveIntensity: 0 }), CHAR_SURFACE);
     let v: EnemyView;
     if (e.def.model === 'crab') {
       const rig = buildCrab(e.id);
@@ -596,6 +609,8 @@ export class GameRenderer {
   setQuality(q: 'high' | 'low') {
     this.quality = q;
     this.renderer.shadowMap.enabled = q === 'high';
+    this.bloom.enabled = q === 'high';
+    surfaceUniforms.uDetail.value = q === 'high' ? 1 : 0;
     this.sun.castShadow = q === 'high';
     if (this.grass) this.grass.visible = q === 'high';
     this.renderer.setPixelRatio(q === 'high' ? Math.min(window.devicePixelRatio, 2) : Math.min(window.devicePixelRatio, 1.25));
@@ -805,4 +820,28 @@ export class GameRenderer {
     }
     return null;
   }
+}
+
+/** A painted sky (zenith, horizon haze, warm sun side, earthy ground bounce) prefiltered for image-based lighting. */
+function buildSkyEnvironment(r: THREE.WebGLRenderer): THREE.Texture {
+  const scene = new THREE.Scene();
+  const sky = new THREE.Mesh(new THREE.SphereGeometry(10, 32, 16), new THREE.ShaderMaterial({
+    side: THREE.BackSide,
+    uniforms: { uSun: { value: new THREE.Vector3(-0.42, 0.62, 0.46).normalize() } },
+    vertexShader: 'varying vec3 vD; void main() { vD = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+    fragmentShader: `uniform vec3 uSun; varying vec3 vD;
+      void main() {
+        float y = vD.y;
+        vec3 zenith = vec3(0.32, 0.55, 0.85), horizon = vec3(0.86, 0.92, 0.92), ground = vec3(0.36, 0.38, 0.26);
+        vec3 c = y > 0.0 ? mix(horizon, zenith, pow(y, 0.6)) : mix(horizon * 0.8, ground, pow(-y, 0.5));
+        float s = max(dot(vD, uSun), 0.0);
+        c += vec3(1.0, 0.86, 0.62) * (pow(s, 8.0) * 0.6 + pow(s, 200.0) * 6.0);
+        gl_FragColor = vec4(c, 1.0);
+      }`,
+  }));
+  scene.add(sky);
+  const pmrem = new THREE.PMREMGenerator(r);
+  const tex = pmrem.fromScene(scene, 0.02).texture;
+  pmrem.dispose();
+  return tex;
 }
