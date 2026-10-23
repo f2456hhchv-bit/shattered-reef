@@ -59,7 +59,7 @@ Reflects the actual repository, not the roadmap.
 | Ship | `sim/game.ts` | board at dock, seamless sailing, shallows collision, go ashore on any reachable beach, mooring bell recalls ship |
 | Saves | `sim/save.ts` | versioned, validated, migration table; autosave every 10 s + on hide |
 | UI | `src/ui/` | landscape side panel / portrait bottom sheet; pack 4×7 (7×4 portrait), equipment + stats, skills, quests + places, map, settings |
-| Audio | `src/audio/audio.ts` | all synthesised with Web Audio (no files): effects per game event, surf that follows the coast, wind, gulls; generative sea-folk music (calm / combat with drums / boss). Starts on first tap; Music and Sound toggles saved in settings; suspends when the tab is hidden |
+| Audio | `src/audio/audio.ts`, `music.ts` | effects + surf/wind/gulls synthesised. Music: real instrument samples (FluidR3 GM, CC BY 3.0, ~2.4 MB in `public/audio/inst`, every 3rd semitone, pitch-shifted) playing hand-typed ABC tunes: calm = original "Bellwether Air" + Greensleeves with 25-50 s silences; ship = Drunken Sailor shanty; combat = Drowsy Maggie reel; boss = Drunken Sailor in minor with timpani. Tests check every bar length and note range |
 | Opening credits | `src/ui/credits.ts`, `main.ts` | first visit: "Tap to begin" gate (unlocks sound) → ~21 s fly-over (quay, Saltpine Wood, Broken Ring) with letterbox, title cards and the cracked-gold logo + audio cue → title menu over a slow camera sway. Tap/key skips; returning players go straight to the menu ("Watch the opening again" replays). Shots and cards are data; renderer has a `cinematic` camera override that glides down to the player on start |
 | Input | `src/input/input.ts` | invisible joystick, tap/click to walk or use, hover labels, WASD, hotkeys, pinch/wheel zoom |
 
@@ -82,7 +82,7 @@ Reflects the actual repository, not the roadmap.
 - **2026-10-23, Tom:** "plays really well; combat needs a lot of work; one Combat skill is wrong; levels far too fast". Rebuilt combat on RuneScape's model (see Decisions). Measured with simulated play: crabs from level 1 give Attack 5 after 10 min, 12 after 30 min (was one level per crab). Guardian balance test: melee 8 loses, melee 12 wins with ~7 food in ~2.5 min, magic 10 wins in ~1 min, ranged 10 wins in ~2 min. Found and fixed: the Guardian could stack two warnings to land together (unfair instant death).
 
 ## Known issues / limitations
-- Sound is synthesised, not recorded: decent for hits and surf, thinner than real samples. Not yet heard on a real phone speaker.
+- Effects are synthesised, music uses real samples; neither has been heard by me (I can't listen) - Tom's ears are the test.
 - Visual pass 1 (done): RuneScape-style outlined item icons (lathed items no longer vanish), skill medallions + XP bars, empty-slot silhouettes, hit splats, per-stone cobbles, cloth tents with ropes, smooth shoreline (beach toe slope + per-pixel water depth), less phone haze.
 - Overlapping enemy name labels when two enemies stand close (seen in screenshots).
 - No naval combat; sea is for travel, fishing and discovery only.

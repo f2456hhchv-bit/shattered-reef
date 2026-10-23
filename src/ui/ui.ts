@@ -528,6 +528,7 @@ export class UI {
       <div class="brass-rule"></div><h2 class="title">Controls</h2>
       ${fine ? `<p>Click to walk, click things to use them. <kbd>WASD</kbd> also moves.<br><kbd>E</kbd> interact · <kbd>Space</kbd> dodge roll · <kbd>R</kbd> special attack · <kbd>I</kbd> <kbd>G</kbd> <kbd>K</kbd> <kbd>J</kbd> <kbd>M</kbd> tabs · <kbd>Esc</kbd> close · scroll to zoom.</p>`
         : '<p>Drag anywhere on the world to move. Tap things to walk to them and use them. The big round button does the nearest action; the two smaller ones are dodge roll and the special attack for your weapon. Pinch to zoom.</p>'}
+      <p class="muted" style="font-size:11px">Music: traditional tunes (Greensleeves, Drowsy Maggie, Drunken Sailor) and an original air, played on the FluidR3 GM soundfont by Frank Wen (CC BY 3.0).</p>
       <p class="muted" style="font-size:12px">Your cutlass swings automatically at anything in reach. Pick a stance in Equipment to choose which skill you train. Roll through red markers to take no damage.</p>`;
   }
 

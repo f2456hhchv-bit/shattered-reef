@@ -1,0 +1,4 @@
+Instrument samples: FluidR3_GM soundfont by Frank Wen, released under the
+Creative Commons Attribution 3.0 licence (https://creativecommons.org/licenses/by/3.0/).
+Rendered to MP3 by the midi-js-soundfonts project (https://github.com/gleitz/midi-js-soundfonts).
+A subset of notes (every third semitone) is included; files are named by MIDI note number.
