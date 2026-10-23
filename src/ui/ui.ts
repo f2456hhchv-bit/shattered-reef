@@ -1,5 +1,6 @@
 import { item, RARITY, AFFIXES, type Slot, type SkillId } from '../game/data/items';
 import { morph, forget } from './morph';
+import { wears, condOf, WORN_OUT_EFFECT } from '../game/sim/inventory';
 import { onTap } from './tap';
 import { portrait } from './portrait';
 import { NPC_LOOKS, PLAYER_LOOK } from '../art/cast';
@@ -411,7 +412,9 @@ export class UI {
     if (!s) return `<button class="slot empty" ${attrs} aria-label="Empty ${label || 'slot'}">${label ? `<span class="lbl">${label}</span>` : ''}</button>`;
     const rar = s.inst && s.inst.rarity !== 'common';
     const q = item(s.id).stackable && s.qty > 1 ? `<span class="q">${s.qty >= 100000 ? Math.floor(s.qty / 1000) + 'k' : s.qty}</span>` : '';
-    return `<button class="slot${rar ? ' rar' : ''}" style="--rc:${rarityColour(s)}" ${attrs} aria-label="${esc(displayName(s))}${s.qty > 1 ? ' × ' + s.qty : ''}" title="${esc(displayName(s))}"><img src="${itemIcon(s.id, s.qty)}" alt="">${q}${label ? `<span class="lbl">${label}</span>` : ''}</button>`;
+    const c = condOf(s);
+    const condBar = c < 100 ? `<i class="cond${c <= 0 ? ' out' : c <= 20 ? ' low' : ''}" style="--c:${Math.max(4, c)}%"></i>` : '';
+    return `<button class="slot${rar ? ' rar' : ''}" style="--rc:${rarityColour(s)}" ${attrs} aria-label="${esc(displayName(s))}${s.qty > 1 ? ' × ' + s.qty : ''}" title="${esc(displayName(s))}"><img src="${itemIcon(s.id, s.qty)}" alt="">${q}${condBar}${label ? `<span class="lbl">${label}</span>` : ''}</button>`;
   }
 
   private packHtml() {
@@ -558,6 +561,7 @@ export class UI {
       const reqs = Object.entries(e.reqs).filter(([, v]) => (v ?? 0) > 1).map(([k, v]) => `${cap(k)} ${v}`);
       if (reqs.length) lines.push(`Requires ${reqs.join(', ')}`);
     }
+    if (wears(st.id)) { const c = condOf(st); lines.push(c <= 0 ? `Condition: worn out (works at ${Math.round(WORN_OUT_EFFECT * 100)}%). Repair at an anvil.` : `Condition ${Math.round(c)}%`); }
     if (d.heal) lines.push(`Heals ${d.heal}`);
     if (d.tool) lines.push(`${cap(d.tool.skill)} tool, power ${d.tool.power}${d.tool.level > 1 ? `, needs level ${d.tool.level}` : ''}`);
     const affixes = (st.inst?.affixes ?? []).map((a) => `<li>${esc(AFFIXES[a.id].fmt(a.v))}</li>`).join('');
@@ -613,8 +617,9 @@ export class UI {
       el = h('div', { id, class: 'win panel', role: 'dialog', 'aria-label': title });
       document.body.appendChild(el);
       const g = this.game;
-      onTap(el, '.x, [data-r], [data-buy], [data-c], [data-wd], [data-dep]', (b) => {
+      onTap(el, '.x, [data-r], [data-buy], [data-c], [data-wd], [data-dep], [data-rep]', (b) => {
         if (b.classList.contains('x')) { this.closeWindows(); return; }
+        if (b.dataset.rep) { const i = b.dataset.rep.lastIndexOf(':'); g.repair(b.dataset.rep.slice(0, i), b.dataset.rep.slice(i + 1) === 'self'); this.lastRev = -1; return; }
         if (b.dataset.wd) { const [idx, n] = b.dataset.wd.split(':').map(Number); g.withdraw(idx, n); return; }
         if (b.dataset.dep) { g.deposit('all'); return; }
         if (b.dataset.r) { g.craft(b.dataset.r, Number(b.dataset.n)); this.lastRev = -1; }
@@ -659,7 +664,10 @@ export class UI {
         <div class="btns"><button class="btn primary" data-r="${r.id}" data-n="1" ${block ? 'disabled' : ''}>Make 1</button><button class="btn" data-r="${r.id}" data-n="${Math.max(1, max)}" ${block || max < 2 ? 'disabled' : ''}>All (${Math.max(0, max)})</button></div></div>`;
     }).join('');
     const busy = g.action?.type === 'craft' ? `<p class="muted">Working... (${g.action.remaining} left)</p>` : '';
-    this.win('stationwin', title, rows + busy);
+    const worn = st === 'anvil' ? g.repairList() : [];
+    const repairs = worn.length ? `<h2 class="title" style="font-size:14px;margin-top:10px">Repairs</h2>${worn.map((r) => `<div class="recipe"><img src="${itemIcon(r.st.id)}" alt=""><div><b>${esc(displayName(r.st))}</b><div class="need">Condition ${Math.round(condOf(r.st))}%</div></div>
+      <div class="btns"><button class="btn primary" data-rep="${r.key}:smith" ${g.nearSmith() ? '' : 'disabled'}>Bram · ${r.coins}c</button>${r.bar ? `<button class="btn" data-rep="${r.key}:self" ${count(g.p.inv, r.bar) ? '' : 'disabled'}>1 ${esc(item(r.bar).name.replace(' bar', ''))} bar · +${r.xp} XP</button>` : ''}</div></div>`).join('')}` : '';
+    this.win('stationwin', title, repairs + rows + busy);
   }
 
   private bankOpen = false;

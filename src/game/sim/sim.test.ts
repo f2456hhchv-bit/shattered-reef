@@ -86,6 +86,59 @@ describe('save', () => {
   });
 });
 
+describe('wear and repair', () => {
+  it('gear wears with use, works at reduced effect when worn out, and never breaks', () => {
+    const g = fresh();
+    g.p.equip.weapon = { id: 'cutlass_bronze', qty: 1, inst: { uid: 9, rarity: 'rare', affixes: [{ id: 'crit', v: 5 }] } };
+    g.recalc();
+    const fresh100 = g.stats.attRoll;
+    const crab = g.enemies.find((e) => e.def.id === 'reef_crab' && !e.elite)!;
+    goNear(g, crab.x + 1.2, crab.z);
+    g.interact(`enemy:${crab.id}`);
+    run(g, 20);
+    expect(g.p.equip.weapon!.cond).toBeLessThan(100);
+    g.p.equip.weapon!.cond = 0.01;
+    (g as unknown as { wear: (s: unknown, a: number) => void }).wear(g.p.equip.weapon, 1);
+    expect(g.p.equip.weapon!.cond).toBe(0);
+    expect(g.p.equip.weapon!.id).toBe('cutlass_bronze'); // still there
+    expect(g.stats.attRoll).toBeLessThan(fresh100); // but weaker
+  });
+  it('repairs at the anvil: yourself with a bar (Smithing XP) or Bram for coins; affixes kept', () => {
+    const g = fresh();
+    g.p.equip.weapon = { id: 'cutlass_bronze', qty: 1, cond: 0, inst: { uid: 9, rarity: 'rare', affixes: [{ id: 'crit', v: 5 }] } };
+    g.give('hatchet_bronze', 1);
+    const h = g.p.inv.find((x) => x?.id === 'hatchet_bronze')!; h.cond = 40;
+    g.recalc();
+    const anvil = g.layout.stations.find((s) => s.id === 'anvil')!;
+    goNear(g, anvil.x + 1.2, anvil.z + 1.2);
+    const list = g.repairList();
+    expect(list.map((r) => r.st.id).sort()).toEqual(['cutlass_bronze', 'hatchet_bronze']);
+    g.give('bar_bronze', 1);
+    const xp0 = g.p.xp.smithing;
+    g.repair('equip:weapon', true);
+    expect(g.p.equip.weapon!.cond).toBe(100);
+    expect(g.p.equip.weapon!.inst!.affixes[0].id).toBe('crit');
+    expect(g.p.xp.smithing).toBeGreaterThan(xp0);
+    expect(count(g.p.inv, 'bar_bronze')).toBe(0);
+    const coins0 = count(g.p.inv, 'coins');
+    const key = g.repairList()[0].key;
+    g.repair(key, false);
+    expect(h.cond).toBe(100);
+    expect(count(g.p.inv, 'coins')).toBeLessThan(coins0);
+  });
+  it('condition survives a save and the strongbox', () => {
+    const g = fresh();
+    g.give('helm_bronze', 1);
+    const i = g.p.inv.findIndex((x) => x?.id === 'helm_bronze'); g.p.inv[i]!.cond = 33;
+    const back = parseSave(JSON.stringify(g.s), defaultSave(base.layout.respawn, base.layout.mooring))!;
+    expect(back.player.inv[i]!.cond).toBe(33);
+    const b = g.layout.banks[0]; goNear(g, b.x + 1.5, b.z + 1.5);
+    g.give('helm_bronze', 1);
+    g.deposit('all');
+    expect(g.s.bank.filter((e) => e.id === 'helm_bronze').map((e) => e.cond ?? 100).sort()).toEqual([100, 33]);
+  });
+});
+
 describe('strongbox (bank)', () => {
   it('deposits everything but tools, stacks plain items, withdraws, and survives a save', () => {
     const g = fresh();

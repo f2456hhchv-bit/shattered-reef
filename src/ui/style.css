@@ -284,3 +284,8 @@ body.landscape #side { padding-top: calc(var(--mm) + 80px + env(safe-area-inset-
 #hover .needs.ok { color: #9fe08a; }
 #hover .needs.no { color: #ff8a6a; }
 #ctx small.no { color: #ff9a7a; }
+/* condition: a thin bar along the bottom of the slot */
+.slot .cond { position: absolute; left: 6px; right: 6px; bottom: 4px; height: 3px; border-radius: 2px; background: #0008; pointer-events: none; }
+.slot .cond::after { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: var(--c); border-radius: 2px; background: #8fd06a; }
+.slot .cond.low::after { background: #f0a34a; }
+.slot .cond.out::after { background: #e05a44; }
