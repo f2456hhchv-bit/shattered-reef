@@ -14,7 +14,7 @@ const W = +(process.argv[3] || 960), H = +(process.argv[4] || 600);
   const scenes = (process.env.SCENES || 'quay,forest,hills,camp,ruin,sea,strand,fen,heartwood,peak,cove,wreck').split(',');
   const shots = [];
   for (const sc of scenes) {
-    await p.evaluate((sc) => {
+    await p.evaluate(({ sc, zoom }) => {
       const r = window.__reef, g = r.game, L = g.layout;
       const go = (x, z) => { const q = g.world.nearestWalkable(x, z, 6); g.p.x = q[0]; g.p.z = q[1]; };
       if (g.p.onShip) { g.p.onShip = false; }
@@ -26,8 +26,11 @@ const W = +(process.argv[3] || 960), H = +(process.argv[4] || 600);
       if (sc === 'sea') { const s = L.nodes.find((n) => n.def === 'spot_bell'); g.ship.x = s.x + 5; g.ship.z = s.z; g.p.onShip = true; g.p.x = g.ship.x; g.p.z = g.ship.z; g.shipSpeed = 4; }
       if (['fen', 'heartwood', 'peak', 'cove', 'wreck', 'crossroads', 'grove'].includes(sc)) { const z = r.zones[sc]; go(z.x, z.z); }
       if (sc === 'strand') { const c = g.enemies.find((e) => e.def.id === 'reef_crab'); go(c.x + 2, c.z - 1); }
+      if (sc === 'npcs') { const n = L.npcs.find((n) => n.id === 'marta'); go(n.x + 2.2, n.z + 1.5); }
+      if (sc === 'brigands') { go(r.zones.camp.x - 3, r.zones.camp.z + 4); }
+      if (zoom) r.renderer.zoom = zoom;
       r.renderer.snapCamera();
-    }, sc);
+    }, { sc, zoom: +(process.env.ZOOM || 0) });
     const t0 = await p.evaluate(() => window.__reef.game.time);
     await p.waitForFunction((t0) => window.__reef.game.time > t0 + (1.2), t0, { timeout: 120000 });
     shots.push({ sc, img: (await p.screenshot({ type: 'jpeg', quality: 70 })).toString('base64') });

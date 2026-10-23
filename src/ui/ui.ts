@@ -218,7 +218,7 @@ export class UI {
     const p = g.p;
     // orbs
     const hp = this.el.hp;
-    (hp.querySelector('.fill') as HTMLElement).style.transform = `scaleX(${Math.max(0, p.hp / g.stats.maxHp)})`;
+    (hp.querySelector('.fill') as HTMLElement).style.transform = `scaleY(${Math.max(0, p.hp / g.stats.maxHp)})`;
     (hp.querySelector('.txt') as HTMLElement).textContent = `${Math.ceil(p.hp)}`;
     document.getElementById('cbl')!.textContent = String(g.stats.combatLevel);
     // context + ability

@@ -15,7 +15,7 @@ export class Particles {
   private v = new THREE.Vector3();
 
   constructor(private cap = 500) {
-    const geo = new THREE.BoxGeometry(1, 1, 1);
+    const geo = new THREE.IcosahedronGeometry(0.55, 1); // round sparks and splinters, never cubes
     this.mesh = new THREE.InstancedMesh(geo, new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false }), cap);
     this.mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     this.mesh.frustumCulled = false;

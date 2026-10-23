@@ -4,7 +4,7 @@ Reflects the actual repository, not the roadmap.
 
 ## Status (2026-10-23)
 
-**Milestone:** starter island enlarged (Phase 2 of "standardise the starter island") on branch `art-standard`; not merged yet.
+**Live:** art pass 1 + 2.5× starter island (PR #3, deployed). **In progress on `ui-characters`:** rounded characters, framed UI.
 
 | Check | Result |
 |---|---|
@@ -32,6 +32,8 @@ Reflects the actual repository, not the roadmap.
 - **Combat:** auto-attack anything in reach (Survivor.io feel), tap/click an enemy to chase it. Three active skills: dodge roll (3 s, no damage while rolling), whirl (6 s, hits everything within 3.2 m, knockback), flintlock (7 s, ranged). Enemy attacks are telegraphed; rolling through them is the skill play.
 - **Starter island holds every skill's level range** (Tom, 2026-10-23). Easy content near the quay, harder toward the far coasts and Ironcrag. Skill-specific islands come later. A zone joins the Places list only when it has content.
 - **Art standard (art pass 1, approved by Tom 2026-10-23):** smooth shading, blended vertex-colour terrain with speckle, cobbles and cloud shadows; item models rendered to slate-tile icons; loot as rarity-tinted sea-glass shards. Characters and buildings get the same treatment next.
+- **No boxes in characters, UI or effects** (Tom, 2026-10-23: "boxy, like Minecraft"). Humanoids are turned profiles, capsules and spheres; UI panels are framed with brass filigree, tabs are medallions, orbs are round; particles are round.
+- **Workflow:** work accumulates on one branch; a PR is opened only when Tom says to put it live (a merged PR cannot be reused).
 - **Encounter upgrades (Survivor.io level-up choices):** not built yet; deliberately deferred so permanent skills stay the focus of the first island.
 
 ## Systems in the build
@@ -71,7 +73,7 @@ Reflects the actual repository, not the roadmap.
 ## Known issues / limitations
 - No sound yet.
 - No naval combat; sea is for travel, fishing and discovery only.
-- Character models are basic up close.
+- Buildings and the Guardian are still blocky; next art target after characters/UI.
 - One island. Terrain (64 chunks of 40 m) and grass (40 m buckets) are frustum-culled; camera far plane follows the fog. Not streamed: the whole 300 m world is built at load (~0.4 s for the simulation in Node).
 - Performance measured only in software rendering; big-island frame rate on a real phone unmeasured.
 - New outer zones have scenery only; their skills content is Phase 3.
