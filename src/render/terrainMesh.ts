@@ -8,7 +8,9 @@ import { WORLD_HALF } from '../game/world/island';
 // Smooth terrain from the simulation's height grid: shared vertices, smooth normals,
 // colours blended per vertex (no triangle checkerboard), plus drifting cloud shadows.
 
-export interface TerrainView { mesh: THREE.Mesh; uniforms: { uTime: { value: number } } }
+export interface TerrainView { group: THREE.Group; uniforms: { uTime: { value: number } } }
+
+const CHUNK = 32; // cells per chunk side (40 m): off-screen chunks are frustum-culled
 
 export function buildTerrainMesh(world: World, look: Look): TerrainView {
   const g = look.ground;
@@ -52,25 +54,48 @@ export function buildTerrainMesh(world: World, look: Look): TerrainView {
         const pd = nearestPathDist(x, z);
         tmp.lerp(dirt.clone().lerp(sand, 0.2 * n2), (1 - smooth(pd.d, pd.width * 0.8, pd.width + 0.35)) * (y > 0.2 ? 1 : 0));
       }
+      // altitude: grass thins to scree, then bare rock toward Ironcrag's summit
+      if (y > 5) tmp.lerp(rock.clone().lerp(grassD, 0.35 * n2), smooth(y + (n2 - 0.5) * 2.5, 5.5, 9.5) * 0.85);
       if (y > 0.25) tmp.lerp(rock.clone().lerp(rockD, smooth(slope, 0.9, 1.6)), smooth(slope, 0.55, 0.95));
       col[k] = tmp.r; col[k + 1] = tmp.g; col[k + 2] = tmp.b;
     }
   }
-  const idx = new Uint32Array(HN * HN * 6);
-  let p = 0;
-  for (let j = 0; j < HN; j++) {
-    for (let i = 0; i < HN; i++) {
-      const a = j * R + i, b = (j + 1) * R + i, c = j * R + i + 1, d2 = (j + 1) * R + i + 1;
-      idx[p++] = a; idx[p++] = b; idx[p++] = c; // same split as World.ground()
-      idx[p++] = c; idx[p++] = b; idx[p++] = d2;
+  // smooth normals straight from the height grid, so chunk edges match exactly
+  const nrm = new Float32Array(R * R * 3);
+  const hAt = (a: number, b: number) => H[Math.max(0, Math.min(HN, b)) * R + Math.max(0, Math.min(HN, a))];
+  for (let j = 0; j < R; j++)
+    for (let i = 0; i < R; i++) {
+      const nx = hAt(i - 1, j) - hAt(i + 1, j), nz = hAt(i, j - 1) - hAt(i, j + 1), ny = 2 * HCELL;
+      const l = Math.hypot(nx, ny, nz), k = (j * R + i) * 3;
+      nrm[k] = nx / l; nrm[k + 1] = ny / l; nrm[k + 2] = nz / l;
     }
-  }
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-  geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
-  geo.setAttribute('aCobble', new THREE.BufferAttribute(cob, 1));
-  geo.setIndex(new THREE.BufferAttribute(idx, 1));
-  geo.computeVertexNormals();
+  const chunkGeo = (ci: number, cj: number) => {
+    const i0 = ci * CHUNK, j0 = cj * CHUNK, i1 = Math.min(HN, i0 + CHUNK), j1 = Math.min(HN, j0 + CHUNK);
+    const cw = i1 - i0 + 1, chh = j1 - j0 + 1;
+    const P = new Float32Array(cw * chh * 3), N = new Float32Array(cw * chh * 3), Cc = new Float32Array(cw * chh * 3), B = new Float32Array(cw * chh);
+    for (let j = 0; j < chh; j++)
+      for (let i = 0; i < cw; i++) {
+        const src = (j0 + j) * R + i0 + i, dst = j * cw + i;
+        for (let c = 0; c < 3; c++) { P[dst * 3 + c] = pos[src * 3 + c]; N[dst * 3 + c] = nrm[src * 3 + c]; Cc[dst * 3 + c] = col[src * 3 + c]; }
+        B[dst] = cob[src];
+      }
+    const idx = new Uint32Array((cw - 1) * (chh - 1) * 6);
+    let p = 0;
+    for (let j = 0; j < chh - 1; j++)
+      for (let i = 0; i < cw - 1; i++) {
+        const a = j * cw + i, b = (j + 1) * cw + i, c = j * cw + i + 1, d2 = (j + 1) * cw + i + 1;
+        idx[p++] = a; idx[p++] = b; idx[p++] = c; // same split as World.ground()
+        idx[p++] = c; idx[p++] = b; idx[p++] = d2;
+      }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(P, 3));
+    geo.setAttribute('normal', new THREE.BufferAttribute(N, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(Cc, 3));
+    geo.setAttribute('aCobble', new THREE.BufferAttribute(B, 1));
+    geo.setIndex(new THREE.BufferAttribute(idx, 1));
+    geo.computeBoundingSphere();
+    return geo;
+  };
   const uniforms = { uTime: { value: 0 } };
   const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, metalness: 0 });
   mat.onBeforeCompile = (shader) => {
@@ -106,7 +131,13 @@ vec2 cuv = vCloudUv * 0.018 + vec2(uTime * 0.006, uTime * 0.004);
 float cloud = cNoise(cuv) * 0.65 + cNoise(cuv * 2.3) * 0.35;
 gl_FragColor.rgb *= 1.0 - smoothstep(0.55, 0.75, cloud) * 0.18;`);
   };
-  const mesh = new THREE.Mesh(geo, mat);
-  mesh.receiveShadow = true;
-  return { mesh, uniforms };
+  const group = new THREE.Group();
+  const nC = Math.ceil(HN / CHUNK);
+  for (let cj = 0; cj < nC; cj++)
+    for (let ci = 0; ci < nC; ci++) {
+      const mesh = new THREE.Mesh(chunkGeo(ci, cj), mat);
+      mesh.receiveShadow = true;
+      group.add(mesh);
+    }
+  return { group, uniforms };
 }

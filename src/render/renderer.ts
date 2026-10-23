@@ -69,7 +69,8 @@ export class GameRenderer {
   private whirlT = 0;
   private whirlR = 3.2;
   private clickT = 0;
-  private grass: THREE.InstancedMesh | null = null;
+  private grass: THREE.Group | null = null;
+  private grassTime: { value: number }[] = [];
 
   // camera
   camTarget = new THREE.Vector3();
@@ -111,8 +112,8 @@ export class GameRenderer {
 
     const world = game.world;
     this.terrain = buildTerrainMesh(world, LOOK);
-    this.scene.add(this.terrain.mesh);
-    this.water = createWater(WORLD_HALF * 2 + 120, 150, (x, z) => (Math.abs(x) > WORLD_HALF || Math.abs(z) > WORLD_HALF ? 6 : -world.ground(x, z)), LOOK);
+    this.scene.add(this.terrain.group);
+    this.water = createWater(WORLD_HALF * 2 + 120, 230, (x, z) => (Math.abs(x) > WORLD_HALF || Math.abs(z) > WORLD_HALF ? 6 : -world.ground(x, z)), LOOK);
     this.water.uniforms.uSunDir.value.copy(this.sunDir);
     this.scene.add(this.water.mesh);
 
@@ -229,17 +230,32 @@ export class GameRenderer {
   private buildGrass() {
     const w = this.game.world;
     const rnd = mulberry32(99);
-    const pts: THREE.Vector3[] = [];
-    for (let i = 0; i < 30000 && pts.length < 3500; i++) {
-      const x = (rnd() - 0.5) * 120, z = (rnd() - 0.5) * 120;
+    // bucketed into 40 m cells so each clump is its own culled draw
+    const CELL = 40, buckets = new Map<string, THREE.Vector3[]>();
+    let made = 0;
+    for (let i = 0; i < 90000 && made < 9000; i++) {
+      const x = (rnd() - 0.5) * 200, z = (rnd() - 0.5) * 200;
       if (coastDist(x, z) < 6 || !w.walkable(x, z)) continue;
+      const y = w.ground(x, z);
+      if (y > 8) continue; // bare upper peak
       const p = nearestPathDist(x, z);
       if (p.d < p.width + 0.5) continue;
       if (Math.hypot(x - this.game.layout.ruin.x, z - this.game.layout.ruin.z) < 8) continue;
       if (Math.hypot(x, z - this.game.layout.respawn.z) < 15) continue;
-      pts.push(new THREE.Vector3(x, w.ground(x, z) - 0.02, z));
+      const key = `${Math.floor(x / CELL)},${Math.floor(z / CELL)}`;
+      let b = buckets.get(key);
+      if (!b) buckets.set(key, (b = []));
+      b.push(new THREE.Vector3(x, y - 0.02, z));
+      made++;
     }
-    this.grass = buildGrass(pts, 7);
+    this.grass = new THREE.Group();
+    let seed = 7;
+    for (const pts of buckets.values()) {
+      const m = buildGrass(pts, seed++);
+      m.computeBoundingSphere();
+      this.grassTime.push((m.userData.uniforms as { uTime: { value: number } }).uTime);
+      this.grass.add(m);
+    }
     this.scene.add(this.grass);
   }
 
@@ -644,7 +660,7 @@ export class GameRenderer {
     this.particles.update(dt);
     this.water.uniforms.uTime.value = t;
     this.terrain.uniforms.uTime.value = t;
-    if (this.grass) (this.grass.userData.uniforms as { uTime: { value: number } }).uTime.value = t;
+    for (const u of this.grassTime) u.value = t;
     this.updateCamera(dt);
     this.composer.render();
   }
@@ -682,6 +698,9 @@ export class GameRenderer {
     const fog = this.scene.fog as THREE.Fog;
     fog.near = this.camDist * LOOK.fog.near;
     fog.far = this.camDist * LOOK.fog.far;
+    // nothing past full fog is visible, so let the frustum cull it
+    const far = Math.ceil(fog.far + 15);
+    if (this.camera.far !== far) { this.camera.far = far; this.camera.updateProjectionMatrix(); }
     this.water.uniforms.uFogNear.value = fog.near;
     this.water.uniforms.uFogFar.value = fog.far;
   }

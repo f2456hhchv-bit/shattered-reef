@@ -120,7 +120,8 @@ export class Game {
 
   // ship runtime
   shipSpeed = 0;
-  shipTarget: { x: number; z: number } | null = null;
+  shipTarget: { x: number; z: number } | null = null; // current waypoint
+  shipRoute: [number, number][] = []; // waypoints after the current one
   private shoalWarned = 0;
 
   // boss
@@ -252,6 +253,7 @@ export class Game {
       this.path = [];
       this.pending = null;
       this.shipTarget = null;
+      this.shipRoute = [];
       if (this.action) this.stopAction();
       this.target = null;
     }
@@ -262,7 +264,7 @@ export class Game {
     if (this.action) this.stopAction();
     this.pending = null;
     this.target = null;
-    if (this.p.onShip) { this.shipTarget = { x, z }; return; }
+    if (this.p.onShip) { this.sailTo(x, z); return; }
     this.path = this.world.findPath(this.p.x, this.p.z, x, z) ?? [];
     if (!this.path.length) this.msg('You can\'t reach that.', 'warn');
   }
@@ -276,7 +278,7 @@ export class Game {
     if (t.kind === 'enemy') { this.target = Number(key.split(':')[1]); this.pending = null; this.path = []; return; }
     this.target = null;
     if (Math.hypot(t.x - this.p.x, t.z - this.p.z) <= t.range) { this.perform(t); return; }
-    if (this.p.onShip) { this.shipTarget = { x: t.x, z: t.z }; this.pending = key; return; }
+    if (this.p.onShip) { this.sailTo(t.x, t.z); this.pending = key; return; }
     // walk to the nearest reachable point beside the target
     const ang = Math.atan2(this.p.z - t.z, this.p.x - t.x);
     let path: [number, number][] | null = null;
@@ -603,6 +605,14 @@ export class Game {
     this.rev++;
   }
 
+  /** Plot a course round headlands and reefs; straight line if no route is found. */
+  private sailTo(x: number, z: number) {
+    const route = this.world.findSeaPath(this.ship.x, this.ship.z, x, z) ?? [[x, z]];
+    const [first, ...rest] = route;
+    this.shipTarget = { x: first[0], z: first[1] };
+    this.shipRoute = rest;
+  }
+
   private stepShip(dt: number) {
     const sh = this.ship;
     let want: number | null = null, throttle = 0;
@@ -610,8 +620,13 @@ export class Game {
     if (m > 0.1) { want = Math.atan2(this.moveDir.z, this.moveDir.x); throttle = Math.min(1, m); }
     else if (this.shipTarget) {
       const dx = this.shipTarget.x - sh.x, dz = this.shipTarget.z - sh.z, d = Math.hypot(dx, dz);
-      const stopAt = this.pending ? 5 : 2.5;
-      if (d < stopAt) {
+      const via = this.shipRoute.length > 0;
+      const stopAt = via ? 4 : this.pending ? 5 : 2.5;
+      if (d < stopAt && via) {
+        const [nx, nz] = this.shipRoute.shift()!;
+        this.shipTarget = { x: nx, z: nz };
+        want = Math.atan2(nz - sh.z, nx - sh.x); throttle = 1;
+      } else if (d < stopAt) {
         this.shipTarget = null;
         if (this.pending) { const t = this.targets().find((x) => x.key === this.pending); this.pending = null; if (t && Math.hypot(t.x - sh.x, t.z - sh.z) <= t.range + 0.5) this.perform(t); }
       } else { want = Math.atan2(dz, dx); throttle = Math.min(1, d / 8 + 0.3); }
@@ -630,6 +645,7 @@ export class Game {
       else {
         this.shipSpeed = 0;
         this.shipTarget = null;
+        this.shipRoute = [];
         if (this.time - this.shoalWarned > 3) { this.shoalWarned = this.time; this.msg('Shallows! The hull scrapes. Steer for deeper water.', 'warn'); }
       }
     }
@@ -1203,6 +1219,12 @@ export class Game {
     if (this.world.walkable(nx, nz)) { p.x = nx; p.z = nz; return true; }
     if (Math.abs(ux) > 0.05 && this.world.walkable(p.x + ux * dist, p.z)) { p.x += ux * dist; return true; }
     if (Math.abs(uz) > 0.05 && this.world.walkable(p.x, p.z + uz * dist)) { p.z += uz * dist; return true; }
+    // round obstacles (pillars, trunks): glance off at an angle rather than stopping dead
+    const a = Math.atan2(uz, ux);
+    for (const off of [0.5, -0.5, 1.0, -1.0]) {
+      const sx = p.x + Math.cos(a + off) * dist * 0.8, sz = p.z + Math.sin(a + off) * dist * 0.8;
+      if (this.world.walkable(sx, sz)) { p.x = sx; p.z = sz; return true; }
+    }
     return false;
   }
 

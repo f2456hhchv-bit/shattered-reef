@@ -5,6 +5,7 @@ import { add, count, emptyInventory, remove } from './inventory';
 import { parseSave, defaultSave, SAVE_VERSION, HP_START_XP } from './save';
 import { hitChance, combatLevel, levelsOf } from './gear';
 import { NODES } from '../data/content';
+import { LAYOUT } from '../world/island';
 
 // One shared island (building it is the slow part); fresh Game state per test via the save.
 const base = new Game({ seed: 7 });
@@ -100,6 +101,28 @@ describe('world', () => {
       expect(path, def).not.toBeNull();
     }
     expect(g.world.findPath(g.p.x, g.p.z, L.ruin.x, L.ruin.z + 3)).not.toBeNull();
+  });
+  it('every zone of the starter island is reachable on foot from the quay', () => {
+    const g = fresh();
+    for (const [id, p] of Object.entries(LAYOUT)) {
+      const path = g.world.findPath(g.p.x, g.p.z, p.x, p.z);
+      expect(path, id).not.toBeNull();
+      const [ex, ez] = path![path!.length - 1];
+      expect(Math.hypot(ex - p.x, ez - p.z), id).toBeLessThan(4.5);
+    }
+  });
+  it('sea routes round the headlands without crossing land', () => {
+    const g = fresh();
+    const M = g.layout.mooring;
+    for (const n of g.layout.nodes.filter((x) => NODES[x.def].fromShip)) {
+      const route = g.world.findSeaPath(n.x + 4, n.z, M.x, M.z);
+      expect(route, n.uid).not.toBeNull();
+      let [ax, az] = [n.x + 4, n.z];
+      for (const [bx, bz] of route!) {
+        for (let k = 1; k <= 20; k++) expect(g.world.sailable(ax + ((bx - ax) * k) / 20, az + ((bz - az) * k) / 20), n.uid).toBe(true);
+        [ax, az] = [bx, bz];
+      }
+    }
   });
   it('bellfish shoals are only reachable by ship', () => {
     const g = fresh();

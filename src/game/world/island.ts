@@ -2,67 +2,113 @@ import { fbm, lerp, smooth } from '../../art/noise';
 
 // Bellwether Isle: terrain shape + named layout. Pure data/maths, no rendering.
 // Coordinates: metres. +x east, +z south (camera looks north). Sea level y = 0.
+//
+// The starter island holds a zone for every level band of every skill, so it grows outward
+// from the quay: easy content near the village, harder content toward the far coasts and peak.
 
-export const WORLD_HALF = 100; // world spans [-100, 100] on both axes
-export const ISLAND_RADIUS = 50;
+export const WORLD_HALF = 150; // world spans [-150, 150] on both axes
+export const ISLAND_RADIUS = 80;
 
 export interface Flat { x: number; z: number; r: number; h: number }
 export interface Hill { x: number; z: number; r: number; h: number }
+export interface Dip { x: number; z: number; r: number; floor: number }
 export interface PathDef { pts: [number, number][]; width: number }
+
+const wrap = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
+const deg = (d: number) => (d * Math.PI) / 180;
+/** Gaussian bump over angle: shapes headlands (+) and coves (-). */
+const lobe = (theta: number, centreDeg: number, widthDeg: number, amount: number) => {
+  const d = wrap(theta - deg(centreDeg)) / deg(widthDeg);
+  return amount * Math.exp(-d * d);
+};
 
 /** Angle convention: radians, 0 = east, PI/2 = south, PI = west, 3PI/2 = north. */
 export function coastR(theta: number): number {
   const c = Math.cos(theta), s = Math.sin(theta);
-  const bayDelta = Math.atan2(Math.sin(theta - Math.PI / 2), Math.cos(theta - Math.PI / 2));
-  const bay = 6 * Math.exp(-(bayDelta * bayDelta) / 0.06);
-  return ISLAND_RADIUS + (fbm(c * 1.6 + 7, s * 1.6 + 7, 4, 17) - 0.5) * 20 - bay;
+  return ISLAND_RADIUS + (fbm(c * 2.1 + 7, s * 2.1 + 7, 4, 17) - 0.5) * 30
+    - lobe(theta, 90, 9, 9) // the quay's sheltered bay
+    + lobe(theta, 36, 9, 20) // Smugglers' headland
+    - lobe(theta, 62, 6, 7) // the cove's inlet
+    + lobe(theta, 316, 7, 18) // Wreckers' Point
+    + lobe(theta, 226, 16, 10) // Heartwood shoulder
+    - lobe(theta, 178, 7, 11) // west cove
+    - lobe(theta, 282, 8, 6); // north bight under the peak
 }
 
 /** Point at angle theta, `inset` metres inside the coastline (negative = out at sea). */
 export function coastPoint(thetaDeg: number, inset: number): [number, number] {
-  const t = (thetaDeg * Math.PI) / 180;
+  const t = deg(thetaDeg);
   const r = coastR(t) - inset;
   return [Math.cos(t) * r, Math.sin(t) * r];
 }
 
-const P = (deg: number, inset: number) => coastPoint(deg, inset);
+const at = (thetaDeg: number, inset: number) => { const [x, z] = coastPoint(thetaDeg, inset); return { x, z }; };
 
 // ---- named layout -----------------------------------------------------------
-const villageZ = coastPoint(90, 0)[1] - 12;
+const villageZ = coastPoint(90, 0)[1] - 14;
 export const LAYOUT = {
   village: { x: 0, z: villageZ },
   dockBase: { x: 0, z: coastPoint(90, 0)[1] - 2.5 },
+  crossroads: { x: 0, z: villageZ - 22 },
   store: { x: -10, z: villageZ - 2 },
   chartHouse: { x: 10, z: villageZ - 4 },
   smithy: { x: 15, z: villageZ + 4 },
   cookfire: { x: -4, z: villageZ + 5 },
-  ruin: (() => { const [x, z] = P(270, 15); return { x, z }; })(),
-  camp: (() => { const [x, z] = P(355, 16); return { x, z }; })(),
-  hills: (() => { const [x, z] = P(312, 15); return { x, z }; })(),
-  forest: (() => { const [x, z] = P(215, 22); return { x, z }; })(),
-  strand: (() => { const [x, z] = P(150, 4); return { x, z }; })(),
+  strand: at(138, 4), // crabs, shore fishing
+  forest: { x: -36, z: 20 }, // Saltpine Wood: low trees
+  grove: { x: -54, z: 4 }, // oak grove
+  fen: { x: -21, z: -16 }, // Mirewater Fen: east shore of the lagoon
+  heartwood: { x: -46, z: -50 }, // ancient trees, deep west
+  hills: { x: 20, z: -6 }, // Copperback Hills: low ores
+  peak: { x: 2, z: -54 }, // Ironcrag: high ores on the mountain
+  ruin: { x: 38, z: -32 }, // the Broken Ring (quest boss)
+  camp: { x: 48, z: 16 }, // Brigand Camp
+  cove: at(36, 13), // Smugglers' Cove on the SE headland
+  wreck: at(316, 10), // Wreckers' Point, NE
 };
 
+const L = LAYOUT;
+export const LAGOON = { x: -34, z: -22, r: 9 };
+
 export const FLATS: Flat[] = [
-  { x: LAYOUT.village.x, z: LAYOUT.village.z, r: 15, h: 1.1 },
-  { x: LAYOUT.dockBase.x, z: LAYOUT.dockBase.z - 1, r: 3, h: 1.0 },
-  { x: LAYOUT.ruin.x, z: LAYOUT.ruin.z, r: 9, h: 2.6 },
-  { x: LAYOUT.camp.x, z: LAYOUT.camp.z, r: 6, h: 1.6 },
+  { x: L.village.x, z: L.village.z, r: 16, h: 1.1 },
+  { x: L.dockBase.x, z: L.dockBase.z - 1, r: 3, h: 1.0 },
+  { x: L.ruin.x, z: L.ruin.z, r: 9, h: 3.0 },
+  { x: L.camp.x, z: L.camp.z, r: 6, h: 1.6 },
+  { x: L.cove.x, z: L.cove.z, r: 6, h: 1.2 },
+  { x: L.crossroads.x, z: L.crossroads.z, r: 4, h: 1.5 },
 ];
 
 export const HILLS: Hill[] = [
-  { x: LAYOUT.hills.x + 6, z: LAYOUT.hills.z - 6, r: 13, h: 7 },
-  { x: LAYOUT.hills.x - 8, z: LAYOUT.hills.z + 3, r: 8, h: 3.5 },
-  { x: LAYOUT.forest.x - 6, z: LAYOUT.forest.z - 8, r: 14, h: 2.5 },
+  { x: L.peak.x, z: L.peak.z - 6, r: 19, h: 12 },
+  { x: L.peak.x - 17, z: L.peak.z + 4, r: 11, h: 5.5 },
+  { x: L.peak.x + 17, z: L.peak.z + 1, r: 10, h: 6 },
+  { x: L.hills.x + 6, z: L.hills.z - 5, r: 11, h: 5 },
+  { x: L.hills.x - 7, z: L.hills.z + 4, r: 7, h: 2.5 },
+  { x: L.heartwood.x - 6, z: L.heartwood.z - 6, r: 14, h: 3.5 },
+  { x: L.forest.x - 8, z: L.forest.z - 6, r: 14, h: 2.5 },
+  { x: L.cove.x + 5, z: L.cove.z - 6, r: 8, h: 3 },
 ];
 
-const V = LAYOUT.village, R = LAYOUT.ruin, H = LAYOUT.hills, F = LAYOUT.forest, C = LAYOUT.camp;
+export const DIPS: Dip[] = [{ x: LAGOON.x, z: LAGOON.z, r: LAGOON.r, floor: -1.8 }];
+
+const V = L.village, X = L.crossroads, F = L.forest, HW = L.heartwood, CH = L.hills, M = L.peak;
+const R = L.ruin, C = L.camp, SC = L.cove, W = L.wreck, ST = L.strand;
 export const PATHS: PathDef[] = [
-  { width: 1.4, pts: [[0, LAYOUT.dockBase.z], [0, V.z + 3], [0, V.z - 4]] },
-  { width: 1.2, pts: [[0, V.z - 4], [-14, V.z - 10], [F.x + 8, F.z + 6], [F.x, F.z]] },
-  { width: 1.2, pts: [[0, V.z - 4], [8, V.z - 14], [H.x - 8, H.z + 10], [H.x - 6, H.z + 2]] },
-  { width: 1.1, pts: [[H.x - 8, H.z + 10], [R.x + 8, R.z + 12], [R.x, R.z + 6]] },
-  { width: 1.1, pts: [[8, V.z - 14], [C.x - 8, C.z + 8], [C.x, C.z]] },
+  // quay road: dock -> village -> crossroads
+  { width: 1.5, pts: [[0, L.dockBase.z], [0, V.z + 3], [0, X.z]] },
+  // west road: Saltpine -> lagoon shore -> Heartwood
+  { width: 1.3, pts: [[0, X.z], [-14, X.z - 2], [F.x + 9, F.z + 3], [F.x, F.z], [F.x - 4, F.z - 14], [LAGOON.x + LAGOON.r + 4, LAGOON.z + 6], [HW.x + 12, HW.z + 14], [HW.x, HW.z]] },
+  // north road: Copperback Hills -> foot of Ironcrag
+  { width: 1.3, pts: [[0, X.z], [5, X.z - 14], [CH.x - 7, CH.z + 7], [CH.x - 5, CH.z - 6], [M.x + 6, M.z + 22], [M.x + 3, M.z + 13]] },
+  // hills -> Broken Ring -> Wreckers' Point
+  { width: 1.1, pts: [[CH.x - 5, CH.z - 6], [R.x - 10, R.z + 12], [R.x, R.z + 7]] },
+  { width: 1.1, pts: [[R.x + 7, R.z], [W.x - 8, W.z + 8], [W.x, W.z]] },
+  // east road: Brigand Camp -> Smugglers' Cove
+  { width: 1.2, pts: [[0, X.z], [16, X.z - 3], [C.x - 9, C.z + 5], [C.x, C.z]] },
+  { width: 1.1, pts: [[C.x + 2, C.z + 6], [SC.x - 5, SC.z - 9], [SC.x, SC.z]] },
+  // village -> Crab Strand
+  { width: 1.1, pts: [[-8, V.z + 3], [ST.x + 9, ST.z - 6], [ST.x, ST.z]] },
 ];
 
 function pathDist(p: PathDef, x: number, z: number): number {
@@ -95,7 +141,8 @@ export function rawHeight(x: number, z: number): number {
   const n = fbm(x * 0.06 + 40, z * 0.06 + 40, 4, 3);
   let h: number;
   if (d > 0) {
-    h = 0.05 + Math.min(d / 5, 1) * 0.5 + smooth(d, 4, 18) * (0.5 + n * 2.0);
+    const broad = fbm(x * 0.022 + 3, z * 0.022 + 3, 3, 9);
+    h = 0.05 + Math.min(d / 5, 1) * 0.5 + smooth(d, 4, 18) * (0.5 + n * 2.0 + broad * 1.6);
     for (const hl of HILLS) {
       const k = Math.exp(-((x - hl.x) ** 2 + (z - hl.z) ** 2) / (hl.r * hl.r));
       h += hl.h * k * smooth(d, 2, 10);
@@ -108,6 +155,10 @@ export function rawHeight(x: number, z: number): number {
     const k = 1 - smooth(Math.hypot(x - f.x, z - f.z), f.r, f.r + 4);
     h = lerp(h, f.h, k);
   }
+  for (const dp of DIPS) {
+    const k = 1 - smooth(Math.hypot(x - dp.x, z - dp.z), dp.r * 0.45, dp.r + 2.5);
+    h = lerp(h, dp.floor + n * 0.6, k);
+  }
   if (d > 1.5) {
     const p = nearestPathDist(x, z);
     h -= (1 - smooth(p.d, p.width * 0.5, p.width + 1.5)) * 0.12;
@@ -116,14 +167,15 @@ export function rawHeight(x: number, z: number): number {
 }
 
 // ---- named places (discovery) ------------------------------------------------
+// A place is only listed once it has something to do; new zones join as their content lands.
 export interface Place { id: string; name: string; x: number; z: number; r: number; sea?: boolean }
 
 export const PLACES: Place[] = [
-  { id: 'quay', name: 'Bellwether Quay', x: V.x, z: V.z + 6, r: 16 },
-  { id: 'strand', name: 'Crab Strand', x: LAYOUT.strand.x, z: LAYOUT.strand.z, r: 14 },
+  { id: 'quay', name: 'Bellwether Quay', x: V.x, z: V.z + 6, r: 18 },
+  { id: 'strand', name: 'Crab Strand', x: ST.x, z: ST.z, r: 14 },
   { id: 'wood', name: 'Saltpine Wood', x: F.x, z: F.z, r: 18 },
-  { id: 'hills', name: 'Copperback Hills', x: H.x, z: H.z, r: 16 },
+  { id: 'hills', name: 'Copperback Hills', x: CH.x, z: CH.z, r: 16 },
   { id: 'camp', name: 'Brigand Camp', x: C.x, z: C.z, r: 11 },
   { id: 'ruin', name: 'The Broken Ring', x: R.x, z: R.z, r: 11 },
-  (() => { const [x, z] = coastPoint(35, -16); return { id: 'shallows', name: 'Bellfish Shallows', x, z, r: 16, sea: true }; })(),
+  (() => { const [x, z] = coastPoint(20, -16); return { id: 'shallows', name: 'Bellfish Shallows', x, z, r: 16, sea: true }; })(),
 ];

@@ -4,22 +4,22 @@ Reflects the actual repository, not the roadmap.
 
 ## Status (2026-10-23)
 
-**Milestone:** first full island (Bellwether Isle) playable end to end on the `style-test` branch.
+**Milestone:** starter island enlarged (Phase 2 of "standardise the starter island") on branch `art-standard`; not merged yet.
 
 | Check | Result |
 |---|---|
 | `npm run typecheck` | passes |
-| `npm test` (vitest, 16 tests, ~2 s) | passes, including a scripted full quest play-through and save fuzzing |
-| `node scripts/e2e.cjs` (browser, laptop + phone) | passes: no console errors, keyboard + touch-joystick movement, dialog, furnace window, shop, all tabs, click-to-talk |
-| `npm run build` | passes |
-| Real phone | **not yet tested** (frame rate, heat, touch feel) |
+| `npm test` (vitest, 28 tests, ~17 s) | passes: full quest play-through, save fuzzing, every zone reachable on foot, sea routes never cross land, Guardian balance bot |
+| `node scripts/e2e.cjs` (browser, laptop + phone) | passes, no console errors |
+| `node scripts/tour.cjs` (12 places) | renders, no errors |
+| Real phone | combat build tested by Tom (smooth, no heat); art pass 1 + big island **not yet tested** on a phone |
 
 ## Build loop (how every change is made)
 
 1. Implement one feature in one batch of edits.
 2. `npx tsc --noEmit && npx vitest run`: rules are pure TS, so whole play-throughs run headless in seconds.
 3. `node scripts/e2e.cjs <dir>` against `npx vite`: boots in Chromium at 1280×800 and 390×844, fails on any console error.
-4. Screenshots only when visuals changed: `--shots` on e2e, or `node scripts/tour.cjs out.jpg` for a one-image contact sheet of every area.
+4. Screenshots only when visuals changed: `--shots` on e2e, or `node scripts/tour.cjs out.jpg` for a one-image contact sheet of every area (`SCENES=peak,fen` for a subset). Layout changes: `npx vite-node scripts/mapshot.ts out.ppm` draws the island top-down (walk grid, paths, nodes, spawns) in under a second, no browser.
 5. Commit when green. A stage is done only when its tests pass.
 
 ## Decisions
@@ -30,13 +30,15 @@ Reflects the actual repository, not the roadmap.
 - **Combat skills (RuneScape model):** Attack, Strength, Defence, Hitpoints, Ranged, Magic. Hit chance and max hit use the OSRS formulas; successful hits always do at least 1 (a 0 means a miss). Stances choose the trained skill. Combat triangle via per-style defence: crabs and the Guardian are weak to magic, brigands to ranged, gunners to melee. Combat level uses the OSRS formula (new character = 3).
 - **Skills roadmap:** `docs/SKILLS.md` (12 in game, 22 planned). A skill ships only with real content.
 - **Combat:** auto-attack anything in reach (Survivor.io feel), tap/click an enemy to chase it. Three active skills: dodge roll (3 s, no damage while rolling), whirl (6 s, hits everything within 3.2 m, knockback), flintlock (7 s, ranged). Enemy attacks are telegraphed; rolling through them is the skill play.
+- **Starter island holds every skill's level range** (Tom, 2026-10-23). Easy content near the quay, harder toward the far coasts and Ironcrag. Skill-specific islands come later. A zone joins the Places list only when it has content.
+- **Art standard (art pass 1, approved by Tom 2026-10-23):** smooth shading, blended vertex-colour terrain with speckle, cobbles and cloud shadows; item models rendered to slate-tile icons; loot as rarity-tinted sea-glass shards. Characters and buildings get the same treatment next.
 - **Encounter upgrades (Survivor.io level-up choices):** not built yet; deliberately deferred so permanent skills stay the focus of the first island.
 
 ## Systems in the build
 | System | Where | Notes |
 |---|---|---|
-| World + collision + A* pathing | `src/game/world/` | 0.5 m walk grid, 1 m sail grid, string-pulled paths |
-| Island layout (data) | `src/game/world/island.ts`, `layout.ts` | village, dock, forest, hills, camp, ruin, strand, 3 offshore shoals, 12 sea stacks |
+| World + collision + A* pathing | `src/game/world/` | 300 m world: 0.5 m walk grid, 1 m sail grid, hull-clearance sea grid; one A* (reused buffers) for walking and for ship routes round headlands |
+| Island layout (data) | `src/game/world/island.ts`, `layout.ts` | radius ~80 m. Zones: Bellwether Quay, Crab Strand, Saltpine Wood, oak grove, Mirewater Fen + lagoon, Heartwood, Copperback Hills, Ironcrag peak, Broken Ring (walled arena), Brigand Camp, Smugglers' Cove headland, Wreckers' Point; 3 offshore shoals, ~20 sea stacks. Fen, Heartwood, peak, cove, point are landscape only until Phase 3 content |
 | Skills (12) | `src/game/data/content.ts` | Attack, Strength, Defence, Hitpoints, Ranged, Magic, Woodcutting, Mining, Fishing, Smithing, Gunsmithing, Cooking; unlock tables in UI |
 | Combat maths | `sim/gear.ts` | OSRS hit chance, max hit, combat level; stances; specials per style (Whirl, Scatter shot, Squall) |
 | Items, rarity, affixes | `src/game/data/items.ts`, `sim/gear.ts` | Common/Fine/Rare/Relic; 11 affixes, all applied in `computeStats` |
@@ -61,19 +63,24 @@ Reflects the actual repository, not the roadmap.
   - Combat felt passive (one button). Added dodge roll, whirl, swing arc, knockback, hit squash.
   - Found while fixing: with the portrait sheet open the player was hidden behind it. Camera now shifts up.
 
+- **2026-10-23, Tom:** approved art pass 1; asked for a bigger starter island holding every skill's level range. Built the landmass (radius 50 → 80 m, 2.5× area) with zones and a road network. Found while testing:
+  - Click-to-sail went in a straight line and beached on the new headland. Added sea routing (A* on a hull-clearance grid).
+  - The Guardian balance test swung from 8/8 to 0/8 wins when the arena moved 0.3 m: the test bot was snagging on grid corners, not measuring balance. Rewrote the bot to dodge to a real escape point and kite; added glancing movement off round obstacles for real players too; walled the arena with fallen masonry. Honest result: ranged is neutral vs the Guardian (pistol needs ~13, like melee ~12); magic remains the shortcut (level 10). The earlier "ranged 10 wins" was the bot exploiting pillar snags.
 - **2026-10-23, Tom:** "plays really well; combat needs a lot of work; one Combat skill is wrong; levels far too fast". Rebuilt combat on RuneScape's model (see Decisions). Measured with simulated play: crabs from level 1 give Attack 5 after 10 min, 12 after 30 min (was one level per crab). Guardian balance test: melee 8 loses, melee 12 wins with ~7 food in ~2.5 min, magic 10 wins in ~1 min, ranged 10 wins in ~2 min. Found and fixed: the Guardian could stack two warnings to land together (unfair instant death).
 
 ## Known issues / limitations
 - No sound yet.
 - No naval combat; sea is for travel, fishing and discovery only.
 - Character models are basic up close.
-- One island only; no chunk streaming yet (whole island is one 200 m world).
-- Performance measured only in software rendering: ~150 draw calls, ~200k triangles per frame including shadows. Battery saver drops shadows, grass and resolution and caps at 30 fps.
-- Grass/sand boundaries are jagged by design (per-triangle colour).
+- One island. Terrain (64 chunks of 40 m) and grass (40 m buckets) are frustum-culled; camera far plane follows the fog. Not streamed: the whole 300 m world is built at load (~0.4 s for the simulation in Node).
+- Performance measured only in software rendering; big-island frame rate on a real phone unmeasured.
+- New outer zones have scenery only; their skills content is Phase 3.
 
 ## Next
-1. Tom plays on a real phone and laptop; fix what feels wrong.
-2. Sound (code-generated effects + ambient sea).
-3. Survivor.io-style encounter upgrades for the camp and boss fights.
-4. Naval combat (raider skiffs) and the Kraken.
-5. Second island + chunk streaming.
+1. Phase 3: level 1–99 content for the 12 current skills across the zones (tiers of trees, ores, fish, recipes, enemies), one skill at a time, each with tests.
+2. Characters and buildings brought up to the art pass 1 standard.
+3. Tom plays the big island on a real phone; measure frame rate.
+4. Sound (code-generated effects + ambient sea).
+5. Survivor.io-style encounter upgrades for the camp and boss fights.
+6. Naval combat (raider skiffs) and the Kraken.
+7. Second island + streaming.
