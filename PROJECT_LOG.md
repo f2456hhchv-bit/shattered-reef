@@ -4,39 +4,65 @@ Reflects the actual repository, not the roadmap.
 
 ## Status (2026-10-23)
 
-**Stage:** art direction (style test). Waiting for Tom's choice of look.
+**Milestone:** first full island (Bellwether Isle) playable end to end on the `style-test` branch.
 
-### Decisions
-- **Art direction:** the toy-style 2D brief section is rejected. New direction: low-poly real-time 3D, fixed 3/4 overhead camera (~54°), between RuneScape (shapes, readability) and Diablo (lighting, mood). All art is built in code from primitives; no AI-generated images.
-- **Stack:** TypeScript + Vite + Three.js (WebGL). Static hosting (GitHub Pages).
-- **Legacy prototype:** `index.html` (single-file Canvas 2D mock-up) is kept as a reference only. It has no collision, separate island/sea/dungeon screens, an unversioned save and broken ship images. It will move to `/legacy` when the rebuild starts.
-
-### What exists
-| Path | What it is |
+| Check | Result |
 |---|---|
-| `style-test.html`, `src/styletest/main.ts` | Style-test scene: Bellwether quay, dock, sloop, player, reef crabs, shack, trees, ore rock. Two looks (A bright, B moody), drag to orbit, pinch/scroll to zoom. URL params: `look`, `zoom`, `ui=0`, `t` (freeze time). |
-| `src/art/looks.ts` | Lighting, fog, grade and ground/water palettes per look. |
-| `src/art/materials.ts` | Central colour palette (`PAL`), cached flat-shaded materials, `jitter()` for hand-made-looking forms. |
-| `src/art/terrain.ts` | Heightfield coastline with per-face colours, exact `heightAt()` for placement. |
-| `src/art/water.ts` | Faceted water shader: depth colour, shoreline foam, sun glint. Depth baked per vertex. |
-| `src/art/grade.ts` | Colour grade + vignette post pass. |
-| `src/art/models/*` | Sloop, humanoid (jointed, code-animated), reef crab, props (pine, broadleaf, rocks, ore rock, crates, barrels, lantern, shack, dock, rope, grass, buoy). |
-| `docs/style-test/*.png` | Reference screenshots of both looks, laptop + phone + close-up. |
+| `npm run typecheck` | passes |
+| `npm test` (vitest, 16 tests, ~2 s) | passes, including a scripted full quest play-through and save fuzzing |
+| `node scripts/e2e.cjs` (browser, laptop + phone) | passes: no console errors, keyboard + touch-joystick movement, dialog, furnace window, shop, all tabs, click-to-talk |
+| `npm run build` | passes |
+| Real phone | **not yet tested** (frame rate, heat, touch feel) |
 
-### Test results
-- `npm run typecheck`: passes.
-- `npm run build`: passes (single 600 KB chunk, includes Three.js).
-- Headless Chromium (software WebGL): both looks render at 1280×800 and 390×844 with no console errors.
-- **Not yet tested on a real phone** (frame rate, heat, battery).
+## Build loop (how every change is made)
 
-### Known issues / limitations
-- Character model is basic; face is hidden by the hat at this camera angle.
-- Terrain colour boundaries are jagged (per-triangle colouring). Intentional low-poly look, but may need softening.
-- Portrait phone view is narrow (~15 m of world across). Landscape may suit combat better; undecided.
-- No shadows on water; water is transparent and sorted after opaque geometry.
-- Performance budget not measured. MeshStandardMaterial + PCF shadows + MSAA post may be heavy on low-end phones; plan a quality setting.
+1. Implement one feature in one batch of edits.
+2. `npx tsc --noEmit && npx vitest run`: rules are pure TS, so whole play-throughs run headless in seconds.
+3. `node scripts/e2e.cjs <dir>` against `npx vite`: boots in Chromium at 1280×800 and 390×844, fails on any console error.
+4. Screenshots only when visuals changed: `--shots` on e2e, or `node scripts/tour.cjs out.jpg` for a one-image contact sheet of every area.
+5. Commit when green. A stage is done only when its tests pass.
 
-### Next
-1. Tom picks look A, B, or a blend.
-2. Rewrite the art section of the design brief to match.
-3. Stage 2: playable world foundation (movement, collision, touch + click input) in the new stack.
+## Decisions
+- **Art:** low-poly real-time 3D, fixed 3/4 camera (54°), look A "Bright" (see `docs/ART_DIRECTION.md`). All art built in code; no AI images.
+- **Stack:** TypeScript + Vite + Three.js. Static hosting on GitHub Pages (`.github/workflows/deploy.yml` runs typecheck, tests, build, deploy on `main`).
+- **Simulation is separate from rendering.** `src/game/**` has no Three.js import; the renderer reads state and listens to events. This is what makes headless tests (and later multiplayer) possible.
+- **XP:** RuneScape curve continued to level 126; XP stored, level derived; 200M cap.
+- **Combat:** auto-attack anything in reach (Survivor.io feel), tap/click an enemy to chase it, flintlock ability on a cooldown, telegraphed enemy attacks you can walk out of.
+- **Encounter upgrades (Survivor.io level-up choices):** not built yet; deliberately deferred so permanent skills stay the focus of the first island.
+
+## Systems in the build
+| System | Where | Notes |
+|---|---|---|
+| World + collision + A* pathing | `src/game/world/` | 0.5 m walk grid, 1 m sail grid, string-pulled paths |
+| Island layout (data) | `src/game/world/island.ts`, `layout.ts` | village, dock, forest, hills, camp, ruin, strand, 3 offshore shoals, 12 sea stacks |
+| Skills (6) | `src/game/data/content.ts` | Combat, Woodcutting, Mining, Smithing, Fishing, Cooking; unlock tables shown in UI |
+| Items, rarity, affixes | `src/game/data/items.ts`, `sim/gear.ts` | Common/Fine/Rare/Relic; 11 affixes, all applied in `computeStats` |
+| Gathering | `sim/game.ts` | tool power, level, depletion + respawn; shoals need the ship |
+| Crafting | `content.ts` RECIPES | furnace, anvil, cookfire; burn chance; forged gear can roll Fine/Rare |
+| Shop | `content.ts` SHOP | buy stock, sell anything non-quest at 50% |
+| Enemies | `content.ts` ENEMIES | reef crab, brigand (melee), gunner (telegraphed shot); 10% elites: Barnacled / Frenzied / Volatile |
+| Boss | `sim/game.ts` stepBoss | Lockbound Guardian: slam circle, sweep cone, crab summons at 66% / 33%, enrage < 25%, resets if you leave or die |
+| Quest | `data/quests.ts` | *The Bell at Low Water*: talk → bronze bar → bell → boss → Keel's Tooth → return |
+| Ship | `sim/game.ts` | board at dock, seamless sailing, shallows collision, go ashore on any reachable beach, mooring bell recalls ship |
+| Saves | `sim/save.ts` | versioned, validated, migration table; autosave every 10 s + on hide |
+| UI | `src/ui/` | landscape side panel / portrait bottom sheet; pack 4×7 (7×4 portrait), equipment + stats, skills, quests + places, map, settings |
+| Input | `src/input/input.ts` | invisible joystick, tap/click to walk or use, hover labels, WASD, hotkeys, pinch/wheel zoom |
+
+## Controls
+- **Phone:** drag anywhere to move or steer; tap things to walk to them and use them; round button = nearest action; pistol button = flintlock; pinch = zoom; tap minimap or map to walk there.
+- **Laptop:** click to walk/use (RuneScape-style); right-click items for details; WASD/arrows move; E action; Space flintlock; I G K J M O tabs; Esc closes; scroll zooms.
+
+## Known issues / limitations
+- No sound yet.
+- No naval combat; sea is for travel, fishing and discovery only.
+- Character models are basic up close.
+- One island only; no chunk streaming yet (whole island is one 200 m world).
+- Performance measured only in software rendering: ~150 draw calls, ~200k triangles per frame including shadows. Battery saver drops shadows, grass and resolution and caps at 30 fps.
+- Grass/sand boundaries are jagged by design (per-triangle colour).
+
+## Next
+1. Tom plays on a real phone and laptop; fix what feels wrong.
+2. Sound (code-generated effects + ambient sea).
+3. Survivor.io-style encounter upgrades for the camp and boss fights.
+4. Naval combat (raider skiffs) and the Kraken.
+5. Second island + chunk streaming.

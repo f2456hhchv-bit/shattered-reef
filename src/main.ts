@@ -74,6 +74,8 @@ const STEP = 1 / 60;
 let acc = 0, last = performance.now(), saveT = 0;
 renderer.snapCamera();
 function frame(now: number) {
+  // battery saver: cap at ~30 fps
+  if (game.s.settings.quality === 'low' && now - last < 31) { requestAnimationFrame(frame); return; }
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
   if (started) {
