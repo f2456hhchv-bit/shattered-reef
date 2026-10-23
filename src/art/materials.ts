@@ -56,7 +56,7 @@ export function mat(key: PalKey | number, opts: { side?: THREE.Side; emissive?: 
       color,
       roughness: 0.92,
       metalness: 0,
-      flatShading: true,
+      flatShading: false,
       side: opts.side ?? THREE.FrontSide,
       emissive: opts.emissive ?? 0x000000,
       emissiveIntensity: opts.emissiveIntensity ?? 0,

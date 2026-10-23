@@ -12,7 +12,7 @@ export function buildFurnace(): { group: THREE.Group; glow: THREE.MeshStandardMa
   dome.position.y = 0.5;
   const stack = mesh(jitter(new THREE.CylinderGeometry(0.28, 0.35, 1.4, 6), 0.04, 63), mat('stoneDark'));
   stack.position.set(-0.2, 1.6, -0.3);
-  const glow = new THREE.MeshStandardMaterial({ color: 0xff8a3a, emissive: 0xff6a1a, emissiveIntensity: 2.2, flatShading: true });
+  const glow = new THREE.MeshStandardMaterial({ color: 0xff8a3a, emissive: 0xff6a1a, emissiveIntensity: 2.2, flatShading: false });
   const mouth = mesh(new THREE.BoxGeometry(0.6, 0.45, 0.2), glow, false);
   mouth.position.set(0, 0.62, 0.86);
   g.add(base, dome, stack, mouth);
@@ -53,7 +53,7 @@ export function buildCookfire(): { group: THREE.Group; flames: THREE.Mesh[] } {
     log.position.y = 0.12;
     g.add(log);
   }
-  const flameMat = new THREE.MeshStandardMaterial({ color: 0xffb04a, emissive: 0xff7a1a, emissiveIntensity: 2.5, flatShading: true });
+  const flameMat = new THREE.MeshStandardMaterial({ color: 0xffb04a, emissive: 0xff7a1a, emissiveIntensity: 2.5, flatShading: false });
   const flames: THREE.Mesh[] = [];
   for (let k = 0; k < 3; k++) {
     const f = mesh(new THREE.ConeGeometry(0.16 - k * 0.03, 0.55 - k * 0.1, 5), flameMat, false, false);
@@ -154,7 +154,7 @@ export function buildGuardian(): GuardianRig {
   const root = new THREE.Group();
   const body = new THREE.Group();
   root.add(body);
-  const core = new THREE.MeshStandardMaterial({ color: 0x59d0c4, emissive: 0x59d0c4, emissiveIntensity: 1.6, flatShading: true });
+  const core = new THREE.MeshStandardMaterial({ color: 0x59d0c4, emissive: 0x59d0c4, emissiveIntensity: 1.6, flatShading: false });
   for (const s of [-1, 1]) {
     const leg = mesh(jitter(new THREE.BoxGeometry(0.7, 1.1, 0.8), 0.08, 110 + s), mat('stoneDark'));
     leg.position.set(0.5 * s, 0.55, 0);

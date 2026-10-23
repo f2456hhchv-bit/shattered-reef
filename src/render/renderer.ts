@@ -11,8 +11,9 @@ import { buildSloop, buildBarrel, type ShipRig } from '../art/models/ship';
 import { buildHumanoid, animateIdle, animateWalk, animateSwing, animateWork, animateFish, type HumanoidRig, type HumanoidLook } from '../art/models/character';
 import { buildCrab, animateCrab, type CrabRig } from '../art/models/crab';
 import { buildPine, buildBroadleaf, buildRock, buildOreRock, buildCrate, buildLanternPost, buildShack, buildDock, buildGrass } from '../art/models/props';
-import { buildBench, buildFurnace, buildAnvil, buildCookfire, buildTent, buildSmithyShed, buildPillar, buildPlinth, buildGuardian, buildStump, buildDropPile, buildRipples, type GuardianRig } from '../art/models/world';
-import { RARITY, item } from '../game/data/items';
+import { buildBench, buildFurnace, buildAnvil, buildCookfire, buildTent, buildSmithyShed, buildPillar, buildPlinth, buildGuardian, buildStump, buildRipples, type GuardianRig } from '../art/models/world';
+import { buildLootShard, SHARD_TINT, type LootShard, type ShardKind } from '../art/models/items';
+import { item } from '../game/data/items';
 import { NODES, PLAYER_BASE } from '../game/data/content';
 import type { Game, GameEvent, Enemy, Telegraph } from '../game/sim/game';
 import { coastDist, nearestPathDist, WORLD_HALF } from '../game/world/island';
@@ -45,6 +46,7 @@ export class GameRenderer {
   private sun = new THREE.DirectionalLight(LOOK.sun.color, LOOK.sun.intensity);
   private sunDir = new THREE.Vector3();
   private water: ReturnType<typeof createWater>;
+  private terrain!: ReturnType<typeof buildTerrainMesh>;
   readonly particles = new Particles(500);
   private quality: 'high' | 'low' = 'high';
 
@@ -55,7 +57,7 @@ export class GameRenderer {
   private npcs = new Map<string, HumanoidRig>();
   private enemyViews = new Map<number, EnemyView>();
   private nodeViews = new Map<string, { live: THREE.Object3D; dead?: THREE.Object3D; ripples?: THREE.Group }>();
-  private dropViews = new Map<number, THREE.Object3D>();
+  private dropViews = new Map<number, LootShard>();
   private projViews = new Map<number, THREE.Mesh>();
   private teleViews = new Map<number, THREE.Group>();
   private flames: THREE.Mesh[] = [];
@@ -108,7 +110,8 @@ export class GameRenderer {
     this.sunDir.set(Math.cos(el) * Math.sin(az), Math.sin(el), Math.cos(el) * Math.cos(az));
 
     const world = game.world;
-    this.scene.add(buildTerrainMesh(world, LOOK));
+    this.terrain = buildTerrainMesh(world, LOOK);
+    this.scene.add(this.terrain.mesh);
     this.water = createWater(WORLD_HALF * 2 + 120, 150, (x, z) => (Math.abs(x) > WORLD_HALF || Math.abs(z) > WORLD_HALF ? 6 : -world.ground(x, z)), LOOK);
     this.water.uniforms.uSunDir.value.copy(this.sunDir);
     this.scene.add(this.water.mesh);
@@ -120,7 +123,7 @@ export class GameRenderer {
     for (const [style, held] of [['melee', 'cutlass'], ['ranged', 'pistol'], ['magic', 'staff']] as const) {
       const rig = buildHumanoid({ ...PLAYER_LOOK, held });
       rig.root.scale.setScalar(HERO);
-      bakeRig(rig.root, new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.9 }));
+      bakeRig(rig.root, new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: false, roughness: 0.9 }));
       rig.root.visible = false;
       this.scene.add(rig.root);
       this.playerRigs[style] = rig;
@@ -135,7 +138,7 @@ export class GameRenderer {
       rig.root.scale.setScalar(HERO);
       rig.root.position.set(n.x, world.standY(n.x, n.z), n.z);
       rig.root.rotation.y = Math.PI / 2 - n.facing;
-      bakeRig(rig.root, new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.9 }));
+      bakeRig(rig.root, new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: false, roughness: 0.9 }));
       this.scene.add(rig.root);
       this.npcs.set(n.id, rig);
     }
@@ -227,7 +230,7 @@ export class GameRenderer {
     const w = this.game.world;
     const rnd = mulberry32(99);
     const pts: THREE.Vector3[] = [];
-    for (let i = 0; i < 20000 && pts.length < 2200; i++) {
+    for (let i = 0; i < 30000 && pts.length < 3500; i++) {
       const x = (rnd() - 0.5) * 120, z = (rnd() - 0.5) * 120;
       if (coastDist(x, z) < 6 || !w.walkable(x, z)) continue;
       const p = nearestPathDist(x, z);
@@ -268,14 +271,14 @@ export class GameRenderer {
       live.position.set(n.x, y, n.z);
       this.scene.add(live);
       if (dead) { dead.position.set(n.x, y, n.z); dead.visible = false; this.scene.add(dead); }
-      if (live !== ripples) bakeRig(live, new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.92 }));
+      if (live !== ripples) bakeRig(live, new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: false, roughness: 0.92 }));
       this.nodeViews.set(n.uid, { live, dead, ripples });
     }
   }
 
   // ------------------------------------------------------------------ dynamic views
   private makeEnemyView(e: Enemy): EnemyView {
-    const material = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.9, emissive: 0xffffff, emissiveIntensity: 0 });
+    const material = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: false, roughness: 0.9, emissive: 0xffffff, emissiveIntensity: 0 });
     let v: EnemyView;
     if (e.def.model === 'crab') {
       const rig = buildCrab(e.id);
@@ -357,24 +360,23 @@ export class GameRenderer {
       live.add(d.id);
       let v = this.dropViews.get(d.id);
       if (!v) {
-        const def = item(d.stack.id);
-        const kind = d.stack.id === 'coins' ? 'coins' : def.quest ? 'quest' : d.stack.inst ? 'gear' : 'sack';
-        const colour = d.stack.inst ? parseInt(RARITY[d.stack.inst.rarity].color.slice(1), 16) : 0xffffff;
-        v = buildDropPile(kind, colour);
-        if (d.stack.inst && d.stack.inst.rarity !== 'common') {
-          const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.12, 2.4, 6, 1, true), new THREE.MeshBasicMaterial({ color: colour, transparent: true, opacity: 0.45, depthWrite: false }));
-          beam.position.y = 1.2;
-          v.add(beam);
-        }
-        this.scene.add(v);
+        const kind: ShardKind = item(d.stack.id).quest ? 'quest' : d.stack.inst?.rarity ?? 'common';
+        v = buildLootShard(d.stack.id, d.stack.qty, kind, d.id);
+        this.scene.add(v.group);
         this.dropViews.set(d.id, v);
       }
       const pop = Math.max(0, Math.min(1, d.t / 0.35));
-      v.position.set(d.x, this.game.world.standY(d.x, d.z) + Math.sin(pop * Math.PI) * 0.6 + 0.02, d.z);
-      v.rotation.y = t * 0.8 + d.id;
-      v.visible = d.t >= 0;
+      const ground = this.game.world.standY(d.x, d.z);
+      v.group.position.set(d.x, ground + 0.62 + Math.sin(t * 2 + d.id) * 0.08 + Math.sin(pop * Math.PI) * 0.7, d.z);
+      v.group.rotation.y = t * 0.6 + d.id;
+      v.group.rotation.z = Math.sin(t * 0.9 + d.id) * 0.12;
+      v.inner.rotation.y = -t * 1.4;
+      v.ring.position.y = -(0.6 + Math.sin(t * 2 + d.id) * 0.08) + 0.06 + Math.max(0, ground < 0 ? -ground : 0);
+      (v.ring.material as THREE.MeshBasicMaterial).opacity = 0.3 + Math.sin(t * 3 + d.id) * 0.15;
+      v.glass.emissiveIntensity = 0.22 + Math.sin(t * 2.4 + d.id) * 0.1;
+      v.group.visible = d.t >= 0;
     }
-    for (const [id, v] of this.dropViews) if (!live.has(id)) { this.disposeObject(v); this.dropViews.delete(id); }
+    for (const [id, v] of this.dropViews) if (!live.has(id)) { this.disposeObject(v.group); this.dropViews.delete(id); }
   }
 
   private syncProjectiles() {
@@ -442,6 +444,13 @@ export class GameRenderer {
         this.particles.burst(e.x, y, e.z, e.crit ? 14 : 7, e.target === 'player' ? 0xd84a3a : 0xfff0c8, { speed: 3.5, up: 2.5, size: 0.11, life: 0.4 });
         if (e.target === 'player') this.shake = Math.max(this.shake, 0.25);
         else if (e.crit) this.shake = Math.max(this.shake, 0.15);
+        break;
+      }
+      case 'pickup': {
+        // the shard shatters: glass splinters in its tint plus a bright spark
+        const y = g.world.standY(e.x, e.z) + 0.7;
+        this.particles.burst(e.x, y, e.z, 18, SHARD_TINT[e.tint], { speed: 4, up: 3, size: 0.09, life: 0.55, grav: 9, spread: 0.3 });
+        this.particles.burst(e.x, y, e.z, 6, 0xffffff, { speed: 2, up: 2, size: 0.06, life: 0.3, grav: 2 });
         break;
       }
       case 'swing': this.playerSwing = 0.35; this.slashT = 0.18; break;
@@ -634,6 +643,8 @@ export class GameRenderer {
     }
     this.particles.update(dt);
     this.water.uniforms.uTime.value = t;
+    this.terrain.uniforms.uTime.value = t;
+    if (this.grass) (this.grass.userData.uniforms as { uTime: { value: number } }).uTime.value = t;
     this.updateCamera(dt);
     this.composer.render();
   }

@@ -34,7 +34,7 @@ export function buildBroadleaf(seed: number): THREE.Group {
   g.add(trunk);
   for (let i = 0; i < 4; i++) {
     const r = 0.8 + rnd() * 0.5;
-    const blob = mesh(jitter(new THREE.IcosahedronGeometry(r, 1), 0.22, seed + i), mat(i % 2 ? 'leafLight' : 'leaf'));
+    const blob = mesh(jitter(new THREE.IcosahedronGeometry(r, 2), 0.2, seed + i), mat(i % 2 ? 'leafLight' : 'leaf'));
     const a = rnd() * Math.PI * 2;
     blob.position.set(Math.cos(a) * 0.55, 2.2 + rnd() * 0.8, Math.sin(a) * 0.55);
     blob.scale.y = 0.8;
@@ -275,7 +275,20 @@ export function buildGrass(points: THREE.Vector3[], seed: number): THREE.Instanc
     parts.push(c);
   }
   const geo = mergeGeometries(parts);
-  const m = new THREE.InstancedMesh(geo, new THREE.MeshStandardMaterial({ color: 0xffffff, flatShading: true, roughness: 1 }), points.length);
+  const material = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1 });
+  const uniforms = { uTime: { value: 0 } };
+  // wind: tips sway, roots stay put; phase varies per instance
+  material.onBeforeCompile = (shader) => {
+    shader.uniforms.uTime = uniforms.uTime;
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nuniform float uTime;')
+      .replace('#include <begin_vertex>', `#include <begin_vertex>
+      float ph = instanceMatrix[3].x * 0.37 + instanceMatrix[3].z * 0.23;
+      transformed.x += sin(uTime * 1.7 + ph) * position.y * 0.18;
+      transformed.z += cos(uTime * 1.3 + ph) * position.y * 0.1;`);
+  };
+  const m = new THREE.InstancedMesh(geo, material, points.length);
+  m.userData.uniforms = uniforms;
   const o = new THREE.Object3D();
   const base = new THREE.Color(PAL.grassTuft);
   const c = new THREE.Color();

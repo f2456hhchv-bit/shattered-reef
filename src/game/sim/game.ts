@@ -19,6 +19,7 @@ export type GameEvent =
   | { type: 'xp'; skill: SkillId; amount: number }
   | { type: 'level'; skill: SkillId; level: number }
   | { type: 'gain'; id: string; qty: number; name: string }
+  | { type: 'pickup'; x: number; z: number; tint: 'common' | 'fine' | 'rare' | 'relic' | 'quest' }
   | { type: 'hit'; target: 'player' | 'enemy'; id: number; amount: number; crit: boolean; x: number; z: number }
   | { type: 'swing' }
   | { type: 'whirl' }
@@ -1250,6 +1251,7 @@ export class Game {
           continue;
         }
         add(this.p.inv, d.stack);
+        this.emit({ type: 'pickup', x: d.x, z: d.z, tint: item(d.stack.id).quest ? 'quest' : d.stack.inst?.rarity ?? 'common' });
         this.emit({ type: 'gain', id: d.stack.id, qty: d.stack.qty, name: displayName(d.stack) });
         if (d.stack.inst && d.stack.inst.rarity !== 'common') this.msg(`You found: ${displayName(d.stack)}`, 'loot');
         d.t = -999;

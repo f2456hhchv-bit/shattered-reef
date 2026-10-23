@@ -374,7 +374,7 @@ export class UI {
     if (!s) return `<button class="slot empty" ${attrs} aria-label="Empty ${label || 'slot'}">${label ? `<span class="lbl">${label}</span>` : ''}</button>`;
     const rar = s.inst && s.inst.rarity !== 'common';
     const q = item(s.id).stackable && s.qty > 1 ? `<span class="q">${s.qty >= 100000 ? Math.floor(s.qty / 1000) + 'k' : s.qty}</span>` : '';
-    return `<button class="slot${rar ? ' rar' : ''}" style="--rc:${rarityColour(s)}" ${attrs} aria-label="${esc(displayName(s))}${s.qty > 1 ? ' × ' + s.qty : ''}" title="${esc(displayName(s))}"><img src="${itemIcon(s.id)}" alt="">${q}${label ? `<span class="lbl">${label}</span>` : ''}</button>`;
+    return `<button class="slot${rar ? ' rar' : ''}" style="--rc:${rarityColour(s)}" ${attrs} aria-label="${esc(displayName(s))}${s.qty > 1 ? ' × ' + s.qty : ''}" title="${esc(displayName(s))}"><img src="${itemIcon(s.id, s.qty)}" alt="">${q}${label ? `<span class="lbl">${label}</span>` : ''}</button>`;
   }
 
   private packHtml() {
