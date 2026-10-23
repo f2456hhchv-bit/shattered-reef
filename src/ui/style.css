@@ -267,3 +267,5 @@ body.landscape #orbs { right: calc(var(--side-w) / 2 - 54px); top: calc(var(--mm
 #mm { box-shadow: 0 0 0 2px #0d0804, 0 0 0 5px #c9a050, 0 0 0 6px #0d0804, 0 0 0 9px #5a3e27, 0 0 0 10px #0d0804, 0 6px 16px #000a; }
 #log div { background: linear-gradient(90deg, #1a120bd0, #1a120b70 80%, transparent); padding: 3px 12px 3px 10px; border-radius: 10px; width: fit-content; max-width: 100%; }
 body.landscape #side { padding-top: calc(var(--mm) + 80px + env(safe-area-inset-top, 0px)); }
+.stances.spells { grid-template-columns: 1fr 1fr; }
+.stances button:disabled { opacity: .4; }

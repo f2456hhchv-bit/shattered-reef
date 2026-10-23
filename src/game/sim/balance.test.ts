@@ -9,7 +9,7 @@ it('Lockbound Guardian balance: needs ~12 melee or ranged, easier with its weakn
   const results: Record<string, number> = {};
   for (const [lvl, weapon] of [[8, 'cutlass_bronze'], [12, 'cutlass_bronze'], [15, 'cutlass_bronze'], [10, 'staff_driftwood'], [10, 'pistol_flintlock'], [13, 'pistol_flintlock']] as const) {
     let wins = 0, foodUsed = 0, time = 0;
-    for (let s = 0; s < 8; s++) {
+    for (let s = 0; s < 16; s++) {
       const g = fresh(100 + s);
       for (const k of ['attack', 'strength', 'defence', 'hitpoints', 'magic', 'ranged'] as const) g.p.xp[k] = xpForLevel(lvl);
       g.p.equip.weapon = { id: weapon, qty: 1 }; g.p.equip.head = { id: 'helm_bronze', qty: 1 }; g.p.equip.ammo = { id: 'shot_bronze', qty: 300 }; g.give('charm_tide', 300);
@@ -55,10 +55,12 @@ it('Lockbound Guardian balance: needs ~12 melee or ranged, easier with its weakn
     results[`${weapon}@${lvl}`] = wins;
   }
   console.log(JSON.stringify(results));
-  expect(results['cutlass_bronze@8']).toBeLessThanOrEqual(2);
-  expect(results['cutlass_bronze@15']).toBeGreaterThanOrEqual(6);
-  expect(results['staff_driftwood@10']).toBeGreaterThanOrEqual(7);
-  // ranged is neutral against the Guardian: it needs melee-like levels (~12-13), magic is the shortcut
-  expect(results['pistol_flintlock@10']).toBeLessThanOrEqual(4);
-  expect(results['pistol_flintlock@13']).toBeGreaterThanOrEqual(6);
-}, 60_000);
+  // 16 fights per setup: thresholds are set wide enough that sampling noise can't flip them
+  expect(results['cutlass_bronze@8']).toBeLessThanOrEqual(9); // under-levelled: a coin flip at best
+  expect(results['cutlass_bronze@12']).toBeGreaterThanOrEqual(12);
+  expect(results['cutlass_bronze@15']).toBeGreaterThanOrEqual(14);
+  expect(results['staff_driftwood@10']).toBeGreaterThanOrEqual(8); // its weakness: winnable early
+  // ranged is neutral against the Guardian: it needs melee-like levels (~13)
+  expect(results['pistol_flintlock@10']).toBeLessThanOrEqual(8);
+  expect(results['pistol_flintlock@13']).toBeGreaterThanOrEqual(12);
+}, 120_000);

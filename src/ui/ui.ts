@@ -422,7 +422,7 @@ export class UI {
         ? { accurate: ['Accurate', 'Ranged XP'], aggressive: ['Rapid', 'Ranged XP, faster'], defensive: ['Longrange', 'Ranged + Defence XP'] }
         : { accurate: ['Accurate', 'Magic XP'], aggressive: ['Focused', 'Magic XP'], defensive: ['Defensive', 'Magic + Defence XP'] };
     const stances = (['accurate', 'aggressive', 'defensive'] as Stance[]).map((k) => `<button data-stance="${k}" class="${stance === k ? 'on' : ''}"><b>${stanceLabel[k][0]}</b><small>${stanceLabel[k][1]}</small></button>`).join('');
-    const spells = st.style === 'magic' ? `<div class="toggle"><span>Spell</span><span class="seg">${SPELLS.map((sp) => `<button data-spell="${sp.id}" class="${st.spell?.id === sp.id ? 'on' : ''}" ${g.level('magic') < sp.level ? 'disabled' : ''}>${sp.name} (${sp.level})</button>`).join('')}</span></div>` : '';
+    const spells = st.style === 'magic' ? `<h2 class="title" style="font-size:13px">Spell</h2><div class="stances spells">${SPELLS.map((sp) => `<button data-spell="${sp.id}" class="${st.spell?.id === sp.id ? 'on' : ''}" ${g.level('magic') < sp.level ? 'disabled' : ''}><b>${esc(sp.name)}</b><small>Lv ${sp.level} · max ${sp.maxHit} · ${sp.charms} charm${sp.charms > 1 ? 's' : ''}</small></button>`).join('')}</div>` : '';
     const ammo = st.style === 'ranged' ? (g.p.equip.ammo ? `${fmt(g.p.equip.ammo.qty)} × ${esc(item(g.p.equip.ammo.id).name)}` : '<span class="miss">No shot equipped</span>')
       : st.style === 'magic' ? `${fmt(count(g.p.inv, 'charm_tide'))} tide charms (${st.spell?.charms ?? 1} per cast)` : '';
     const sp = g.specialInfo();

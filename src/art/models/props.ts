@@ -6,7 +6,7 @@ import { mulberry32 } from '../noise';
 export function buildPine(seed: number, height = 1): THREE.Group {
   const rnd = mulberry32(seed);
   const g = new THREE.Group();
-  const trunk = mesh(jitter(new THREE.CylinderGeometry(0.12, 0.22, 1.4, 5), 0.04, seed), mat('trunk'));
+  const trunk = mesh(jitter(new THREE.CylinderGeometry(0.12, 0.22, 1.4, 8), 0.035, seed), mat('trunk'));
   trunk.position.y = 0.7;
   g.add(trunk);
   const tiers = [
@@ -16,7 +16,7 @@ export function buildPine(seed: number, height = 1): THREE.Group {
     [0.48, 1.0, 3.45],
   ];
   tiers.forEach(([r, h, y], i) => {
-    const cone = mesh(jitter(new THREE.ConeGeometry(r, h, 7, 1), 0.16, seed + i * 3), mat(i % 2 ? 'pineLight' : 'pine'));
+    const cone = mesh(jitter(new THREE.ConeGeometry(r, h, 10, 2), 0.14, seed + i * 3), mat(i % 2 ? 'pineLight' : 'pine'));
     cone.position.y = y;
     cone.rotation.y = rnd() * Math.PI;
     g.add(cone);
@@ -29,7 +29,7 @@ export function buildPine(seed: number, height = 1): THREE.Group {
 export function buildBroadleaf(seed: number): THREE.Group {
   const rnd = mulberry32(seed);
   const g = new THREE.Group();
-  const trunk = mesh(jitter(new THREE.CylinderGeometry(0.14, 0.24, 1.8, 6), 0.05, seed), mat('trunk'));
+  const trunk = mesh(jitter(new THREE.CylinderGeometry(0.14, 0.24, 1.8, 9), 0.045, seed), mat('trunk'));
   trunk.position.y = 0.9;
   g.add(trunk);
   for (let i = 0; i < 4; i++) {
@@ -47,7 +47,7 @@ export function buildBroadleaf(seed: number): THREE.Group {
 
 export function buildRock(seed: number, size = 1, colour: 'stone' | 'stoneDark' = 'stone'): THREE.Mesh {
   const rnd = mulberry32(seed);
-  const m = mesh(jitter(new THREE.DodecahedronGeometry(size, 0), size * 0.35, seed), mat(colour));
+  const m = mesh(jitter(new THREE.DodecahedronGeometry(size, 1), size * 0.22, seed), mat(colour));
   m.scale.set(1 + rnd() * 0.4, 0.55 + rnd() * 0.3, 1 + rnd() * 0.3);
   m.rotation.y = rnd() * Math.PI;
   return m;

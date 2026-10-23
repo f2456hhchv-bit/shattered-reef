@@ -97,3 +97,18 @@ export function mesh(geo: THREE.BufferGeometry, material: THREE.Material, cast =
   m.receiveShadow = receive;
   return m;
 }
+
+/** Swap palette colours on an un-baked model (e.g. a mossy crab, an amber canopy). Glow adds a soft emissive. */
+export function recolour(root: THREE.Object3D, map: Partial<Record<PalKey, number>>, glow: Partial<Record<PalKey, number>> = {}) {
+  const byHex = new Map<number, PalKey>();
+  for (const k of Object.keys(map) as PalKey[]) byHex.set(PAL[k], k);
+  root.traverse((o) => {
+    const m = o as THREE.Mesh;
+    if (!m.isMesh || Array.isArray(m.material)) return;
+    const cur = m.material as THREE.MeshStandardMaterial;
+    const key = byHex.get(cur.color.getHex());
+    if (!key) return;
+    const g = glow[key];
+    m.material = mat(map[key]!, { side: cur.side, ...(g ? { emissive: map[key]!, emissiveIntensity: g } : {}) });
+  });
+}

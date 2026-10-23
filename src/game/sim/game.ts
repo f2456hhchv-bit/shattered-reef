@@ -187,11 +187,13 @@ export class Game {
 
   private uid() { return this.s.nextUid++; }
 
-  bestTool(skill: SkillId) {
+  /** Best usable tool for a skill; `only` restricts to one item (fishing spots need a specific tool). */
+  bestTool(skill: SkillId, only?: string) {
     let best: { id: string; power: number } | null = null;
     const lvl = this.level(skill);
     for (const st of this.p.inv) {
       const t = st && item(st.id).tool;
+      if (only && st?.id !== only) continue;
       if (t && t.skill === skill && t.level <= lvl && (!best || t.power > best.power)) best = { id: st!.id, power: t.power };
     }
     return best;
@@ -209,7 +211,7 @@ export class Game {
     }
     if (!onShip) {
       for (const n of this.layout.npcs) out.push({ key: `npc:${n.id}`, kind: 'npc', x: n.x, z: n.z, range: 2.2, label: NPCS[n.id].name, verb: NPCS[n.id].shop ? 'Trade' : 'Talk' });
-      for (const st of this.layout.stations) out.push({ key: `station:${st.id}`, kind: 'station', x: st.x, z: st.z, range: 2.3, label: STATION_NAMES[st.id], verb: st.id === 'fire' ? 'Cook' : st.id === 'furnace' ? 'Smelt' : st.id === 'bench' ? 'Craft' : 'Forge' });
+      this.layout.stations.forEach((st, i) => out.push({ key: `station:${i}`, kind: 'station', x: st.x, z: st.z, range: 2.3, label: STATION_NAMES[st.id], verb: st.id === 'fire' ? 'Cook' : st.id === 'furnace' ? 'Smelt' : st.id === 'bench' ? 'Craft' : 'Forge' }));
       out.push({ key: 'ship', kind: 'ship', x: this.ship.x, z: this.ship.z, range: 4.2, label: 'Your sloop', verb: 'Board' });
       out.push({ key: 'ruin', kind: 'ruin', x: this.layout.plinth.x, z: this.layout.plinth.z, range: 2.2, label: 'Bell hollow', verb: 'Ring' });
       const mo = this.layout.mooring;
@@ -301,7 +303,7 @@ export class Game {
     switch (t.kind) {
       case 'node': return this.startGather(t.key.slice(5));
       case 'npc': return this.talk(t.key.slice(4));
-      case 'station': this.emit({ type: 'openStation', station: t.key.slice(8) as Station }); return;
+      case 'station': this.emit({ type: 'openStation', station: this.layout.stations[Number(t.key.slice(8))].id }); return;
       case 'ship': return this.board();
       case 'ruin': return this.ringBell();
       case 'mooring': return this.callShip();
@@ -318,8 +320,8 @@ export class Game {
     if (!n) return;
     const d = NODES[n.def];
     if (this.level(d.skill) < d.level) { this.msg(`You need ${d.skill} level ${d.level} for ${d.name.toLowerCase()}.`, 'warn'); return; }
-    const tool = this.bestTool(d.skill);
-    if (!tool) { this.msg(`You need a ${d.skill === 'woodcutting' ? 'hatchet' : d.skill === 'mining' ? 'pickaxe' : 'fishing rod'}.`, 'warn'); return; }
+    const tool = this.bestTool(d.skill, d.tool);
+    if (!tool) { this.msg(`You need ${d.tool ? `a ${item(d.tool).name.toLowerCase()}` : d.skill === 'woodcutting' ? 'a hatchet' : 'a pickaxe'}.`, 'warn'); return; }
     if (!canAdd(this.p.inv, d.item)) { this.msg('Your pack is full.', 'warn'); return; }
     this.action = { type: 'gather', node: uid, next: this.time + DT_GATHER * 0.6 };
     this.msg(d.skill === 'fishing' ? 'You cast your line...' : `You swing at the ${d.name.toLowerCase()}...`);
@@ -332,7 +334,7 @@ export class Game {
     if (n.depletedUntil > this.time || Math.hypot(n.x - this.p.x, n.z - this.p.z) > range) { this.stopAction(); return; }
     this.facing = Math.atan2(n.z - this.p.z, n.x - this.p.x);
     if (this.time < a.next) return;
-    const tool = this.bestTool(d.skill);
+    const tool = this.bestTool(d.skill, d.tool);
     if (!tool) { this.stopAction(); return; }
     a.next = this.time + DT_GATHER - tool.power * 0.15;
     const lvl = this.level(d.skill);
@@ -351,9 +353,9 @@ export class Game {
   }
 
   // ------------------------------------------------------------------ crafting
+  /** Any station of this kind within reach (the village and the outlying camps each have their own). */
   nearStation(st: Station) {
-    const s = this.layout.stations.find((x) => x.id === st)!;
-    return !this.p.onShip && Math.hypot(s.x - this.p.x, s.z - this.p.z) < 3.2;
+    return !this.p.onShip && this.layout.stations.some((s) => s.id === st && Math.hypot(s.x - this.p.x, s.z - this.p.z) < 3.2);
   }
 
   /** Why a recipe can't be made right now, or null if it can. */

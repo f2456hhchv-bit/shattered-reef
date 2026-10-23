@@ -1,5 +1,5 @@
 import { mulberry32 } from '../../art/noise';
-import { LAYOUT, coastPoint, coastDist, nearestPathDist, FLATS } from './island';
+import { LAYOUT, LAGOON, SEA_SPOTS, coastPoint, coastDist, nearestPathDist, FLATS } from './island';
 import { World } from './world';
 
 // Everything placed on Bellwether, derived deterministically. Shared by simulation and renderer.
@@ -66,8 +66,14 @@ export function buildIsland(seed = 1): IslandLayout {
     { id: 'anvil', x: S.x - 1.4, z: S.z + 0.4 },
     { id: 'fire', x: LAYOUT.cookfire.x, z: LAYOUT.cookfire.z },
     { id: 'bench', x: S.x + 4.2, z: S.z + 1.2 },
+    // outlying camps: a forge at the foot of Ironcrag, cookfires at the fen and the cove
+    { id: 'furnace', x: LAYOUT.peak.x + 9, z: LAYOUT.peak.z + 19 },
+    { id: 'anvil', x: LAYOUT.peak.x + 6, z: LAYOUT.peak.z + 20.5 },
+    { id: 'fire', x: LAYOUT.fen.x + 2.5, z: LAYOUT.fen.z + 3 },
+    { id: 'fire', x: LAYOUT.cove.x - 2.5, z: LAYOUT.cove.z + 1.5 },
   ];
-  world.solids.push({ x: stations[0].x, z: stations[0].z, r: 1.0 }, { x: stations[1].x, z: stations[1].z, r: 0.45 }, { x: stations[2].x, z: stations[2].z, r: 0.7 }, { x: stations[3].x, z: stations[3].z, w: 1.8, d: 0.9 });
+  const solidOf = { furnace: 1.0, anvil: 0.45, fire: 0.7 } as const;
+  for (const st of stations) world.solids.push(st.id === 'bench' ? { x: st.x, z: st.z, w: 1.8, d: 0.9 } : { x: st.x, z: st.z, r: solidOf[st.id] });
 
   const npcs = [
     { id: 'iven', x: LAYOUT.chartHouse.x - 0.5, z: LAYOUT.chartHouse.z + 3.2, facing: Math.PI / 2 },
@@ -109,6 +115,7 @@ export function buildIsland(seed = 1): IslandLayout {
     for (const b of buildings) if (Math.hypot(x - b.x, z - b.z) < Math.max(b.w, b.d) + 1.5) return false;
     for (const n of nodes) if (Math.hypot(x - n.x, z - n.z) < clearance) return false;
     for (const pr of props) if (Math.hypot(x - pr.x, z - pr.z) < clearance) return false;
+    for (const st of stations) if (Math.hypot(x - st.x, z - st.z) < 3.5) return false;
     return true;
   };
   const scatter = (def: string, cx: number, cz: number, radius: number, count: number, clearance: number) => {
@@ -116,6 +123,7 @@ export function buildIsland(seed = 1): IslandLayout {
       const a = rnd() * Math.PI * 2, r = Math.sqrt(rnd()) * radius;
       const x = cx + Math.cos(a) * r, z = cz + Math.sin(a) * r;
       if (!free(x, z, 5, clearance)) continue;
+      if (world.ground(x, z) < 0.5) continue; // not in the lagoon
       const sx = world.ground(x + 0.6, z) - world.ground(x - 0.6, z), sz = world.ground(x, z + 0.6) - world.ground(x, z - 0.6);
       if (Math.hypot(sx, sz) > 0.9) continue;
       nodes.push({ uid: `n${uid++}`, def, x, z, seed: Math.floor(rnd() * 1e6) });
@@ -128,13 +136,57 @@ export function buildIsland(seed = 1): IslandLayout {
   scatter('rock_copper', H.x - 6, H.z + 5, 6, 5, 2.4);
   scatter('rock_tin', H.x - 2, H.z + 8, 6, 5, 2.4);
   scatter('rock_iron', H.x + 3, H.z - 2, 5, 3, 2.6);
+  // Mirewater Fen: willows ring the lagoon
+  for (let k = 0; k < 8; k++) {
+    const a = (k / 8) * Math.PI * 2 + 0.3;
+    scatter('tree_willow', LAGOON.x + Math.cos(a) * (LAGOON.r + 6), LAGOON.z + Math.sin(a) * (LAGOON.r + 6), 3, 1, 3.4);
+  }
+  // Heartwood: the deeper you go, the older the trees
+  const HW = LAYOUT.heartwood;
+  scatter('tree_amber', HW.x + 6, HW.z + 8, 10, 6, 3.6);
+  scatter('tree_yew', HW.x - 2, HW.z - 2, 8, 5, 4);
+  scatter('tree_star', HW.x - 9, HW.z - 7, 6, 3, 4.2);
+  scatter('tree_cedar', HW.x - 14, HW.z + 2, 6, 2, 4.6);
+  // Ironcrag: coal and gold at the foot, stormsilver and abyssite up the slopes
+  const M = LAYOUT.peak;
+  scatter('rock_coal', M.x - 8, M.z + 15, 7, 6, 2.6);
+  scatter('rock_coal', M.x + 13, M.z + 12, 5, 3, 2.6);
+  scatter('rock_gold', M.x + 15, M.z + 7, 5, 3, 2.8);
+  scatter('rock_storm', M.x - 6, M.z + 5, 6, 4, 2.8);
+  scatter('rock_abyss', M.x + 4, M.z - 3, 6, 3, 3);
+  // Wreckers' Point: tidecore veins in the rocks
+  scatter('rock_tide', LAYOUT.wreck.x - 3, LAYOUT.wreck.z + 3, 7, 3, 3);
   for (const n of nodes) world.solids.push({ x: n.x, z: n.z, r: n.def.startsWith('tree') ? 0.45 : 0.75 });
 
-  // fishing: sprats off the dock head (reachable on foot), bellfish shoals offshore (ship only)
+  // fishing: sprats off the dock head (reachable on foot), shore spots found by walking from land into water
   nodes.push({ uid: `n${uid++}`, def: 'spot_sprat', x: -headWidth / 2 - 1.6, z: headZ + 1.0, seed: 1 });
-  for (const [deg, inset] of [[20, -16], [200, -16], [295, -17]] as const) {
+  const shoreSpot = (fx: number, fz: number, ang: number): [number, number] | null => {
+    let lastLand: [number, number] | null = null;
+    for (let r = 0; r < 40; r += 0.25) {
+      const x = fx + Math.cos(ang) * r, z = fz + Math.sin(ang) * r, h = world.ground(x, z);
+      if (h > 0.16) lastLand = [x, z]; // walkable shore
+      else if (h < -0.35 && lastLand) {
+        if (Math.hypot(x - lastLand[0], z - lastLand[1]) > 2.4) return null; // shelving shore: too far to cast
+        return [x + Math.cos(ang) * 0.3, z + Math.sin(ang) * 0.3];
+      }
+    }
+    return null;
+  };
+  const placeShore = (def: string, fx: number, fz: number, angles: number[]) => {
+    for (const a of angles) {
+      const p = shoreSpot(fx, fz, a);
+      if (p && !nodes.some((n) => Math.hypot(n.x - p[0], n.z - p[1]) < 5)) nodes.push({ uid: `n${uid++}`, def, x: p[0], z: p[1], seed: Math.round(a * 100) });
+    }
+  };
+  // lagoon: walk inward from the shore toward the centre
+  const lagoonIn = (a: number) => [LAGOON.x + Math.cos(a) * (LAGOON.r + 6), LAGOON.z + Math.sin(a) * (LAGOON.r + 6), a + Math.PI] as const;
+  for (const [a, def] of [[0.2, 'spot_trout'], [1.6, 'spot_trout'], [3.4, 'spot_salmon'], [4.8, 'spot_salmon']] as const) { const [fx, fz, ang] = lagoonIn(a); placeShore(def, fx, fz, [ang]); }
+  const outward = (p: { x: number; z: number }) => Math.atan2(p.z, p.x);
+  placeShore('spot_lobster', LAYOUT.cove.x, LAYOUT.cove.z, [outward(LAYOUT.cove) - 0.5, outward(LAYOUT.cove) + 0.5, outward(LAYOUT.cove)]);
+  placeShore('spot_gloom', LAYOUT.wreck.x, LAYOUT.wreck.z, [outward(LAYOUT.wreck) - 0.6, outward(LAYOUT.wreck) + 0.6]);
+  for (const [def, list] of Object.entries(SEA_SPOTS)) for (const [deg, inset] of list) {
     const [x, z] = coastPoint(deg, inset);
-    nodes.push({ uid: `n${uid++}`, def: 'spot_bell', x, z, seed: deg });
+    nodes.push({ uid: `n${uid++}`, def, x, z, seed: deg });
   }
 
   // ---- reefs / sea stacks
@@ -142,7 +194,7 @@ export function buildIsland(seed = 1): IslandLayout {
   for (let tries = 0; tries < 600 && reefs.length < 22; tries++) {
     const [x, z] = coastPoint(rnd() * 360, -(4 + rnd() * 26));
     if (Math.hypot(x - mooring.x, z - mooring.z) < 18) continue;
-    if (nodes.some((n) => n.def === 'spot_bell' && Math.hypot(n.x - x, n.z - z) < 9)) continue;
+    if (nodes.some((n) => n.def.startsWith('spot_') && Math.hypot(n.x - x, n.z - z) < 9)) continue;
     if (world.ground(x, z) > -0.6) continue;
     reefs.push({ x, z, r: 0.8 + rnd() * 1.2 });
   }
@@ -188,20 +240,27 @@ export function buildIsland(seed = 1): IslandLayout {
     world.solids.push({ x, z, r: kind === 'lantern' ? 0.2 : 0.5 });
   }
 
-  // ---- enemies
-  const spawns: SpawnPoint[] = [];
-  for (let k = 0; k < 6; k++) {
-    const [x, z] = coastPoint(118 + k * 9, 3 + (k % 2) * 2.5);
-    spawns.push({ enemy: 'reef_crab', x, z });
-  }
-  for (let k = 0; k < 3; k++) {
-    const [x, z] = coastPoint(62 + k * 8, 3.5);
-    spawns.push({ enemy: 'reef_crab', x, z });
-  }
-  spawns.push({ enemy: 'brigand', x: C.x - 2.5, z: C.z + 2 }, { enemy: 'brigand', x: C.x + 2.5, z: C.z + 1.5 }, { enemy: 'brigand', x: C.x, z: C.z - 2.5 });
-  spawns.push({ enemy: 'gunner', x: C.x + 4, z: C.z - 3 }, { enemy: 'gunner', x: C.x - 5, z: C.z - 1 });
-
   world.bake();
+
+  // ---- enemies, zone by zone (snapped to walkable ground)
+  const spawns: SpawnPoint[] = [];
+  const spawn = (enemy: string, x: number, z: number) => { const q = world.nearestWalkable(x, z, 5); if (q) spawns.push({ enemy, x: q[0], z: q[1] }); };
+  for (let k = 0; k < 6; k++) { const [x, z] = coastPoint(118 + k * 9, 3 + (k % 2) * 2.5); spawn('reef_crab', x, z); }
+  for (let k = 0; k < 3; k++) { const [x, z] = coastPoint(62 + k * 8, 3.5); spawn('reef_crab', x, z); }
+  spawn('brigand', C.x - 2.5, C.z + 2); spawn('brigand', C.x + 2.5, C.z + 1.5); spawn('brigand', C.x, C.z - 2.5);
+  spawn('gunner', C.x + 4, C.z - 3); spawn('gunner', C.x - 5, C.z - 1);
+  for (let k = 0; k < 5; k++) { const a = (k / 5) * Math.PI * 2 + 0.7; spawn('mire_crab', LAGOON.x + Math.cos(a) * (LAGOON.r + 2.5), LAGOON.z + Math.sin(a) * (LAGOON.r + 2.5)); }
+  const SC = LAYOUT.cove;
+  spawn('smuggler', SC.x - 3, SC.z - 2); spawn('smuggler', SC.x + 2, SC.z - 4); spawn('smuggler', SC.x - 5, SC.z - 6);
+  spawn('smuggler_gunner', SC.x + 4, SC.z - 1); spawn('smuggler_gunner', SC.x - 1, SC.z - 8);
+  spawn('ironshell_crab', M.x - 12, M.z + 18); spawn('ironshell_crab', M.x - 3, M.z + 19); spawn('ironshell_crab', M.x + 16, M.z + 14); spawn('ironshell_crab', M.x - 14, M.z + 11);
+  spawn('poacher', HW.x + 2, HW.z + 4); spawn('poacher', HW.x - 6, HW.z); spawn('poacher', HW.x + 8, HW.z - 4);
+  spawn('poacher_gunner', HW.x - 2, HW.z + 10); spawn('poacher_gunner', HW.x - 10, HW.z - 3);
+  const W = LAYOUT.wreck;
+  spawn('drowned', W.x - 4, W.z + 2); spawn('drowned', W.x + 2, W.z + 4); spawn('drowned', W.x - 8, W.z + 6); spawn('drowned', W.x - 2, W.z + 9);
+  spawn('wreck_captain', W.x - 5, W.z + 5);
+  spawn('stone_sentinel', M.x - 5, M.z - 1); spawn('stone_sentinel', M.x + 7, M.z + 1);
+
   const respawnPt = world.nearestWalkable(0, V.z + 6, 6) ?? [0, V.z + 6];
   return {
     world,

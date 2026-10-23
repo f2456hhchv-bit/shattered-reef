@@ -166,6 +166,14 @@ export function rawHeight(x: number, z: number): number {
   return h;
 }
 
+// Offshore fishing grounds (ship only), as [angle in degrees, metres out from the coast].
+export const SEA_SPOTS: Record<string, [number, number][]> = {
+  spot_bell: [[20, -16], [200, -16], [295, -17]],
+  spot_sword: [[52, -22], [70, -24]],
+  spot_shark: [[262, -26], [248, -27]],
+  spot_angler: [[165, -28]],
+};
+
 // ---- named places (discovery) ------------------------------------------------
 // A place is only listed once it has something to do; new zones join as their content lands.
 export interface Place { id: string; name: string; x: number; z: number; r: number; sea?: boolean }
@@ -177,5 +185,12 @@ export const PLACES: Place[] = [
   { id: 'hills', name: 'Copperback Hills', x: CH.x, z: CH.z, r: 16 },
   { id: 'camp', name: 'Brigand Camp', x: C.x, z: C.z, r: 11 },
   { id: 'ruin', name: 'The Broken Ring', x: R.x, z: R.z, r: 11 },
-  (() => { const [x, z] = coastPoint(20, -16); return { id: 'shallows', name: 'Bellfish Shallows', x, z, r: 16, sea: true }; })(),
+  { id: 'grove', name: 'Sea-oak Grove', x: L.grove.x, z: L.grove.z, r: 12 },
+  { id: 'fen', name: 'Mirewater Fen', x: LAGOON.x, z: LAGOON.z, r: 18 },
+  { id: 'heartwood', name: 'Heartwood', x: HW.x, z: HW.z, r: 20 },
+  { id: 'peak', name: 'Ironcrag', x: M.x, z: M.z + 6, r: 20 },
+  { id: 'cove', name: 'Smugglers\' Cove', x: SC.x, z: SC.z, r: 12 },
+  { id: 'wreck', name: 'Wreckers\' Point', x: W.x, z: W.z, r: 13 },
+  ...([['shallows', 'Bellfish Shallows', 20, -16], ['swordrun', 'Swordfish Run', 60, -23], ['deeps', 'Shark Deeps', 255, -26], ['trench', 'Angler\'s Trench', 165, -28]] as const)
+    .map(([id, name, a, i]) => { const [x, z] = coastPoint(a, i); return { id, name, x, z, r: 16, sea: true }; }),
 ];
