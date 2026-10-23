@@ -87,6 +87,6 @@ Reflects the actual repository, not the roadmap.
 1. Tom plays the content build on his phone: tap fixes, frame rate, difficulty of the new zones.
 2. Sound (code-generated effects + ambient sea).
 3. New skills one at a time (docs/SKILLS.md), each with real content.
-5. Survivor.io-style encounter upgrades for the camp and boss fights.
-6. Naval combat (raider skiffs) and the Kraken.
-7. Second island + streaming.
+4. Survivor.io-style encounter upgrades for the camp and boss fights.
+5. Naval combat (raider skiffs) and the Kraken.
+6. Second island + streaming.
