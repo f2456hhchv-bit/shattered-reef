@@ -315,3 +315,33 @@ export function buildBench(): THREE.Group {
   g.add(vice, barrel, stock, powder);
   return g;
 }
+
+/** Harbour strongbox (the bank): bevelled oak chest, barrel-vaulted lid, iron bands and a brass lock. */
+export function buildStrongbox(): THREE.Group {
+  const g = new THREE.Group();
+  const W = 1.1, H = 0.55, D = 0.72, r = 0.08;
+  const s = new THREE.Shape();
+  s.moveTo(-W / 2 + r, 0); s.lineTo(W / 2 - r, 0); s.quadraticCurveTo(W / 2, 0, W / 2, r); s.lineTo(W / 2, H); s.lineTo(-W / 2, H); s.lineTo(-W / 2, r); s.quadraticCurveTo(-W / 2, 0, -W / 2 + r, 0);
+  const body = mesh(new THREE.ExtrudeGeometry(s, { depth: D, bevelEnabled: true, bevelSize: 0.03, bevelThickness: 0.03, bevelSegments: 2, curveSegments: 6 }), mat('wood'));
+  body.position.z = -D / 2;
+  const lidGeo = new THREE.CylinderGeometry(D / 2 + 0.03, D / 2 + 0.03, W + 0.04, 18, 1, false, -Math.PI / 2, Math.PI);
+  lidGeo.rotateZ(Math.PI / 2);
+  const lid = mesh(lidGeo, mat('woodDark'));
+  lid.position.y = H + 0.02;
+  g.add(body, lid);
+  for (const x of [-0.38, 0.38]) {
+    const band = mesh(new THREE.TorusGeometry(D / 2 + 0.05, 0.025, 6, 20, Math.PI), mat('iron'));
+    band.rotation.y = Math.PI / 2;
+    band.position.set(x, H + 0.02, 0);
+    const strap = mesh(new THREE.CylinderGeometry(0.025, 0.025, H, 8), mat('iron'));
+    strap.position.set(x, H / 2, D / 2 + 0.035);
+    g.add(band, strap);
+  }
+  const lock = mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.04, 14), mat('brass'));
+  lock.rotation.x = Math.PI / 2;
+  lock.position.set(0, H - 0.04, D / 2 + 0.06);
+  const hole = mesh(new THREE.CapsuleGeometry(0.012, 0.04, 2, 6), mat('eye'), false);
+  hole.position.set(0, H - 0.05, D / 2 + 0.085);
+  g.add(lock, hole);
+  return g;
+}

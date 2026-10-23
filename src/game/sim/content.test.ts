@@ -4,7 +4,9 @@ import { defaultSave } from './save';
 import { xpForLevel } from './xp';
 import { count } from './inventory';
 import { ITEMS } from '../data/items';
+import { levelForXp } from './xp';
 import { NODES, RECIPES, ENEMIES, LOOT, SHOP, UNLOCKS, SKILLS } from '../data/content';
+import { LAYOUT } from '../world/island';
 
 const base = new Game({ seed: 3 });
 const fresh = () => new Game({ seed: 3, save: defaultSave(base.layout.respawn, base.layout.mooring) });
@@ -36,11 +38,47 @@ describe('content data', () => {
     }
   });
 
+  it('every item has a use: an input, gear, food, a tool, a quest item, or a declared trade good', () => {
+    const TRADE = new Set(['coins', 'shell_fragment', 'burnt_food', 'charm_tide']); // charms are burnt by spells
+    const used = new Set(RECIPES.flatMap((r) => r.inputs.map((i) => i.id)));
+    const idle = Object.values(ITEMS).filter((d) => !used.has(d.id) && !d.equip && !d.heal && !d.tool && !d.quest && !TRADE.has(d.id)).map((d) => d.id);
+    expect(idle).toEqual([]);
+  });
+
+  it('no gear is drop-only: every weapon and armour piece is craftable, sold, or a quest/boss trophy', () => {
+    const made = new Set(RECIPES.map((r) => r.output.id));
+    const sold = new Set(SHOP.stock.map((s) => s.id));
+    const TROPHY = new Set(['lockplate', 'cutlass_rusty', 'cutlass_brigand', 'ring_brass']); // boss/starter/flavour pieces with crafted equivalents
+    const dropOnly = Object.values(ITEMS).filter((d) => d.equip && !made.has(d.id) && !sold.has(d.id) && !TROPHY.has(d.id)).map((d) => d.id);
+    expect(dropOnly).toEqual([]);
+  });
+
   it('enemies cover combat levels 2 to 80 without a gap over 15', () => {
     const lv = Object.values(ENEMIES).map((e) => e.level).sort((a, b) => a - b);
     expect(lv[0]).toBeLessThanOrEqual(2);
     expect(lv[lv.length - 1]).toBeGreaterThanOrEqual(80);
     for (let i = 1; i < lv.length; i++) expect(lv[i] - lv[i - 1]).toBeLessThanOrEqual(15);
+  });
+});
+
+describe('pacing (RuneScape-like: 99 is a few hundred hours)', () => {
+  it('gathering 1 to 99 takes 150-450 hours of pure gathering at the best node and tool for each level', () => {
+    const g = fresh();
+    const toolReq = [1, 10, 20, 30, 40, 50];
+    for (const skill of ['woodcutting', 'mining', 'fishing'] as const) {
+      let hours = 0, at10 = 0;
+      for (let L = 1; L < 99; L++) {
+        g.p.xp[skill] = xpForLevel(L);
+        const power = toolReq.filter((r) => r <= L).length;
+        const best = Math.max(...Object.values(NODES).filter((n) => n.skill === skill && n.level <= L).map((n) => (g.gatherChance(n, power) * n.xp * 3600) / 2.4));
+        hours += (xpForLevel(L + 1) - xpForLevel(L)) / best;
+        if (L + 1 === 10) at10 = hours;
+      }
+      expect(levelForXp(xpForLevel(99))).toBe(99);
+      expect(at10 * 60, `${skill} minutes to 10`).toBeGreaterThan(4);
+      expect(hours, `${skill} hours to 99`).toBeGreaterThan(150);
+      expect(hours, `${skill} hours to 99`).toBeLessThan(450);
+    }
   });
 });
 
@@ -59,6 +97,23 @@ describe('content placement', () => {
     expect(peak.foes![0]).toBeGreaterThanOrEqual(30);
     expect(peak.gather.map((n) => n.name)).toContain('Stormsilver vein');
     expect(g.placeInfo('wood').foes).toBeNull();
+  });
+
+  it('a new player can walk from the quay to every starter zone without passing a foe above the Guardian\'s level', () => {
+    const starter = ['strand', 'forest', 'grove', 'hills', 'camp', 'ruin', 'crossroads', 'fen'] as const;
+    const threats = g.layout.spawns.filter((s) => ENEMIES[s.enemy].level > 22);
+    for (const z of starter) {
+      const zone = (LAYOUT as Record<string, { x: number; z: number }>)[z];
+      const path = g.world.findPath(g.p.x, g.p.z, zone.x, zone.z)!;
+      let [ax, az] = [g.p.x, g.p.z];
+      for (const [bx, bz] of path) {
+        for (let k = 0; k <= 10; k++) {
+          const x = ax + ((bx - ax) * k) / 10, zz = az + ((bz - az) * k) / 10;
+          for (const t of threats) expect(Math.hypot(t.x - x, t.z - zz), `${z} path passes ${t.enemy}`).toBeGreaterThan(ENEMIES[t.enemy].aggro + 2);
+        }
+        [ax, az] = [bx, bz];
+      }
+    }
   });
 
   it('land nodes can be used from walkable ground; ship nodes sit in open water', () => {
@@ -104,7 +159,7 @@ describe('end-game content works end to end', () => {
       for (const e of g.enemies) if (Math.hypot(e.x - n.x, e.z - n.z) < 25) { e.alive = false; e.respawnAt = Infinity; }
       goTo(g, n.x + 1.4, n.z);
       g.interact(`node:${n.uid}`);
-      expect(run(g, 60, () => count(g.p.inv, NODES[def].item) >= 1), def).toBe(true);
+      expect(run(g, 240, () => count(g.p.inv, NODES[def].item) >= 1), def).toBe(true); // cedar is slow by design (~1 log / 20 s at 99)
     }
   });
 

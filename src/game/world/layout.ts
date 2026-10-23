@@ -19,6 +19,7 @@ export interface IslandLayout {
   props: Prop[];
   reefs: { x: number; z: number; r: number }[];
   stations: { id: 'furnace' | 'anvil' | 'fire' | 'bench'; x: number; z: number }[];
+  banks: { x: number; z: number }[]; // harbour strongboxes
   npcs: { id: string; x: number; z: number; facing: number }[];
   spawns: SpawnPoint[];
   ruin: { x: number; z: number; r: number };
@@ -72,6 +73,9 @@ export function buildIsland(seed = 1): IslandLayout {
     { id: 'fire', x: LAYOUT.fen.x + 2.5, z: LAYOUT.fen.z + 3 },
     { id: 'fire', x: LAYOUT.cove.x - 2.5, z: LAYOUT.cove.z + 1.5 },
   ];
+  // strongboxes: one at the quay, one at the Ironcrag mining camp
+  const banks = [{ x: V.x + 4.6, z: V.z + 2.2 }, { x: LAYOUT.peak.x + 2.5, z: LAYOUT.peak.z + 21 }];
+  for (const b of banks) world.solids.push({ x: b.x, z: b.z, w: 1.2, d: 0.8 });
   const solidOf = { furnace: 1.0, anvil: 0.45, fire: 0.7 } as const;
   for (const st of stations) world.solids.push(st.id === 'bench' ? { x: st.x, z: st.z, w: 1.8, d: 0.9 } : { x: st.x, z: st.z, r: solidOf[st.id] });
 
@@ -115,7 +119,7 @@ export function buildIsland(seed = 1): IslandLayout {
     for (const b of buildings) if (Math.hypot(x - b.x, z - b.z) < Math.max(b.w, b.d) + 1.5) return false;
     for (const n of nodes) if (Math.hypot(x - n.x, z - n.z) < clearance) return false;
     for (const pr of props) if (Math.hypot(x - pr.x, z - pr.z) < clearance) return false;
-    for (const st of stations) if (Math.hypot(x - st.x, z - st.z) < 3.5) return false;
+    for (const st of [...stations, ...banks]) if (Math.hypot(x - st.x, z - st.z) < 3.5) return false;
     return true;
   };
   const scatter = (def: string, cx: number, cz: number, radius: number, count: number, clearance: number) => {
@@ -271,6 +275,7 @@ export function buildIsland(seed = 1): IslandLayout {
     props,
     reefs,
     stations,
+    banks,
     npcs,
     spawns,
     ruin: { x: R.x, z: R.z, r: 7 },

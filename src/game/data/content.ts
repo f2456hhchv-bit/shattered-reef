@@ -26,7 +26,9 @@ export interface NodeDef {
   level: number;
   xp: number;
   item: string;
-  difficulty: number; // higher = lower base success chance
+  difficulty: number; // legacy tier hint (kept for saves/tests); success comes from `rate`
+  tier: number; // 0 = starter; a tool of matching tier (power tier+1) gives the base rate
+  rate: number; // success chance per 2.4 s swing at the level requirement with a matching tool
   depleteChance: number; // per successful gather
   respawn: number; // seconds
   verb: string;
@@ -35,24 +37,25 @@ export interface NodeDef {
 }
 
 // XP per action follows RuneScape's values (logs 25 ... redwood 380, copper 17.5 ... runite 125, shrimp 10 ... anglerfish 120).
-// Difficulty rises a tier at a time, so the right tool and level matter (see Game.tickGather).
-const tree = (t: number, level: number, xp: number, respawn: number): NodeDef => {
+// `rate` is tuned so XP/hour at the requirement is RuneScape-like (~9k/h at Saltpine up to ~60k/h at cedar):
+// 99 in a gathering skill is a few hundred hours, not a weekend. Level and tool raise it (see Game.gatherChance).
+const tree = (t: number, level: number, xp: number, rate: number, respawn: number): NodeDef => {
   const w = WOODS[t];
-  return { id: `tree_${w.key}`, name: w.name, skill: 'woodcutting', level, xp, item: `logs_${w.key}`, difficulty: 0.45 + 0.3 * t, depleteChance: t === 0 ? 0.2 : 0.15 - t * 0.01, respawn, verb: 'Chop' };
+  return { id: `tree_${w.key}`, name: w.name, skill: 'woodcutting', level, xp, item: `logs_${w.key}`, difficulty: 0.45 + 0.3 * t, tier: t, rate, depleteChance: t === 0 ? 0.2 : 0.15 - t * 0.01, respawn, verb: 'Chop' };
 };
-const rock = (id: string, name: string, item: string, t: number, level: number, xp: number, respawn: number): NodeDef =>
-  ({ id, name, skill: 'mining', level, xp, item, difficulty: 0.45 + 0.3 * t, depleteChance: 1, respawn, verb: 'Mine' });
-const spot = (t: number, level: number, xp: number, tool: string, fromShip = false): NodeDef => {
+const rock = (id: string, name: string, item: string, t: number, level: number, xp: number, rate: number, respawn: number): NodeDef =>
+  ({ id, name, skill: 'mining', level, xp, item, difficulty: 0.45 + 0.3 * t, tier: t, rate, depleteChance: 1, respawn, verb: 'Mine' });
+const spot = (t: number, level: number, xp: number, rate: number, tool: string, fromShip = false): NodeDef => {
   const f = FISH[t];
-  return { id: `spot_${f.key}`, name: `${f.name[0].toUpperCase()}${f.name.slice(1)} ${tool === 'lobster_pot' ? 'pots' : 'shoal'}`, skill: 'fishing', level, xp, item: `fish_${f.key}_raw`, difficulty: 0.45 + 0.06 * t, depleteChance: 0, respawn: 0, verb: tool === 'lobster_pot' ? 'Set pot' : tool === 'harpoon' ? 'Harpoon' : 'Fish', tool, fromShip: fromShip || undefined };
+  return { id: `spot_${f.key}`, name: `${f.name[0].toUpperCase()}${f.name.slice(1)} ${tool === 'lobster_pot' ? 'pots' : 'shoal'}`, skill: 'fishing', level, xp, item: `fish_${f.key}_raw`, difficulty: 0.45 + 0.06 * t, tier: t, rate, depleteChance: 0, respawn: 0, verb: tool === 'lobster_pot' ? 'Set pot' : tool === 'harpoon' ? 'Harpoon' : 'Fish', tool, fromShip: fromShip || undefined };
 };
 export const NODES: Record<string, NodeDef> = Object.fromEntries([
-  tree(0, 1, 25, 14), tree(1, 15, 37.5, 25), tree(2, 30, 67.5, 30), tree(3, 45, 100, 40), tree(4, 60, 175, 60), tree(5, 75, 250, 90), tree(6, 90, 380, 120),
-  rock('rock_copper', 'Copper rock', 'ore_copper', 0, 1, 17.5, 6), rock('rock_tin', 'Tin rock', 'ore_tin', 0, 1, 17.5, 6), rock('rock_iron', 'Iron rock', 'ore_iron', 1, 15, 35, 10),
-  rock('rock_coal', 'Coal seam', 'ore_coal', 2, 30, 50, 25), rock('rock_gold', 'Gold vein', 'ore_gold', 3, 40, 65, 40), rock('rock_storm', 'Stormsilver vein', 'ore_storm', 4, 55, 80, 70),
-  rock('rock_abyss', 'Abyssite vein', 'ore_abyss', 5, 70, 95, 120), rock('rock_tide', 'Tidecore vein', 'ore_tide', 6, 85, 125, 240),
-  spot(0, 1, 10, 'fishing_rod'), spot(1, 8, 35, 'fishing_rod', true), spot(2, 20, 50, 'fishing_rod'), spot(3, 30, 70, 'fishing_rod'), spot(4, 40, 90, 'lobster_pot'),
-  spot(5, 50, 100, 'harpoon', true), spot(6, 62, 120, 'harpoon'), spot(7, 76, 110, 'harpoon', true), spot(8, 85, 120, 'harpoon', true),
+  tree(0, 1, 25, 0.24, 14), tree(1, 15, 37.5, 0.25, 25), tree(2, 30, 67.5, 0.25, 30), tree(3, 45, 100, 0.22, 40), tree(4, 60, 175, 0.15, 60), tree(5, 75, 250, 0.133, 90), tree(6, 90, 380, 0.105, 120),
+  rock('rock_copper', 'Copper rock', 'ore_copper', 0, 1, 17.5, 0.3, 6), rock('rock_tin', 'Tin rock', 'ore_tin', 0, 1, 17.5, 0.3, 6), rock('rock_iron', 'Iron rock', 'ore_iron', 1, 15, 35, 0.29, 10),
+  rock('rock_coal', 'Coal seam', 'ore_coal', 2, 30, 50, 0.29, 25), rock('rock_gold', 'Gold vein', 'ore_gold', 3, 40, 65, 0.29, 40), rock('rock_storm', 'Stormsilver vein', 'ore_storm', 4, 55, 80, 0.29, 70),
+  rock('rock_abyss', 'Abyssite vein', 'ore_abyss', 5, 70, 95, 0.29, 120), rock('rock_tide', 'Tidecore vein', 'ore_tide', 6, 85, 125, 0.27, 240),
+  spot(0, 1, 10, 0.4, 'fishing_rod'), spot(1, 8, 35, 0.29, 'fishing_rod', true), spot(2, 20, 50, 0.27, 'fishing_rod'), spot(3, 30, 70, 0.25, 'fishing_rod'), spot(4, 40, 90, 0.22, 'lobster_pot'),
+  spot(5, 50, 100, 0.23, 'harpoon', true), spot(6, 62, 120, 0.22, 'harpoon'), spot(7, 76, 110, 0.27, 'harpoon', true), spot(8, 85, 120, 0.28, 'harpoon', true),
 ].map((d) => [d.id, d]));
 
 export type Station = 'furnace' | 'anvil' | 'fire' | 'bench';
@@ -89,6 +92,9 @@ function buildRecipes(): Recipe[] {
   const out: Recipe[] = [];
   for (const s of SMELT) out.push({ id: `smelt_${s.metal}`, station: 'furnace', skill: 'smithing', level: s.level, xp: s.xp, inputs: s.inputs, output: { id: `bar_${s.metal}`, qty: 1 } });
   out.push({ id: 'smelt_gold', station: 'furnace', skill: 'smithing', level: 40, xp: 22.5, inputs: [{ id: 'ore_gold', qty: 1 }], output: { id: 'bar_gold', qty: 1 } });
+  // high staffs are smithed too (never drop-only): metal fittings, a rare haft, and charms to wake the focus
+  out.push({ id: 'forge_staff_storm', station: 'anvil', skill: 'smithing', level: 52, xp: 140, inputs: [{ id: 'bar_storm', qty: 2 }, { id: 'logs_amber', qty: 1 }, { id: 'charm_tide', qty: 50 }], output: { id: 'staff_storm', qty: 1 }, rarityRoll: true });
+  out.push({ id: 'forge_staff_tide', station: 'anvil', skill: 'smithing', level: 88, xp: 260, inputs: [{ id: 'bar_tide', qty: 2 }, { id: 'logs_cedar', qty: 1 }, { id: 'charm_tide', qty: 100 }], output: { id: 'staff_tide', qty: 1 }, rarityRoll: true });
   out.push({ id: 'forge_ring_gold', station: 'anvil', skill: 'smithing', level: 42, xp: 45, inputs: [{ id: 'bar_gold', qty: 1 }], output: { id: 'ring_gold', qty: 1 }, rarityRoll: true });
   METALS.forEach((mt, m) => {
     const L = SMELT[m].level, bar = `bar_${mt.key}`, xp = PER_BAR[m];

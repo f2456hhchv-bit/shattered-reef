@@ -11,7 +11,7 @@ import { buildSloop, buildBarrel, type ShipRig } from '../art/models/ship';
 import { buildHumanoid, animateIdle, animateWalk, animateSwing, animateWork, animateFish, type HumanoidRig, type HumanoidLook } from '../art/models/character';
 import { buildCrab, animateCrab, type CrabRig } from '../art/models/crab';
 import { buildPine, buildBroadleaf, buildRock, buildOreRock, buildCrate, buildLanternPost, buildShack, buildDock, buildGrass } from '../art/models/props';
-import { buildBench, buildFurnace, buildAnvil, buildCookfire, buildTent, buildSmithyShed, buildPillar, buildPlinth, buildGuardian, buildStump, buildRipples, type GuardianRig } from '../art/models/world';
+import { buildBench, buildFurnace, buildAnvil, buildCookfire, buildTent, buildSmithyShed, buildPillar, buildPlinth, buildStrongbox, buildGuardian, buildStump, buildRipples, type GuardianRig } from '../art/models/world';
 import { buildLootShard, SHARD_TINT, type LootShard, type ShardKind } from '../art/models/items';
 import { item } from '../game/data/items';
 import { NODES, PLAYER_BASE } from '../game/data/content';
@@ -240,6 +240,7 @@ export class GameRenderer {
       }
     }
     place(buildPlinth(), L.plinth.x, L.plinth.z, 0);
+    for (const b of L.banks) place(buildStrongbox(), b.x, b.z, 0);
     for (const r of L.reefs) {
       const m = buildRock(Math.round(r.x * 31 + r.z), r.r, 'stoneDark');
       m.position.set(r.x, 0.05, r.z);
