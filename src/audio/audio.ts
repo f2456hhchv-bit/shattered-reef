@@ -1,16 +1,13 @@
 import type { Game, GameEvent } from '../game/sim/game';
 import { coastDist } from '../game/world/island';
+import { Music, type MusicMood } from './music';
 
-// All sound is synthesised with Web Audio: no files to download. Three buses (effects, ambience, music)
-// under one master. The context starts on the first tap (browsers require a gesture) and suspends
+// Effects and ambience are synthesised with Web Audio; music plays recorded instrument samples (music.ts).
+// Three buses (effects, ambience, music) under one master. The context starts on the first tap (browsers require a gesture) and suspends
 // when the page is hidden. Effects with a position fade with distance from the player.
 
-const DORIAN = [0, 2, 3, 5, 7, 9, 10]; // D dorian: the sea-folk mode
-const AEOLIAN = [0, 2, 3, 5, 7, 8, 10]; // darker, for bosses
 const midi = (n: number) => 440 * Math.pow(2, (n - 69) / 12);
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
-
-type Mood = 'calm' | 'combat' | 'boss';
 
 export class GameAudio {
   private ctx: AudioContext | null = null;
@@ -22,9 +19,7 @@ export class GameAudio {
   private brown!: AudioBuffer;
   private waves!: GainNode;
   private wind!: GainNode;
-  private nextBar = 0;
-  private bar = 0;
-  private mood: Mood = 'calm';
+  private tunes: Music | null = null;
   private gullT = 6;
   private timer: number | null = null;
   musicOn = true;
@@ -58,8 +53,8 @@ export class GameAudio {
     let last = 0;
     for (let i = 0; i < len; i++) { w[i] = Math.random() * 2 - 1; last = (last + 0.02 * w[i]) / 1.02; b[i] = last * 3.5; }
     this.startAmbience();
-    this.nextBar = ctx.currentTime + 0.3;
-    this.timer = window.setInterval(() => this.schedule(), 100);
+    this.tunes = new Music(ctx, this.music);
+    this.timer = window.setInterval(() => { if (this.musicOn) this.tunes?.tick(); }, 100);
   }
 
   setMusic(on: boolean) { this.musicOn = on; this.apply(); }
@@ -248,50 +243,8 @@ export class GameAudio {
       this.gullT = 7 + Math.random() * 14;
       if (coast > 0.4 && this.sfxOn) for (let i = 0; i < 2; i++) this.tone(1500, 0.35, { to: 1100, gain: 0.025 * coast, vib: 60, attack: 0.04, at: t + i * 0.42, out: this.amb });
     }
-    this.mood = g.boss ? 'boss' : g.combatTimer < 5 ? 'combat' : 'calm';
-  }
-
-  // ------------------------------------------------------------------ music
-  // A generative sea-folk piece: a drone, a plucked arpeggio over a modal progression, and a whistle
-  // melody built from short motifs. Combat adds drums and drive; bosses shift to a darker mode.
-  private static PROG = [[0, 'm'], [-2, 'M'], [0, 'm'], [-5, 'm'], [0, 'm'], [3, 'M'], [-2, 'M'], [0, 'm']] as const;
-  private static MOTIFS = [[0, 2, 4, 2], [4, 3, 2, 0], [0, 4, 5, 4], [2, 4, 6, 4, 2], [5, 4, 2, 1, 0], [4, 4, 2, 0]];
-
-  private schedule() {
-    const c = this.ctx;
-    if (!c || c.state !== 'running') return;
-    while (this.nextBar < c.currentTime + 0.6) { this.playBar(this.nextBar); this.bar++; this.nextBar += this.barLen(); }
-  }
-  private barLen() { return (60 / (this.mood === 'combat' ? 112 : this.mood === 'boss' ? 92 : 84)) * 4; }
-
-  private playBar(t0: number) {
-    const mood = this.mood, beat = this.barLen() / 4, out = this.music;
-    const scale = mood === 'boss' ? AEOLIAN : DORIAN;
-    const [root, kind] = GameAudio.PROG[this.bar % GameAudio.PROG.length];
-    const base = (mood === 'boss' ? 38 : 50) + root; // D2 / D3
-    const third = kind === 'm' ? 3 : 4;
-    // drone + pad: root and fifth, slow swell across the bar
-    for (const n of [base - 12, base + 7 - 12]) this.tone(midi(n), this.barLen() + 0.4, { type: 'sawtooth', gain: 0.025, attack: beat * 1.2, at: t0, out, lp: mood === 'calm' ? 500 : 800 });
-    // plucked arpeggio in eighths
-    const arp = [0, 7, 12, third + 12, 12, 7, third, 7];
-    arp.forEach((iv, i) => { if (mood !== 'calm' || i % 2 === 0 || Math.random() < 0.6) this.pluck(midi(base + iv), beat * 1.4, 0.05, t0 + i * beat / 2, out); });
-    // melody: a motif every other bar, with rests to breathe
-    if (this.bar % 2 === 0 && Math.random() < (mood === 'combat' ? 0.9 : 0.75)) {
-      const m = GameAudio.MOTIFS[Math.floor(Math.random() * GameAudio.MOTIFS.length)];
-      const step = (beat * 4) / m.length;
-      m.forEach((deg, i) => {
-        const n = base + 24 + scale[deg % 7] + 12 * Math.floor(deg / 7);
-        this.tone(midi(n), step * 0.95, { type: 'sine', gain: 0.045, attack: 0.04, vib: 3, at: t0 + i * step, out });
-        this.tone(midi(n + 12), step * 0.9, { type: 'triangle', gain: 0.008, attack: 0.04, at: t0 + i * step, out });
-      });
-    }
-    // drums when it matters
-    if (mood !== 'calm') {
-      for (let i = 0; i < 4; i++) {
-        if (i % 2 === 0 || mood === 'boss') this.tone(mood === 'boss' ? 70 : 95, 0.3, { to: 45, gain: mood === 'boss' ? 0.22 : 0.16, at: t0 + i * beat, out });
-        this.hiss(0.05, { type: 'highpass', freq: 6000, gain: 0.04, at: t0 + i * beat + beat / 2, out });
-      }
-    }
+    const mood: MusicMood = g.boss ? 'boss' : g.combatTimer < 5 ? 'combat' : g.p.onShip ? 'ship' : 'calm';
+    this.tunes?.setMood(mood);
   }
 
   dispose() { if (this.timer) clearInterval(this.timer); void this.ctx?.close(); }
