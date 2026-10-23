@@ -151,7 +151,12 @@ body.portrait #xpdrops { top: calc(var(--mm) + 18px + env(safe-area-inset-top, 0
 .quest b { color: var(--brass-hi); }
 .status { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 10px; margin-left: 6px; letter-spacing: .04em; }
 .status.todo { background: #5a2a22; color: #ffb4a0; } .status.active { background: #5a4a1e; color: #ffe08a; } .status.done { background: #24502a; color: #a8f08a; }
-.equip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 10px; }
+.equip { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-bottom: 10px; }
+.stances { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 6px 0 8px; }
+.stances button { border-radius: 8px; border: 1px solid #120b06; background: #2c1f14; padding: 6px 4px; min-height: 48px; display: grid; gap: 2px; }
+.stances button small { font-size: 10px; color: var(--ink-dim); }
+.stances button.on { background: linear-gradient(180deg, #7a5a34, #4a3422); box-shadow: inset 0 0 0 2px var(--brass); }
+.miss { color: var(--bad); }
 .equip .slot { flex-direction: column; }
 .equip .lbl { position: absolute; bottom: 2px; left: 0; right: 0; text-align: center; font-size: 10px; color: var(--ink-dim); text-transform: uppercase; letter-spacing: .06em; }
 .stats { display: grid; grid-template-columns: 1fr auto; gap: 3px 10px; font-variant-numeric: tabular-nums; }

@@ -148,8 +148,7 @@ export class Input {
         break;
       }
       case ' ': e.preventDefault(); g.useRoll(); break;
-      case 'f': g.useAbility(); break;
-      case 'r': g.useWhirl(); break;
+      case 'r': case 'f': g.useSpecial(); break;
       case 'i': case 'b': this.ui.selectTab('pack', true); break;
       case 'g': this.ui.selectTab('gear', true); break;
       case 'k': this.ui.selectTab('skills', true); break;

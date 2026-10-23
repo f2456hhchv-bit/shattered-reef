@@ -1,11 +1,12 @@
 import { ITEMS, AFFIXES, RARITY, type Slot, type SkillId } from '../data/items';
 import { QUESTS } from '../data/quests';
 import { INV_SIZE, emptyInventory, type Inventory, type Stack } from './inventory';
-import { MAX_XP } from './xp';
+import { MAX_XP, xpForLevel } from './xp';
+import type { Stance } from './gear';
 
 // Versioned, validated save. Anything invalid is dropped or defaulted, never trusted.
 
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
 export const SAVE_KEY = 'shattered-reef.save';
 
 export interface SaveData {
@@ -19,10 +20,12 @@ export interface SaveData {
   discovered: string[];
   nextUid: number;
   settings: { quality: 'high' | 'low'; showDamage: boolean };
+  combat: { stance: Stance; spell: string };
 }
 
-const SKILL_IDS: SkillId[] = ['combat', 'woodcutting', 'mining', 'smithing', 'fishing', 'cooking'];
-const SLOTS: Slot[] = ['weapon', 'head', 'body', 'ring'];
+export const SKILL_IDS: SkillId[] = ['attack', 'strength', 'defence', 'hitpoints', 'ranged', 'magic', 'woodcutting', 'mining', 'fishing', 'smithing', 'gunsmithing', 'cooking'];
+const SLOTS: Slot[] = ['weapon', 'ammo', 'head', 'body', 'ring'];
+export const HP_START_XP = xpForLevel(10); // Hitpoints starts at 10, like RuneScape
 
 const num = (v: unknown, d: number, min = -Infinity, max = Infinity) =>
   typeof v === 'number' && Number.isFinite(v) ? Math.min(max, Math.max(min, v)) : d;
@@ -57,8 +60,8 @@ export function defaultSave(spawn: { x: number; z: number }, ship: { x: number; 
     savedAt: 0,
     playTime: 0,
     player: {
-      x: spawn.x, z: spawn.z, hp: 40, onShip: false,
-      xp: Object.fromEntries(SKILL_IDS.map((k) => [k, 0])) as Record<SkillId, number>,
+      x: spawn.x, z: spawn.z, hp: 10, onShip: false,
+      xp: Object.fromEntries(SKILL_IDS.map((k) => [k, k === 'hitpoints' ? HP_START_XP : 0])) as Record<SkillId, number>,
       inv,
       equip: { weapon: { id: 'cutlass_rusty', qty: 1 } },
     },
@@ -68,11 +71,23 @@ export function defaultSave(spawn: { x: number; z: number }, ship: { x: number; 
     discovered: [],
     nextUid: 1,
     settings: { quality: 'high', showDamage: true },
+    combat: { stance: 'accurate', spell: 'spray' },
   };
 }
 
 /** Migrations: add a function per version bump, keyed by the version it upgrades FROM. */
-const MIGRATIONS: Record<number, (d: Record<string, unknown>) => Record<string, unknown>> = {};
+const MIGRATIONS: Record<number, (d: Record<string, unknown>) => Record<string, unknown>> = {
+  // v1 had one "combat" skill: share its XP across the melee skills, keep Hitpoints at least level 10
+  1: (d) => {
+    const p = (d.player ?? {}) as Record<string, unknown>;
+    const xp = { ...((p.xp ?? {}) as Record<string, unknown>) };
+    const c = typeof xp.combat === 'number' && Number.isFinite(xp.combat) ? xp.combat : 0;
+    delete xp.combat;
+    xp.attack = xp.strength = xp.defence = Math.floor(c / 4);
+    xp.hitpoints = Math.max(HP_START_XP, HP_START_XP + Math.floor(c / 4));
+    return { ...d, version: 2, player: { ...p, xp, hp: 10 } };
+  },
+};
 
 /** Parse + validate untrusted JSON. Returns null when unusable (caller starts fresh). */
 export function parseSave(json: string | null, fallback: SaveData): SaveData | null {
@@ -99,7 +114,8 @@ export function parseSave(json: string | null, fallback: SaveData): SaveData | n
   d.player.hp = num(p.hp, d.player.hp, 1, 10000);
   d.player.onShip = p.onShip === true;
   const xp = (p.xp ?? {}) as Record<string, unknown>;
-  for (const k of SKILL_IDS) d.player.xp[k] = Math.floor(num(xp[k], 0, 0, MAX_XP));
+  for (const k of SKILL_IDS) d.player.xp[k] = Math.floor(num(xp[k], d.player.xp[k], 0, MAX_XP));
+  d.player.xp.hitpoints = Math.max(HP_START_XP, d.player.xp.hitpoints);
   if (Array.isArray(p.inv)) {
     const inv = emptyInventory();
     for (let i = 0; i < INV_SIZE; i++) inv[i] = validStack(p.inv[i]);
@@ -109,7 +125,7 @@ export function parseSave(json: string | null, fallback: SaveData): SaveData | n
   d.player.equip = {};
   for (const sl of SLOTS) {
     const s = validStack(eq[sl]);
-    if (s && ITEMS[s.id].equip?.slot === sl) d.player.equip[sl] = s;
+    if (s && ITEMS[s.id].equip?.slot === sl) d.player.equip[sl] = sl === 'ammo' ? s : { ...s, qty: 1 };
   }
   const sh = (raw.ship ?? {}) as Record<string, unknown>;
   d.ship = { x: num(sh.x, d.ship.x, -100, 100), z: num(sh.z, d.ship.z, -100, 100), heading: num(sh.heading, d.ship.heading) };
@@ -123,5 +139,10 @@ export function parseSave(json: string | null, fallback: SaveData): SaveData | n
   d.savedAt = num(raw.savedAt, 0, 0);
   const st = (raw.settings ?? {}) as Record<string, unknown>;
   d.settings = { quality: st.quality === 'low' ? 'low' : 'high', showDamage: st.showDamage !== false };
+  const cb = (raw.combat ?? {}) as Record<string, unknown>;
+  d.combat = {
+    stance: cb.stance === 'aggressive' || cb.stance === 'defensive' ? cb.stance : 'accurate',
+    spell: typeof cb.spell === 'string' ? cb.spell : 'spray',
+  };
   return d;
 }

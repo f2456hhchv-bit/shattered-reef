@@ -243,3 +243,26 @@ export function buildRipples(colour = 0xe9f5f2): THREE.Group {
   }
   return g;
 }
+
+export function buildBench(): THREE.Group {
+  const g = new THREE.Group();
+  const top = mesh(jitter(new THREE.BoxGeometry(1.8, 0.12, 0.85), 0.02, 141), mat('woodLight'));
+  top.position.y = 0.85;
+  g.add(top);
+  for (const [x, z] of [[-0.8, -0.35], [0.8, -0.35], [-0.8, 0.35], [0.8, 0.35]] as const) {
+    const leg = mesh(new THREE.BoxGeometry(0.1, 0.85, 0.1), mat('woodDark'));
+    leg.position.set(x, 0.42, z);
+    g.add(leg);
+  }
+  const vice = mesh(new THREE.BoxGeometry(0.25, 0.22, 0.3), mat('iron'));
+  vice.position.set(-0.6, 1.02, 0.1);
+  const barrel = mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.7, 6), mat('iron'));
+  barrel.rotation.z = Math.PI / 2;
+  barrel.position.set(0.1, 0.96, 0.1);
+  const stock = mesh(new THREE.BoxGeometry(0.35, 0.08, 0.12), mat('wood'));
+  stock.position.set(0.55, 0.95, 0.1);
+  const powder = mesh(new THREE.CylinderGeometry(0.12, 0.14, 0.26, 7), mat(0x3a2a1e));
+  powder.position.set(0.6, 1.04, -0.22);
+  g.add(vice, barrel, stock, powder);
+  return g;
+}

@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { Game } from './game';
 import { levelForXp, xpForLevel, MAX_LEVEL, MAX_XP } from './xp';
 import { add, count, emptyInventory, remove } from './inventory';
-import { parseSave, defaultSave, SAVE_VERSION } from './save';
+import { parseSave, defaultSave, SAVE_VERSION, HP_START_XP } from './save';
+import { hitChance, combatLevel, levelsOf } from './gear';
 import { NODES } from '../data/content';
 
 // One shared island (building it is the slow part); fresh Game state per test via the save.
@@ -133,7 +134,7 @@ describe('gameplay loop', () => {
     run(g, 5, () => count(g.p.inv, 'bar_bronze') >= 1);
     expect(count(g.p.inv, 'bar_bronze')).toBe(1);
     expect(count(g.p.inv, 'ore_copper')).toBe(0);
-    expect(g.p.xp.smithing).toBe(12);
+    expect(g.p.xp.smithing).toBeCloseTo(6.25, 0);
   });
 
   it('refuses to craft without ingredients and consumes nothing', () => {
@@ -184,7 +185,9 @@ describe('gameplay loop', () => {
     const coinsBefore = count(g.p.inv, 'coins');
     run(g, 40, () => !crab.alive);
     expect(crab.alive).toBe(false);
-    expect(g.p.xp.combat).toBeGreaterThan(0);
+    expect(g.p.xp.attack).toBeGreaterThan(0);
+    expect(g.p.xp.hitpoints).toBeGreaterThan(HP_START_XP);
+    expect(g.level('attack')).toBeLessThanOrEqual(2); // one crab must not be a big jump
     run(g, 3);
     expect(count(g.p.inv, 'coins')).toBeGreaterThan(coinsBefore);
   });
@@ -203,7 +206,7 @@ describe('gameplay loop', () => {
     expect(g.questStage('bell')).toBe(2);
     expect(count(g.p.inv, 'tuning_bell')).toBe(1);
     // strong enough to win quickly; the fight itself is still simulated
-    g.addXp('combat', xpForLevel(30));
+    for (const k of ['attack', 'strength', 'defence', 'hitpoints'] as const) g.p.xp[k] = xpForLevel(30);
     g.p.equip.weapon = { id: 'cutlass_iron', qty: 1 };
     g.recalc();
     g.p.hp = g.stats.maxHp;
@@ -245,18 +248,21 @@ describe('gameplay loop', () => {
     expect(Math.hypot(g.p.x - g.layout.respawn.x, g.p.z - g.layout.respawn.z)).toBeLessThan(0.1);
   });
 
-  it('whirl hits every enemy in range and knocks them back', () => {
+  it('the melee special (whirl) swings at every enemy in range, then goes on cooldown', () => {
     const g = fresh(21);
+    g.p.xp.attack = xpForLevel(40);
+    g.recalc();
     const crabs = g.enemies.filter((e) => e.def.id === 'reef_crab').slice(0, 3);
     goNear(g, crabs[0].x, crabs[0].z);
     for (const [k, c] of crabs.entries()) { const a = (k / 3) * Math.PI * 2; c.x = g.p.x + Math.cos(a) * 1.6; c.z = g.p.z + Math.sin(a) * 1.6; c.elite = null; }
-    const before = crabs.map((c) => c.hp);
-    g.useWhirl();
-    crabs.forEach((c, k) => expect(c.hp < before[k] || !c.alive).toBe(true));
-    expect(g.whirlCd).toBeGreaterThan(0);
-    const hp = crabs.map((c) => c.hp);
-    g.useWhirl(); // on cooldown: no effect
-    expect(crabs.map((c) => c.hp)).toEqual(hp);
+    const hits = new Set<number>();
+    g.on((e) => { if (e.type === 'hit' && e.target === 'enemy') hits.add(e.id); });
+    g.useSpecial();
+    for (const c of crabs) expect(hits.has(c.id)).toBe(true);
+    expect(g.specialCd).toBeGreaterThan(0);
+    hits.clear();
+    g.useSpecial();
+    expect(hits.size).toBe(0);
   });
 
   it('a dodge roll avoids telegraphed damage and moves the player', () => {
@@ -271,5 +277,99 @@ describe('gameplay loop', () => {
     run(g, 0.3);
     expect(Math.hypot(g.p.x - x0, g.p.z - z0)).toBeGreaterThan(2);
     expect(g.rollCd).toBeGreaterThan(0);
+  });
+});
+
+describe('combat skills (RuneScape model)', () => {
+  it('a new character is combat level 3 with 10 hitpoints', () => {
+    const g = fresh();
+    expect(g.level('hitpoints')).toBe(10);
+    expect(g.stats.maxHp).toBe(10);
+    expect(combatLevel(levelsOf(g.p.xp))).toBe(3);
+  });
+
+  it('hit chance follows the OSRS formula', () => {
+    expect(hitChance(1000, 1000)).toBeCloseTo(1000 / 2002, 5);
+    expect(hitChance(3000, 1000)).toBeCloseTo(1 - 1002 / 6002, 5);
+    expect(hitChance(100, 5000)).toBeLessThan(0.02);
+  });
+
+  it('stance decides which skill gets the 4 xp per damage', () => {
+    for (const [stance, skill] of [['accurate', 'attack'], ['aggressive', 'strength'], ['defensive', 'defence']] as const) {
+      const g = fresh(31);
+      g.setStance(stance);
+      g.p.xp.attack = g.p.xp.strength = xpForLevel(20);
+      g.recalc();
+      const before = { ...g.p.xp };
+      const crab = g.enemies.find((e) => e.def.id === 'reef_crab')!;
+      goNear(g, crab.x + 1, crab.z);
+      g.interact(`enemy:${crab.id}`);
+      run(g, 60, () => !crab.alive);
+      expect(crab.alive).toBe(false);
+      expect(g.p.xp[skill] - before[skill]).toBeCloseTo(crab.def.hp * 4, 0);
+      expect(g.p.xp.hitpoints - before.hitpoints).toBeCloseTo(crab.def.hp * 4 / 3, 0);
+    }
+  });
+
+  it('pistols burn shot and train Ranged; staffs burn charms and train Magic', () => {
+    const g = fresh(33);
+    g.p.equip.weapon = { id: 'pistol_flintlock', qty: 1 };
+    g.p.equip.ammo = { id: 'shot_bronze', qty: 30 };
+    g.recalc();
+    const crab = g.enemies.find((e) => e.def.id === 'reef_crab')!;
+    goNear(g, crab.x + 5, crab.z);
+    g.interact(`enemy:${crab.id}`);
+    run(g, 60, () => !crab.alive);
+    expect(crab.alive).toBe(false);
+    expect(g.p.equip.ammo!.qty).toBeLessThan(30);
+    expect(g.p.xp.ranged).toBeGreaterThan(0);
+    expect(g.p.xp.attack).toBe(0);
+
+    const m = fresh(34);
+    m.p.equip.weapon = { id: 'staff_driftwood', qty: 1 };
+    m.give('charm_tide', 40);
+    m.recalc();
+    const c2 = m.enemies.find((e) => e.def.id === 'reef_crab')!;
+    goNear(m, c2.x + 5, c2.z);
+    m.interact(`enemy:${c2.id}`);
+    run(m, 60, () => !c2.alive);
+    expect(c2.alive).toBe(false);
+    expect(count(m.p.inv, 'charm_tide')).toBeLessThan(40);
+    expect(m.p.xp.magic).toBeGreaterThan(0);
+  });
+
+  it('refuses to fire without ammo', () => {
+    const g = fresh(35);
+    g.p.equip.weapon = { id: 'pistol_flintlock', qty: 1 };
+    g.recalc();
+    expect(g.ammoBlock()).not.toBeNull();
+  });
+
+  it('migrates a v1 save: old Combat XP is shared out, Hitpoints at least 10', () => {
+    const fb = defaultSave(base.layout.respawn, base.layout.mooring);
+    const v1 = { version: 1, player: { xp: { combat: 4000, mining: 300 }, inv: [], equip: {} }, quests: { bell: 2 } };
+    const d = parseSave(JSON.stringify(v1), fb)!;
+    expect(d.version).toBe(2);
+    expect(d.player.xp.attack).toBe(1000);
+    expect(d.player.xp.hitpoints).toBeGreaterThanOrEqual(HP_START_XP);
+    expect(d.player.xp.mining).toBe(300);
+    expect(d.quests.bell).toBe(2);
+  });
+
+  it('pacing: 10 minutes of crab fighting at level 1 lands around Attack 5-9, not 20+', () => {
+    const g = fresh(41);
+    let kills = 0;
+    g.on((e) => { if (e.type === 'enemyDeath') kills++; });
+    for (let t = 0; t < 600; t += 1 / 30) {
+      if (g.dead === 0 && g.target === null) {
+        const c = g.enemies.filter((e) => e.def.id === 'reef_crab' && e.alive).sort((a, b) => Math.hypot(a.x - g.p.x, a.z - g.p.z) - Math.hypot(b.x - g.p.x, b.z - g.p.z))[0];
+        if (c) g.interact(`enemy:${c.id}`);
+      }
+      if (g.p.hp < 5) g.p.hp = g.stats.maxHp; // eats food
+      g.step(1 / 30);
+    }
+    expect(kills).toBeGreaterThan(5);
+    expect(g.level('attack')).toBeGreaterThanOrEqual(4);
+    expect(g.level('attack')).toBeLessThanOrEqual(12);
   });
 });

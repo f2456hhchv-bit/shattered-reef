@@ -18,7 +18,7 @@ export interface IslandLayout {
   nodes: NodePlacement[];
   props: Prop[];
   reefs: { x: number; z: number; r: number }[];
-  stations: { id: 'furnace' | 'anvil' | 'fire'; x: number; z: number }[];
+  stations: { id: 'furnace' | 'anvil' | 'fire' | 'bench'; x: number; z: number }[];
   npcs: { id: string; x: number; z: number; facing: number }[];
   spawns: SpawnPoint[];
   ruin: { x: number; z: number; r: number };
@@ -65,8 +65,9 @@ export function buildIsland(seed = 1): IslandLayout {
     { id: 'furnace', x: S.x + 1.4, z: S.z - 0.6 },
     { id: 'anvil', x: S.x - 1.4, z: S.z + 0.4 },
     { id: 'fire', x: LAYOUT.cookfire.x, z: LAYOUT.cookfire.z },
+    { id: 'bench', x: S.x + 4.2, z: S.z + 1.2 },
   ];
-  world.solids.push({ x: stations[0].x, z: stations[0].z, r: 1.0 }, { x: stations[1].x, z: stations[1].z, r: 0.45 }, { x: stations[2].x, z: stations[2].z, r: 0.7 });
+  world.solids.push({ x: stations[0].x, z: stations[0].z, r: 1.0 }, { x: stations[1].x, z: stations[1].z, r: 0.45 }, { x: stations[2].x, z: stations[2].z, r: 0.7 }, { x: stations[3].x, z: stations[3].z, w: 1.8, d: 0.9 });
 
   const npcs = [
     { id: 'iven', x: LAYOUT.chartHouse.x - 0.5, z: LAYOUT.chartHouse.z + 3.2, facing: Math.PI / 2 },

@@ -50,8 +50,8 @@ title.innerHTML = `<div class="card panel">
   <div class="sub">Bellwether Isle</div>
   <p>Something rang at the Broken Ring at low water. Gather, forge and fight your way across Bellwether, and find out what the island has kept locked away.</p>
   <div class="ctl">${fine
-    ? '<kbd>Click</kbd><span>walk, gather, talk, attack</span><kbd>WASD</kbd><span>move or steer your ship</span><kbd>Space</kbd><span>dodge roll</span><kbd>R / F</kbd><span>whirl / flintlock</span><kbd>E</kbd><span>nearest action</span>'
-    : '<b>Drag</b><span>move or steer your ship</span><b>Tap</b><span>walk to things and use them</span><b>Big button</b><span>nearest action</span><b>Small buttons</b><span>roll, whirl, flintlock</span><b>Pinch</b><span>zoom</span>'}</div>
+    ? '<kbd>Click</kbd><span>walk, gather, talk, attack</span><kbd>WASD</kbd><span>move or steer your ship</span><kbd>Space</kbd><span>dodge roll</span><kbd>R</kbd><span>special attack</span><kbd>E</kbd><span>nearest action</span>'
+    : '<b>Drag</b><span>move or steer your ship</span><b>Tap</b><span>walk to things and use them</span><b>Big button</b><span>nearest action</span><b>Small buttons</b><span>dodge roll, special attack</span><b>Pinch</b><span>zoom</span>'}</div>
   <div class="acts">
     ${hasSave ? '<button class="btn primary" id="cont">Continue voyage</button><button class="btn" id="fresh">New voyage</button>' : '<button class="btn primary" id="cont">Begin voyage</button>'}
   </div></div>`;
