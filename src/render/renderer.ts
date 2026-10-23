@@ -10,6 +10,7 @@ import { createWater } from '../art/water';
 import { PAL, mat, recolour, type PalKey } from '../art/materials';
 import { mulberry32 } from '../art/noise';
 import { buildSloop, buildBarrel, type ShipRig } from '../art/models/ship';
+import { buildNetRack, buildRowboat, buildSignpost, buildFence, buildWell, buildDriftwood, buildShells, buildPotStack, buildCannon, buildWreckRibs, buildWoodpile, buildFlowers } from '../art/models/decor';
 import { NPC_LOOKS, PLAYER_LOOK, BRIGAND_LOOK, HUMAN_LOOKS } from '../art/cast';
 import { buildHumanoid, animateIdle, animateWalk, animateSwing, animateWork, animateFish, type HumanoidRig } from '../art/models/character';
 import { buildCrab, animateCrab, type CrabRig } from '../art/models/crab';
@@ -240,6 +241,18 @@ export class GameRenderer {
         case 'lantern': place(buildLanternPost().group, p.x, p.z, p.rot); break;
         case 'pillar': place(buildPillar(p.seed, p.s), p.x, p.z, p.rot); break;
         case 'campfire': { const f = buildCookfire(); f.flames.forEach((m) => (m.userData.flame = true)); place(f.group, p.x, p.z); break; }
+        case 'netrack': place(buildNetRack(p.seed), p.x, p.z, p.rot); break;
+        case 'rowboat': place(buildRowboat(p.seed), p.x, p.z, p.rot, w.ground(p.x, p.z) - 0.12); break;
+        case 'signpost': place(buildSignpost(p.seed, p.aux ?? []), p.x, p.z, 0); break;
+        case 'fence': place(buildFence(p.seed, p.aux?.[0] ?? 4), p.x, p.z, p.rot); break;
+        case 'well': place(buildWell(), p.x, p.z, p.rot); break;
+        case 'driftwood': place(buildDriftwood(p.seed), p.x, p.z, p.rot); break;
+        case 'shells': place(buildShells(p.seed), p.x, p.z, p.rot); break;
+        case 'pots': place(buildPotStack(p.seed), p.x, p.z, p.rot); break;
+        case 'cannon': place(buildCannon(), p.x, p.z, p.rot); break;
+        case 'wreck': place(buildWreckRibs(p.seed), p.x, p.z, p.rot, w.ground(p.x, p.z) - 0.15); break;
+        case 'woodpile': place(buildWoodpile(p.seed), p.x, p.z, p.rot); break;
+        case 'flowers': place(buildFlowers(p.seed), p.x, p.z, p.rot); break;
       }
     }
     place(buildPlinth(), L.plinth.x, L.plinth.z, 0);

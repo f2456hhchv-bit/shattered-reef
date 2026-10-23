@@ -61,6 +61,7 @@ Reflects the actual repository, not the roadmap.
 | UI | `src/ui/` | landscape side panel / portrait bottom sheet; pack 4×7 (7×4 portrait), equipment + stats, skills, quests + places, map, settings |
 | Audio | `src/audio/audio.ts`, `music.ts` | effects + surf/wind/gulls synthesised. Music: real instrument samples (FluidR3 GM, CC BY 3.0, ~2.4 MB in `public/audio/inst`, every 3rd semitone, pitch-shifted) playing hand-typed ABC tunes: calm = original "Bellwether Air" + Greensleeves with 25-50 s silences; ship = Drunken Sailor shanty; combat = Drowsy Maggie reel; boss = Drunken Sailor in minor with timpani. Tests check every bar length and note range |
 | Opening credits | `src/ui/credits.ts`, `main.ts` | first visit: "Tap to begin" gate (unlocks sound) → ~21 s fly-over (quay, Saltpine Wood, Broken Ring) with letterbox, title cards and the cracked-gold logo + audio cue → title menu over a slow camera sway. Tap/key skips; returning players go straight to the menu ("Watch the opening again" replays). Shots and cards are data; renderer has a `cinematic` camera override that glides down to the player on start |
+| Set dressing | `src/art/models/decor.ts`, `layout.ts` | net rack, lobster pots, cannons (quay + cove), well, woodpiles, cottage fences + flowers, crossroads signpost, rowboats, a wreck skeleton at Wreckers' Point, ~25 driftwood, ~33 shell/starfish scatters, ~30 flower clumps. Placed through a clearance check (paths, doors, NPCs, stations, nodes, mooring); baked into the static mesh |
 | Input | `src/input/input.ts` | invisible joystick, tap/click to walk or use, hover labels, WASD, hotkeys, pinch/wheel zoom |
 
 ## Controls
@@ -84,7 +85,6 @@ Reflects the actual repository, not the roadmap.
 ## Known issues / limitations
 - Effects are synthesised, music uses real samples; neither has been heard by me (I can't listen) - Tom's ears are the test.
 - Visual pass 1 (done): RuneScape-style outlined item icons (lathed items no longer vanish), skill medallions + XP bars, empty-slot silhouettes, hit splats, per-stone cobbles, cloth tents with ropes, smooth shoreline (beach toe slope + per-pixel water depth), less phone haze.
-- Overlapping enemy name labels when two enemies stand close (seen in screenshots).
 - No naval combat; sea is for travel, fishing and discovery only.
 - Buildings and the Guardian are still blocky; next art target after characters/UI.
 - One island. Terrain (64 chunks of 40 m) and grass (40 m buckets) are frustum-culled; camera far plane follows the fog. Not streamed: the whole 300 m world is built at load (~0.4 s for the simulation in Node).

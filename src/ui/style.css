@@ -335,3 +335,17 @@ body.landscape #side { padding-top: calc(var(--mm) + 80px + env(safe-area-inset-
 .dmg.player { --sc: #8e1414; --sh: #e04848; }
 .dmg.crit { min-width: 46px; height: 46px; font-size: 19px; --sc: #d9820f; --sh: #ffe07a; color: #fffbe8; }
 .dmg.miss0 { min-width: 54px; height: 34px; font-size: 11px; letter-spacing: .04em; --sc: #2a5cbf; --sh: #7fb2ff; }
+
+/* HUD icons: skill glyphs on the XP drops, the level-up banner and the orbs */
+#xpdrops div { display: flex; align-items: center; gap: 5px; }
+#xpdrops .xi { width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--c) 55%, #fff3), color-mix(in srgb, var(--c) 40%, #120b06) 70%); box-shadow: 0 0 0 1.5px #120b06, 0 0 0 2.5px var(--brass); }
+#xpdrops .xi svg { width: 12px; height: 12px; }
+#banner .medal { display: grid; place-items: center; width: 54px; height: 54px; margin: 0 auto 6px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 28%, color-mix(in srgb, var(--c) 55%, #fff3), color-mix(in srgb, var(--c) 40%, #120b06) 70%);
+  box-shadow: 0 0 0 2px #120b06, 0 0 0 4px var(--brass), 0 0 24px color-mix(in srgb, var(--c) 60%, transparent), 0 4px 10px #000a; }
+#banner .medal svg { width: 34px; height: 34px; filter: drop-shadow(0 1px 0 #0008); }
+#banner.show .medal { animation: medalpop .5s cubic-bezier(.2, 1.6, .4, 1); }
+@keyframes medalpop { from { transform: scale(.3) rotate(-20deg); opacity: 0; } to { transform: none; opacity: 1; } }
+.orb .oic { position: absolute; left: 50%; bottom: 3px; width: 16px; height: 16px; transform: translateX(-50%); display: grid; place-items: center; border-radius: 50%; background: #1d140d; box-shadow: 0 0 0 1.5px var(--brass); pointer-events: none; z-index: 1; }
+.orb .oic svg { width: 11px; height: 11px; }
+.orb .txt { padding-bottom: 6px; }
