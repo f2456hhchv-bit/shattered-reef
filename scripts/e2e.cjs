@@ -72,6 +72,8 @@ const sizes = [
         near(f.x - 1.5, f.z + 1.4);
         g.interact('station:' + L.stations.indexOf(f));
         out.station = !!document.getElementById('stationwin');
+        // the close button must be on top and must close the window (a title once covered it)
+        { const xb = document.querySelector('#stationwin .x'); const rc = xb && xb.getBoundingClientRect(); out.xOnTop = !!xb && document.elementFromPoint(rc.x + rc.width / 2, rc.y + rc.height / 2) === xb; }
         r.ui.closeWindows();
         const m = L.npcs.find((n) => n.id === 'marta');
         near(m.x, m.z + 1.6);
@@ -92,7 +94,7 @@ const sizes = [
       await p.waitForFunction(() => !!document.getElementById('dialog'), null, { timeout: 90000 }).catch(() => {});
       flow.clickPickedNpc = await p.evaluate(() => !!document.getElementById('dialog'));
       result.flow = flow;
-      if (!flow.dialog || !flow.station || !flow.shop || flow.tabs !== true || flow.questStage !== 1 || !flow.clickPickedNpc) failed++;
+      if (!flow.dialog || !flow.station || !flow.xOnTop || !flow.shop || flow.tabs !== true || flow.questStage !== 1 || !flow.clickPickedNpc) failed++;
       if (errs.length) failed++;
       result.errors = errs.slice(0, 5);
     }

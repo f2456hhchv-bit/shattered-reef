@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { fbm, smooth } from '../art/noise';
 import type { Look } from '../art/looks';
-import { coastDist, nearestPathDist, FLATS, LAYOUT } from '../game/world/island';
+import { coastDist, nearestPathDist, FLATS, LAYOUT, BEACH } from '../game/world/island';
 import { World, HCELL, HN } from '../game/world/world';
 import { WORLD_HALF } from '../game/world/island';
 
@@ -43,7 +43,7 @@ export function buildTerrainMesh(world: World, look: Look): TerrainView {
       else {
         // grass with meadow / moss patches, easing into sand near the shore
         tmp.copy(grass).lerp(meadow, smooth(n, 0.45, 0.7) * 0.7).lerp(grassD, smooth(n2, 0.45, 0.8) * 0.45).lerp(moss, smooth(1 - n, 0.55, 0.8) * 0.35);
-        const shore = 1 - smooth(d, 2.5 + n * 3, 6.5 + n * 3);
+        const shore = 1 - smooth(d, BEACH - 2.5 + n * 3, BEACH + 1.5 + n * 3); // the beach belt, edge wandering
         tmp.lerp(sand, shore);
         tmp.lerp(wet, 1 - smooth(y, 0.05, 0.35));
         const vd = Math.hypot(x - village.x, z - village.z);

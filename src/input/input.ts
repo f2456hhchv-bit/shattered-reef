@@ -130,7 +130,7 @@ export class Input {
   private hover(x: number, y: number) {
     const t = this.pick(x, y, 34);
     this.canvas.style.cursor = t ? 'pointer' : 'default';
-    this.ui.showHover(x, y, t ? t.verb : null, t ? t.label : '', t?.kind === 'enemy');
+    this.ui.showHover(x, y, t ? t.verb : null, t ? t.label : '', t?.kind === 'enemy', t ? this.game.targetNeeds(t) : null);
   }
 
   private key(e: KeyboardEvent, down: boolean) {

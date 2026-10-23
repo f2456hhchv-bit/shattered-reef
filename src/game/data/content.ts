@@ -64,7 +64,7 @@ export const NODES: Record<string, NodeDef> = Object.fromEntries(([
   { id: 'rock_boulder', name: 'Boulder', skill: 'mining', level: 1, xp: 10, item: 'ore_copper', drops: [{ item: 'ore_copper', w: 1 }, { item: 'ore_tin', w: 1 }], bonus: { item: 'geode', chance: 0.04 },
     difficulty: 0.45, tier: 0, rate: 0.3, depleteChance: 0.25, respawn: 45, verb: 'Mine' },
   { id: 'bush_berry', name: 'Bramble bush', level: 1, xp: 0, item: 'berries', difficulty: 0, tier: 0, rate: 0.9, depleteChance: 0.3, respawn: 60, verb: 'Pick' },
-  { id: 'kelp_bed', name: 'Kelp bed', level: 1, xp: 0, item: 'kelp', difficulty: 0, tier: 0, rate: 0.8, depleteChance: 0.3, respawn: 50, verb: 'Gather', reach: 3.2 },
+  { id: 'kelp_bed', name: 'Kelp bed', level: 1, xp: 0, item: 'kelp', difficulty: 0, tier: 0, rate: 0.8, depleteChance: 0.3, respawn: 50, verb: 'Gather', reach: 3.4 },
   { id: 'dig_spot', name: 'Disturbed sand', level: 1, xp: 0, item: 'coins', loot: 'treasure', tool: 'spade', difficulty: 0, tier: 0, rate: 0.45, depleteChance: 1, respawn: 420, verb: 'Dig' },
 ] as NodeDef[]).map((d) => [d.id, d]));
 

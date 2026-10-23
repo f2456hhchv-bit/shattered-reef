@@ -233,7 +233,10 @@ export class UI {
     ctx.hidden = !t || g.dead > 0;
     if (t) {
       (ctx.querySelector('span') as HTMLElement).textContent = t.verb;
-      (ctx.querySelector('small') as HTMLElement).textContent = t.label;
+      // phones have no hover: the action button says when you can't do it yet
+      const needs = g.targetNeeds(t), small = ctx.querySelector('small') as HTMLElement;
+      small.textContent = needs && !needs.ok ? needs.text.replace(/^Needs /, 'Need ').replace(/ \(you have \d+\)/, '') : t.label;
+      small.classList.toggle('no', !!needs && !needs.ok);
       ctx.setAttribute('aria-label', `${t.verb} ${t.label} (E)`);
     }
     const sp = g.specialInfo();
@@ -353,11 +356,11 @@ export class UI {
   }
   hideStick() { this.el.stick.hidden = true; }
 
-  showHover(x: number, y: number, verb: string | null, label: string, enemy: boolean) {
+  showHover(x: number, y: number, verb: string | null, label: string, enemy: boolean, needs: { text: string; ok: boolean } | null = null) {
     const hv = this.el.hover;
     if (!verb) { hv.hidden = true; return; }
     hv.hidden = false;
-    hv.innerHTML = `<b>${esc(verb)}</b> ${enemy ? `<span style="color:#ffb070">${esc(label)}</span>` : `<em>${esc(label)}</em>`}`;
+    hv.innerHTML = `<b>${esc(verb)}</b> ${enemy ? `<span style="color:#ffb070">${esc(label)}</span>` : `<em>${esc(label)}</em>`}${needs ? `<div class="needs ${needs.ok ? 'ok' : 'no'}">${esc(needs.text)}</div>` : ''}`;
     hv.style.left = `${Math.min(x + 16, window.innerWidth - hv.offsetWidth - 8)}px`;
     hv.style.top = `${y + 18}px`;
   }

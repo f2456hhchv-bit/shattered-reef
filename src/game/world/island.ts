@@ -8,6 +8,8 @@ import { fbm, lerp, smooth } from '../../art/noise';
 
 export const WORLD_HALF = 150; // world spans [-150, 150] on both axes
 export const ISLAND_RADIUS = 80;
+/** Width of the sand belt around the island, in metres (the beach climbs gently to grass beyond it). */
+export const BEACH = 10;
 
 export interface Flat { x: number; z: number; r: number; h: number | 'auto' } // 'auto': level at the natural height there
 export interface Hill { x: number; z: number; r: number; h: number }
@@ -153,10 +155,11 @@ function shapedHeight(x: number, z: number, levelled: boolean): number {
   let h: number;
   if (d > 0) {
     const broad = fbm(x * 0.022 + 3, z * 0.022 + 3, 3, 9);
-    h = 0.05 + Math.min(d / 5, 1) * 0.5 + smooth(d, 4, 18) * (0.5 + n * 2.0 + broad * 1.6);
+    // a wide, gently climbing beach, then the island's rolling ground
+    h = 0.05 + Math.min(d / BEACH, 1) * 0.45 + smooth(d, BEACH - 1, BEACH + 12) * (0.5 + n * 2.0 + broad * 1.6);
     for (const hl of HILLS) {
       const k = Math.exp(-((x - hl.x) ** 2 + (z - hl.z) ** 2) / (hl.r * hl.r));
-      h += hl.h * k * smooth(d, 2, 10);
+      h += hl.h * k * smooth(d, BEACH * 0.4, BEACH + 6);
     }
   } else {
     h = 0.05 + d * 0.35 * (0.8 + n * 0.5);

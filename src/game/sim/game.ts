@@ -240,6 +240,25 @@ export class Game {
     return { foes: lv.length ? [Math.min(...lv), Math.max(...lv)] : null, gather };
   }
 
+  /** What it takes to use a target, for hover pop-ups: e.g. "Woodcutting 15" (met or not), "Needs a spade". */
+  targetNeeds(t: Target): { text: string; ok: boolean } | null {
+    if (t.kind === 'node') {
+      const d = NODES[this.nodes.find((n) => `node:${n.uid}` === t.key)?.def ?? ''];
+      if (!d) return null;
+      const skill = d.skill ? `${d.skill[0].toUpperCase()}${d.skill.slice(1)} ${d.level}` : 'Anyone can';
+      if (d.skill && this.level(d.skill) < d.level) return { text: `Needs ${skill} (you have ${this.level(d.skill)})`, ok: false };
+      if (!this.gatherTool(d)) return { text: `${skill} · needs ${d.tool ? `a ${item(d.tool).name.toLowerCase()}` : d.skill === 'woodcutting' ? 'a hatchet' : 'a pickaxe'}`, ok: false };
+      return { text: d.skill ? `${skill} ✓` : `${skill} ✓`, ok: true };
+    }
+    if (t.kind === 'enemy') {
+      const e = this.enemies.find((x) => `enemy:${x.id}` === t.key);
+      if (!e) return null;
+      const diff = e.def.level - this.stats.combatLevel;
+      return { text: `Level ${e.def.level}${diff > 10 ? ' · very dangerous' : diff > 3 ? ' · dangerous' : ''}`, ok: diff <= 3 };
+    }
+    return null;
+  }
+
   enemyName(e: Enemy) {
     const a = e.elite ? ELITE_AFFIXES.find((x) => x.id === e.elite) : null;
     return a ? `${a.name} ${e.def.name.toLowerCase()}` : e.def.name;
@@ -363,7 +382,7 @@ export class Game {
   }
 
   /** Interaction range for a node (ship spots are fished from deck; kelp and fish lie just offshore). */
-  nodeReach(d: (typeof NODES)[string]) { return d.fromShip ? 7 : d.reach ?? (d.skill === 'fishing' ? 3.2 : 1.9); }
+  nodeReach(d: (typeof NODES)[string]) { return d.fromShip ? 7 : d.reach ?? (d.skill === 'fishing' ? 3.4 : 1.9); }
 
   private tickGather(a: Extract<NonNullable<Action>, { type: 'gather' }>) {
     const n = this.nodes.find((x) => x.uid === a.node)!;
