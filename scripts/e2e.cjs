@@ -21,6 +21,12 @@ const sizes = [
     await p.goto(URL);
     await p.waitForFunction(() => window.__reef, null, { timeout: 120000 });
     await p.evaluate(() => { try { localStorage.clear(); } catch {} });
+    // first visit: gate -> credits (skipped by a tap) -> title menu
+    await p.click('#begin');
+    await p.waitForTimeout(1500);
+    const creditsRan = await p.evaluate(() => !!document.querySelector('#intro') && !!window.__reef.renderer.cinematic);
+    await p.click('#intro');
+    await p.waitForSelector('#cont', { timeout: 5000 });
     await p.click('#cont');
     await p.waitForTimeout(1500);
     const before = await p.evaluate(() => ({ x: window.__reef.game.p.x, z: window.__reef.game.p.z }));
@@ -98,6 +104,8 @@ const sizes = [
       if (errs.length) failed++;
       result.errors = errs.slice(0, 5);
     }
+    result.credits = creditsRan;
+    if (!creditsRan) failed++;
     console.log(JSON.stringify(result));
     await p.close();
   }

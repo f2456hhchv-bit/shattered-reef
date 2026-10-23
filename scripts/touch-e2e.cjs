@@ -20,7 +20,8 @@ const { chromium } = require(path.join(require('child_process').execSync('npm ro
   await p.goto(process.env.URL || 'http://localhost:5173/');
   await p.waitForFunction(() => window.__reef);
   await p.evaluate(() => { try { localStorage.clear(); } catch {} });
-  await p.click('#cont'); await waitGame(0.5);
+  await p.click('#begin'); await p.waitForTimeout(800); await p.click('#intro');
+  await p.waitForSelector('#cont'); await p.click('#cont'); await waitGame(0.5);
   const res = {};
 
   // 1) tap a tree

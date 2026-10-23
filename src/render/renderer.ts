@@ -92,6 +92,11 @@ export class GameRenderer {
 
   // camera
   camTarget = new THREE.Vector3();
+  /** Credits / title backdrop: while set, the camera flies this pose instead of following the player. */
+  cinematic: { pos: THREE.Vector3; look: THREE.Vector3 } | null = null;
+  private release: { pos: THREE.Vector3; look: THREE.Vector3; t: number; dur: number } | null = null;
+  private camPos = new THREE.Vector3();
+  private camLook = new THREE.Vector3();
   zoom = 1;
   private shake = 0;
   camDist = 30;
@@ -761,13 +766,32 @@ export class GameRenderer {
     const c = this.camTarget;
     // zooming in also lowers the camera (RuneScape-style), so close up you see faces, not hat brims
     const pitch = this.pitch - THREE.MathUtils.degToRad(20) * THREE.MathUtils.clamp((1 - this.zoom) / (1 - 0.42), 0, 1);
-    this.camera.position.set(c.x + sx, c.y + Math.sin(pitch) * this.camDist, c.z + sz + Math.cos(pitch) * this.camDist);
-    this.camera.lookAt(c.x + sx, c.y, c.z + sz);
-    this.sun.position.copy(c).addScaledVector(this.sunDir, 70);
-    this.sun.target.position.copy(c);
+    const pos = this.camPos.set(c.x + sx, c.y + Math.sin(pitch) * this.camDist, c.z + sz + Math.cos(pitch) * this.camDist);
+    const look = this.camLook.set(c.x + sx, c.y, c.z + sz);
+    if (this.cinematic) {
+      pos.copy(this.cinematic.pos);
+      look.copy(this.cinematic.look);
+      pos.y = Math.max(pos.y, g.world.standY(pos.x, pos.z) + 3, 2); // never fly through a hill
+    } else if (this.release) {
+      // ease from the last cinematic pose down onto the player
+      const r = this.release;
+      r.t += dt;
+      const k = THREE.MathUtils.smootherstep(r.t / r.dur, 0, 1);
+      pos.lerpVectors(r.pos, pos, k);
+      look.lerpVectors(r.look, look, k);
+      if (r.t >= r.dur) this.release = null;
+    }
+    this.camera.position.copy(pos);
+    this.camera.lookAt(look);
+    this.sun.position.copy(look).addScaledVector(this.sunDir, 70);
+    this.sun.target.position.copy(look);
+    // aerial shots: cap the view distance and drop the grass (sub-pixel from up there) to keep the frame cost near gameplay
+    const aerial = !!this.cinematic || !!this.release;
+    const dist = aerial ? Math.min(pos.distanceTo(look), 62) : pos.distanceTo(look);
+    if (this.grass) this.grass.visible = !aerial && this.quality === 'high';
     const fog = this.scene.fog as THREE.Fog;
-    fog.near = this.camDist * LOOK.fog.near;
-    fog.far = this.camDist * LOOK.fog.far;
+    fog.near = dist * LOOK.fog.near;
+    fog.far = dist * LOOK.fog.far;
     // nothing past full fog is visible, so let the frustum cull it
     const far = Math.ceil(fog.far + 15);
     if (this.camera.far !== far) { this.camera.far = far; this.camera.updateProjectionMatrix(); }
@@ -775,7 +799,14 @@ export class GameRenderer {
     this.water.uniforms.uFogFar.value = fog.far;
   }
 
-  snapCamera() { this.updateCamera(0); }
+  snapCamera() { this.release = null; this.updateCamera(0); }
+
+  /** Hand the camera back to the player, flying down from the cinematic pose over `dur` seconds. */
+  releaseCinematic(dur: number) {
+    if (!this.cinematic) return;
+    this.release = { pos: this.cinematic.pos.clone(), look: this.cinematic.look.clone(), t: 0, dur };
+    this.cinematic = null;
+  }
 
   // ------------------------------------------------------------------ picking helpers
   private v3 = new THREE.Vector3();
