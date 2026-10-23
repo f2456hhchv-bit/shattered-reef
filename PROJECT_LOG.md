@@ -41,6 +41,8 @@ Reflects the actual repository, not the roadmap.
 |---|---|---|
 | World + collision + A* pathing | `src/game/world/` | 300 m world: 0.5 m walk grid, 1 m sail grid, hull-clearance sea grid; one A* (reused buffers) for walking and for ship routes round headlands |
 | Content tiers (data) | `data/items.ts`, `data/content.ts` | generated from tier tables: 6 metals, 7 woods, 9 fish, 7 ores, 7 spells, 13 enemies (lvl 2–80). Unlock lists are generated too. `content.test.ts` enforces: no missing items, no level gap > 15 in any skill, everything placed and reachable |
+| Living island | `layout.ts`, `render/instanced.ts` | every ordinary tree (saltpine/sea-oak) and boulder (copper/tin + rare geode) is usable; bramble bushes, kelp beds, ~30 wandering dig spots (spade, treasure table). Drawn as instanced meshes in 70 m buckets; stumps/rubble/picked bushes swap per instance |
+| Strongbox (bank) | `sim/game.ts` deposit/withdraw, save v3 | quay + Ironcrag camp; tools stay in the pack |
 | Island layout (data) | `src/game/world/island.ts`, `layout.ts` | radius ~80 m. Zones: Bellwether Quay, Crab Strand, Saltpine Wood, oak grove, Mirewater Fen + lagoon, Heartwood, Copperback Hills, Ironcrag peak, Broken Ring (walled arena), Brigand Camp, Smugglers' Cove headland, Wreckers' Point; 3 offshore shoals, ~20 sea stacks. every zone has content; stations exist in several places (village, Ironcrag forge, fen + cove fires) |
 | Skills (12) | `src/game/data/content.ts` | Attack, Strength, Defence, Hitpoints, Ranged, Magic, Woodcutting, Mining, Fishing, Smithing, Gunsmithing, Cooking; unlock tables in UI |
 | Combat maths | `sim/gear.ts` | OSRS hit chance, max hit, combat level; stances; specials per style (Whirl, Scatter shot, Squall) |
@@ -80,7 +82,9 @@ Reflects the actual repository, not the roadmap.
 - Buildings and the Guardian are still blocky; next art target after characters/UI.
 - One island. Terrain (64 chunks of 40 m) and grass (40 m buckets) are frustum-culled; camera far plane follows the fog. Not streamed: the whole 300 m world is built at load (~0.4 s for the simulation in Node).
 - Performance measured only in software rendering; big-island frame rate on a real phone unmeasured.
-- Frame cost after content (software renderer, phone viewport, shadows on): 150–240 draw calls, 280–340k triangles (was ~150 / ~200k). Not yet measured on a real phone.
+- Frame cost (software renderer, phone viewport, shadows on): 180–270 draw calls, 300–380k triangles (art pass 1 was ~150 / ~200k). Not yet measured on a real phone; battery saver drops shadows and grass.
+- Gathering pace: 99 takes 200–250 h of pure gathering (RuneScape-like; brief target ~400 h incl. travel). Early levels are RuneScape-quick, faster than the brief's provisional 4 h to level 30.
+- Picking and digging give no XP yet (future Foraging/Archaeology only with real loops).
 - Items 60+ have no new gear tiers yet (combat gear tops out at level 50–60 crafted, relic drops above); new skills (Agility, Thieving, ...) not started.
 
 ## Next

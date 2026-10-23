@@ -6,7 +6,7 @@ export type SkillId =
   | 'smithing' | 'gunsmithing' | 'cooking';
 export type CombatStyle = 'melee' | 'ranged' | 'magic';
 export type Slot = 'weapon' | 'ammo' | 'head' | 'body' | 'ring';
-export type IconShape = 'log' | 'ore' | 'bar' | 'fish' | 'meat' | 'coins' | 'bread' | 'hatchet' | 'pickaxe' | 'rod' | 'cutlass' | 'helm' | 'cap' | 'coat' | 'plate' | 'ring' | 'bell' | 'tooth' | 'shell' | 'burnt' | 'pistol' | 'shot' | 'staff' | 'charm' | 'harpoon' | 'pot' | 'lobster';
+export type IconShape = 'log' | 'ore' | 'bar' | 'fish' | 'meat' | 'coins' | 'bread' | 'hatchet' | 'pickaxe' | 'rod' | 'cutlass' | 'helm' | 'cap' | 'coat' | 'plate' | 'ring' | 'bell' | 'tooth' | 'shell' | 'burnt' | 'pistol' | 'shot' | 'staff' | 'charm' | 'harpoon' | 'pot' | 'lobster' | 'berries' | 'kelp' | 'geode' | 'spade' | 'parcel';
 
 /** RuneScape-style equipment bonuses. Accuracy applies to the weapon's own style. */
 export interface Bonuses {
@@ -38,6 +38,7 @@ export interface ItemDef {
     affixPool: string[];
   };
   quest?: boolean;
+  opens?: string; // using it rolls this loot table (geodes)
 }
 
 const I = (d: ItemDef) => d;
@@ -130,6 +131,13 @@ function tierItems(): ItemDef[] {
   const STAFFS: [string, string, number, number, number, string][] = [
     ['staff_coral', 'Coral staff', 20, 14, 5, '#e07a6a'], ['staff_storm', 'Stormsilver staff', 40, 22, 10, '#86b6dc'], ['staff_tide', 'Tidecore staff', 60, 32, 15, '#3cc6c4'],
   ];
+  // the living island: foraging, treasure
+  out.push(I({ id: 'berries', name: 'Bramble berries', desc: 'Heals 2. Sharp, sweet, slightly squashed.', icon: { shape: 'berries', color: '#7a2a5a', accent: '#3e7a3a' }, stackable: true, value: 2, heal: 2 }));
+  out.push(I({ id: 'kelp', name: 'Sea kelp', desc: 'Wrap fish in it before cooking: it keeps them moist and doubles the goodness.', icon: { shape: 'kelp', color: '#4a6a2a', accent: '#8a9a3a' }, stackable: true, value: 3 }));
+  out.push(I({ id: 'geode', name: 'Geode', desc: 'A plain stone that rattles. Use it to crack it open.', icon: { shape: 'geode', color: '#8a8478', accent: '#9fe8ff' }, stackable: true, value: 20, opens: 'geode' }));
+  out.push(I({ id: 'spade', name: 'Spade', desc: 'For disturbed sand. Somebody always buries something.', icon: { shape: 'spade', color: '#9aa0a4' }, stackable: false, value: 12 }));
+  out.push(I({ id: 'parcel_sprat', name: 'Kelp-wrapped sprat', desc: 'Heals 6.', icon: { shape: 'parcel', color: '#4a6a2a', accent: '#c9934f' }, stackable: true, value: 14, heal: 6 }));
+  out.push(I({ id: 'parcel_trout', name: 'Kelp-wrapped trout', desc: 'Heals 11.', icon: { shape: 'parcel', color: '#3e5a26', accent: '#b8834a' }, stackable: true, value: 30, heal: 11 }));
   for (const [id, name, req, acc, dmg, col] of STAFFS) out.push(I({ id, name, desc: `Casts your chosen spell. +${dmg}% spell damage.`, icon: { shape: 'staff', color: '#6a4a30', accent: col }, stackable: false, value: req * 12,
     equip: { slot: 'weapon', reqs: { magic: req }, style: 'magic', speed: 2.4, range: 9 + Math.floor(req / 30), bonus: { acc, magicDmg: dmg, defMagic: 4 + req / 5 }, affixPool: ['dmg_pct', 'crit', 'elite_dmg', 'accuracy', 'leech'] } }));
   return out;

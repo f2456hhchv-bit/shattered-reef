@@ -137,6 +137,8 @@ export class Game {
     const fresh = defaultSave(this.layout.respawn, this.layout.mooring);
     this.s = opts.save ?? fresh;
     this.nodes = this.layout.nodes.map((n) => ({ ...n, depletedUntil: 0 }));
+    // only a few dig spots are disturbed at any time; the rest surface later
+    for (const n of this.nodes) if (NODES[n.def].verb === 'Dig' && this.rnd() < 0.75) n.depletedUntil = this.rnd() * NODES[n.def].respawn;
     for (const sp of this.layout.spawns) this.spawnEnemy(ENEMIES[sp.enemy], sp.x, sp.z, false);
     this.recalc();
     if (!this.s.player.onShip && !this.world.walkable(this.s.player.x, this.s.player.z)) {
@@ -208,7 +210,7 @@ export class Game {
       const d = NODES[n.def];
       if (n.depletedUntil > this.time) continue;
       if (!!d.fromShip !== onShip) continue;
-      out.push({ key: `node:${n.uid}`, kind: 'node', x: n.x, z: n.z, range: d.fromShip ? 7 : d.skill === 'fishing' ? 3.2 : 1.9, label: d.name, verb: d.verb });
+      out.push({ key: `node:${n.uid}`, kind: 'node', x: n.x, z: n.z, range: this.nodeReach(d), label: d.name, verb: d.verb });
     }
     if (!onShip) {
       for (const n of this.layout.npcs) out.push({ key: `npc:${n.id}`, kind: 'npc', x: n.x, z: n.z, range: 2.2, label: NPCS[n.id].name, verb: NPCS[n.id].shop ? 'Trade' : 'Talk' });
@@ -330,16 +332,23 @@ export class Game {
   }
 
   // ------------------------------------------------------------------ gathering
+  /** The tool a node needs: skill tools by power; skill-less nodes (picking, digging) by specific item, or bare hands. */
+  private gatherTool(d: (typeof NODES)[string]): { id: string; power: number } | null {
+    if (d.skill) return this.bestTool(d.skill, d.tool);
+    if (!d.tool) return { id: 'hands', power: 0 };
+    return count(this.p.inv, d.tool) > 0 ? { id: d.tool, power: 0 } : null;
+  }
+
   private startGather(uid: string) {
     const n = this.nodes.find((x) => x.uid === uid);
     if (!n) return;
     const d = NODES[n.def];
-    if (this.level(d.skill) < d.level) { this.msg(`You need ${d.skill} level ${d.level} for ${d.name.toLowerCase()}.`, 'warn'); return; }
-    const tool = this.bestTool(d.skill, d.tool);
-    if (!tool) { this.msg(`You need ${d.tool ? `a ${item(d.tool).name.toLowerCase()}` : d.skill === 'woodcutting' ? 'a hatchet' : 'a pickaxe'}.`, 'warn'); return; }
-    if (!canAdd(this.p.inv, d.item)) { this.msg('Your pack is full.', 'warn'); return; }
+    if (d.skill && this.level(d.skill) < d.level) { this.msg(`You need ${d.skill} level ${d.level} for ${d.name.toLowerCase()}.`, 'warn'); return; }
+    const tool = this.gatherTool(d);
+    if (!tool) { this.msg(`You need ${d.tool ? `a ${item(d.tool).name.toLowerCase()}${d.tool === 'spade' ? ' (Marta sells them)' : ''}` : d.skill === 'woodcutting' ? 'a hatchet' : 'a pickaxe'}.`, 'warn'); return; }
+    if (!d.loot && !canAdd(this.p.inv, d.item)) { this.msg('Your pack is full.', 'warn'); return; }
     this.action = { type: 'gather', node: uid, next: this.time + DT_GATHER * 0.6 };
-    this.msg(d.skill === 'fishing' ? 'You cast your line...' : `You swing at the ${d.name.toLowerCase()}...`);
+    this.msg(d.verb === 'Dig' ? 'You start digging...' : d.verb === 'Pick' || d.verb === 'Gather' ? `You reach into the ${d.name.toLowerCase()}...` : d.skill === 'fishing' ? 'You cast your line...' : `You swing at the ${d.name.toLowerCase()}...`);
   }
 
   /**
@@ -347,33 +356,50 @@ export class Game {
    * scaled by how the tool compares to the node's tier, then gear bonuses. Capped so it always feels earned.
    */
   gatherChance(d: (typeof NODES)[string], toolPower: number) {
+    if (!d.skill) return d.rate;
     const lvl = this.level(d.skill);
     const toolK = d.skill === 'fishing' ? 1 : Math.min(1.6, Math.max(0.45, 1 + 0.15 * (toolPower - Math.min(6, d.tier + 1))));
     return Math.min(0.85, d.rate * (1 + Math.max(0, lvl - d.level) * 0.012) * toolK * (1 + this.stats.gather));
   }
 
+  /** Interaction range for a node (ship spots are fished from deck; kelp and fish lie just offshore). */
+  nodeReach(d: (typeof NODES)[string]) { return d.fromShip ? 7 : d.reach ?? (d.skill === 'fishing' ? 3.2 : 1.9); }
+
   private tickGather(a: Extract<NonNullable<Action>, { type: 'gather' }>) {
     const n = this.nodes.find((x) => x.uid === a.node)!;
     const d = NODES[n.def];
-    const range = d.fromShip ? 7.5 : d.skill === 'fishing' ? 3.6 : 2.4;
-    if (n.depletedUntil > this.time || Math.hypot(n.x - this.p.x, n.z - this.p.z) > range) { this.stopAction(); return; }
+    if (n.depletedUntil > this.time || Math.hypot(n.x - this.p.x, n.z - this.p.z) > this.nodeReach(d) + 0.5) { this.stopAction(); return; }
     this.facing = Math.atan2(n.z - this.p.z, n.x - this.p.x);
     if (this.time < a.next) return;
-    const tool = this.bestTool(d.skill, d.tool);
+    const tool = this.gatherTool(d);
     if (!tool) { this.stopAction(); return; }
-    a.next = this.time + DT_GATHER;
-    const chance = this.gatherChance(d, tool.power);
-    const ok = this.rnd() < chance;
-    this.emit({ type: 'gatherFx', kind: d.skill === 'woodcutting' ? 'wood' : d.skill === 'mining' ? 'stone' : 'water', x: n.x, z: n.z, success: ok });
+    a.next = this.time + (d.skill ? DT_GATHER : DT_GATHER * 0.6);
+    const ok = this.rnd() < this.gatherChance(d, tool.power);
+    const fx = d.skill === 'woodcutting' || d.verb === 'Pick' ? 'wood' : d.skill === 'mining' || d.verb === 'Dig' ? 'stone' : 'water';
+    this.emit({ type: 'gatherFx', kind: fx, x: n.x, z: n.z, success: ok });
     if (!ok) return;
-    if (!canAdd(this.p.inv, d.item)) { this.msg('Your pack is full.', 'warn'); this.stopAction(); return; }
-    this.give(d.item, 1);
-    this.addXp(d.skill, d.xp);
+    if (d.loot) {
+      this.rollLoot(LOOT[d.loot], n.x, n.z);
+      this.msg('Your spade strikes something! Treasure spills out of the sand.', 'loot');
+    } else {
+      const got = d.drops ? this.weighted(d.drops) : d.item;
+      if (!canAdd(this.p.inv, got)) { this.msg('Your pack is full.', 'warn'); this.stopAction(); return; }
+      this.give(got, 1);
+      if (d.bonus && this.rnd() < d.bonus.chance) { this.give(d.bonus.item, 1); this.msg(`You find a ${item(d.bonus.item).name.toLowerCase()}!`, 'loot'); }
+    }
+    if (d.skill) this.addXp(d.skill, d.xp);
     if (d.depleteChance > 0 && this.rnd() < d.depleteChance) {
-      n.depletedUntil = this.time + d.respawn;
+      // dig spots wander: they come back after a random while (the sand is disturbed somewhere else meanwhile)
+      n.depletedUntil = this.time + d.respawn * (d.verb === 'Dig' ? 0.5 + this.rnd() : 1);
       this.rev++;
       this.stopAction();
     }
+  }
+
+  private weighted(list: { item: string; w: number }[]) {
+    let r = this.rnd() * list.reduce((s, x) => s + x.w, 0);
+    for (const x of list) { r -= x.w; if (r <= 0) return x.item; }
+    return list[list.length - 1].item;
   }
 
   // ------------------------------------------------------------------ crafting
@@ -447,6 +473,13 @@ export class Game {
     const d = item(st.id);
     if (d.heal) return this.eat(i);
     if (d.equip) return this.equip(i);
+    if (d.opens) {
+      remove(this.p.inv, st.id, 1);
+      this.rollLoot(LOOT[d.opens], this.p.x, this.p.z);
+      this.msg(`You crack the ${d.name.toLowerCase()} open.`, 'loot');
+      this.rev++;
+      return;
+    }
     this.msg(d.desc);
   }
 

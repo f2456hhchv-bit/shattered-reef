@@ -376,7 +376,7 @@ describe('combat skills (RuneScape model)', () => {
     g.p.equip.weapon = { id: 'pistol_flintlock', qty: 1 };
     g.p.equip.ammo = { id: 'shot_bronze', qty: 30 };
     g.recalc();
-    const crab = g.enemies.find((e) => e.def.id === 'reef_crab')!;
+    const crab = g.enemies.find((e) => e.def.id === 'reef_crab' && !e.elite)!; // elites have triple health
     goNear(g, crab.x + 5, crab.z);
     g.interact(`enemy:${crab.id}`);
     run(g, 60, () => !crab.alive);
@@ -389,7 +389,7 @@ describe('combat skills (RuneScape model)', () => {
     m.p.equip.weapon = { id: 'staff_driftwood', qty: 1 };
     m.give('charm_tide', 40);
     m.recalc();
-    const c2 = m.enemies.find((e) => e.def.id === 'reef_crab')!;
+    const c2 = m.enemies.find((e) => e.def.id === 'reef_crab' && !e.elite)!;
     goNear(m, c2.x + 5, c2.z);
     m.interact(`enemy:${c2.id}`);
     run(m, 60, () => !c2.alive);

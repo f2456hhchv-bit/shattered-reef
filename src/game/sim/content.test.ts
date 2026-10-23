@@ -40,8 +40,8 @@ describe('content data', () => {
 
   it('every item has a use: an input, gear, food, a tool, a quest item, or a declared trade good', () => {
     const TRADE = new Set(['coins', 'shell_fragment', 'burnt_food', 'charm_tide']); // charms are burnt by spells
-    const used = new Set(RECIPES.flatMap((r) => r.inputs.map((i) => i.id)));
-    const idle = Object.values(ITEMS).filter((d) => !used.has(d.id) && !d.equip && !d.heal && !d.tool && !d.quest && !TRADE.has(d.id)).map((d) => d.id);
+    const used = new Set([...RECIPES.flatMap((r) => r.inputs.map((i) => i.id)), ...Object.values(NODES).flatMap((n) => (n.tool ? [n.tool] : []))]);
+    const idle = Object.values(ITEMS).filter((d) => !used.has(d.id) && !d.equip && !d.heal && !d.tool && !d.quest && !d.opens && !TRADE.has(d.id)).map((d) => d.id);
     expect(idle).toEqual([]);
   });
 
@@ -121,7 +121,7 @@ describe('content placement', () => {
     for (const n of g.layout.nodes) {
       const d = NODES[n.def];
       if (d.fromShip) { if (!g.world.sailable(n.x, n.z)) bad.push(n.def); continue; }
-      const reach = d.skill === 'fishing' ? 2.9 : 1.6;
+      const reach = g.nodeReach(d) - 0.3;
       if (!g.world.nearestWalkable(n.x, n.z, reach)) bad.push(`${n.def}@${n.x.toFixed(0)},${n.z.toFixed(0)}`);
     }
     expect(bad).toEqual([]);
@@ -202,5 +202,66 @@ describe('end-game content works end to end', () => {
     goTo(g, n.x, n.z);
     g.interact(`node:${n.uid}`);
     expect(g.action).toBeNull(); // has a rod, not a pot
+  });
+});
+
+describe('the living island', () => {
+  const near = (g: Game, x: number, z: number) => { const q = g.world.nearestWalkable(x, z, 3)!; g.p.x = q[0]; g.p.z = q[1]; };
+  const use = (g: Game, def: string, secs = 90) => {
+    const n = g.nodes.find((x) => x.def === def && x.depletedUntil <= g.time && g.layout.nodes.find((l) => l.uid === x.uid)?.scenery !== false)!;
+    for (const e of g.enemies) if (Math.hypot(e.x - n.x, e.z - n.z) < 20) { e.alive = false; e.respawnAt = Infinity; }
+    near(g, n.x, n.z);
+    g.interact(`node:${n.uid}`);
+    return { n, done: (until: () => boolean) => run(g, secs, until) };
+  };
+  it('there are hundreds of usable scenery trees and boulders, plus bushes, kelp and dig spots', () => {
+    const c = (def: string) => base.layout.nodes.filter((n) => n.def === def && n.scenery).length;
+    expect(c('tree_pine') + c('tree_oak')).toBeGreaterThan(150);
+    expect(c('rock_boulder')).toBeGreaterThan(20);
+    expect(c('bush_berry')).toBeGreaterThan(20);
+    expect(c('kelp_bed')).toBeGreaterThan(10);
+    expect(base.layout.nodes.filter((n) => n.def === 'dig_spot').length).toBeGreaterThan(20);
+  });
+  it('fells an ordinary scenery pine and mines an ordinary boulder', () => {
+    const g = fresh();
+    const pine = g.layout.nodes.find((n) => n.def === 'tree_pine' && n.scenery)!;
+    for (const e of g.enemies) if (Math.hypot(e.x - pine.x, e.z - pine.z) < 20) { e.alive = false; e.respawnAt = Infinity; } // it grows in the Fen
+    near(g, pine.x, pine.z); g.interact(`node:${pine.uid}`);
+    expect(run(g, 120, () => count(g.p.inv, 'logs_pine') >= 1)).toBe(true);
+    const b = use(g, 'rock_boulder');
+    b.done(() => count(g.p.inv, 'ore_copper') + count(g.p.inv, 'ore_tin') >= 1);
+    expect(count(g.p.inv, 'ore_copper') + count(g.p.inv, 'ore_tin')).toBeGreaterThanOrEqual(1);
+  });
+  it('picks berries bare-handed; kelp-wrapped sprat cooks into better food', () => {
+    const g = fresh();
+    g.p.inv = g.p.inv.map(() => null); // no tools at all
+    use(g, 'bush_berry').done(() => count(g.p.inv, 'berries') >= 1);
+    expect(count(g.p.inv, 'berries')).toBeGreaterThanOrEqual(1);
+    for (let k = 0; k < 40; k++) g.p.xp.cooking = 2000; // cooking 15+
+    g.recalc();
+    g.give('kelp', 1); g.give('fish_sprat_raw', 1);
+    const fire = g.layout.stations.find((s) => s.id === 'fire')!;
+    near(g, fire.x + 1.4, fire.z + 1.2);
+    g.craft('cook_parcel_sprat', 1);
+    run(g, 10, () => count(g.p.inv, 'parcel_sprat') + count(g.p.inv, 'burnt_food') >= 1);
+    expect(count(g.p.inv, 'parcel_sprat') + count(g.p.inv, 'burnt_food')).toBe(1);
+  });
+  it('digging needs a spade, and turns up treasure; geodes crack open', () => {
+    const g = fresh();
+    const spot = g.nodes.find((n) => n.def === 'dig_spot')!;
+    spot.depletedUntil = 0;
+    for (const e of g.enemies) if (Math.hypot(e.x - spot.x, e.z - spot.z) < 25) { e.alive = false; e.respawnAt = Infinity; }
+    near(g, spot.x, spot.z);
+    g.interact(`node:${spot.uid}`);
+    expect(g.action).toBeNull(); // no spade yet
+    g.give('spade', 1);
+    g.interact(`node:${spot.uid}`);
+    expect(run(g, 60, () => g.drops.length > 0)).toBe(true);
+    expect(spot.depletedUntil).toBeGreaterThan(g.time); // the sand settles; it surfaces elsewhere later
+    const before = g.drops.length;
+    g.give('geode', 1);
+    g.useSlot(g.p.inv.findIndex((s) => s?.id === 'geode'));
+    expect(count(g.p.inv, 'geode')).toBe(0);
+    expect(g.drops.length).toBeGreaterThan(before);
   });
 });

@@ -109,3 +109,17 @@ export function bakeStatic(root: THREE.Object3D, chunk = 40): THREE.Group {
   }
   return out;
 }
+
+/** One vertex-coloured geometry from a whole model (its own root transform ignored): for instancing. */
+export function mergeColoured(root: THREE.Object3D): THREE.BufferGeometry {
+  root.position.set(0, 0, 0); root.rotation.set(0, 0, 0); root.scale.set(1, 1, 1);
+  root.updateMatrixWorld(true);
+  const parts: THREE.BufferGeometry[] = [];
+  root.traverse((o) => {
+    const m = o as THREE.Mesh;
+    if (!m.isMesh || Array.isArray(m.material)) return;
+    const mt = m.material as THREE.MeshStandardMaterial;
+    parts.push(mt.vertexColors ? vertexColoured(m.geometry, m.matrixWorld) : prep(m.geometry, m.matrixWorld, mt.emissiveIntensity ? mt.color.clone().lerp(mt.emissive, 0.35) : mt.color));
+  });
+  return mergeGeometries(parts);
+}

@@ -22,7 +22,7 @@ export const COMBAT_SKILLS: SkillId[] = ['attack', 'strength', 'defence', 'hitpo
 export interface NodeDef {
   id: string;
   name: string;
-  skill: SkillId;
+  skill?: SkillId; // none for picking and digging: anyone can, nobody levels it (yet)
   level: number;
   xp: number;
   item: string;
@@ -33,7 +33,11 @@ export interface NodeDef {
   respawn: number; // seconds
   verb: string;
   fromShip?: boolean; // only reachable by boat
-  tool?: string; // fishing: the specific tool item this spot needs
+  tool?: string; // the specific tool item this node needs (fishing gear, spade)
+  drops?: { item: string; w: number }[]; // weighted alternatives to `item` (boulders: copper or tin)
+  bonus?: { item: string; chance: number }; // rare extra per success (geodes)
+  loot?: string; // a loot table rolled on success instead of `item` (treasure)
+  reach?: number; // interaction range override (kelp grows just offshore)
 }
 
 // XP per action follows RuneScape's values (logs 25 ... redwood 380, copper 17.5 ... runite 125, shrimp 10 ... anglerfish 120).
@@ -49,14 +53,20 @@ const spot = (t: number, level: number, xp: number, rate: number, tool: string, 
   const f = FISH[t];
   return { id: `spot_${f.key}`, name: `${f.name[0].toUpperCase()}${f.name.slice(1)} ${tool === 'lobster_pot' ? 'pots' : 'shoal'}`, skill: 'fishing', level, xp, item: `fish_${f.key}_raw`, difficulty: 0.45 + 0.06 * t, tier: t, rate, depleteChance: 0, respawn: 0, verb: tool === 'lobster_pot' ? 'Set pot' : tool === 'harpoon' ? 'Harpoon' : 'Fish', tool, fromShip: fromShip || undefined };
 };
-export const NODES: Record<string, NodeDef> = Object.fromEntries([
+export const NODES: Record<string, NodeDef> = Object.fromEntries(([
   tree(0, 1, 25, 0.24, 14), tree(1, 15, 37.5, 0.25, 25), tree(2, 30, 67.5, 0.25, 30), tree(3, 45, 100, 0.22, 40), tree(4, 60, 175, 0.15, 60), tree(5, 75, 250, 0.133, 90), tree(6, 90, 380, 0.105, 120),
   rock('rock_copper', 'Copper rock', 'ore_copper', 0, 1, 17.5, 0.3, 6), rock('rock_tin', 'Tin rock', 'ore_tin', 0, 1, 17.5, 0.3, 6), rock('rock_iron', 'Iron rock', 'ore_iron', 1, 15, 35, 0.29, 10),
   rock('rock_coal', 'Coal seam', 'ore_coal', 2, 30, 50, 0.29, 25), rock('rock_gold', 'Gold vein', 'ore_gold', 3, 40, 65, 0.29, 40), rock('rock_storm', 'Stormsilver vein', 'ore_storm', 4, 55, 80, 0.29, 70),
   rock('rock_abyss', 'Abyssite vein', 'ore_abyss', 5, 70, 95, 0.29, 120), rock('rock_tide', 'Tidecore vein', 'ore_tide', 6, 85, 125, 0.27, 240),
   spot(0, 1, 10, 0.4, 'fishing_rod'), spot(1, 8, 35, 0.29, 'fishing_rod', true), spot(2, 20, 50, 0.27, 'fishing_rod'), spot(3, 30, 70, 0.25, 'fishing_rod'), spot(4, 40, 90, 0.22, 'lobster_pot'),
   spot(5, 50, 100, 0.23, 'harpoon', true), spot(6, 62, 120, 0.22, 'harpoon'), spot(7, 76, 110, 0.27, 'harpoon', true), spot(8, 85, 120, 0.28, 'harpoon', true),
-].map((d) => [d.id, d]));
+  // the living island: every boulder can be mined, bushes and kelp picked, disturbed sand dug
+  { id: 'rock_boulder', name: 'Boulder', skill: 'mining', level: 1, xp: 10, item: 'ore_copper', drops: [{ item: 'ore_copper', w: 1 }, { item: 'ore_tin', w: 1 }], bonus: { item: 'geode', chance: 0.04 },
+    difficulty: 0.45, tier: 0, rate: 0.3, depleteChance: 0.25, respawn: 45, verb: 'Mine' },
+  { id: 'bush_berry', name: 'Bramble bush', level: 1, xp: 0, item: 'berries', difficulty: 0, tier: 0, rate: 0.9, depleteChance: 0.3, respawn: 60, verb: 'Pick' },
+  { id: 'kelp_bed', name: 'Kelp bed', level: 1, xp: 0, item: 'kelp', difficulty: 0, tier: 0, rate: 0.8, depleteChance: 0.3, respawn: 50, verb: 'Gather', reach: 3.2 },
+  { id: 'dig_spot', name: 'Disturbed sand', level: 1, xp: 0, item: 'coins', loot: 'treasure', tool: 'spade', difficulty: 0, tier: 0, rate: 0.45, depleteChance: 1, respawn: 420, verb: 'Dig' },
+] as NodeDef[]).map((d) => [d.id, d]));
 
 export type Station = 'furnace' | 'anvil' | 'fire' | 'bench';
 
@@ -111,6 +121,8 @@ function buildRecipes(): Recipe[] {
   // cooking: RuneScape-like levels and XP; burning stops ~20 levels above the requirement
   const COOK: [number, number, number][] = [[1, 30, 20], [10, 60, 34], [15, 70, 40], [25, 90, 50], [40, 120, 64], [45, 140, 70], [55, 150, 80], [70, 210, 92], [84, 230, 99]];
   FISH.forEach((f, t) => out.push({ id: `cook_${f.key}`, station: 'fire', skill: 'cooking', level: COOK[t][0], xp: COOK[t][1], inputs: [{ id: `fish_${f.key}_raw`, qty: 1 }], output: { id: `fish_${f.key}`, qty: 1 }, burn: { item: 'burnt_food', stopLevel: COOK[t][2] } }));
+  out.push({ id: 'cook_parcel_sprat', station: 'fire', skill: 'cooking', level: 5, xp: 40, inputs: [{ id: 'fish_sprat_raw', qty: 1 }, { id: 'kelp', qty: 1 }], output: { id: 'parcel_sprat', qty: 1 }, burn: { item: 'burnt_food', stopLevel: 25 } });
+  out.push({ id: 'cook_parcel_trout', station: 'fire', skill: 'cooking', level: 22, xp: 85, inputs: [{ id: 'fish_trout_raw', qty: 1 }, { id: 'kelp', qty: 1 }], output: { id: 'parcel_trout', qty: 1 }, burn: { item: 'burnt_food', stopLevel: 46 } });
   out.push({ id: 'cook_crab', station: 'fire', skill: 'cooking', level: 4, xp: 35, inputs: [{ id: 'crab_meat_raw', qty: 1 }], output: { id: 'crab_meat', qty: 1 }, burn: { item: 'burnt_food', stopLevel: 26 } });
   return out;
 }
@@ -120,7 +132,7 @@ export const RECIPES: Recipe[] = buildRecipes();
 function buildUnlocks(): Record<SkillId, { level: number; text: string }[]> {
   const u: Record<string, { level: number; text: string }[]> = {};
   const put = (skill: string, level: number, text: string) => (u[skill] ??= []).push({ level, text });
-  for (const n of Object.values(NODES)) put(n.skill, n.level, `${n.name}${n.fromShip ? ' (from your ship)' : ''}`);
+  for (const n of Object.values(NODES)) if (n.skill) put(n.skill, n.level, `${n.name}${n.fromShip ? ' (from your ship)' : ''}`);
   for (const r of RECIPES) put(r.skill, r.level, ITEMS[r.output.id].name);
   for (const it of Object.values(ITEMS)) {
     if (it.tool && it.tool.level > 1) put(it.tool.skill, it.tool.level, ITEMS[it.id].name);
@@ -143,7 +155,7 @@ export const SHOP = {
   stock: [
     { id: 'bread', qty: 1 }, { id: 'fishing_rod', qty: 1 }, { id: 'hatchet_chipped', qty: 1 }, { id: 'pickaxe_chipped', qty: 1 },
     { id: 'pistol_flintlock', qty: 1 }, { id: 'shot_bronze', qty: 25 }, { id: 'staff_driftwood', qty: 1 }, { id: 'charm_tide', qty: 25 },
-    { id: 'cap_leather', qty: 1 }, { id: 'coat_padded', qty: 1 }, { id: 'lobster_pot', qty: 1 }, { id: 'harpoon', qty: 1 }, { id: 'staff_coral', qty: 1 },
+    { id: 'cap_leather', qty: 1 }, { id: 'coat_padded', qty: 1 }, { id: 'lobster_pot', qty: 1 }, { id: 'harpoon', qty: 1 }, { id: 'spade', qty: 1 }, { id: 'staff_coral', qty: 1 },
   ],
   buyMul: 1.0, // player pays value * qty * buyMul
   sellMul: 0.5, // player receives value * sellMul
@@ -265,6 +277,9 @@ export const LOOT: Record<string, LootTable> = {
     gear: { chance: 0.4, items: ['cutlass_tide', 'pistol_tide', 'staff_tide', 'plate_abyss', 'ring_gold'], weights: { fine: 50, rare: 40, relic: 10 } } },
   sentinel: { coins: [150, 320], drops: [{ item: 'ore_tide', chance: 0.35 }, { item: 'ore_storm', chance: 0.5, qty: [1, 3] }, { item: 'charm_tide', chance: 1, qty: [20, 40] }],
     gear: { chance: 0.35, items: ['helm_tide', 'plate_tide', 'cutlass_tide', 'staff_tide'], weights: { fine: 50, rare: 40, relic: 10 } } },
+  geode: { coins: [10, 60], drops: [{ item: 'charm_tide', chance: 0.5, qty: [3, 10] }, { item: 'ore_gold', chance: 0.15 }, { item: 'shell_fragment', chance: 0.3 }] },
+  treasure: { coins: [20, 120], drops: [{ item: 'charm_tide', chance: 0.5, qty: [5, 15] }, { item: 'geode', chance: 0.25 }, { item: 'bar_iron', chance: 0.15 }, { item: 'bar_steel', chance: 0.07 }, { item: 'ore_gold', chance: 0.15 }],
+    gear: { chance: 0.08, items: ['ring_brass', 'ring_gold', 'cutlass_steel', 'pistol_steel', 'helm_steel'], weights: { common: 50, fine: 40, rare: 10 } } },
   guardian: { coins: [80, 130], drops: [{ item: 'bar_iron', chance: 1, qty: [2, 4] }, { item: 'charm_tide', chance: 1, qty: [20, 40] }],
     gear: { chance: 1, items: ['lockplate', 'cutlass_iron', 'ring_brass', 'pistol_iron'], weights: { rare: 70, relic: 30 } } },
 };

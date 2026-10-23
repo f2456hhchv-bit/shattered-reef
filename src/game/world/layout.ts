@@ -1,12 +1,13 @@
 import { mulberry32 } from '../../art/noise';
-import { LAYOUT, LAGOON, SEA_SPOTS, coastPoint, coastDist, nearestPathDist, FLATS } from './island';
+import { LAYOUT, LAGOON, SEA_SPOTS, PATHS, coastPoint, coastDist, nearestPathDist, FLATS } from './island';
 import { World } from './world';
 
 // Everything placed on Bellwether, derived deterministically. Shared by simulation and renderer.
 
 export type BuildingKind = 'store' | 'chart' | 'house' | 'tent' | 'smithy';
 export interface Building { kind: BuildingKind; x: number; z: number; rot: number; w: number; d: number; seed: number }
-export interface NodePlacement { uid: string; def: string; x: number; z: number; seed: number }
+/** `scenery` nodes are the island's ordinary trees, boulders, bushes and kelp: drawn instanced, still usable. */
+export interface NodePlacement { uid: string; def: string; x: number; z: number; seed: number; scenery?: boolean; s?: number; rot?: number }
 export interface Prop { kind: 'pine' | 'broadleaf' | 'rock' | 'crate' | 'barrel' | 'lantern' | 'pillar' | 'campfire'; x: number; z: number; rot: number; s: number; seed: number }
 export interface SpawnPoint { enemy: string; x: number; z: number }
 
@@ -164,12 +165,12 @@ export function buildIsland(seed = 1): IslandLayout {
 
   // fishing: sprats off the dock head (reachable on foot), shore spots found by walking from land into water
   nodes.push({ uid: `n${uid++}`, def: 'spot_sprat', x: -headWidth / 2 - 1.6, z: headZ + 1.0, seed: 1 });
-  const shoreSpot = (fx: number, fz: number, ang: number): [number, number] | null => {
+  const shoreSpot = (fx: number, fz: number, ang: number, deep = -0.35): [number, number] | null => {
     let lastLand: [number, number] | null = null;
     for (let r = 0; r < 40; r += 0.25) {
       const x = fx + Math.cos(ang) * r, z = fz + Math.sin(ang) * r, h = world.ground(x, z);
       if (h > 0.16) lastLand = [x, z]; // walkable shore
-      else if (h < -0.35 && lastLand) {
+      else if (h < deep && lastLand) {
         if (Math.hypot(x - lastLand[0], z - lastLand[1]) > 2.4) return null; // shelving shore: too far to cast
         return [x + Math.cos(ang) * 0.3, z + Math.sin(ang) * 0.3];
       }
@@ -218,7 +219,8 @@ export function buildIsland(seed = 1): IslandLayout {
     const gy = world.ground(x, z);
     if (gy < 0.5 || gy > 9) continue; // nothing on the bare upper peak
     const kind = inWood || rnd() < 0.6 ? 'pine' : 'broadleaf';
-    props.push({ kind, x, z, rot: rnd() * Math.PI * 2, s: 0.85 + rnd() * 0.35, seed: Math.floor(rnd() * 1e6) });
+    // every tree on the island can be felled: pines are saltpine, broadleafs sea-oak
+    nodes.push({ uid: `n${uid++}`, def: kind === 'pine' ? 'tree_pine' : 'tree_oak', x, z, seed: Math.floor(rnd() * 1e6), scenery: true, s: 0.85 + rnd() * 0.35, rot: rnd() * Math.PI * 2 });
     world.solids.push({ x, z, r: 0.45 });
     made++;
   }
@@ -227,8 +229,37 @@ export function buildIsland(seed = 1): IslandLayout {
     const x = Math.cos(a) * r, z = Math.sin(a) * r;
     if (!free(x, z, 1, 2)) continue;
     const s = 0.35 + rnd() * 0.7;
-    props.push({ kind: 'rock', x, z, rot: rnd() * 6.28, s, seed: Math.floor(rnd() * 1e6) });
-    if (s > 0.6) world.solids.push({ x, z, r: s * 0.9 });
+    // boulders big enough to swing at can be mined; pebbles stay scenery
+    if (s > 0.6) { nodes.push({ uid: `n${uid++}`, def: 'rock_boulder', x, z, seed: Math.floor(rnd() * 1e6), scenery: true, s, rot: rnd() * 6.28 }); world.solids.push({ x, z, r: s * 0.9 }); }
+    else props.push({ kind: 'rock', x, z, rot: rnd() * 6.28, s, seed: Math.floor(rnd() * 1e6) });
+    made++;
+  }
+
+  // bramble bushes: meadows and wood edges
+  for (let tries = 0, made = 0; tries < 3000 && made < 36; tries++) {
+    const a = rnd() * Math.PI * 2, r = 12 + Math.sqrt(rnd()) * 75;
+    const x = Math.cos(a) * r, z = Math.sin(a) * r;
+    if (!free(x, z, 6, 2.2) || world.ground(x, z) < 0.5 || world.ground(x, z) > 7) continue;
+    if (keepClear.some((k) => Math.hypot(x - k.x, z - k.z) < k.r)) continue;
+    nodes.push({ uid: `n${uid++}`, def: 'bush_berry', x, z, seed: Math.floor(rnd() * 1e6), scenery: true, s: 0.8 + rnd() * 0.4, rot: rnd() * 6.28 });
+    world.solids.push({ x, z, r: 0.5 });
+    made++;
+  }
+  // kelp beds just off the beaches, all the way round
+  for (let deg = 0; deg < 360; deg += 13) {
+    const [lx, lz] = coastPoint(deg + rnd() * 6, 6);
+    const p = shoreSpot(lx, lz, Math.atan2(lz, lx), -0.08); // kelp likes the shallows
+    if (p && Math.hypot(p[0] - mooring.x, p[1] - mooring.z) > 14 && !nodes.some((n) => Math.hypot(n.x - p[0], n.z - p[1]) < 6))
+      nodes.push({ uid: `n${uid++}`, def: 'kelp_bed', x: p[0], z: p[1], seed: deg, scenery: true, s: 0.9 + rnd() * 0.3, rot: rnd() * 6.28 });
+  }
+  // disturbed sand: candidate dig spots on beaches and dirt tracks (only a few are active at a time)
+  for (let k = 0, made = 0; k < 400 && made < 30; k++) {
+    let x: number, z: number;
+    if (k % 2) { const [cx, cz] = coastPoint(rnd() * 360, 2.5 + rnd() * 3); x = cx; z = cz; }
+    else { const pth = PATHS[Math.floor(rnd() * PATHS.length)]; const i = Math.floor(rnd() * (pth.pts.length - 1)); const t = rnd(); x = pth.pts[i][0] + (pth.pts[i + 1][0] - pth.pts[i][0]) * t + (rnd() - 0.5) * 3; z = pth.pts[i][1] + (pth.pts[i + 1][1] - pth.pts[i][1]) * t + (rnd() - 0.5) * 3; }
+    if (world.ground(x, z) < 0.3 || Math.hypot(x - V.x, z - V.z) < 20) continue;
+    if (nodes.some((n) => Math.hypot(n.x - x, n.z - z) < 4) || props.some((p) => Math.hypot(p.x - x, p.z - z) < 2)) continue;
+    nodes.push({ uid: `n${uid++}`, def: 'dig_spot', x, z, seed: k });
     made++;
   }
 
@@ -245,6 +276,15 @@ export function buildIsland(seed = 1): IslandLayout {
   }
 
   world.bake();
+  // scenery deep in a thicket that no one can stand beside goes back to being plain scenery
+  for (let i = nodes.length - 1; i >= 0; i--) {
+    const n = nodes[i];
+    if (!n.scenery) continue;
+    if (world.nearestWalkable(n.x, n.z, n.def === 'kelp_bed' ? 2.9 : 1.6)) continue;
+    nodes.splice(i, 1);
+    if (n.def === 'kelp_bed') continue;
+    props.push({ kind: n.def === 'tree_pine' ? 'pine' : n.def === 'tree_oak' ? 'broadleaf' : n.def === 'rock_boulder' ? 'rock' : 'rock', x: n.x, z: n.z, rot: n.rot ?? 0, s: n.s ?? 1, seed: n.seed });
+  }
 
   // ---- enemies, zone by zone (snapped to walkable ground)
   const spawns: SpawnPoint[] = [];

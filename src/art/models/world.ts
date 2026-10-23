@@ -345,3 +345,18 @@ export function buildStrongbox(): THREE.Group {
   g.add(lock, hole);
   return g;
 }
+
+/** Disturbed sand: a low heaped mound with a glint of something buried. */
+export function buildDigSpot(seed: number): THREE.Group {
+  const g = new THREE.Group();
+  const mound = mesh(jitter(new THREE.SphereGeometry(0.55, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), 0.05, seed), mat(0xc9b083));
+  mound.scale.y = 0.35;
+  g.add(mound);
+  for (let i = 0; i < 3; i++) {
+    const spark = mesh(new THREE.OctahedronGeometry(0.05, 0), mat(0xffe08a, { emissive: 0xffe08a, emissiveIntensity: 1.4 }), false);
+    spark.position.set(Math.cos(i * 2.1 + seed) * 0.22, 0.17, Math.sin(i * 2.1 + seed) * 0.22);
+    spark.userData.flame = true; // flicker with the fires
+    g.add(spark);
+  }
+  return g;
+}
