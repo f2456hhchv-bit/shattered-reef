@@ -20,9 +20,16 @@ export class World {
   readonly heights = new Float32Array((HN + 1) * (HN + 1));
   readonly walk = new Uint8Array(WN * WN); // 1 = walkable
   readonly sail = new Uint8Array(SN * SN); // 1 = navigable
+  readonly sea = new Uint8Array(SN * SN); // 1 = navigable with hull clearance on every side
   readonly decks: Deck[] = [];
   readonly solids: (Circle | Rect)[] = [];
   readonly reefs: Circle[] = []; // sea obstacles
+  // A* scratch, reused between searches: a cell's g/came/closed are valid only if stamp[n] === gen
+  private readonly pg = new Float32Array(WN * WN);
+  private readonly pcame = new Int32Array(WN * WN);
+  private readonly pstamp = new Uint32Array(WN * WN);
+  private readonly pclosed = new Uint32Array(WN * WN);
+  private gen = 0;
 
   constructor() {
     for (let j = 0; j <= HN; j++)
@@ -68,9 +75,17 @@ export class World {
             ok = Math.hypot(sx, sz) < 1.15; // ~30 degrees
           }
         }
-        if (ok) for (const s of this.solids) if (hitsSolid(s, x, z, agentR)) { ok = false; break; }
         this.walk[j * WN + i] = ok ? 1 : 0;
       }
+    }
+    // stamp solids over just the cells their bounds cover (the grid is too big to test every solid per cell)
+    for (const s of this.solids) {
+      const ext = ('r' in s ? s.r : Math.hypot(s.w, s.d) / 2) + agentR;
+      const i0 = Math.max(0, Math.floor((s.x - ext + WORLD_HALF) / WCELL)), i1 = Math.min(WN - 1, Math.floor((s.x + ext + WORLD_HALF) / WCELL));
+      const j0 = Math.max(0, Math.floor((s.z - ext + WORLD_HALF) / WCELL)), j1 = Math.min(WN - 1, Math.floor((s.z + ext + WORLD_HALF) / WCELL));
+      for (let j = j0; j <= j1; j++)
+        for (let i = i0; i <= i1; i++)
+          if (hitsSolid(s, (i + 0.5) * WCELL - WORLD_HALF, (j + 0.5) * WCELL - WORLD_HALF, agentR)) this.walk[j * WN + i] = 0;
     }
     for (let j = 0; j < SN; j++) {
       for (let i = 0; i < SN; i++) {
@@ -81,82 +96,110 @@ export class World {
         this.sail[j * SN + i] = ok ? 1 : 0;
       }
     }
+    // erode the sail grid by the hull's turning clearance
+    const CLEAR = 3;
+    for (let j = 0; j < SN; j++)
+      for (let i = 0; i < SN; i++) {
+        let ok = this.sail[j * SN + i] === 1;
+        for (let dj = -CLEAR; ok && dj <= CLEAR; dj++)
+          for (let di = -CLEAR; di <= CLEAR; di++) {
+            if (di * di + dj * dj > CLEAR * CLEAR) continue;
+            const a = i + di, b = j + dj;
+            if (a < 0 || b < 0 || a >= SN || b >= SN || !this.sail[b * SN + a]) { ok = false; break; }
+          }
+        this.sea[j * SN + i] = ok ? 1 : 0;
+      }
   }
 
-  walkable(x: number, z: number): boolean {
-    const i = Math.floor((x + WORLD_HALF) / WCELL), j = Math.floor((z + WORLD_HALF) / WCELL);
-    if (i < 0 || j < 0 || i >= WN || j >= WN) return false;
-    return this.walk[j * WN + i] === 1;
-  }
-
-  sailable(x: number, z: number): boolean {
-    const i = Math.floor((x + WORLD_HALF) / SCELL), j = Math.floor((z + WORLD_HALF) / SCELL);
-    if (i < 0 || j < 0 || i >= SN || j >= SN) return false;
-    return this.sail[j * SN + i] === 1;
-  }
+  walkable(x: number, z: number): boolean { return onGrid(this.walk, WN, WCELL, x, z); }
+  sailable(x: number, z: number): boolean { return onGrid(this.sail, SN, SCELL, x, z); }
+  /** Open water with room for the hull to turn: what the ship's route planner uses. */
+  seaClear(x: number, z: number): boolean { return onGrid(this.sea, SN, SCELL, x, z); }
 
   /** Straight walk check, sampled every 0.25 m. */
-  lineWalkable(ax: number, az: number, bx: number, bz: number): boolean {
-    const d = Math.hypot(bx - ax, bz - az);
-    const n = Math.max(1, Math.ceil(d / 0.25));
-    for (let k = 1; k <= n; k++) if (!this.walkable(ax + ((bx - ax) * k) / n, az + ((bz - az) * k) / n)) return false;
-    return true;
-  }
+  lineWalkable(ax: number, az: number, bx: number, bz: number): boolean { return this.lineOn(this.walk, WN, WCELL, ax, az, bx, bz); }
 
   /** Nearest walkable point to (x, z) within maxR, or null. */
-  nearestWalkable(x: number, z: number, maxR = 6): [number, number] | null {
-    if (this.walkable(x, z)) return [x, z];
-    for (let r = WCELL; r <= maxR; r += WCELL) {
-      const steps = Math.max(8, Math.round((r * Math.PI * 2) / WCELL));
-      let best: [number, number] | null = null;
-      for (let k = 0; k < steps; k++) {
-        const a = (k / steps) * Math.PI * 2;
-        const px = x + Math.cos(a) * r, pz = z + Math.sin(a) * r;
-        if (this.walkable(px, pz)) { best = [px, pz]; break; }
-      }
-      if (best) return best;
-    }
-    return null;
-  }
+  nearestWalkable(x: number, z: number, maxR = 6): [number, number] | null { return this.nearestOn(this.walk, WN, WCELL, x, z, maxR); }
 
   /** A* over the walk grid (8-way, no corner cutting) + line-of-sight smoothing. */
-  findPath(sx: number, sz: number, tx: number, tz: number, maxNodes = 60000): [number, number][] | null {
+  findPath(sx: number, sz: number, tx: number, tz: number, maxNodes = 160000): [number, number][] | null {
     const goal = this.nearestWalkable(tx, tz, 4);
     if (!goal) return null;
     const start = this.nearestWalkable(sx, sz, 2);
     if (!start) return null;
-    if (this.lineWalkable(start[0], start[1], goal[0], goal[1])) return [goal];
-    const toI = (x: number) => Math.floor((x + WORLD_HALF) / WCELL);
+    return this.astar(this.walk, WN, WCELL, start, goal, maxNodes);
+  }
+
+  /**
+   * Route for the ship: A* over clear water, so it rounds headlands instead of beaching.
+   * The last leg goes straight to the exact target (a mooring sits closer to the dock than the clear-water margin).
+   */
+  findSeaPath(sx: number, sz: number, tx: number, tz: number): [number, number][] | null {
+    const goal = this.nearestOn(this.sea, SN, SCELL, tx, tz, 14);
+    const start = this.nearestOn(this.sea, SN, SCELL, sx, sz, 8);
+    if (!goal || !start) return null;
+    const route = this.astar(this.sea, SN, SCELL, start, goal, 90000);
+    if (!route) return null;
+    if ((start[0] !== sx || start[1] !== sz) && !this.lineOn(this.sail, SN, SCELL, sx, sz, route[0][0], route[0][1])) route.unshift(start);
+    if (this.sailable(tx, tz) && this.lineOn(this.sail, SN, SCELL, goal[0], goal[1], tx, tz)) route.push([tx, tz]);
+    return route;
+  }
+
+  private lineOn(grid: Uint8Array, n: number, cell: number, ax: number, az: number, bx: number, bz: number): boolean {
+    const d = Math.hypot(bx - ax, bz - az);
+    const steps = Math.max(1, Math.ceil(d / (cell / 2)));
+    for (let k = 1; k <= steps; k++) if (!onGrid(grid, n, cell, ax + ((bx - ax) * k) / steps, az + ((bz - az) * k) / steps)) return false;
+    return true;
+  }
+
+  private nearestOn(grid: Uint8Array, n: number, cell: number, x: number, z: number, maxR: number): [number, number] | null {
+    if (onGrid(grid, n, cell, x, z)) return [x, z];
+    for (let r = cell; r <= maxR; r += cell) {
+      const steps = Math.max(8, Math.round((r * Math.PI * 2) / cell));
+      for (let k = 0; k < steps; k++) {
+        const a = (k / steps) * Math.PI * 2;
+        const px = x + Math.cos(a) * r, pz = z + Math.sin(a) * r;
+        if (onGrid(grid, n, cell, px, pz)) return [px, pz];
+      }
+    }
+    return null;
+  }
+
+  private astar(grid: Uint8Array, N: number, cell: number, start: [number, number], goal: [number, number], maxNodes: number): [number, number][] | null {
+    if (this.lineOn(grid, N, cell, start[0], start[1], goal[0], goal[1])) return [goal];
+    const toI = (x: number) => Math.floor((x + WORLD_HALF) / cell);
     const si = toI(start[0]), sj = toI(start[1]), gi = toI(goal[0]), gj = toI(goal[1]);
-    const S = si + sj * WN, G = gi + gj * WN;
-    const g = new Float32Array(WN * WN).fill(Infinity);
-    const came = new Int32Array(WN * WN).fill(-1);
-    const closed = new Uint8Array(WN * WN);
+    const S = si + sj * N, G = gi + gj * N;
+    const gen = ++this.gen;
+    const g = this.pg, came = this.pcame, stamp = this.pstamp, closed = this.pclosed;
+    const gOf = (n: number) => (stamp[n] === gen ? g[n] : Infinity);
     const heap = new MinHeap();
     const h = (i: number, j: number) => {
       const dx = Math.abs(i - gi), dz = Math.abs(j - gj);
       return dx + dz + (Math.SQRT2 - 2) * Math.min(dx, dz);
     };
-    g[S] = 0;
+    stamp[S] = gen; g[S] = 0; came[S] = -1;
     heap.push(S, h(si, sj));
     let expanded = 0;
     while (heap.size) {
       const cur = heap.pop();
       if (cur === G) break;
-      if (closed[cur]) continue;
-      closed[cur] = 1;
+      if (closed[cur] === gen) continue;
+      closed[cur] = gen;
       if (++expanded > maxNodes) return null;
-      const ci = cur % WN, cj = (cur / WN) | 0;
+      const ci = cur % N, cj = (cur / N) | 0;
       for (let dj = -1; dj <= 1; dj++) {
         for (let di = -1; di <= 1; di++) {
           if (!di && !dj) continue;
           const ni = ci + di, nj = cj + dj;
-          if (ni < 0 || nj < 0 || ni >= WN || nj >= WN) continue;
-          const n = ni + nj * WN;
-          if (!this.walk[n] || closed[n]) continue;
-          if (di && dj && (!this.walk[ci + di + cj * WN] || !this.walk[ci + (cj + dj) * WN])) continue;
+          if (ni < 0 || nj < 0 || ni >= N || nj >= N) continue;
+          const n = ni + nj * N;
+          if (!grid[n] || closed[n] === gen) continue;
+          if (di && dj && (!grid[ci + di + cj * N] || !grid[ci + (cj + dj) * N])) continue;
           const ng = g[cur] + (di && dj ? Math.SQRT2 : 1);
-          if (ng < g[n]) {
+          if (ng < gOf(n)) {
+            stamp[n] = gen;
             g[n] = ng;
             came[n] = cur;
             heap.push(n, ng + h(ni, nj));
@@ -164,9 +207,9 @@ export class World {
         }
       }
     }
-    if (came[G] === -1) return null;
+    if (stamp[G] !== gen) return null;
     const cells: [number, number][] = [];
-    for (let c = G; c !== S && c !== -1; c = came[c]) cells.push([((c % WN) + 0.5) * WCELL - WORLD_HALF, (((c / WN) | 0) + 0.5) * WCELL - WORLD_HALF]);
+    for (let c = G; c !== S && c !== -1; c = came[c]) cells.push([((c % N) + 0.5) * cell - WORLD_HALF, (((c / N) | 0) + 0.5) * cell - WORLD_HALF]);
     cells.reverse();
     cells[cells.length - 1] = goal;
     // string-pull
@@ -176,7 +219,7 @@ export class World {
     while (k < cells.length) {
       let far = k;
       for (let m = cells.length - 1; m > k; m--) {
-        if (this.lineWalkable(ax, az, cells[m][0], cells[m][1])) { far = m; break; }
+        if (this.lineOn(grid, N, cell, ax, az, cells[m][0], cells[m][1])) { far = m; break; }
       }
       out.push(cells[far]);
       [ax, az] = cells[far];
@@ -184,6 +227,12 @@ export class World {
     }
     return out;
   }
+}
+
+function onGrid(grid: Uint8Array, n: number, cell: number, x: number, z: number): boolean {
+  const i = Math.floor((x + WORLD_HALF) / cell), j = Math.floor((z + WORLD_HALF) / cell);
+  if (i < 0 || j < 0 || i >= n || j >= n) return false;
+  return grid[j * n + i] === 1;
 }
 
 export function inRect(r: Rect, x: number, z: number, pad: number): boolean {

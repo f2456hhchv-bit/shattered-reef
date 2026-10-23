@@ -71,7 +71,7 @@ export function bakeRig(root: THREE.Object3D, material: THREE.MeshStandardMateri
 /** Merge everything static in `root` (world space) into chunked meshes for culling. */
 export function bakeStatic(root: THREE.Object3D, chunk = 40): THREE.Group {
   root.updateMatrixWorld(true);
-  const material = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.92, metalness: 0 });
+  const material = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: false, roughness: 0.92, metalness: 0 });
   const buckets = new Map<string, { cast: THREE.BufferGeometry[]; nocast: THREE.BufferGeometry[] }>();
   const keep: THREE.Object3D[] = [];
   const pos = new THREE.Vector3();

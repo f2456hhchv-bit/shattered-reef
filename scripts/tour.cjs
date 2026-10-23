@@ -11,7 +11,7 @@ const W = +(process.argv[3] || 960), H = +(process.argv[4] || 600);
   await p.goto(process.env.URL || 'http://localhost:5173/');
   await p.waitForFunction(() => window.__reef);
   await p.evaluate(() => { try { localStorage.clear(); } catch {} window.__reef.start(); window.__reef.ui.sideOpen = false; window.__reef.ui.layout(); });
-  const scenes = ['quay', 'forest', 'hills', 'camp', 'ruin', 'sea', 'strand'];
+  const scenes = (process.env.SCENES || 'quay,forest,hills,camp,ruin,sea,strand,fen,heartwood,peak,cove,wreck').split(',');
   const shots = [];
   for (const sc of scenes) {
     await p.evaluate((sc) => {
@@ -24,6 +24,7 @@ const W = +(process.argv[3] || 960), H = +(process.argv[4] || 600);
       if (sc === 'camp') { go(L.buildings.find((b) => b.kind === 'tent').x - 6, L.buildings.find((b) => b.kind === 'tent').z + 6); }
       if (sc === 'ruin') { g.give('tuning_bell', 1); go(L.plinth.x, L.plinth.z + 1.6); g.interact('ruin'); }
       if (sc === 'sea') { const s = L.nodes.find((n) => n.def === 'spot_bell'); g.ship.x = s.x + 5; g.ship.z = s.z; g.p.onShip = true; g.p.x = g.ship.x; g.p.z = g.ship.z; g.shipSpeed = 4; }
+      if (['fen', 'heartwood', 'peak', 'cove', 'wreck', 'crossroads', 'grove'].includes(sc)) { const z = r.zones[sc]; go(z.x, z.z); }
       if (sc === 'strand') { const c = g.enemies.find((e) => e.def.id === 'reef_crab'); go(c.x + 2, c.z - 1); }
       r.renderer.snapCamera();
     }, sc);

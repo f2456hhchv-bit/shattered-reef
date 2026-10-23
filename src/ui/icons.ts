@@ -1,173 +1,56 @@
-import { item, RARITY } from '../game/data/items';
+import * as THREE from 'three';
+import { RARITY } from '../game/data/items';
 import type { Stack } from '../game/sim/inventory';
+import { buildItemModel } from '../art/models/items';
 
-// Item icons painted in code: chunky silhouettes, top-left light, one shared style.
+// Inventory icons are renders of each item's real 3D model: same camera, same lighting, transparent
+// background. The slate tile, brass corner and rarity rim are drawn by CSS around them.
 
 const cache = new Map<string, string>();
+let icon: { r: THREE.WebGLRenderer; scene: THREE.Scene; cam: THREE.PerspectiveCamera } | null = null;
 
-function shade(hex: string, k: number): string {
-  const n = parseInt(hex.slice(1), 16);
-  const f = (c: number) => Math.max(0, Math.min(255, Math.round(c * k)));
-  return `rgb(${f(n >> 16)},${f((n >> 8) & 255)},${f(n & 255)})`;
+function iconRenderer() {
+  if (icon) return icon;
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = 128;
+  const r = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true, preserveDrawingBuffer: true });
+  r.setClearColor(0x000000, 0);
+  r.toneMapping = THREE.ACESFilmicToneMapping;
+  r.toneMappingExposure = 1.15;
+  r.outputColorSpace = THREE.SRGBColorSpace;
+  const scene = new THREE.Scene();
+  scene.add(new THREE.HemisphereLight(0xdff2ff, 0x3a3024, 1.3));
+  const key = new THREE.DirectionalLight(0xfff1d6, 2.6);
+  key.position.set(-1.5, 2.5, 2);
+  const rim = new THREE.DirectionalLight(0x9fe8f0, 1.4);
+  rim.position.set(2, 1, -2);
+  scene.add(key, rim);
+  const cam = new THREE.PerspectiveCamera(26, 1, 0.05, 20);
+  icon = { r, scene, cam };
+  return icon;
 }
 
-type Ctx = CanvasRenderingContext2D;
+/** Coin piles change shape with quantity, like RuneScape. */
+const tierOf = (id: string, qty: number) => (id === 'coins' ? (qty >= 100 ? 100 : qty >= 10 ? 10 : qty > 1 ? 2 : 1) : 1);
 
-function poly(c: Ctx, pts: number[][], fill: string, stroke = 'rgba(20,14,8,.85)') {
-  c.beginPath();
-  c.moveTo(pts[0][0], pts[0][1]);
-  for (let i = 1; i < pts.length; i++) c.lineTo(pts[i][0], pts[i][1]);
-  c.closePath();
-  c.fillStyle = fill;
-  c.fill();
-  c.lineWidth = 2.5;
-  c.strokeStyle = stroke;
-  c.stroke();
-}
-
-function ellipse(c: Ctx, x: number, y: number, rx: number, ry: number, fill: string, rot = 0) {
-  c.beginPath();
-  c.ellipse(x, y, rx, ry, rot, 0, Math.PI * 2);
-  c.fillStyle = fill;
-  c.fill();
-  c.lineWidth = 2.5;
-  c.strokeStyle = 'rgba(20,14,8,.85)';
-  c.stroke();
-}
-
-function paint(c: Ctx, shape: string, col: string, acc?: string) {
-  const hi = shade(col, 1.25), lo = shade(col, 0.72);
-  switch (shape) {
-    case 'log':
-      poly(c, [[10, 40], [44, 16], [56, 28], [22, 52]], col);
-      poly(c, [[10, 40], [44, 16], [48, 22], [14, 46]], hi, 'transparent');
-      ellipse(c, 50, 22, 7, 9, acc ?? hi, -0.6);
-      ellipse(c, 50, 22, 3, 4, lo, -0.6);
-      break;
-    case 'ore':
-      poly(c, [[12, 44], [16, 22], [32, 12], [50, 20], [54, 42], [36, 54]], col);
-      poly(c, [[16, 22], [32, 12], [40, 18], [22, 30]], hi, 'transparent');
-      for (const [x, y, r] of [[28, 34, 5], [40, 28, 4], [38, 44, 4.5]]) ellipse(c, x, y, r, r * 0.8, acc ?? '#c77');
-      break;
-    case 'bar':
-      poly(c, [[8, 40], [20, 26], [56, 26], [44, 40]], hi);
-      poly(c, [[8, 40], [44, 40], [44, 50], [8, 50]], col);
-      poly(c, [[44, 40], [56, 26], [56, 36], [44, 50]], lo);
-      break;
-    case 'fish':
-      ellipse(c, 30, 34, 20, 11, col);
-      poly(c, [[48, 34], [60, 22], [58, 46]], lo);
-      ellipse(c, 22, 30, 7, 3, hi);
-      ellipse(c, 16, 32, 2.6, 2.6, '#111');
-      if (acc) poly(c, [[30, 23], [36, 14], [40, 25]], acc);
-      break;
-    case 'meat':
-      ellipse(c, 28, 36, 18, 13, col, -0.3);
-      ellipse(c, 24, 32, 9, 5, hi, -0.3);
-      poly(c, [[42, 26], [56, 14], [60, 20], [48, 32]], '#efe3c4');
-      break;
-    case 'burnt':
-      ellipse(c, 32, 36, 18, 12, col);
-      ellipse(c, 28, 32, 6, 3, '#4a3a30');
-      break;
-    case 'coins':
-      for (const [x, y] of [[22, 44], [40, 44], [31, 34], [26, 24]]) { ellipse(c, x, y, 12, 6, col); ellipse(c, x, y - 1, 7, 3, hi); }
-      break;
-    case 'bread':
-      ellipse(c, 32, 38, 22, 13, col);
-      ellipse(c, 32, 32, 18, 9, hi);
-      for (const x of [22, 32, 42]) { c.beginPath(); c.moveTo(x - 3, 28); c.lineTo(x + 3, 36); c.strokeStyle = lo; c.lineWidth = 2.5; c.stroke(); }
-      break;
-    case 'hatchet':
-      poly(c, [[16, 54], [40, 14], [45, 17], [21, 57]], '#8a6440');
-      poly(c, [[34, 10], [54, 14], [52, 32], [40, 26]], col);
-      poly(c, [[34, 10], [54, 14], [53, 20], [37, 17]], hi, 'transparent');
-      break;
-    case 'pickaxe':
-      poly(c, [[30, 56], [34, 14], [39, 14], [35, 56]], '#8a6440');
-      poly(c, [[8, 22], [36, 8], [60, 22], [54, 24], [36, 16], [14, 26]], col);
-      break;
-    case 'rod':
-      c.beginPath(); c.moveTo(10, 56); c.quadraticCurveTo(30, 30, 56, 8); c.lineWidth = 5; c.strokeStyle = col; c.stroke();
-      c.beginPath(); c.moveTo(56, 8); c.lineTo(52, 44); c.lineWidth = 1.5; c.strokeStyle = '#e9e5d5'; c.stroke();
-      ellipse(c, 16, 50, 5, 5, '#5a4636');
-      break;
-    case 'cutlass':
-      poly(c, [[14, 52], [46, 14], [56, 10], [52, 20], [20, 56]], col);
-      poly(c, [[14, 52], [46, 14], [50, 13], [17, 54]], hi, 'transparent');
-      poly(c, [[10, 46], [22, 58], [26, 54], [14, 42]], acc ?? '#c9a050');
-      poly(c, [[6, 58], [12, 52], [16, 56], [10, 62]], '#5a3a26');
-      break;
-    case 'helm':
-      poly(c, [[12, 42], [14, 24], [32, 12], [50, 24], [52, 42], [44, 46], [44, 34], [20, 34], [20, 46]], col);
-      poly(c, [[14, 24], [32, 12], [40, 16], [20, 26]], hi, 'transparent');
-      break;
-    case 'cap':
-      ellipse(c, 32, 32, 18, 14, col);
-      poly(c, [[14, 36], [50, 36], [54, 44], [10, 44]], lo);
-      break;
-    case 'coat':
-      poly(c, [[18, 12], [46, 12], [56, 24], [50, 30], [46, 26], [46, 56], [18, 56], [18, 26], [14, 30], [8, 24]], col);
-      poly(c, [[30, 12], [34, 12], [34, 56], [30, 56]], acc ?? lo, 'transparent');
-      break;
-    case 'ring':
-      c.beginPath(); c.arc(32, 36, 15, 0, Math.PI * 2); c.lineWidth = 9; c.strokeStyle = 'rgba(20,14,8,.85)'; c.stroke();
-      c.lineWidth = 6; c.strokeStyle = col; c.stroke();
-      ellipse(c, 32, 20, 6, 5, acc ?? '#59d0c4');
-      break;
-    case 'bell':
-      poly(c, [[18, 46], [22, 22], [32, 14], [42, 22], [46, 46]], col);
-      poly(c, [[14, 46], [50, 46], [50, 50], [14, 50]], lo);
-      ellipse(c, 32, 54, 4, 4, lo);
-      break;
-    case 'tooth':
-      poly(c, [[22, 10], [42, 10], [46, 26], [38, 56], [32, 40], [26, 56], [18, 26]], col);
-      poly(c, [[29, 22], [35, 22], [35, 34], [29, 34]], acc ?? '#59d0c4', 'transparent');
-      break;
-    case 'pistol':
-      poly(c, [[8, 26], [44, 22], [48, 30], [12, 34]], acc ?? '#9aa0a4');
-      poly(c, [[30, 28], [46, 26], [52, 48], [40, 54], [34, 36]], col);
-      poly(c, [[44, 18], [50, 18], [50, 24], [44, 24]], '#3b3f42');
-      break;
-    case 'shot':
-      for (const [x, y] of [[22, 40], [38, 40], [30, 28], [44, 26], [18, 26]]) { ellipse(c, x, y, 7, 7, col); ellipse(c, x - 2, y - 2, 2.5, 2.5, hi); }
-      break;
-    case 'staff':
-      poly(c, [[14, 58], [42, 14], [46, 16], [18, 60]], col);
-      ellipse(c, 46, 13, 8, 8, acc ?? '#59d0c4');
-      ellipse(c, 44, 11, 3, 3, '#e9fbf8');
-      break;
-    case 'charm':
-      poly(c, [[32, 8], [46, 26], [32, 56], [18, 26]], col);
-      poly(c, [[32, 8], [40, 20], [32, 26], [24, 20]], hi, 'transparent');
-      c.beginPath(); c.moveTo(14, 30); c.quadraticCurveTo(32, 44, 50, 30); c.lineWidth = 3; c.strokeStyle = acc ?? '#2a7f78'; c.stroke();
-      break;
-    case 'shell':
-      poly(c, [[10, 46], [18, 22], [32, 12], [46, 22], [54, 46]], col);
-      for (const x of [20, 32, 44]) { c.beginPath(); c.moveTo(32, 14); c.lineTo(x, 46); c.lineWidth = 2; c.strokeStyle = lo; c.stroke(); }
-      ellipse(c, 24, 30, 4, 3, acc ?? '#c04a2c');
-      break;
-  }
-}
-
-export function itemIcon(id: string): string {
-  const hit = cache.get(id);
+export function itemIcon(id: string, qty = 1): string {
+  const tier = tierOf(id, qty);
+  const key = `${id}|${tier}`;
+  const hit = cache.get(key);
   if (hit) return hit;
-  const d = item(id);
-  const cv = document.createElement('canvas');
-  cv.width = cv.height = 64;
-  const c = cv.getContext('2d')!;
-  c.lineJoin = 'round';
-  c.translate(0, 1);
-  // soft drop shadow first (light from top-left)
-  c.save();
-  c.translate(3, 3);
-  c.globalAlpha = 0.28;
-  paint(c, d.icon.shape, '#000000', '#000000');
-  c.restore();
-  paint(c, d.icon.shape, d.icon.color, d.icon.accent);
-  const url = cv.toDataURL();
-  cache.set(id, url);
+  const { r, scene, cam } = iconRenderer();
+  const model = buildItemModel(id, tier);
+  model.rotation.set(0.15, -0.55, 0);
+  scene.add(model);
+  const sphere = new THREE.Box3().setFromObject(model).getBoundingSphere(new THREE.Sphere());
+  const dist = (sphere.radius / Math.sin(THREE.MathUtils.degToRad(cam.fov / 2))) * 0.8;
+  cam.position.set(0, 0.55, 1).normalize().multiplyScalar(dist).add(sphere.center);
+  cam.lookAt(sphere.center);
+  r.render(scene, cam);
+  const url = r.domElement.toDataURL('image/png');
+  scene.remove(model);
+  model.traverse((o) => { const me = o as THREE.Mesh; if (me.isMesh) me.geometry.dispose(); });
+  cache.set(key, url);
   return url;
 }
 

@@ -374,7 +374,7 @@ export class UI {
     if (!s) return `<button class="slot empty" ${attrs} aria-label="Empty ${label || 'slot'}">${label ? `<span class="lbl">${label}</span>` : ''}</button>`;
     const rar = s.inst && s.inst.rarity !== 'common';
     const q = item(s.id).stackable && s.qty > 1 ? `<span class="q">${s.qty >= 100000 ? Math.floor(s.qty / 1000) + 'k' : s.qty}</span>` : '';
-    return `<button class="slot${rar ? ' rar' : ''}" style="--rc:${rarityColour(s)}" ${attrs} aria-label="${esc(displayName(s))}${s.qty > 1 ? ' × ' + s.qty : ''}" title="${esc(displayName(s))}"><img src="${itemIcon(s.id)}" alt="">${q}${label ? `<span class="lbl">${label}</span>` : ''}</button>`;
+    return `<button class="slot${rar ? ' rar' : ''}" style="--rc:${rarityColour(s)}" ${attrs} aria-label="${esc(displayName(s))}${s.qty > 1 ? ' × ' + s.qty : ''}" title="${esc(displayName(s))}"><img src="${itemIcon(s.id, s.qty)}" alt="">${q}${label ? `<span class="lbl">${label}</span>` : ''}</button>`;
   }
 
   private packHtml() {
@@ -692,7 +692,7 @@ export class UI {
 
   // ------------------------------------------------------------------ maps
   private buildMinimapBase() {
-    const S = 400, k = S / (WORLD_HALF * 2);
+    const S = 640, k = S / (WORLD_HALF * 2);
     const cv = document.createElement('canvas');
     cv.width = cv.height = S;
     const c = cv.getContext('2d')!;
@@ -758,6 +758,7 @@ export class UI {
   }
 
   private readonly MM_RANGE = 34; // metres from centre to edge
+  private readonly MAP_SPAN = 216; // metres shown edge to edge on the big map (the island plus a margin of sea)
   private drawMinimap() {
     const cv = this.mmCtx.canvas, c = this.mmCtx, W = cv.width;
     const g = this.game;
@@ -786,7 +787,7 @@ export class UI {
     if (!cv) return;
     const c = cv.getContext('2d')!, W = cv.width;
     // show the island region, not the whole sea
-    const span = 150, ox = -span / 2, oz = -span / 2;
+    const span = this.MAP_SPAN, ox = -span / 2, oz = -span / 2;
     const k = this.mmBase.width / (WORLD_HALF * 2);
     c.drawImage(this.mmBase, (ox + WORLD_HALF) * k, (oz + WORLD_HALF) * k, span * k, span * k, 0, 0, W, W);
     const toPx = (x: number, z: number): [number, number] => [((x - ox) / span) * W, ((z - oz) / span) * W];
@@ -805,7 +806,7 @@ export class UI {
     const cv = document.getElementById('mapbig') as HTMLCanvasElement;
     cv.addEventListener('pointerdown', (e) => {
       const r = cv.getBoundingClientRect();
-      const span = 150;
+      const span = this.MAP_SPAN;
       const x = -span / 2 + ((e.clientX - r.left) / r.width) * span, z = -span / 2 + ((e.clientY - r.top) / r.height) * span;
       this.game.moveTo(x, z);
       this.r.markClick(x, z);

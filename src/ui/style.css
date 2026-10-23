@@ -134,12 +134,18 @@ body.portrait #xpdrops { top: calc(var(--mm) + 18px + env(safe-area-inset-top, 0
 
 /* ------------------------------------------------ tab content */
 .grid28 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
-.slot { aspect-ratio: 1; position: relative; border-radius: 7px; background: #2a1e14; box-shadow: inset 0 0 0 1px #4a3422, inset 0 2px 6px #0008; padding: 0; border: 0; display: grid; place-items: center; min-height: 44px; }
-.slot img { width: 82%; height: 82%; image-rendering: auto; pointer-events: none; }
+.slot { aspect-ratio: 1; position: relative; border-radius: 8px; padding: 0; border: 0; display: grid; place-items: center; min-height: 44px; overflow: hidden;
+  /* slate tile: cool stone with a soft top-left highlight */
+  background: radial-gradient(120% 90% at 28% 18%, #56626b 0%, #39434b 45%, #262d33 100%);
+  box-shadow: inset 0 0 0 1px #14191d, inset 0 1px 0 #7c8892, inset 0 -3px 6px #0007; }
+.slot.empty { background: radial-gradient(120% 90% at 28% 18%, #3a2c20, #241911 80%); box-shadow: inset 0 0 0 1px #120b06, inset 0 2px 6px #0008; }
+.slot:not(.empty)::after { content: ""; position: absolute; right: 0; top: 0; width: 14px; height: 14px; background: linear-gradient(225deg, #f0d49b 0 30%, #b88a3e 31% 46%, transparent 47%); pointer-events: none; }
+.slot img { filter: drop-shadow(1px 3px 2px #000a); }
+.slot img { width: 92%; height: 92%; image-rendering: auto; pointer-events: none; }
 .slot .q { position: absolute; left: 4px; top: 2px; font: 700 12px var(--body); color: #ffe066; text-shadow: 0 1px 1px #000, 0 0 3px #000; font-variant-numeric: tabular-nums; pointer-events: none; }
-.slot.rar { box-shadow: inset 0 0 0 2px var(--rc), inset 0 2px 6px #0008; }
+.slot.rar { box-shadow: inset 0 0 0 2px var(--rc), inset 0 0 14px color-mix(in srgb, var(--rc) 45%, transparent), inset 0 -3px 6px #0007; }
 .slot.sel { box-shadow: inset 0 0 0 2px var(--brass-hi), 0 0 8px var(--brass); }
-.slot.empty { opacity: .55; }
+
 .row { display: flex; align-items: center; gap: 10px; }
 .skill { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; padding: 8px 0; border-bottom: 1px solid #3a281b; }
 .skill b { font-weight: 700; }
@@ -174,7 +180,7 @@ body.landscape.side-open .win { left: calc((100vw - var(--side-w)) / 2); }
 .win .body { overflow-y: auto; min-height: 0; padding-right: 4px; }
 .win .x { position: absolute; right: 8px; top: 8px; width: 40px; height: 40px; border-radius: 8px; background: #2a1e14; border: 1px solid #120b06; font-size: 20px; line-height: 1; }
 .recipe { display: grid; grid-template-columns: 48px 1fr auto; gap: 10px; align-items: center; padding: 8px; border-radius: 8px; background: #2a1e14; margin-bottom: 6px; box-shadow: inset 0 0 0 1px #4a3422; }
-.recipe img { width: 44px; height: 44px; }
+.recipe img { width: 46px; height: 46px; border-radius: 8px; background: radial-gradient(120% 90% at 28% 18%, #56626b, #262d33); box-shadow: inset 0 0 0 1px #14191d; }
 .recipe .need { font-size: 12px; color: var(--ink-dim); }
 .recipe .need .miss { color: var(--bad); }
 .recipe .btns { display: flex; flex-direction: column; gap: 4px; }

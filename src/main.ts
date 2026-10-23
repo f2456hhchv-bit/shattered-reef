@@ -2,6 +2,7 @@ import './ui/style.css';
 import { Game } from './game/sim/game';
 import { parseSave, defaultSave, SAVE_KEY } from './game/sim/save';
 import { buildIsland } from './game/world/layout';
+import { LAYOUT } from './game/world/island';
 import { GameRenderer } from './render/renderer';
 import { UI } from './ui/ui';
 import { Input } from './input/input';
@@ -96,4 +97,4 @@ document.addEventListener('visibilitychange', () => { if (document.hidden && sta
 window.addEventListener('pagehide', () => { if (started) save(); });
 
 // test / debug handle (read-only use in E2E tests)
-(window as unknown as { __reef: unknown }).__reef = { game, ui, renderer, input, save, get started() { return started; }, start };
+(window as unknown as { __reef: unknown }).__reef = { game, ui, renderer, input, save, zones: LAYOUT, get started() { return started; }, start };

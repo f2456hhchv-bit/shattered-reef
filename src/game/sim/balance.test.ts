@@ -5,9 +5,9 @@ import { xpForLevel } from './xp';
 const base = new Game({ seed: 1 });
 const fresh = (seed: number) => new Game({ seed, save: defaultSave(base.layout.respawn, base.layout.mooring) });
 // Balance guard: simulated fights with a simple bot that dodges, eats and keeps to the arena.
-it('Lockbound Guardian balance: needs ~12 melee, easier with its weakness (magic)', () => {
+it('Lockbound Guardian balance: needs ~12 melee or ranged, easier with its weakness (magic)', () => {
   const results: Record<string, number> = {};
-  for (const [lvl, weapon] of [[8, 'cutlass_bronze'], [12, 'cutlass_bronze'], [15, 'cutlass_bronze'], [10, 'staff_driftwood'], [10, 'pistol_flintlock']] as const) {
+  for (const [lvl, weapon] of [[8, 'cutlass_bronze'], [12, 'cutlass_bronze'], [15, 'cutlass_bronze'], [10, 'staff_driftwood'], [10, 'pistol_flintlock'], [13, 'pistol_flintlock']] as const) {
     let wins = 0, foodUsed = 0, time = 0;
     for (let s = 0; s < 8; s++) {
       const g = fresh(100 + s);
@@ -19,13 +19,33 @@ it('Lockbound Guardian balance: needs ~12 melee, easier with its weakness (magic
       g.interact('ruin'); let food = 10; const t0 = g.time;
       for (let t = 0; t < 400; t += 1 / 30) {
         if (g.boss && g.boss.state !== 'rise') g.target = g.boss.id;
+        // dodge like a competent player: head for the nearest walkable spot outside the telegraph, staying in the ring
         const danger = g.telegraphs.find((tg) => tg.damage > 0 && g.insideTelegraph(tg, g.p.x, g.p.z));
         const R = g.layout.ruin;
-        let a = danger ? Math.atan2(g.p.z - danger.z, g.p.x - danger.x) + (danger.kind === 'cone' ? 1.2 : 0) : 0;
-        if (Math.hypot(g.p.x - R.x, g.p.z - R.z) > 6) a = Math.atan2(R.z - g.p.z, R.x - g.p.x) + 0.6;
-        if (danger && danger.dur - danger.t < 0.22 && g.rollCd === 0) { g.setMoveDir(Math.cos(a), Math.sin(a)); g.useRoll(); g.setMoveDir(0, 0); }
-        else if (danger) g.setMoveDir(Math.cos(a), Math.sin(a));
-        else g.setMoveDir(0, 0);
+        if (danger) {
+          let best: [number, number] | null = null, bd = Infinity;
+          for (let k = 0; k < 16; k++) for (const r of [1.5, 2.5, 3.5, 4.5]) {
+            const a = (k / 16) * Math.PI * 2, x = g.p.x + Math.cos(a) * r, z = g.p.z + Math.sin(a) * r;
+            if (g.insideTelegraph(danger, x, z) || !g.world.lineWalkable(g.p.x, g.p.z, x, z) || Math.hypot(x - R.x, z - R.z) > 6.3) continue;
+            const cost = r + Math.hypot(x - R.x, z - R.z) * 0.3;
+            if (cost < bd) { bd = cost; best = [x, z]; }
+          }
+          const b = g.boss ?? { x: R.x, z: R.z };
+          const [tx, tz] = best ?? [g.p.x * 2 - b.x, g.p.z * 2 - b.z];
+          const a = Math.atan2(tz - g.p.z, tx - g.p.x);
+          if (danger.dur - danger.t < 0.22 && g.rollCd === 0) { g.setMoveDir(Math.cos(a), Math.sin(a)); g.useRoll(); g.setMoveDir(0, 0); }
+          else g.setMoveDir(Math.cos(a), Math.sin(a));
+        } else if (g.stats.style !== 'melee' && g.boss && Math.hypot(g.boss.x - g.p.x, g.boss.z - g.p.z) < 5) {
+          // ranged/magic kite: step to the walkable spot in the ring furthest from the boss
+          let best: [number, number] | null = null, bd = -Infinity;
+          for (let k = 0; k < 16; k++) {
+            const a = (k / 16) * Math.PI * 2, x = g.p.x + Math.cos(a) * 2.5, z = g.p.z + Math.sin(a) * 2.5;
+            if (!g.world.lineWalkable(g.p.x, g.p.z, x, z) || Math.hypot(x - R.x, z - R.z) > 6.3) continue;
+            const score = Math.hypot(x - g.boss.x, z - g.boss.z);
+            if (score > bd) { bd = score; best = [x, z]; }
+          }
+          if (best) { const a = Math.atan2(best[1] - g.p.z, best[0] - g.p.x); g.setMoveDir(Math.cos(a), Math.sin(a)); } else g.setMoveDir(0, 0);
+        } else g.setMoveDir(0, 0);
         if (g.p.hp < g.stats.maxHp * 0.45 && food > 0 && g.eatCd === 0) { g.p.hp = Math.min(g.stats.maxHp, g.p.hp + 5); food--; g.eatCd = 1.2; }
         g.step(1 / 30);
         if (g.s.flags.guardian_defeated || g.dead) break;
@@ -34,8 +54,11 @@ it('Lockbound Guardian balance: needs ~12 melee, easier with its weakness (magic
     }
     results[`${weapon}@${lvl}`] = wins;
   }
+  console.log(JSON.stringify(results));
   expect(results['cutlass_bronze@8']).toBeLessThanOrEqual(2);
   expect(results['cutlass_bronze@15']).toBeGreaterThanOrEqual(6);
   expect(results['staff_driftwood@10']).toBeGreaterThanOrEqual(7);
-  expect(results['pistol_flintlock@10']).toBeGreaterThanOrEqual(6);
-}, 30_000);
+  // ranged is neutral against the Guardian: it needs melee-like levels (~12-13), magic is the shortcut
+  expect(results['pistol_flintlock@10']).toBeLessThanOrEqual(4);
+  expect(results['pistol_flintlock@13']).toBeGreaterThanOrEqual(6);
+}, 60_000);

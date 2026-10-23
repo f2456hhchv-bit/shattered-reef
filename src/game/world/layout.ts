@@ -85,6 +85,14 @@ export function buildIsland(seed = 1): IslandLayout {
     const px = R.x + Math.cos(a) * 7, pz = R.z + Math.sin(a) * 7;
     props.push({ kind: 'pillar', x: px, z: pz, rot: a, s: 0.7 + rnd() * 0.6, seed: 400 + k });
     world.solids.push({ x: px, z: pz, r: 0.75 });
+    // fallen masonry closes the ring between pillars, so a fight stays in the arena; the gap is the way in
+    if (k === 1) continue;
+    for (const f of [1 / 3, 2 / 3]) {
+      const b = a + (f * Math.PI * 2) / 9;
+      const rx = R.x + Math.cos(b) * 7, rz = R.z + Math.sin(b) * 7, s = 0.7 + rnd() * 0.25;
+      props.push({ kind: 'rock', x: rx, z: rz, rot: rnd() * 6.28, s, seed: 500 + k * 2 + Math.round(f * 3) });
+      world.solids.push({ x: rx, z: rz, r: 0.95 });
+    }
   }
   // bell plinth sits just inside the gap, so the arena centre stays clear
   const plinth = { x: R.x, z: R.z + 4.6 };
@@ -114,9 +122,9 @@ export function buildIsland(seed = 1): IslandLayout {
       made++;
     }
   };
-  const F = LAYOUT.forest, H = LAYOUT.hills;
-  scatter('tree_pine', F.x + 4, F.z + 4, 12, 14, 3.2);
-  scatter('tree_oak', F.x - 8, F.z - 6, 7, 5, 3.6);
+  const F = LAYOUT.forest, H = LAYOUT.hills, GV = LAYOUT.grove;
+  scatter('tree_pine', F.x + 4, F.z + 4, 12, 16, 3.2);
+  scatter('tree_oak', GV.x, GV.z, 8, 7, 3.6);
   scatter('rock_copper', H.x - 6, H.z + 5, 6, 5, 2.4);
   scatter('rock_tin', H.x - 2, H.z + 8, 6, 5, 2.4);
   scatter('rock_iron', H.x + 3, H.z - 2, 5, 3, 2.6);
@@ -124,14 +132,14 @@ export function buildIsland(seed = 1): IslandLayout {
 
   // fishing: sprats off the dock head (reachable on foot), bellfish shoals offshore (ship only)
   nodes.push({ uid: `n${uid++}`, def: 'spot_sprat', x: -headWidth / 2 - 1.6, z: headZ + 1.0, seed: 1 });
-  for (const [deg, inset] of [[35, -17], [205, -16], [300, -17]] as const) {
+  for (const [deg, inset] of [[20, -16], [200, -16], [295, -17]] as const) {
     const [x, z] = coastPoint(deg, inset);
     nodes.push({ uid: `n${uid++}`, def: 'spot_bell', x, z, seed: deg });
   }
 
   // ---- reefs / sea stacks
   const reefs: IslandLayout['reefs'] = [];
-  for (let tries = 0; tries < 300 && reefs.length < 12; tries++) {
+  for (let tries = 0; tries < 600 && reefs.length < 22; tries++) {
     const [x, z] = coastPoint(rnd() * 360, -(4 + rnd() * 26));
     if (Math.hypot(x - mooring.x, z - mooring.z) < 18) continue;
     if (nodes.some((n) => n.def === 'spot_bell' && Math.hypot(n.x - x, n.z - z) < 9)) continue;
@@ -140,23 +148,26 @@ export function buildIsland(seed = 1): IslandLayout {
   }
   world.reefs.push(...reefs);
 
-  // ---- decorative vegetation and rocks (solid)
-  for (let tries = 0, made = 0; tries < 2500 && made < 95; tries++) {
-    const a = rnd() * Math.PI * 2, r = Math.sqrt(rnd()) * 60;
+  // ---- decorative vegetation and rocks (solid): woods are dense, open country is sparse
+  const woods = [{ x: F.x, z: F.z, r: 20 }, { x: GV.x, z: GV.z, r: 13 }, { x: LAYOUT.heartwood.x, z: LAYOUT.heartwood.z, r: 20 }, { x: LAYOUT.fen.x, z: LAYOUT.fen.z, r: 16 }];
+  const keepClear = [{ x: R.x, z: R.z, r: 11 }, { x: C.x, z: C.z, r: 9 }, { x: LAYOUT.cove.x, z: LAYOUT.cove.z, r: 9 }, { x: LAYOUT.crossroads.x, z: LAYOUT.crossroads.z, r: 6 }];
+  for (let tries = 0, made = 0; tries < 9000 && made < 260; tries++) {
+    const a = rnd() * Math.PI * 2, r = Math.sqrt(rnd()) * 92;
     const x = Math.cos(a) * r, z = Math.sin(a) * r;
-    const inForest = Math.hypot(x - F.x, z - F.z) < 20;
-    if (!inForest && rnd() < 0.45) continue;
+    const inWood = woods.some((w) => Math.hypot(x - w.x, z - w.z) < w.r);
+    if (!inWood && rnd() < 0.6) continue;
     if (!free(x, z, 7, 2.6)) continue;
-    if (Math.hypot(x - R.x, z - R.z) < 11 || Math.hypot(x - C.x, z - C.z) < 9) continue;
+    if (keepClear.some((k) => Math.hypot(x - k.x, z - k.z) < k.r)) continue;
     if (Math.hypot(x - H.x, z - H.z) < 12 && rnd() < 0.7) continue;
-    if (world.ground(x, z) < 0.5) continue;
-    const kind = inForest || rnd() < 0.6 ? 'pine' : 'broadleaf';
+    const gy = world.ground(x, z);
+    if (gy < 0.5 || gy > 9) continue; // nothing on the bare upper peak
+    const kind = inWood || rnd() < 0.6 ? 'pine' : 'broadleaf';
     props.push({ kind, x, z, rot: rnd() * Math.PI * 2, s: 0.85 + rnd() * 0.35, seed: Math.floor(rnd() * 1e6) });
     world.solids.push({ x, z, r: 0.45 });
     made++;
   }
-  for (let tries = 0, made = 0; tries < 800 && made < 30; tries++) {
-    const a = rnd() * Math.PI * 2, r = 15 + rnd() * 45;
+  for (let tries = 0, made = 0; tries < 2400 && made < 80; tries++) {
+    const a = rnd() * Math.PI * 2, r = 15 + rnd() * 75;
     const x = Math.cos(a) * r, z = Math.sin(a) * r;
     if (!free(x, z, 1, 2)) continue;
     const s = 0.35 + rnd() * 0.7;
@@ -184,7 +195,7 @@ export function buildIsland(seed = 1): IslandLayout {
     spawns.push({ enemy: 'reef_crab', x, z });
   }
   for (let k = 0; k < 3; k++) {
-    const [x, z] = coastPoint(20 + k * 14, 3.5);
+    const [x, z] = coastPoint(62 + k * 8, 3.5);
     spawns.push({ enemy: 'reef_crab', x, z });
   }
   spawns.push({ enemy: 'brigand', x: C.x - 2.5, z: C.z + 2 }, { enemy: 'brigand', x: C.x + 2.5, z: C.z + 1.5 }, { enemy: 'brigand', x: C.x, z: C.z - 2.5 });
