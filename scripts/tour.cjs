@@ -29,6 +29,7 @@ const W = +(process.argv[3] || 960), H = +(process.argv[4] || 600);
       if (['fen', 'heartwood', 'peak', 'cove', 'wreck', 'crossroads', 'grove'].includes(sc)) { const z = r.zones[sc]; go(z.x, z.z); }
       if (sc === 'strand') { const c = g.enemies.find((e) => e.def.id === 'reef_crab'); go(c.x + 2, c.z - 1); }
       if (sc === 'npcs') { const n = L.npcs.find((n) => n.id === 'marta'); go(n.x + 2.2, n.z + 1.5); }
+      if (sc === 'talk') { const n = L.npcs.find((n) => n.id === 'iven'); go(n.x, n.z + 2.2); g.interact('npc:iven'); }
       if (sc === 'smithy') { const f = L.stations.find((s) => s.id === 'anvil'); go(f.x - 2, f.z + 4); }
       if (sc === 'brigands') { go(r.zones.camp.x - 3, r.zones.camp.z + 4); }
       if (zoom) r.renderer.zoom = zoom;
