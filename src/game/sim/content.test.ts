@@ -53,6 +53,13 @@ describe('content data', () => {
     expect(dropOnly).toEqual([]);
   });
 
+  it('starter foes (below level 9) never roll as elites', () => {
+    for (let seed = 1; seed < 12; seed++) {
+      const g = new Game({ seed, save: defaultSave(base.layout.respawn, base.layout.mooring) });
+      expect(g.enemies.filter((e) => e.def.level < 9 && e.elite).map((e) => e.def.id)).toEqual([]);
+    }
+  }, 30_000);
+
   it('enemies cover combat levels 2 to 80 without a gap over 15', () => {
     const lv = Object.values(ENEMIES).map((e) => e.level).sort((a, b) => a - b);
     expect(lv[0]).toBeLessThanOrEqual(2);
