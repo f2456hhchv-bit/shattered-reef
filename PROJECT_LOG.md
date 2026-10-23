@@ -59,6 +59,7 @@ Reflects the actual repository, not the roadmap.
 | Ship | `sim/game.ts` | board at dock, seamless sailing, shallows collision, go ashore on any reachable beach, mooring bell recalls ship |
 | Saves | `sim/save.ts` | versioned, validated, migration table; autosave every 10 s + on hide |
 | UI | `src/ui/` | landscape side panel / portrait bottom sheet; pack 4×7 (7×4 portrait), equipment + stats, skills, quests + places, map, settings |
+| Audio | `src/audio/audio.ts` | all synthesised with Web Audio (no files): effects per game event, surf that follows the coast, wind, gulls; generative sea-folk music (calm / combat with drums / boss). Starts on first tap; Music and Sound toggles saved in settings; suspends when the tab is hidden |
 | Input | `src/input/input.ts` | invisible joystick, tap/click to walk or use, hover labels, WASD, hotkeys, pinch/wheel zoom |
 
 ## Controls
@@ -80,7 +81,7 @@ Reflects the actual repository, not the roadmap.
 - **2026-10-23, Tom:** "plays really well; combat needs a lot of work; one Combat skill is wrong; levels far too fast". Rebuilt combat on RuneScape's model (see Decisions). Measured with simulated play: crabs from level 1 give Attack 5 after 10 min, 12 after 30 min (was one level per crab). Guardian balance test: melee 8 loses, melee 12 wins with ~7 food in ~2.5 min, magic 10 wins in ~1 min, ranged 10 wins in ~2 min. Found and fixed: the Guardian could stack two warnings to land together (unfair instant death).
 
 ## Known issues / limitations
-- No sound yet.
+- Sound is synthesised, not recorded: decent for hits and surf, thinner than real samples. Not yet heard on a real phone speaker.
 - No naval combat; sea is for travel, fishing and discovery only.
 - Buildings and the Guardian are still blocky; next art target after characters/UI.
 - One island. Terrain (64 chunks of 40 m) and grass (40 m buckets) are frustum-culled; camera far plane follows the fog. Not streamed: the whole 300 m world is built at load (~0.4 s for the simulation in Node).
@@ -92,7 +93,7 @@ Reflects the actual repository, not the roadmap.
 
 ## Next
 1. Tom plays the content build on his phone: tap fixes, frame rate, difficulty of the new zones.
-2. Sound (code-generated effects + ambient sea).
+2. Opening credits sequence, then a further visual pass (sprites, items, UI, HUD).
 3. New skills one at a time (docs/SKILLS.md), each with real content.
 4. Survivor.io-style encounter upgrades for the camp and boss fights.
 5. Naval combat (raider skiffs) and the Kraken.
