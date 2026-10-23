@@ -4,7 +4,7 @@ export default defineConfig({
   base: './',
   build: {
     rollupOptions: {
-      input: { 'style-test': 'style-test.html' },
+      input: { main: 'index.html', 'style-test': 'style-test.html' },
     },
   },
 });
