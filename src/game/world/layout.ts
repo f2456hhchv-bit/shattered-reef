@@ -1,5 +1,5 @@
 import { mulberry32 } from '../../art/noise';
-import { LAYOUT, LAGOON, SEA_SPOTS, PATHS, coastPoint, coastDist, nearestPathDist, FLATS } from './island';
+import { LAYOUT, LAGOON, SEA_SPOTS, PATHS, BEACH, coastPoint, coastDist, nearestPathDist, FLATS } from './island';
 import { World } from './world';
 
 // Everything placed on Bellwether, derived deterministically. Shared by simulation and renderer.
@@ -174,8 +174,8 @@ export function buildIsland(seed = 1): IslandLayout {
       const x = fx + Math.cos(ang) * r, z = fz + Math.sin(ang) * r, h = world.ground(x, z);
       if (h > 0.16) lastLand = [x, z]; // walkable shore
       else if (h < deep && lastLand) {
-        if (Math.hypot(x - lastLand[0], z - lastLand[1]) > 2.4) return null; // shelving shore: too far to cast
-        return [x + Math.cos(ang) * 0.3, z + Math.sin(ang) * 0.3];
+        if (Math.hypot(x - lastLand[0], z - lastLand[1]) > 2.9) return null; // shelving shore: too far to cast
+        return [x, z];
       }
     }
     return null;
@@ -216,7 +216,7 @@ export function buildIsland(seed = 1): IslandLayout {
     const x = Math.cos(a) * r, z = Math.sin(a) * r;
     const inWood = woods.some((w) => Math.hypot(x - w.x, z - w.z) < w.r);
     if (!inWood && rnd() < 0.6) continue;
-    if (!free(x, z, 7, 2.6)) continue;
+    if (!free(x, z, BEACH + 1, 2.6)) continue; // trees stop where the sand starts
     if (keepClear.some((k) => Math.hypot(x - k.x, z - k.z) < k.r)) continue;
     if (Math.hypot(x - H.x, z - H.z) < 12 && rnd() < 0.7) continue;
     const gy = world.ground(x, z);
@@ -242,16 +242,16 @@ export function buildIsland(seed = 1): IslandLayout {
   for (let tries = 0, made = 0; tries < 3000 && made < 36; tries++) {
     const a = rnd() * Math.PI * 2, r = 12 + Math.sqrt(rnd()) * 75;
     const x = Math.cos(a) * r, z = Math.sin(a) * r;
-    if (!free(x, z, 6, 2.2) || world.ground(x, z) < 0.5 || world.ground(x, z) > 7) continue;
+    if (!free(x, z, BEACH, 2.2) || world.ground(x, z) < 0.5 || world.ground(x, z) > 7) continue;
     if (keepClear.some((k) => Math.hypot(x - k.x, z - k.z) < k.r)) continue;
     nodes.push({ uid: `n${uid++}`, def: 'bush_berry', x, z, seed: Math.floor(rnd() * 1e6), scenery: true, s: 0.8 + rnd() * 0.4, rot: rnd() * 6.28 });
     world.solids.push({ x, z, r: 0.5 });
     made++;
   }
   // kelp beds just off the beaches, all the way round
-  for (let deg = 0; deg < 360; deg += 13) {
+  for (let deg = 0; deg < 360; deg += 9) {
     const [lx, lz] = coastPoint(deg + rnd() * 6, 6);
-    const p = shoreSpot(lx, lz, Math.atan2(lz, lx), -0.08); // kelp likes the shallows
+    const p = shoreSpot(lx, lz, Math.atan2(lz, lx), -0.04); // kelp likes the shallows
     if (p && Math.hypot(p[0] - mooring.x, p[1] - mooring.z) > 14 && !nodes.some((n) => Math.hypot(n.x - p[0], n.z - p[1]) < 6))
       nodes.push({ uid: `n${uid++}`, def: 'kelp_bed', x: p[0], z: p[1], seed: deg, scenery: true, s: 0.9 + rnd() * 0.3, rot: rnd() * 6.28 });
   }
@@ -280,7 +280,7 @@ export function buildIsland(seed = 1): IslandLayout {
 
   world.bake();
   // a tree or rock nobody can stand beside would be the one thing on the island you can't use: leave it out
-  const unreachable = nodes.filter((n) => n.scenery && !world.nearestWalkable(n.x, n.z, n.def === 'kelp_bed' ? 2.9 : 1.6));
+  const unreachable = nodes.filter((n) => n.scenery && !world.nearestWalkable(n.x, n.z, n.def === 'kelp_bed' ? 3.1 : 1.6));
   if (unreachable.length) {
     const gone = new Set(unreachable);
     for (let i = nodes.length - 1; i >= 0; i--) if (gone.has(nodes[i])) nodes.splice(i, 1);

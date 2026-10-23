@@ -278,3 +278,9 @@ body.landscape #side { padding-top: calc(var(--mm) + 80px + env(safe-area-inset-
 .portrait { width: 84px; height: 84px; border-radius: 50%; float: left; margin: -4px 12px 4px -2px; background: radial-gradient(circle at 50% 35%, #3a5a66, #16262c 75%); box-shadow: 0 0 0 2px #0d0804, 0 0 0 4px #c9a050, 0 0 0 5px #0d0804, 0 4px 10px #000a; }
 .portrait.small { width: 58px; height: 58px; float: none; margin: 2px 0 0 2px; }
 #dialog { min-height: 104px; }
+/* close buttons sit above the panel's other content (titles and names used to cover them) */
+.panel > .x { z-index: 5; }
+#hover .needs { font-size: 12px; font-weight: 600; margin-top: 2px; }
+#hover .needs.ok { color: #9fe08a; }
+#hover .needs.no { color: #ff8a6a; }
+#ctx small.no { color: #ff9a7a; }

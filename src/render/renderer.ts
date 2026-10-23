@@ -19,7 +19,7 @@ import { buildLootShard, SHARD_TINT, type LootShard, type ShardKind } from '../a
 import { item } from '../game/data/items';
 import { NODES, PLAYER_BASE } from '../game/data/content';
 import type { Game, GameEvent, Enemy, Telegraph } from '../game/sim/game';
-import { coastDist, nearestPathDist, WORLD_HALF } from '../game/world/island';
+import { coastDist, nearestPathDist, WORLD_HALF, BEACH } from '../game/world/island';
 import { buildTerrainMesh } from './terrainMesh';
 import { bakeRig, bakeStatic, mergeColoured } from './bake';
 import { InstancedField, type FieldItem } from './instanced';
@@ -27,7 +27,7 @@ import { Particles } from './fx';
 
 const HERO = 1.2; // characters drawn larger than life so they read on phones
 /** Fine cloth/skin grain and a warm rim light so people stand out from the ground; coarser grain on props. */
-const CHAR_SURFACE = { scale: 7, tone: 0.12, bump: 0.18, rim: 0.32 };
+const CHAR_SURFACE = { scale: 7, tone: 0.12, bump: 0.18, rim: 0.1 };
 const PROP_SURFACE = { scale: 3, tone: 0.24, bump: 0.42 };
 
 const CRAB_SHELLS: Record<string, Partial<Record<PalKey, number>>> = {
@@ -261,7 +261,7 @@ export class GameRenderer {
     let made = 0;
     for (let i = 0; i < 90000 && made < 9000; i++) {
       const x = (rnd() - 0.5) * 200, z = (rnd() - 0.5) * 200;
-      if (coastDist(x, z) < 6 || !w.walkable(x, z)) continue;
+      if (coastDist(x, z) < BEACH || !w.walkable(x, z)) continue; // no grass on the beach
       const y = w.ground(x, z);
       if (y > 8) continue; // bare upper peak
       const p = nearestPathDist(x, z);
