@@ -21,7 +21,7 @@ export class Input {
     canvas.addEventListener('pointercancel', (e) => this.cancel(e));
     canvas.addEventListener('pointerleave', () => this.ui.showHover(0, 0, null, '', false));
     canvas.addEventListener('contextmenu', (e) => e.preventDefault());
-    canvas.addEventListener('wheel', (e) => { e.preventDefault(); this.r.zoom = clamp(this.r.zoom * (1 + Math.sign(e.deltaY) * 0.08), 0.6, 1.5); }, { passive: false });
+    canvas.addEventListener('wheel', (e) => { e.preventDefault(); this.r.zoom = clamp(this.r.zoom * (1 + Math.sign(e.deltaY) * 0.08), 0.42, 1.5); }, { passive: false });
     window.addEventListener('keydown', (e) => this.key(e, true));
     window.addEventListener('keyup', (e) => this.key(e, false));
     window.addEventListener('blur', () => { this.keys.clear(); this.applyKeys(); });
@@ -50,7 +50,7 @@ export class Input {
     p.x = e.clientX; p.y = e.clientY;
     if (this.pinch && this.pointers.size >= 2) {
       const [a, b] = [...this.pointers.values()];
-      this.r.zoom = clamp(this.pinch.zoom * (this.pinch.d / Math.max(1, Math.hypot(a.x - b.x, a.y - b.y))), 0.6, 1.5);
+      this.r.zoom = clamp(this.pinch.zoom * (this.pinch.d / Math.max(1, Math.hypot(a.x - b.x, a.y - b.y))), 0.42, 1.5);
       return;
     }
     if (p.type === 'mouse') { this.hover(e.clientX, e.clientY); return; }

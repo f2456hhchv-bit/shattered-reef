@@ -10,7 +10,8 @@ import { createWater } from '../art/water';
 import { PAL, mat, recolour, type PalKey } from '../art/materials';
 import { mulberry32 } from '../art/noise';
 import { buildSloop, buildBarrel, type ShipRig } from '../art/models/ship';
-import { buildHumanoid, animateIdle, animateWalk, animateSwing, animateWork, animateFish, type HumanoidRig, type HumanoidLook } from '../art/models/character';
+import { NPC_LOOKS, PLAYER_LOOK, BRIGAND_LOOK, HUMAN_LOOKS } from '../art/cast';
+import { buildHumanoid, animateIdle, animateWalk, animateSwing, animateWork, animateFish, type HumanoidRig } from '../art/models/character';
 import { buildCrab, animateCrab, type CrabRig } from '../art/models/crab';
 import { buildPine, buildBroadleaf, buildRock, buildOreRock, buildCrate, buildLanternPost, buildShack, buildDock, buildGrass, buildBush, buildKelp } from '../art/models/props';
 import { buildBench, buildFurnace, buildAnvil, buildCookfire, buildTent, buildSmithyShed, buildPillar, buildPlinth, buildStrongbox, buildDigSpot, buildGuardian, buildStump, buildRipples, type GuardianRig } from '../art/models/world';
@@ -29,24 +30,6 @@ const HERO = 1.2; // characters drawn larger than life so they read on phones
 const CHAR_SURFACE = { scale: 7, tone: 0.12, bump: 0.18, rim: 0.32 };
 const PROP_SURFACE = { scale: 3, tone: 0.24, bump: 0.42 };
 
-const NPC_LOOKS: Record<string, HumanoidLook> = {
-  iven: { skin: 'skin', coat: 0x55603f, coatTrim: 'brass', shirt: 'shirt', trousers: 'trousers', boots: 'leather', hat: 0x3a3a34, hair: 0x9a9a92, hatStyle: 'cap', spectacles: true },
-  marta: { skin: 0xc98f66, coat: 0x7a3b3b, coatTrim: 0xd8c7a8, shirt: 'shirt', trousers: 0x4a3a30, boots: 'leather', hat: 0x2c2420, hair: 0x2c2420, hatStyle: 'none', beard: false, apron: 0xe6dcc0 },
-  bram: { skin: 0xd09a70, coat: 0x4a4038, coatTrim: 'iron', shirt: 0xb5a58a, trousers: 0x3a3028, boots: 'leather', hat: 0x2c2420, hair: 0x5a3a22, hatStyle: 'none', apron: 0x5a3a26, held: 'hammer' },
-};
-const PLAYER_LOOK: HumanoidLook = { skin: 'skin', coat: 'coat', coatTrim: 'coatTrim', shirt: 'shirt', trousers: 'trousers', boots: 'leather', hat: 'hat', hair: 'hair', held: 'cutlass' };
-const BRIGAND_LOOK: HumanoidLook = { skin: 0xc48c62, coat: 0x4a2f24, coatTrim: 0x8a2e22, shirt: 0xb5a58a, trousers: 0x3a3a30, boots: 'leather', hat: 0x9a2a1e, hair: 0x2a1a12, hatStyle: 'bandana', held: 'cutlass' };
-const GUNNER_LOOK: HumanoidLook = { ...BRIGAND_LOOK, coat: 0x2f3a2e, hat: 0x2a2a2a, held: 'musket' };
-const DROWNED_SKIN = 0x86a49a;
-/** Outfits per enemy look; gunner-type enemies get a musket automatically. */
-const HUMAN_LOOKS: Record<string, HumanoidLook> = {
-  brigand: BRIGAND_LOOK,
-  gunner: GUNNER_LOOK,
-  smuggler: { skin: 0xc8946a, coat: 0x23364a, coatTrim: 0xb8b0a0, shirt: 0xd8ccb0, trousers: 0x2e2a26, boots: 'leather', hat: 0x161616, hair: 0x2a1a12, hatStyle: 'tricorn', held: 'cutlass' },
-  poacher: { skin: 0xb98058, coat: 0x445228, coatTrim: 0x7a5a30, shirt: 0x9a8a62, trousers: 0x3a3424, boots: 'leather', hat: 0x5a4024, hair: 0x6a4a2a, hatStyle: 'cap', held: 'cutlass' },
-  drowned: { skin: DROWNED_SKIN, coat: 0x2c3b3a, coatTrim: 0x5a6a5a, shirt: 0x7a8a7a, trousers: 0x2a3030, boots: 0x1e2424, hat: 0x2a3a34, hair: 0x3a4a44, hatStyle: 'bandana', held: 'cutlass' },
-  captain: { skin: DROWNED_SKIN, coat: 0x3a1828, coatTrim: 'brass', shirt: 0x8a9a8a, trousers: 0x22201e, boots: 0x1e2424, hat: 0x141414, hair: 0x3a4a44, hatStyle: 'tricorn', held: 'cutlass' },
-};
 const CRAB_SHELLS: Record<string, Partial<Record<PalKey, number>>> = {
   mire: { crabShell: 0x5e7a3a, crabDark: 0x3c5228, crabBelly: 0xb8bc8a, barnacle: 0x7a8a5a },
   ironshell: { crabShell: 0x6a6e74, crabDark: 0x44484e, crabBelly: 0xb0a890, barnacle: 0x9a9a90 },
@@ -776,7 +759,9 @@ export class GameRenderer {
     this.shake = Math.max(0, this.shake - dt * 1.8);
     const sx = (Math.random() - 0.5) * this.shake * 0.5, sz = (Math.random() - 0.5) * this.shake * 0.5;
     const c = this.camTarget;
-    this.camera.position.set(c.x + sx, c.y + Math.sin(this.pitch) * this.camDist, c.z + sz + Math.cos(this.pitch) * this.camDist);
+    // zooming in also lowers the camera (RuneScape-style), so close up you see faces, not hat brims
+    const pitch = this.pitch - THREE.MathUtils.degToRad(20) * THREE.MathUtils.clamp((1 - this.zoom) / (1 - 0.42), 0, 1);
+    this.camera.position.set(c.x + sx, c.y + Math.sin(pitch) * this.camDist, c.z + sz + Math.cos(pitch) * this.camDist);
     this.camera.lookAt(c.x + sx, c.y, c.z + sz);
     this.sun.position.copy(c).addScaledVector(this.sunDir, 70);
     this.sun.target.position.copy(c);

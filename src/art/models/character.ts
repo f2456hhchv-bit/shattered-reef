@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { mat, mesh, type PalKey } from '../materials';
+import { mat, mesh, PAL, type PalKey } from '../materials';
 
 // Jointed humanoid, ~1.8m. Faces +z. Rigid parts on pivots, animated in code (no skinning).
 // Built from turned (lathe) profiles, capsules and spheres so every silhouette is rounded:
@@ -20,6 +20,7 @@ export interface HumanoidLook {
   beard?: boolean;
   apron?: PalKey | number;
   spectacles?: boolean;
+  eyes?: number; // iris colour
 }
 
 export interface HumanoidRig {
@@ -30,6 +31,10 @@ export interface HumanoidRig {
   armR: THREE.Group;
   legL: THREE.Group;
   legR: THREE.Group;
+  kneeL: THREE.Group;
+  kneeR: THREE.Group;
+  elbowL: THREE.Group;
+  elbowR: THREE.Group;
   held: THREE.Group;
 }
 
@@ -63,24 +68,34 @@ export function buildHumanoid(look: HumanoidLook): HumanoidRig {
   const body = new THREE.Group();
   root.add(body);
 
-  // ---- legs: one turned profile each (hip -> knee -> ankle), cuffed boots with a rounded toe
+  // ---- legs: thigh on the hip, shin and boot on a knee pivot so walking bends naturally
+  const knees: THREE.Group[] = [];
   const mkLeg = (side: number) => {
     const leg = new THREE.Group();
     leg.position.set(0.11 * side, 0.92, 0);
-    const trouser = mesh(lathe([[0, 0.04], [0.085, 0.02], [0.1, -0.08], [0.092, -0.3], [0.072, -0.46], [0.074, -0.52], [0.064, -0.66], [0, -0.68]], 12), mat(look.trousers));
-    const shaft = mesh(lathe([[0, -0.5], [0.092, -0.5], [0.098, -0.55], [0.08, -0.6], [0.078, -0.8], [0.084, -0.86], [0, -0.86]], 12), mat(look.boots));
-    const foot = mesh(sphere(0.085, 12, 8), mat(look.boots));
+    const thigh = mesh(lathe([[0, 0.04], [0.085, 0.02], [0.1, -0.08], [0.092, -0.3], [0.076, -0.44], [0, -0.47]], 12), mat(look.trousers));
+    const knee = new THREE.Group();
+    knee.position.y = -0.44;
+    const shin = mesh(lathe([[0, 0.04], [0.074, 0.02], [0.078, -0.08], [0.064, -0.22], [0, -0.24]], 12), mat(look.trousers));
+    // boot: shaft with a turned-down top, rounded toe, darker sole
+    const shaft = mesh(lathe([[0, -0.06], [0.094, -0.06], [0.1, -0.1], [0.08, -0.15], [0.078, -0.36], [0.084, -0.42], [0, -0.42]], 12), mat(look.boots));
+    const fold = mesh(new THREE.TorusGeometry(0.092, 0.022, 6, 16), mat(look.boots));
+    put(fold, 0, -0.08, 0, Math.PI / 2);
+    const foot = mesh(sphere(0.085, 14, 10), mat(look.boots));
     foot.scale.set(0.95, 0.7, 1.65);
-    put(foot, 0, -0.85, 0.06);
+    put(foot, 0, -0.41, 0.06);
     const sole = mesh(cylr(0.085, 0.085, 0.03, 12), mat('woodDark'));
     sole.scale.set(0.95, 1, 1.7);
-    put(sole, 0, -0.9, 0.06);
-    leg.add(trouser, shaft, foot, sole);
+    put(sole, 0, -0.46, 0.06);
+    knee.add(shin, shaft, fold, foot, sole);
+    leg.add(thigh, knee);
     body.add(leg);
+    knees.push(knee);
     return leg;
   };
   const legL = mkLeg(-1);
   const legR = mkLeg(1);
+  const [kneeL, kneeR] = knees;
 
   // ---- torso: tapered waist, full chest, sloped shoulders; flattened front-to-back
   const torso = mesh(lathe([[0, 1.6], [0.07, 1.58], [0.17, 1.53], [0.225, 1.44], [0.23, 1.3], [0.195, 1.12], [0.18, 0.98], [0, 0.96]], 16), mat(look.coat));
@@ -104,6 +119,15 @@ export function buildHumanoid(look: HumanoidLook): HumanoidRig {
   const buckle = mesh(cylr(0.045, 0.045, 0.025, 10), mat('brass'));
   put(buckle, 0, 1.0, 0.142, Math.PI / 2);
   body.add(torso, skirt, shirt, lapel(-1), lapel(1), edge(-1), edge(1), belt, buckle);
+  // a stand-up collar, a row of brass buttons each side of the opening, a pouch on the belt
+  const collar = mesh(new THREE.TorusGeometry(0.085, 0.03, 8, 20), mat(look.coat));
+  put(collar, 0, 1.56, 0.0, Math.PI / 2 - 0.15);
+  collar.scale.set(1, 1, 0.8);
+  body.add(collar);
+  for (const side of [-1, 1]) for (let k = 0; k < 3; k++) body.add(put(mesh(sphere(0.014, 8, 6), mat('brass')), 0.085 * side, 1.38 - k * 0.11, 0.158 - k * 0.006));
+  const pouch = mesh(sphere(0.06, 10, 8), mat('leather'));
+  pouch.scale.set(1.1, 1, 0.6);
+  body.add(put(pouch, -0.16, 0.92, 0.1, 0, 0.5));
   for (const side of [-1, 1]) {
     const delt = mesh(sphere(0.105, 12, 8), mat(look.coat));
     delt.scale.set(1, 0.85, 0.9);
@@ -127,27 +151,37 @@ export function buildHumanoid(look: HumanoidLook): HumanoidRig {
   // ---- head: skull, jaw, nose, ears, brows, eyes, hair
   const head = new THREE.Group();
   head.position.y = 1.58;
+  head.scale.setScalar(1.1); // a touch larger than life: faces have to read from the overhead camera
   const neck = mesh(cylr(0.055, 0.068, 0.12, 10), mat(look.skin));
   neck.position.y = 0.03;
-  const skull = mesh(sphere(0.135, 16, 12), mat(look.skin));
-  skull.scale.set(0.93, 1.06, 1.02);
-  skull.position.y = 0.19;
-  const jaw = mesh(sphere(0.1, 14, 10), mat(look.skin));
-  jaw.scale.set(1.02, 0.85, 0.95);
-  put(jaw, 0, 0.12, 0.035);
-  const nose = mesh(sphere(0.026, 8, 6), mat(look.skin));
-  nose.scale.set(0.9, 1.3, 1.25);
-  put(nose, 0, 0.165, 0.13);
-  head.add(neck, skull, jaw, nose);
+  // one sculpted head (cranium, cheekbones, jaw and chin in a single surface) wearing a painted face
+  const headGeo = new THREE.SphereGeometry(0.145, 32, 24);
+  const hp = headGeo.getAttribute('position') as THREE.BufferAttribute;
+  for (let i = 0; i < hp.count; i++) {
+    let x = hp.getX(i), y = hp.getY(i), z = hp.getZ(i);
+    const below = Math.max(0, -y / 0.145); // 0 at the eyes' level, 1 at the chin
+    x *= 1 - 0.28 * below * below; // jaw tapers to the chin
+    if (z > 0) z *= 1 + 0.12 * below - 0.05 * Math.max(0, y / 0.145); // chin forward, brow back a touch
+    y *= y < 0 ? 1.12 : 1.02; // a longer face than a ball
+    hp.setXYZ(i, x * 0.92, y, z * 1.02);
+  }
+  headGeo.computeVertexNormals();
+  const faceMat = new THREE.MeshStandardMaterial({ map: faceTexture(look), roughness: 0.72 });
+  const skull = mesh(headGeo, faceMat);
+  skull.position.y = 0.16;
+  // nose: a bridge and a rounded tip, low-profile so it shapes the face rather than sticking out
+  const nose = mesh(sphere(0.021, 12, 8), mat(look.skin));
+  nose.scale.set(0.9, 1.15, 0.95);
+  put(nose, 0, 0.143, 0.146);
+  const bridge = mesh(capsule(0.011, 0.035), mat(look.skin));
+  put(bridge, 0, 0.17, 0.146, -0.35);
+  head.add(bridge);
+  head.add(neck, skull, nose);
   for (const side of [-1, 1]) {
-    const ear = mesh(sphere(0.03, 8, 6), mat(look.skin));
+    const ear = mesh(sphere(0.03, 10, 8), mat(look.skin));
     ear.scale.set(0.55, 1.15, 0.9);
-    put(ear, 0.128 * side, 0.18, -0.005);
-    const eye = mesh(sphere(0.016, 8, 6), mat('eye'), false);
-    put(eye, 0.047 * side, 0.2, 0.118);
-    const brow = mesh(capsule(0.011, 0.045), mat(look.hair), false);
-    put(brow, 0.05 * side, 0.232, 0.118, 0, 0, Math.PI / 2 + 0.18 * side);
-    head.add(ear, eye, brow);
+    put(ear, 0.13 * side, 0.165, -0.005);
+    head.add(ear);
   }
   const hairCap = mesh(new THREE.SphereGeometry(0.143, 16, 10, 0, Math.PI * 2, 0, Math.PI * 0.56), mat(look.hair));
   hairCap.scale.set(0.95, 1.05, 1.06);
@@ -166,21 +200,20 @@ export function buildHumanoid(look: HumanoidLook): HumanoidRig {
     head.add(bun);
   }
   if (look.beard !== false) {
-    const beard = mesh(sphere(0.095, 14, 10), mat(look.hair));
-    beard.scale.set(1.0, 0.95, 0.8);
-    put(beard, 0, 0.085, 0.05);
-    const tash = mesh(capsule(0.017, 0.07), mat(look.hair));
-    put(tash, 0, 0.138, 0.118, 0, 0, Math.PI / 2);
-    head.add(beard, tash);
+    // a full beard along the jaw and chin, leaving the painted mouth and moustache clear
+    const beard = mesh(new THREE.SphereGeometry(0.105, 18, 12, 0, Math.PI * 2, Math.PI * 0.52, Math.PI * 0.48), mat(look.hair));
+    beard.scale.set(1.0, 1.05, 0.95);
+    put(beard, 0, 0.1, 0.035);
+    head.add(beard);
   }
   if (look.spectacles) {
     for (const side of [-1, 1]) {
       const rim = mesh(new THREE.TorusGeometry(0.026, 0.006, 6, 14), mat('brass'), false);
-      put(rim, 0.047 * side, 0.2, 0.128);
+      put(rim, 0.045 * side, 0.185, 0.15);
       head.add(rim);
     }
     const bridge = mesh(capsule(0.005, 0.03), mat('brass'), false);
-    put(bridge, 0, 0.205, 0.132, 0, 0, Math.PI / 2);
+    put(bridge, 0, 0.19, 0.156, 0, 0, Math.PI / 2);
     head.add(bridge);
   }
   const style = look.hatStyle ?? 'tricorn';
@@ -213,29 +246,39 @@ export function buildHumanoid(look: HumanoidLook): HumanoidRig {
 
   // ---- arms: tapered sleeves, flared cuffs, shaped hands with a thumb
   const held = new THREE.Group();
+  const elbows: THREE.Group[] = [];
   const mkArm = (side: number) => {
     const arm = new THREE.Group();
     arm.position.set(0.27 * side, 1.47, 0);
-    const sleeve = mesh(lathe([[0, 0.05], [0.07, 0.03], [0.076, -0.08], [0.066, -0.28], [0.064, -0.34], [0.06, -0.52], [0, -0.53]], 12), mat(look.coat));
-    sleeve.rotation.x = -0.06;
-    const cuff = mesh(lathe([[0.062, -0.46], [0.086, -0.5], [0.09, -0.58], [0.07, -0.585], [0.058, -0.5]], 12), mat(look.coatTrim));
-    const hand = mesh(sphere(0.055, 12, 8), mat(look.skin));
-    hand.scale.set(0.8, 1.15, 0.95);
-    put(hand, 0, -0.64, 0.035);
-    const thumb = mesh(capsule(0.017, 0.035), mat(look.skin));
-    put(thumb, -0.035 * side, -0.62, 0.075, 0.6, 0, 0.5 * side);
-    arm.add(sleeve, cuff, hand, thumb);
+    const upper = mesh(lathe([[0, 0.05], [0.07, 0.03], [0.076, -0.08], [0.068, -0.26], [0, -0.29]], 12), mat(look.coat));
+    const elbow = new THREE.Group();
+    elbow.position.y = -0.27;
+    const fore = mesh(lathe([[0, 0.03], [0.066, 0.01], [0.062, -0.14], [0.06, -0.25], [0, -0.26]], 12), mat(look.coat));
+    const cuff = mesh(lathe([[0.062, -0.19], [0.086, -0.23], [0.09, -0.31], [0.07, -0.315], [0.058, -0.23]], 12), mat(look.coatTrim));
+    // hand: palm, a mitten of fingers and a thumb (slightly oversized so it reads at a distance)
+    const palm = mesh(sphere(0.058, 12, 10), mat(look.skin));
+    palm.scale.set(0.85, 1.05, 0.7);
+    put(palm, 0, -0.37, 0.03);
+    const fingers = mesh(capsule(0.036, 0.05), mat(look.skin));
+    fingers.scale.set(1.25, 1, 0.75);
+    put(fingers, 0, -0.43, 0.04, 0.25);
+    const thumb = mesh(capsule(0.018, 0.04), mat(look.skin));
+    put(thumb, -0.04 * side, -0.36, 0.07, 0.6, 0, 0.5 * side);
+    elbow.add(fore, cuff, palm, fingers, thumb);
+    arm.add(upper, elbow);
     arm.rotation.z = 0.1 * side;
     body.add(arm);
+    elbows.push(elbow);
     return arm;
   };
   const armL = mkArm(-1);
   const armR = mkArm(1);
-  held.position.set(0, -0.66, 0.05);
-  armR.add(held);
+  const [elbowL, elbowR] = elbows;
+  held.position.set(0, -0.4, 0.05);
+  elbowR.add(held);
   buildHeld(held, body, look.held ?? 'none');
 
-  return { root, body, head, armL, armR, legL, legR, held };
+  return { root, body, head, armL, armR, legL, legR, kneeL, kneeR, elbowL, elbowR, held };
 }
 
 /** Weapons and tools in hand (+z = pointing forward when the arm is lowered). */
@@ -308,23 +351,36 @@ function buildHeld(held: THREE.Group, body: THREE.Group, kind: NonNullable<Human
   }
 }
 
+const relax = (r: HumanoidRig) => {
+  r.kneeL.rotation.x = r.kneeR.rotation.x = 0;
+  r.elbowL.rotation.x = r.elbowR.rotation.x = -0.12;
+  r.body.rotation.x = 0;
+};
+
 export function animateIdle(r: HumanoidRig, t: number) {
   const b = Math.sin(t * 1.8);
-  r.body.position.y = b * 0.008;
-  r.armL.rotation.x = Math.sin(t * 1.8) * 0.04;
-  r.armR.rotation.x = -Math.sin(t * 1.8) * 0.04;
+  relax(r);
+  r.body.position.y = b * 0.008; // breathing
+  r.armL.rotation.x = b * 0.04;
+  r.armR.rotation.x = -b * 0.04;
   r.legL.rotation.x = 0;
   r.legR.rotation.x = 0;
-  r.head.rotation.y = Math.sin(t * 0.45) * 0.35;
+  r.head.rotation.y = Math.sin(t * 0.45) * 0.35; // looks about
 }
 
+/** Walk cycle: hips swing the thighs, knees bend on the forward swing and lift the foot, arms counter-swing. */
 export function animateWalk(r: HumanoidRig, t: number, speed = 1) {
-  const s = Math.sin(t * 9 * speed);
-  r.legL.rotation.x = s * 0.6;
-  r.legR.rotation.x = -s * 0.6;
+  const ph = t * 9 * speed, s = Math.sin(ph);
+  r.legL.rotation.x = s * 0.55;
+  r.legR.rotation.x = -s * 0.55;
+  r.kneeL.rotation.x = Math.max(0, Math.cos(ph)) * 0.9; // bend while the leg passes forward
+  r.kneeR.rotation.x = Math.max(0, -Math.cos(ph)) * 0.9;
   r.armL.rotation.x = -s * 0.45;
   r.armR.rotation.x = s * 0.45;
-  r.body.position.y = Math.abs(Math.cos(t * 9 * speed)) * 0.05;
+  r.elbowL.rotation.x = -0.25 - Math.max(0, -s) * 0.35;
+  r.elbowR.rotation.x = -0.25 - Math.max(0, s) * 0.35;
+  r.body.position.y = Math.abs(Math.cos(ph)) * 0.05;
+  r.body.rotation.x = 0.04;
   r.head.rotation.y = 0;
 }
 
@@ -333,23 +389,106 @@ export function animateSwing(r: HumanoidRig, k: number) {
   const a = k < 0.3 ? -k / 0.3 : -1 + (k - 0.3) / 0.7 * 2.4;
   r.armR.rotation.x = a * 1.3;
   r.armR.rotation.z = 0.08 + (k < 0.3 ? 0 : Math.sin((k - 0.3) / 0.7 * Math.PI) * 0.5);
+  r.elbowR.rotation.x = k < 0.3 ? -1.0 * (k / 0.3) : -1.0 + (k - 0.3) / 0.7; // cock the arm, then extend through the cut
   r.body.rotation.y = Math.sin(k * Math.PI) * -0.35;
+  r.kneeL.rotation.x = r.kneeR.rotation.x = 0.15; // braced
 }
 
 /** Repeating work motion for chopping / mining / hammering. */
 export function animateWork(r: HumanoidRig, t: number) {
   const s = (Math.sin(t * 5.2) + 1) / 2;
+  relax(r);
   r.armR.rotation.x = -2.2 + s * 2.0;
   r.armL.rotation.x = -1.6 + s * 1.6;
+  r.elbowR.rotation.x = -0.6 * (1 - s);
+  r.elbowL.rotation.x = -0.6 * (1 - s);
   r.body.rotation.x = s * 0.15;
+  r.kneeL.rotation.x = r.kneeR.rotation.x = 0.1 + s * 0.12;
   r.legL.rotation.x = 0;
   r.legR.rotation.x = 0;
 }
 
 export function animateFish(r: HumanoidRig, t: number) {
+  relax(r);
   r.armR.rotation.x = -1.1 + Math.sin(t * 1.3) * 0.08;
   r.armL.rotation.x = -0.9;
-  r.body.rotation.x = 0;
+  r.elbowR.rotation.x = -0.35;
+  r.elbowL.rotation.x = -0.5;
   r.legL.rotation.x = 0;
   r.legR.rotation.x = 0;
+}
+
+// ---- painted faces ------------------------------------------------------------------------
+// The head is a UV sphere, so its texture is an equirectangular map: the face is centred at u = 0.25
+// (the sphere's front), 1 px = 0.7 degrees both ways. Features are placed where the sculpted head puts
+// the eyes, nose and mouth. Cached per look so a crowd of brigands shares one texture.
+const faceCache = new Map<string, THREE.CanvasTexture>();
+const hex = (v: PalKey | number) => `#${new THREE.Color(typeof v === 'number' ? v : PAL[v]).getHexString()}`;
+
+function faceTexture(look: HumanoidLook): THREE.CanvasTexture {
+  const female = look.beard === false;
+  const iris = look.eyes ?? [0x4a3020, 0x3a6a9a, 0x4a6a3a, 0x5a4030][Math.abs(Math.round(new THREE.Color(typeof look.hair === 'number' ? look.hair : PAL[look.hair]).getHSL({ h: 0, s: 0, l: 0 }).l * 97)) % 4];
+  const key = `${hex(look.skin)}|${hex(look.hair)}|${iris}|${female}|${look.beard !== false}`;
+  const hit = faceCache.get(key);
+  if (hit) return hit;
+  const W = 512, H = 256, cx = 128;
+  const cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const c = cv.getContext('2d')!;
+  // canvas wants display (sRGB) values; THREE.Color holds linear ones, so convert before writing
+  const skin = new THREE.Color(hex(look.skin)), rgb = { r: 0, g: 0, b: 0 };
+  const shade = (k: number, a = 1) => { skin.clone().multiplyScalar(k).getRGB(rgb, THREE.SRGBColorSpace); return `rgba(${Math.round(rgb.r * 255)},${Math.round(rgb.g * 255)},${Math.round(rgb.b * 255)},${a})`; };
+  // skin, a little warmer in the cheeks and darker under the jaw
+  c.fillStyle = shade(1); c.fillRect(0, 0, W, H);
+  const jaw = c.createLinearGradient(0, 150, 0, 230); jaw.addColorStop(0, shade(1, 0)); jaw.addColorStop(1, shade(0.78, 0.7));
+  c.fillStyle = jaw; c.fillRect(0, 150, W, 80);
+  for (const s of [-1, 1]) {
+    const g = c.createRadialGradient(cx + s * 34, 140, 2, cx + s * 34, 140, 22);
+    g.addColorStop(0, female ? 'rgba(210,90,90,0.35)' : 'rgba(190,90,70,0.22)'); g.addColorStop(1, 'rgba(190,90,70,0)');
+    c.fillStyle = g; c.fillRect(cx + s * 34 - 24, 116, 48, 48);
+  }
+  // hair over the back and sides of the head (the hair cap covers the crown)
+  c.fillStyle = hex(look.hair);
+  c.beginPath(); c.moveTo(200, 0); c.lineTo(200, 120); c.quadraticCurveTo(210, 178, 250, 176); c.lineTo(518, 176); c.lineTo(518, 0); c.closePath(); c.fill();
+  c.beginPath(); c.moveTo(56, 0); c.lineTo(56, 120); c.quadraticCurveTo(46, 178, 6, 176); c.lineTo(-6, 176); c.lineTo(-6, 0); c.closePath(); c.fill();
+  c.fillRect(0, 0, W, 64); // hairline above the brow
+  // eyes: socket shadow, white, iris, pupil, catch-light, upper lid
+  for (const s of [-1, 1]) {
+    const ex = cx + s * 28, ey = 110;
+    const sock = c.createRadialGradient(ex, ey - 2, 4, ex, ey - 2, 18);
+    sock.addColorStop(0, shade(0.82, 0.6)); sock.addColorStop(1, shade(0.82, 0));
+    c.fillStyle = sock; c.fillRect(ex - 20, ey - 20, 40, 40);
+    c.fillStyle = '#f4efe6'; c.beginPath(); c.ellipse(ex, ey, 10.5, 6.5, 0, 0, Math.PI * 2); c.fill();
+    c.fillStyle = hex(iris); c.beginPath(); c.arc(ex + s * -1, ey + 0.5, 5.2, 0, Math.PI * 2); c.fill();
+    c.fillStyle = '#100c0a'; c.beginPath(); c.arc(ex + s * -1, ey + 0.5, 2.4, 0, Math.PI * 2); c.fill();
+    c.fillStyle = 'rgba(255,255,255,0.9)'; c.beginPath(); c.arc(ex + s * -1 - 1.8, ey - 1.6, 1.3, 0, Math.PI * 2); c.fill();
+    c.strokeStyle = '#2a1a12'; c.lineWidth = female ? 3 : 2.4; c.beginPath(); c.ellipse(ex, ey + 1, 11, 7.5, 0, Math.PI * 1.08, Math.PI * 1.92); c.stroke();
+    // brow
+    c.strokeStyle = hex(look.hair); c.lineWidth = female ? 3 : 4.5; c.lineCap = 'round';
+    c.beginPath(); c.moveTo(ex - s * 11, 99); c.quadraticCurveTo(ex, 93, ex + s * 12, 97); c.stroke();
+  }
+  // nose: a soft shadow down one side and under the tip (the 3D nose catches the light)
+  c.fillStyle = shade(0.8, 0.5); c.beginPath(); c.ellipse(cx + 5, 128, 3, 12, 0.1, 0, Math.PI * 2); c.fill();
+  c.fillStyle = shade(0.62, 0.7); for (const s of [-1, 1]) { c.beginPath(); c.ellipse(cx + s * 5, 140, 2.6, 1.6, 0, 0, Math.PI * 2); c.fill(); }
+  // mouth: lip line, a fuller lower lip, a hint of a smile
+  c.fillStyle = female ? '#b0484a' : shade(0.72); c.beginPath(); c.ellipse(cx, 159, 13, female ? 4.2 : 3.2, 0, 0, Math.PI * 2); c.fill();
+  c.strokeStyle = '#3a1a14'; c.lineWidth = 2; c.beginPath(); c.moveTo(cx - 14, 156); c.quadraticCurveTo(cx, 160, cx + 14, 156); c.stroke();
+  c.fillStyle = 'rgba(255,255,255,0.18)'; c.beginPath(); c.ellipse(cx, 162, 6, 1.4, 0, 0, Math.PI * 2); c.fill();
+  if (look.beard !== false) {
+    // moustache and a stubble shadow; the 3D beard covers the jaw
+    c.fillStyle = hex(look.hair);
+    for (const s of [-1, 1]) { c.beginPath(); c.moveTo(cx, 149); c.quadraticCurveTo(cx + s * 12, 145, cx + s * 20, 158); c.quadraticCurveTo(cx + s * 10, 153, cx, 154); c.closePath(); c.fill(); }
+    // stubble: a soft shadow along the jaw in the hair colour, not dots
+    const hc = new THREE.Color(hex(look.hair)); hc.getRGB(rgb, THREE.SRGBColorSpace);
+    const sg = c.createRadialGradient(cx, 150, 18, cx, 150, 52);
+    sg.addColorStop(0, `rgba(${Math.round(rgb.r * 255)},${Math.round(rgb.g * 255)},${Math.round(rgb.b * 255)},0)`);
+    sg.addColorStop(0.5, `rgba(${Math.round(rgb.r * 255)},${Math.round(rgb.g * 255)},${Math.round(rgb.b * 255)},0.22)`);
+    sg.addColorStop(1, `rgba(${Math.round(rgb.r * 255)},${Math.round(rgb.g * 255)},${Math.round(rgb.b * 255)},0)`);
+    c.fillStyle = sg; c.fillRect(cx - 56, 128, 112, 80);
+  }
+  const tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  faceCache.set(key, tex);
+  return tex;
 }

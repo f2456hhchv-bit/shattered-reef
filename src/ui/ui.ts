@@ -1,6 +1,8 @@
 import { item, RARITY, AFFIXES, type Slot, type SkillId } from '../game/data/items';
 import { morph, forget } from './morph';
 import { onTap } from './tap';
+import { portrait } from './portrait';
+import { NPC_LOOKS, PLAYER_LOOK } from '../art/cast';
 import { SKILLS, UNLOCKS, RECIPES, SHOP, ELITE_AFFIXES, PLAYER_BASE, SPELLS, type Station } from '../game/data/content';
 import type { Stance } from '../game/sim/gear';
 import { NPCS, QUESTS } from '../game/data/quests';
@@ -444,7 +446,7 @@ export class UI {
     if (st.leech) rows.push(['Leech', pct(st.leech)]);
     if (st.gather) rows.push(['Gathering', `+${pct(st.gather)}`]);
     if (st.xpBonus) rows.push(['Skill XP', `+${pct(st.xpBonus)}`]);
-    return `<h2 class="title">Equipment</h2><div class="equip five">${slots}</div>
+    return `<div class="row" style="gap:10px;margin-bottom:6px"><img class="portrait small" alt="" src="${portrait('player', PLAYER_LOOK)}"><div><h2 class="title" style="margin:0">Equipment</h2><span class="muted" style="font-size:12px">Combat level ${st.combatLevel}</span></div></div><div class="equip five">${slots}</div>
       <h2 class="title" style="font-size:13px">Stance</h2><div class="stances">${stances}</div>${spells}
       ${ammo ? `<p class="muted" style="margin:6px 0;font-size:13px">Ammo: ${ammo}</p>` : ''}
       <div class="brass-rule"></div><div class="stats">${rows.map(([a, b]) => `<span>${a}</span><span>${b}</span>`).join('')}</div>
@@ -702,7 +704,7 @@ export class UI {
     if (!el) { el = h('div', { id: 'dialog', class: 'panel', role: 'dialog' }); document.body.appendChild(el); }
     const n = NPCS[this.dialog.npc];
     const last = this.dialog.i >= this.dialog.lines.length - 1;
-    el.innerHTML = `<div class="who">${esc(n.name)}<small>${esc(n.title)}</small></div><p>${esc(this.dialog.lines[this.dialog.i])}</p><div class="act"><button class="btn primary">${last ? 'Close' : 'Continue'}</button></div>`;
+    el.innerHTML = `${NPC_LOOKS[this.dialog.npc] ? `<img class="portrait" alt="" src="${portrait(this.dialog.npc, NPC_LOOKS[this.dialog.npc])}">` : ''}<div class="who">${esc(n.name)}<small>${esc(n.title)}</small></div><p>${esc(this.dialog.lines[this.dialog.i])}</p><div class="act"><button class="btn primary">${last ? 'Close' : 'Continue'}</button></div>`;
     const btn = el.querySelector('button')!;
     onTap(btn, 'button', () => this.advanceDialog());
     btn.focus({ preventScroll: true });
