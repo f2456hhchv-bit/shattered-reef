@@ -329,3 +329,41 @@ export function buildBuoy(): THREE.Group {
   g.add(float, band, cage, bell);
   return g;
 }
+
+/** Bramble bush: a mound of leafy blobs, with berries unless they've been picked. */
+export function buildBush(seed: number, berries: boolean): THREE.Group {
+  const rnd = mulberry32(seed);
+  const g = new THREE.Group();
+  for (let i = 0; i < 4; i++) {
+    const r = 0.32 + rnd() * 0.18, a = rnd() * Math.PI * 2;
+    const b = mesh(jitter(new THREE.IcosahedronGeometry(r, 2), 0.06, seed + i), mat(i % 2 ? 0x3f6a32 : 0x4f7a3a));
+    b.position.set(Math.cos(a) * 0.28, 0.28 + rnd() * 0.12, Math.sin(a) * 0.28);
+    b.scale.y = 0.8;
+    g.add(b);
+  }
+  if (berries) {
+    for (let i = 0; i < 14; i++) {
+      const a = rnd() * Math.PI * 2, h = 0.25 + rnd() * 0.35, rr = 0.42 + rnd() * 0.12;
+      const berry = mesh(new THREE.SphereGeometry(0.05, 8, 6), mat(i % 3 ? 0x6a1e4a : 0xa02a3a));
+      berry.position.set(Math.cos(a) * rr, h, Math.sin(a) * rr);
+      g.add(berry);
+    }
+  }
+  return g;
+}
+
+/** Kelp: a clump of ribbon fronds standing out of the shallows. */
+export function buildKelp(seed: number): THREE.Group {
+  const rnd = mulberry32(seed);
+  const g = new THREE.Group();
+  for (let i = 0; i < 6; i++) {
+    const a = rnd() * Math.PI * 2, r = rnd() * 0.5, h = 0.5 + rnd() * 0.5, lean = (rnd() - 0.5) * 0.6;
+    const curve = new THREE.CubicBezierCurve3(new THREE.Vector3(0, -0.4, 0), new THREE.Vector3(lean * 0.3, h * 0.3, 0.1), new THREE.Vector3(-lean * 0.5, h * 0.7, -0.1), new THREE.Vector3(lean, h, 0));
+    const frond = mesh(new THREE.TubeGeometry(curve, 8, 0.035, 5), mat(i % 2 ? 0x5a6a2a : 0x6f7a32));
+    frond.scale.x = 1.8; // flattened ribbons
+    frond.position.set(Math.cos(a) * r, 0, Math.sin(a) * r);
+    frond.rotation.y = rnd() * Math.PI;
+    g.add(frond);
+  }
+  return g;
+}

@@ -8,7 +8,7 @@ import type { World } from '../world/world';
 import { add, canAdd, count, remove, displayName, stackValue, type Stack } from './inventory';
 import { computeStats, makeInstance, rollRarity, hitChance, reqBlock, type PlayerStats, type Stance } from './gear';
 import { levelForXp, MAX_XP } from './xp';
-import { defaultSave, SAVE_VERSION, type SaveData } from './save';
+import { defaultSave, SAVE_VERSION, BANK_MAX, type SaveData } from './save';
 
 // The whole game, minus pixels. Deterministic given a seed; driven by step(dt) and commands.
 
@@ -35,6 +35,7 @@ export type GameEvent =
   | { type: 'dialog'; npc: string; lines: string[] }
   | { type: 'openStation'; station: Station }
   | { type: 'openShop' }
+  | { type: 'openBank' }
   | { type: 'quest'; id: string; stage: number }
   | { type: 'boss'; state: 'rise' | 'defeat' | 'reset' | 'summon' }
   | { type: 'board' }
@@ -72,7 +73,7 @@ type Action =
   | { type: 'craft'; recipe: string; remaining: number; next: number }
   | null;
 
-export interface Target { key: string; kind: 'node' | 'npc' | 'station' | 'ship' | 'ruin' | 'enemy' | 'drop' | 'mooring'; x: number; z: number; range: number; label: string; verb: string }
+export interface Target { key: string; kind: 'node' | 'npc' | 'station' | 'bank' | 'ship' | 'ruin' | 'enemy' | 'drop' | 'mooring'; x: number; z: number; range: number; label: string; verb: string }
 
 // RuneScape's 4-tick rhythm for gathering; production a little quicker.
 const DT_GATHER = 2.4;
@@ -136,6 +137,8 @@ export class Game {
     const fresh = defaultSave(this.layout.respawn, this.layout.mooring);
     this.s = opts.save ?? fresh;
     this.nodes = this.layout.nodes.map((n) => ({ ...n, depletedUntil: 0 }));
+    // only a few dig spots are disturbed at any time; the rest surface later
+    for (const n of this.nodes) if (NODES[n.def].verb === 'Dig' && this.rnd() < 0.75) n.depletedUntil = this.rnd() * NODES[n.def].respawn;
     for (const sp of this.layout.spawns) this.spawnEnemy(ENEMIES[sp.enemy], sp.x, sp.z, false);
     this.recalc();
     if (!this.s.player.onShip && !this.world.walkable(this.s.player.x, this.s.player.z)) {
@@ -207,11 +210,12 @@ export class Game {
       const d = NODES[n.def];
       if (n.depletedUntil > this.time) continue;
       if (!!d.fromShip !== onShip) continue;
-      out.push({ key: `node:${n.uid}`, kind: 'node', x: n.x, z: n.z, range: d.fromShip ? 7 : d.skill === 'fishing' ? 3.2 : 1.9, label: d.name, verb: d.verb });
+      out.push({ key: `node:${n.uid}`, kind: 'node', x: n.x, z: n.z, range: this.nodeReach(d), label: d.name, verb: d.verb });
     }
     if (!onShip) {
       for (const n of this.layout.npcs) out.push({ key: `npc:${n.id}`, kind: 'npc', x: n.x, z: n.z, range: 2.2, label: NPCS[n.id].name, verb: NPCS[n.id].shop ? 'Trade' : 'Talk' });
       this.layout.stations.forEach((st, i) => out.push({ key: `station:${i}`, kind: 'station', x: st.x, z: st.z, range: 2.3, label: STATION_NAMES[st.id], verb: st.id === 'fire' ? 'Cook' : st.id === 'furnace' ? 'Smelt' : st.id === 'bench' ? 'Craft' : 'Forge' }));
+      this.layout.banks.forEach((b, i) => out.push({ key: `bank:${i}`, kind: 'bank', x: b.x, z: b.z, range: 2.2, label: 'Harbour strongbox', verb: 'Open' }));
       out.push({ key: 'ship', kind: 'ship', x: this.ship.x, z: this.ship.z, range: 4.2, label: 'Your sloop', verb: 'Board' });
       out.push({ key: 'ruin', kind: 'ruin', x: this.layout.plinth.x, z: this.layout.plinth.z, range: 2.2, label: 'Bell hollow', verb: 'Ring' });
       const mo = this.layout.mooring;
@@ -316,6 +320,7 @@ export class Game {
       case 'node': return this.startGather(t.key.slice(5));
       case 'npc': return this.talk(t.key.slice(4));
       case 'station': this.emit({ type: 'openStation', station: this.layout.stations[Number(t.key.slice(8))].id }); return;
+      case 'bank': this.emit({ type: 'openBank' }); return;
       case 'ship': return this.board();
       case 'ruin': return this.ringBell();
       case 'mooring': return this.callShip();
@@ -327,41 +332,74 @@ export class Game {
   }
 
   // ------------------------------------------------------------------ gathering
+  /** The tool a node needs: skill tools by power; skill-less nodes (picking, digging) by specific item, or bare hands. */
+  private gatherTool(d: (typeof NODES)[string]): { id: string; power: number } | null {
+    if (d.skill) return this.bestTool(d.skill, d.tool);
+    if (!d.tool) return { id: 'hands', power: 0 };
+    return count(this.p.inv, d.tool) > 0 ? { id: d.tool, power: 0 } : null;
+  }
+
   private startGather(uid: string) {
     const n = this.nodes.find((x) => x.uid === uid);
     if (!n) return;
     const d = NODES[n.def];
-    if (this.level(d.skill) < d.level) { this.msg(`You need ${d.skill} level ${d.level} for ${d.name.toLowerCase()}.`, 'warn'); return; }
-    const tool = this.bestTool(d.skill, d.tool);
-    if (!tool) { this.msg(`You need ${d.tool ? `a ${item(d.tool).name.toLowerCase()}` : d.skill === 'woodcutting' ? 'a hatchet' : 'a pickaxe'}.`, 'warn'); return; }
-    if (!canAdd(this.p.inv, d.item)) { this.msg('Your pack is full.', 'warn'); return; }
+    if (d.skill && this.level(d.skill) < d.level) { this.msg(`You need ${d.skill} level ${d.level} for ${d.name.toLowerCase()}.`, 'warn'); return; }
+    const tool = this.gatherTool(d);
+    if (!tool) { this.msg(`You need ${d.tool ? `a ${item(d.tool).name.toLowerCase()}${d.tool === 'spade' ? ' (Marta sells them)' : ''}` : d.skill === 'woodcutting' ? 'a hatchet' : 'a pickaxe'}.`, 'warn'); return; }
+    if (!d.loot && !canAdd(this.p.inv, d.item)) { this.msg('Your pack is full.', 'warn'); return; }
     this.action = { type: 'gather', node: uid, next: this.time + DT_GATHER * 0.6 };
-    this.msg(d.skill === 'fishing' ? 'You cast your line...' : `You swing at the ${d.name.toLowerCase()}...`);
+    this.msg(d.verb === 'Dig' ? 'You start digging...' : d.verb === 'Pick' || d.verb === 'Gather' ? `You reach into the ${d.name.toLowerCase()}...` : d.skill === 'fishing' ? 'You cast your line...' : `You swing at the ${d.name.toLowerCase()}...`);
   }
+
+  /**
+   * Success chance per swing: the node's rate at its requirement, +1.2% (relative) per level above it,
+   * scaled by how the tool compares to the node's tier, then gear bonuses. Capped so it always feels earned.
+   */
+  gatherChance(d: (typeof NODES)[string], toolPower: number) {
+    if (!d.skill) return d.rate;
+    const lvl = this.level(d.skill);
+    const toolK = d.skill === 'fishing' ? 1 : Math.min(1.6, Math.max(0.45, 1 + 0.15 * (toolPower - Math.min(6, d.tier + 1))));
+    return Math.min(0.85, d.rate * (1 + Math.max(0, lvl - d.level) * 0.012) * toolK * (1 + this.stats.gather));
+  }
+
+  /** Interaction range for a node (ship spots are fished from deck; kelp and fish lie just offshore). */
+  nodeReach(d: (typeof NODES)[string]) { return d.fromShip ? 7 : d.reach ?? (d.skill === 'fishing' ? 3.2 : 1.9); }
 
   private tickGather(a: Extract<NonNullable<Action>, { type: 'gather' }>) {
     const n = this.nodes.find((x) => x.uid === a.node)!;
     const d = NODES[n.def];
-    const range = d.fromShip ? 7.5 : d.skill === 'fishing' ? 3.6 : 2.4;
-    if (n.depletedUntil > this.time || Math.hypot(n.x - this.p.x, n.z - this.p.z) > range) { this.stopAction(); return; }
+    if (n.depletedUntil > this.time || Math.hypot(n.x - this.p.x, n.z - this.p.z) > this.nodeReach(d) + 0.5) { this.stopAction(); return; }
     this.facing = Math.atan2(n.z - this.p.z, n.x - this.p.x);
     if (this.time < a.next) return;
-    const tool = this.bestTool(d.skill, d.tool);
+    const tool = this.gatherTool(d);
     if (!tool) { this.stopAction(); return; }
-    a.next = this.time + DT_GATHER - tool.power * 0.15;
-    const lvl = this.level(d.skill);
-    const chance = Math.min(0.92, Math.max(0.15, 0.55 - d.difficulty * 0.4 + (lvl - d.level) * 0.025 + tool.power * 0.12 + this.stats.gather));
-    const ok = this.rnd() < chance;
-    this.emit({ type: 'gatherFx', kind: d.skill === 'woodcutting' ? 'wood' : d.skill === 'mining' ? 'stone' : 'water', x: n.x, z: n.z, success: ok });
+    a.next = this.time + (d.skill ? DT_GATHER : DT_GATHER * 0.6);
+    const ok = this.rnd() < this.gatherChance(d, tool.power);
+    const fx = d.skill === 'woodcutting' || d.verb === 'Pick' ? 'wood' : d.skill === 'mining' || d.verb === 'Dig' ? 'stone' : 'water';
+    this.emit({ type: 'gatherFx', kind: fx, x: n.x, z: n.z, success: ok });
     if (!ok) return;
-    if (!canAdd(this.p.inv, d.item)) { this.msg('Your pack is full.', 'warn'); this.stopAction(); return; }
-    this.give(d.item, 1);
-    this.addXp(d.skill, d.xp);
+    if (d.loot) {
+      this.rollLoot(LOOT[d.loot], n.x, n.z);
+      this.msg('Your spade strikes something! Treasure spills out of the sand.', 'loot');
+    } else {
+      const got = d.drops ? this.weighted(d.drops) : d.item;
+      if (!canAdd(this.p.inv, got)) { this.msg('Your pack is full.', 'warn'); this.stopAction(); return; }
+      this.give(got, 1);
+      if (d.bonus && this.rnd() < d.bonus.chance) { this.give(d.bonus.item, 1); this.msg(`You find a ${item(d.bonus.item).name.toLowerCase()}!`, 'loot'); }
+    }
+    if (d.skill) this.addXp(d.skill, d.xp);
     if (d.depleteChance > 0 && this.rnd() < d.depleteChance) {
-      n.depletedUntil = this.time + d.respawn;
+      // dig spots wander: they come back after a random while (the sand is disturbed somewhere else meanwhile)
+      n.depletedUntil = this.time + d.respawn * (d.verb === 'Dig' ? 0.5 + this.rnd() : 1);
       this.rev++;
       this.stopAction();
     }
+  }
+
+  private weighted(list: { item: string; w: number }[]) {
+    let r = this.rnd() * list.reduce((s, x) => s + x.w, 0);
+    for (const x of list) { r -= x.w; if (r <= 0) return x.item; }
+    return list[list.length - 1].item;
   }
 
   // ------------------------------------------------------------------ crafting
@@ -435,6 +473,13 @@ export class Game {
     const d = item(st.id);
     if (d.heal) return this.eat(i);
     if (d.equip) return this.equip(i);
+    if (d.opens) {
+      remove(this.p.inv, st.id, 1);
+      this.rollLoot(LOOT[d.opens], this.p.x, this.p.z);
+      this.msg(`You crack the ${d.name.toLowerCase()} open.`, 'loot');
+      this.rev++;
+      return;
+    }
     this.msg(d.desc);
   }
 
@@ -493,6 +538,50 @@ export class Game {
   }
 
   // ------------------------------------------------------------------ shop
+  // ------------------------------------------------------------------ strongbox (bank)
+  nearBank() { return !this.p.onShip && this.layout.banks.some((b) => Math.hypot(b.x - this.p.x, b.z - this.p.z) < 3.2); }
+
+  /** Put a pack slot (or everything but tools) into the strongbox. Plain items stack; rolled gear keeps its own entry. */
+  deposit(i: number | 'all') {
+    if (!this.nearBank()) return;
+    const bank = this.s.bank;
+    const put = (idx: number) => {
+      const st = this.p.inv[idx];
+      if (!st) return true;
+      const same = !st.inst && bank.find((b) => b.id === st.id && !b.inst);
+      if (same) same.qty += st.qty;
+      else { if (bank.length >= BANK_MAX) return false; bank.push({ ...st }); }
+      this.p.inv[idx] = null;
+      return true;
+    };
+    if (i === 'all') {
+      for (let k = 0; k < this.p.inv.length; k++) { const st = this.p.inv[k]; if (st && !item(st.id).tool && !put(k)) { this.msg('The strongbox is full.', 'warn'); break; } }
+      this.msg('You stow your pack in the strongbox (tools stay with you).');
+    } else if (!put(i)) this.msg('The strongbox is full.', 'warn');
+    this.rev++;
+  }
+
+  /** Take up to `qty` of a strongbox entry back into the pack. */
+  withdraw(b: number, qty: number) {
+    const e = this.s.bank[b];
+    if (!e || !this.nearBank()) return;
+    let moved = 0;
+    if (item(e.id).stackable) {
+      const n = Math.min(qty, e.qty);
+      if (!canAdd(this.p.inv, e.id, n)) { this.msg('Your pack is full.', 'warn'); return; }
+      add(this.p.inv, { id: e.id, qty: n }); moved = n;
+    } else {
+      for (; moved < Math.min(qty, e.qty); moved++) {
+        const slot = this.p.inv.indexOf(null);
+        if (slot < 0) { if (!moved) this.msg('Your pack is full.', 'warn'); break; }
+        this.p.inv[slot] = { id: e.id, qty: 1, ...(e.inst ? { inst: e.inst } : {}) };
+      }
+    }
+    e.qty -= moved;
+    if (e.qty <= 0) this.s.bank.splice(b, 1);
+    this.rev++;
+  }
+
   nearShop() {
     const n = this.layout.npcs.find((x) => x.id === 'marta')!;
     return !this.p.onShip && Math.hypot(n.x - this.p.x, n.z - this.p.z) < 3.5;

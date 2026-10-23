@@ -10,15 +10,16 @@ import { mulberry32 } from '../art/noise';
 import { buildSloop, buildBarrel, type ShipRig } from '../art/models/ship';
 import { buildHumanoid, animateIdle, animateWalk, animateSwing, animateWork, animateFish, type HumanoidRig, type HumanoidLook } from '../art/models/character';
 import { buildCrab, animateCrab, type CrabRig } from '../art/models/crab';
-import { buildPine, buildBroadleaf, buildRock, buildOreRock, buildCrate, buildLanternPost, buildShack, buildDock, buildGrass } from '../art/models/props';
-import { buildBench, buildFurnace, buildAnvil, buildCookfire, buildTent, buildSmithyShed, buildPillar, buildPlinth, buildGuardian, buildStump, buildRipples, type GuardianRig } from '../art/models/world';
+import { buildPine, buildBroadleaf, buildRock, buildOreRock, buildCrate, buildLanternPost, buildShack, buildDock, buildGrass, buildBush, buildKelp } from '../art/models/props';
+import { buildBench, buildFurnace, buildAnvil, buildCookfire, buildTent, buildSmithyShed, buildPillar, buildPlinth, buildStrongbox, buildDigSpot, buildGuardian, buildStump, buildRipples, type GuardianRig } from '../art/models/world';
 import { buildLootShard, SHARD_TINT, type LootShard, type ShardKind } from '../art/models/items';
 import { item } from '../game/data/items';
 import { NODES, PLAYER_BASE } from '../game/data/content';
 import type { Game, GameEvent, Enemy, Telegraph } from '../game/sim/game';
 import { coastDist, nearestPathDist, WORLD_HALF } from '../game/world/island';
 import { buildTerrainMesh } from './terrainMesh';
-import { bakeRig, bakeStatic } from './bake';
+import { bakeRig, bakeStatic, mergeColoured } from './bake';
+import { InstancedField, type FieldItem } from './instanced';
 import { Particles } from './fx';
 
 const HERO = 1.2; // characters drawn larger than life so they read on phones
@@ -240,6 +241,7 @@ export class GameRenderer {
       }
     }
     place(buildPlinth(), L.plinth.x, L.plinth.z, 0);
+    for (const b of L.banks) place(buildStrongbox(), b.x, b.z, 0);
     for (const r of L.reefs) {
       const m = buildRock(Math.round(r.x * 31 + r.z), r.r, 'stoneDark');
       m.position.set(r.x, 0.05, r.z);
@@ -289,7 +291,9 @@ export class GameRenderer {
 
   private buildNodes() {
     const w = this.game.world;
+    this.buildScenery();
     for (const n of this.game.nodes) {
+      if (this.scenery.has(n.uid)) continue;
       const def = NODES[n.def];
       let live: THREE.Object3D, dead: THREE.Object3D | undefined, ripples: THREE.Group | undefined;
       if (def.skill === 'woodcutting') {
@@ -311,18 +315,44 @@ export class GameRenderer {
         const holder = new THREE.Group();
         holder.add(dead);
         dead = holder;
+      } else if (!def.skill) {
+        live = buildDigSpot(n.seed);
       } else {
         ripples = buildRipples(def.fromShip ? 0xf2e6b0 : def.tool === 'lobster_pot' ? 0xf0c890 : 0xe9f5f2);
         live = ripples;
         if (def.fromShip) live.scale.setScalar(2.2);
       }
-      const y = def.skill === 'fishing' ? 0.06 : w.ground(n.x, n.z) - 0.05;
+      const y = def.skill === 'fishing' ? 0.06 : w.ground(n.x, n.z) - (def.skill ? 0.05 : 0.02);
       live.position.set(n.x, y, n.z);
       this.scene.add(live);
       if (dead) { dead.position.set(n.x, y, n.z); dead.visible = false; this.scene.add(dead); }
       if (live !== ripples) bakeRig(live, new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: false, roughness: 0.92 }));
       this.nodeViews.set(n.uid, { live, dead, ripples });
     }
+  }
+
+  /** The island's ordinary trees, boulders, bushes and kelp: usable, drawn instanced (stumps, rubble, picked bushes). */
+  private scenery = new InstancedField(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: false, roughness: 0.9 }));
+  private sceneryState = new Map<string, boolean>();
+  private buildScenery() {
+    const w = this.game.world;
+    const by = new Map<string, FieldItem[]>();
+    for (const n of this.game.layout.nodes) {
+      if (!n.scenery) continue;
+      const d = NODES[n.def];
+      const y = d.id === 'kelp_bed' ? 0 : d.id === 'rock_boulder' ? w.ground(n.x, n.z) + (n.s ?? 1) * 0.2 : w.ground(n.x, n.z) - 0.05;
+      const list = by.get(n.def) ?? [];
+      list.push({ uid: n.uid, x: n.x, y, z: n.z, rot: n.rot ?? 0, s: n.s ?? 1, variant: n.seed });
+      by.set(n.def, list);
+    }
+    const geo = (o: THREE.Object3D) => mergeColoured(o);
+    const V = [11, 23]; // two shape variants per kind (with per-instance rotation and scale) keep draw calls low
+    if (by.has('tree_pine')) this.scenery.add(by.get('tree_pine')!, V.map((k) => geo(buildPine(k, 1))), { alt: geo(buildStump(5)) });
+    if (by.has('tree_oak')) this.scenery.add(by.get('tree_oak')!, V.map((k) => geo(buildBroadleaf(k))), { alt: geo(buildStump(9)) });
+    if (by.has('rock_boulder')) this.scenery.add(by.get('rock_boulder')!, V.map((k, i) => geo(buildRock(k, 1, i % 2 ? 'stoneDark' : 'stone'))), { alt: geo(buildRock(41, 1, 'stoneDark')), altScale: [1.15, 0.35, 1.15] });
+    if (by.has('bush_berry')) this.scenery.add(by.get('bush_berry')!, V.map((k) => geo(buildBush(k, true))), { alt: geo(buildBush(11, false)), castShadow: false });
+    if (by.has('kelp_bed')) this.scenery.add(by.get('kelp_bed')!, [geo(buildKelp(3)), geo(buildKelp(8))], { castShadow: false });
+    this.scene.add(this.scenery.group);
   }
 
   // ------------------------------------------------------------------ dynamic views
@@ -650,8 +680,12 @@ export class GameRenderer {
 
     // nodes
     for (const n of g.nodes) {
-      const v = this.nodeViews.get(n.uid)!;
       const depleted = n.depletedUntil > g.time;
+      if (this.scenery.has(n.uid)) {
+        if (this.sceneryState.get(n.uid) !== depleted) { this.sceneryState.set(n.uid, depleted); this.scenery.set(n.uid, depleted); }
+        continue;
+      }
+      const v = this.nodeViews.get(n.uid)!;
       if (v.ripples) {
         for (const r of v.ripples.children) {
           const k = (t * 0.5 + (r.userData.phase as number)) % 1;

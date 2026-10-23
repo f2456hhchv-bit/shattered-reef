@@ -86,6 +86,43 @@ describe('save', () => {
   });
 });
 
+describe('strongbox (bank)', () => {
+  it('deposits everything but tools, stacks plain items, withdraws, and survives a save', () => {
+    const g = fresh();
+    const b = g.layout.banks[0];
+    const q = g.world.nearestWalkable(b.x + 1.5, b.z + 1.5, 3)!; g.p.x = q[0]; g.p.z = q[1];
+    g.give('logs_pine', 12); g.give('helm_bronze', 1); g.give('helm_bronze', 1);
+    g.deposit('all');
+    expect(count(g.p.inv, 'logs_pine')).toBe(0);
+    expect(count(g.p.inv, 'hatchet_chipped')).toBe(1); // tools stay
+    expect(g.s.bank.find((e) => e.id === 'logs_pine')!.qty).toBe(12);
+    expect(g.s.bank.find((e) => e.id === 'helm_bronze')!.qty).toBe(2); // plain gear stacks in the box
+    const i = g.s.bank.findIndex((e) => e.id === 'helm_bronze');
+    g.withdraw(i, 1);
+    expect(count(g.p.inv, 'helm_bronze')).toBe(1);
+    const back = parseSave(JSON.stringify(g.s), defaultSave(base.layout.respawn, base.layout.mooring))!;
+    expect(back.bank.find((e) => e.id === 'logs_pine')!.qty).toBe(12);
+    expect(back.bank.find((e) => e.id === 'helm_bronze')!.qty).toBe(1);
+  });
+  it('refuses away from a strongbox, and v2 saves migrate with an empty box', () => {
+    const g = fresh();
+    g.give('logs_pine', 3);
+    g.deposit('all');
+    expect(count(g.p.inv, 'logs_pine')).toBe(3);
+    const v2 = { ...JSON.parse(JSON.stringify(g.s)), version: 2 };
+    delete v2.bank;
+    const m = parseSave(JSON.stringify(v2), defaultSave(base.layout.respawn, base.layout.mooring))!;
+    expect(m.version).toBe(SAVE_VERSION);
+    expect(m.bank).toEqual([]);
+  });
+  it('keeps far-out positions on reload (the world is wider than it used to be)', () => {
+    const g = fresh();
+    g.s.ship.z = -125;
+    const back = parseSave(JSON.stringify(g.s), defaultSave(base.layout.respawn, base.layout.mooring))!;
+    expect(back.ship.z).toBe(-125);
+  });
+});
+
 describe('world', () => {
   it('spawns on walkable ground, ship in navigable water', () => {
     const g = fresh();
@@ -339,7 +376,7 @@ describe('combat skills (RuneScape model)', () => {
     g.p.equip.weapon = { id: 'pistol_flintlock', qty: 1 };
     g.p.equip.ammo = { id: 'shot_bronze', qty: 30 };
     g.recalc();
-    const crab = g.enemies.find((e) => e.def.id === 'reef_crab')!;
+    const crab = g.enemies.find((e) => e.def.id === 'reef_crab' && !e.elite)!; // elites have triple health
     goNear(g, crab.x + 5, crab.z);
     g.interact(`enemy:${crab.id}`);
     run(g, 60, () => !crab.alive);
@@ -352,7 +389,7 @@ describe('combat skills (RuneScape model)', () => {
     m.p.equip.weapon = { id: 'staff_driftwood', qty: 1 };
     m.give('charm_tide', 40);
     m.recalc();
-    const c2 = m.enemies.find((e) => e.def.id === 'reef_crab')!;
+    const c2 = m.enemies.find((e) => e.def.id === 'reef_crab' && !e.elite)!;
     goNear(m, c2.x + 5, c2.z);
     m.interact(`enemy:${c2.id}`);
     run(m, 60, () => !c2.alive);
@@ -372,7 +409,7 @@ describe('combat skills (RuneScape model)', () => {
     const fb = defaultSave(base.layout.respawn, base.layout.mooring);
     const v1 = { version: 1, player: { xp: { combat: 4000, mining: 300 }, inv: [], equip: {} }, quests: { bell: 2 } };
     const d = parseSave(JSON.stringify(v1), fb)!;
-    expect(d.version).toBe(2);
+    expect(d.version).toBe(SAVE_VERSION); // migrates all the way up
     expect(d.player.xp.attack).toBe(1000);
     expect(d.player.xp.hitpoints).toBeGreaterThanOrEqual(HP_START_XP);
     expect(d.player.xp.mining).toBe(300);

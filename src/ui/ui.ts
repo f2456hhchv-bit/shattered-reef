@@ -174,6 +174,7 @@ export class UI {
       case 'dialog': this.openDialog(e.npc, e.lines); break;
       case 'openStation': this.openStation(e.station); break;
       case 'openShop': this.openShop(); break;
+      case 'openBank': this.openBank(); break;
       case 'hit': this.damageNumber(e.x, e.z, e.amount, e.target === 'player', e.crit); break;
       case 'dodge': this.damageNumber(e.x, e.z, 'Dodged', false, true); break;
       case 'boss': if (e.state === 'defeat') this.banner('Guardian defeated', 'The Broken Ring falls silent'); break;
@@ -259,12 +260,14 @@ export class UI {
     // windows that depend on position
     if (this.station && !g.nearStation(this.station)) this.closeWindows();
     if (this.shopOpen && !g.nearShop()) this.closeWindows();
+    if (this.bankOpen && !g.nearBank()) this.closeWindows();
     // panel content
     if (g.rev !== this.lastRev) {
       this.lastRev = g.rev;
       if (this.sideOpen && this.tab !== 'map') this.renderTab();
       if (this.station) this.renderStation();
       if (this.shopOpen) this.renderShop();
+      if (this.bankOpen) this.renderBank();
       if (this.pop) this.renderPop();
     }
     this.mmT -= dt;
@@ -378,6 +381,7 @@ export class UI {
         if (!st) return;
         const d = item(st.id);
         // mouse: left-click eats/equips directly (RuneScape-style); touch opens the details panel
+        if (pointer === 'mouse' && this.bankOpen) { g.deposit(i); return; } // RuneScape: click to deposit
         if (pointer === 'mouse' && !this.shopOpen && (d.heal || d.equip)) { g.useSlot(i); return; }
         this.openPop({ slot: i }, t);
       } else if (t.dataset.equip !== undefined) { const sl = t.dataset.equip as Slot; if (g.p.equip[sl]) this.openPop({ equip: sl }, t); }
@@ -560,6 +564,7 @@ export class UI {
         acts.push(`<button class="btn" data-a="sell1">Sell 1 (${each}c)</button>`);
         if (st.qty > 1) acts.push(`<button class="btn" data-a="sellall">Sell all (${each * st.qty}c)</button>`);
       }
+      if (this.bankOpen) acts.unshift('<button class="btn primary" data-a="deposit">Deposit</button>');
       if (!d.quest) acts.push('<button class="btn" data-a="drop">Drop</button>');
     }
     const req = e && g.equipBlock(st);
@@ -583,6 +588,7 @@ export class UI {
       if (i === undefined) return;
       if (a === 'use') { g.useSlot(i); if (!g.p.inv[i] || item(g.p.inv[i]!.id).equip) this.closePop(); }
       if (a === 'drop') { g.dropSlot(i); this.closePop(); }
+      if (a === 'deposit') { g.deposit(i); this.closePop(); }
       if (a === 'sell1') g.sell(i, false);
       if (a === 'sellall') { g.sell(i, true); this.closePop(); }
     });
@@ -600,8 +606,10 @@ export class UI {
       el = h('div', { id, class: 'win panel', role: 'dialog', 'aria-label': title });
       document.body.appendChild(el);
       const g = this.game;
-      onTap(el, '.x, [data-r], [data-buy], [data-c]', (b) => {
+      onTap(el, '.x, [data-r], [data-buy], [data-c], [data-wd], [data-dep]', (b) => {
         if (b.classList.contains('x')) { this.closeWindows(); return; }
+        if (b.dataset.wd) { const [idx, n] = b.dataset.wd.split(':').map(Number); g.withdraw(idx, n); return; }
+        if (b.dataset.dep) { g.deposit('all'); return; }
         if (b.dataset.r) { g.craft(b.dataset.r, Number(b.dataset.n)); this.lastRev = -1; }
         else if (b.dataset.buy) g.buy(b.dataset.buy);
         else if (b.dataset.c) { const ok = this.confirmOk; this.confirmOk = null; el!.remove(); if (b.dataset.c === 'yes') ok?.(); }
@@ -614,6 +622,8 @@ export class UI {
   closeWindows() {
     this.station = null;
     this.shopOpen = false;
+    this.bankOpen = false;
+    document.getElementById('bankwin')?.remove();
     document.getElementById('stationwin')?.remove();
     document.getElementById('shopwin')?.remove();
     document.getElementById('confirm')?.remove();
@@ -621,7 +631,7 @@ export class UI {
     this.lastRev = -1;
   }
 
-  anyWindowOpen() { return !!(this.station || this.shopOpen || this.dialog || document.getElementById('confirm')); }
+  anyWindowOpen() { return !!(this.station || this.shopOpen || this.bankOpen || this.dialog || document.getElementById('confirm')); }
 
   private openStation(st: Station) {
     this.closeWindows();
@@ -643,6 +653,22 @@ export class UI {
     }).join('');
     const busy = g.action?.type === 'craft' ? `<p class="muted">Working... (${g.action.remaining} left)</p>` : '';
     this.win('stationwin', title, rows + busy);
+  }
+
+  private bankOpen = false;
+  private openBank() {
+    this.closeWindows();
+    this.bankOpen = true;
+    this.renderBank();
+    if (!this.sideOpen || this.tab !== 'pack') this.selectTab('pack', true);
+  }
+
+  private renderBank() {
+    const g = this.game, bank = g.s.bank;
+    const rows = bank.length
+      ? `<div class="grid28 bank">${bank.map((st, i) => `<div class="bankcell">${this.slotHtml(st, `data-bank="${i}"`)}<div class="wd"><button class="btn" data-wd="${i}:1">1</button><button class="btn" data-wd="${i}:${st.qty}">All</button></div></div>`).join('')}</div>`
+      : '<p class="muted">Empty. Deposit your pack and come back for it later; tools stay with you.</p>';
+    this.win('bankwin', 'Harbour strongbox', `<div class="row" style="justify-content:space-between;margin-bottom:8px"><span class="muted">${bank.length} stacks · tap an item in your pack to deposit it</span><button class="btn primary" data-dep="1">Deposit pack</button></div>${rows}`);
   }
 
   private openShop() {

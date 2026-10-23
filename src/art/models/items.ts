@@ -213,6 +213,36 @@ function builders(shape: IconShape, col: string, acc: string | undefined, seed: 
       add(g, new THREE.ConeGeometry(0.07, 0.1, 10), m(shade(col, 0.9).getHex()), [-0.22, 0, 0], [0, 0, Math.PI / 2], [1, 1, 0.5]);
       break;
     }
+    case 'berries': {
+      for (let k = 0; k < 9; k++) { const a = k * 2.4, r = k === 0 ? 0 : 0.09 + (k % 3) * 0.03; add(g, new THREE.SphereGeometry(0.065, 10, 8), m(k % 3 ? col : '#a02a3a', 'gloss'), [Math.cos(a) * r, (k % 2) * 0.05, Math.sin(a) * r]); }
+      add(g, new THREE.SphereGeometry(0.12, 10, 6, 0, Math.PI * 2, 0, Math.PI / 3), m(acc ?? '#3e7a3a'), [0.02, 0.1, -0.06], [0.4, 0, 0.3], [1.3, 0.4, 0.9]);
+      break;
+    }
+    case 'kelp': {
+      for (let k = 0; k < 4; k++) {
+        const curve = new THREE.CubicBezierCurve3(new THREE.Vector3(-0.25, -0.15 + k * 0.03, 0), new THREE.Vector3(-0.08, 0.15, k * 0.04), new THREE.Vector3(0.08, -0.15, -k * 0.03), new THREE.Vector3(0.27, 0.1 - k * 0.05, 0));
+        add(g, new THREE.TubeGeometry(curve, 12, 0.03, 5), m(k % 2 ? col : acc ?? col), [0, 0, 0], [0, 0, 0], [1, 1, 0.4]);
+      }
+      break;
+    }
+    case 'geode': {
+      add(g, nudge(new THREE.SphereGeometry(0.2, 14, 10, 0, Math.PI * 2, 0.5, Math.PI - 0.5), 0.03, seed), m(col), [0, 0, 0], [0.3, 0, 0]);
+      add(g, new THREE.CircleGeometry(0.17, 14), m('#2a3a44'), [0, 0, 0], [-Math.PI / 2 + 0.3, 0, 0]);
+      for (let k = 0; k < 7; k++) { const a = (k / 7) * Math.PI * 2; add(g, new THREE.OctahedronGeometry(0.04, 0), m(acc ?? '#9fe8ff', 'glow'), [Math.cos(a) * 0.09, 0.03, Math.sin(a) * 0.09 - 0.02], [0, a, 0.3]); }
+      break;
+    }
+    case 'spade': {
+      add(g, new THREE.CylinderGeometry(0.02, 0.025, 0.55, 8), m('#7a5534'), [0.04, 0.12, 0], [0, 0, 0.4]);
+      add(g, new THREE.TorusGeometry(0.05, 0.014, 6, 14), m('#7a5534'), [0.15, 0.37, 0], [0, 0, 0.4]);
+      add(g, new THREE.SphereGeometry(0.14, 14, 8, 0, Math.PI, 0, Math.PI / 2), m(col, 'metal'), [-0.08, -0.2, 0], [Math.PI / 2, 0, 0.4 + Math.PI], [1, 1.5, 0.25]);
+      break;
+    }
+    case 'parcel': {
+      add(g, nudge(new THREE.CapsuleGeometry(0.09, 0.26, 4, 12), 0.01, seed), m(col), [0, 0, 0], [0, 0, Math.PI / 2], [1, 1, 0.8]);
+      for (const x of [-0.08, 0.08]) add(g, new THREE.TorusGeometry(0.09, 0.012, 6, 14), m('#c9b28a'), [x, 0, 0], [0, Math.PI / 2, 0], [1, 1, 0.8]);
+      add(g, new THREE.ConeGeometry(0.06, 0.1, 6), m(acc ?? '#c9934f'), [-0.25, 0, 0], [0, 0, Math.PI / 2], [1, 1, 0.3]);
+      break;
+    }
     case 'ring': {
       // nearly face-on to the icon camera (which looks down ~30 degrees), set stone on top
       add(g, new THREE.TorusGeometry(0.14, 0.035, 12, 28), m(col, 'metal'), [0, 0, 0], [-0.25, 0, 0]);

@@ -3,10 +3,12 @@ import { QUESTS } from '../data/quests';
 import { INV_SIZE, emptyInventory, type Inventory, type Stack } from './inventory';
 import { MAX_XP, xpForLevel } from './xp';
 import type { Stance } from './gear';
+import { WORLD_HALF } from '../world/island';
 
 // Versioned, validated save. Anything invalid is dropped or defaulted, never trusted.
 
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
+export const BANK_MAX = 400; // distinct entries in the strongbox
 export const SAVE_KEY = 'shattered-reef.save';
 
 export interface SaveData {
@@ -14,6 +16,7 @@ export interface SaveData {
   savedAt: number;
   playTime: number;
   player: { x: number; z: number; hp: number; onShip: boolean; xp: Record<SkillId, number>; inv: Inventory; equip: Partial<Record<Slot, Stack>> };
+  bank: Stack[]; // harbour strongbox: everything stacks unless it carries a rolled instance
   ship: { x: number; z: number; heading: number };
   quests: Record<string, number>;
   flags: Record<string, boolean>;
@@ -30,13 +33,13 @@ export const HP_START_XP = xpForLevel(10); // Hitpoints starts at 10, like RuneS
 const num = (v: unknown, d: number, min = -Infinity, max = Infinity) =>
   typeof v === 'number' && Number.isFinite(v) ? Math.min(max, Math.max(min, v)) : d;
 
-function validStack(v: unknown): Stack | null {
+function validStack(v: unknown, banked = false): Stack | null {
   if (!v || typeof v !== 'object') return null;
   const s = v as Record<string, unknown>;
   if (typeof s.id !== 'string' || !ITEMS[s.id]) return null;
   const qty = Math.floor(num(s.qty, 0, 0, 1e9));
   if (qty <= 0) return null;
-  const out: Stack = { id: s.id, qty: ITEMS[s.id].stackable ? qty : 1 };
+  const out: Stack = { id: s.id, qty: ITEMS[s.id].stackable || (banked && !s.inst) ? qty : 1 };
   if (s.inst && typeof s.inst === 'object') {
     const i = s.inst as Record<string, unknown>;
     const rarity = typeof i.rarity === 'string' && i.rarity in RARITY ? (i.rarity as keyof typeof RARITY) : 'common';
@@ -69,6 +72,7 @@ export function defaultSave(spawn: { x: number; z: number }, ship: { x: number; 
     quests: { bell: 0 },
     flags: {},
     discovered: [],
+    bank: [],
     nextUid: 1,
     settings: { quality: 'high', showDamage: true },
     combat: { stance: 'accurate', spell: 'spray' },
@@ -87,6 +91,8 @@ const MIGRATIONS: Record<number, (d: Record<string, unknown>) => Record<string, 
     xp.hitpoints = Math.max(HP_START_XP, HP_START_XP + Math.floor(c / 4));
     return { ...d, version: 2, player: { ...p, xp, hp: 10 } };
   },
+  // v2 had no strongbox
+  2: (d) => ({ ...d, version: 3, bank: [] }),
 };
 
 /** Parse + validate untrusted JSON. Returns null when unusable (caller starts fresh). */
@@ -109,8 +115,8 @@ export function parseSave(json: string | null, fallback: SaveData): SaveData | n
   }
   const d = structuredClone(fallback);
   const p = (raw.player ?? {}) as Record<string, unknown>;
-  d.player.x = num(p.x, d.player.x, -100, 100);
-  d.player.z = num(p.z, d.player.z, -100, 100);
+  d.player.x = num(p.x, d.player.x, -WORLD_HALF, WORLD_HALF);
+  d.player.z = num(p.z, d.player.z, -WORLD_HALF, WORLD_HALF);
   d.player.hp = num(p.hp, d.player.hp, 1, 10000);
   d.player.onShip = p.onShip === true;
   const xp = (p.xp ?? {}) as Record<string, unknown>;
@@ -128,7 +134,8 @@ export function parseSave(json: string | null, fallback: SaveData): SaveData | n
     if (s && ITEMS[s.id].equip?.slot === sl) d.player.equip[sl] = sl === 'ammo' ? s : { ...s, qty: 1 };
   }
   const sh = (raw.ship ?? {}) as Record<string, unknown>;
-  d.ship = { x: num(sh.x, d.ship.x, -100, 100), z: num(sh.z, d.ship.z, -100, 100), heading: num(sh.heading, d.ship.heading) };
+  d.ship = { x: num(sh.x, d.ship.x, -WORLD_HALF, WORLD_HALF), z: num(sh.z, d.ship.z, -WORLD_HALF, WORLD_HALF), heading: num(sh.heading, d.ship.heading) };
+  if (Array.isArray(raw.bank)) d.bank = raw.bank.map((b) => validStack(b, true)).filter((b): b is Stack => !!b).slice(0, BANK_MAX);
   const q = (raw.quests ?? {}) as Record<string, unknown>;
   for (const id of Object.keys(QUESTS)) d.quests[id] = Math.floor(num(q[id], 0, 0, QUESTS[id].stages.length - 1));
   const f = (raw.flags ?? {}) as Record<string, unknown>;
