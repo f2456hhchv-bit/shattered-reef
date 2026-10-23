@@ -1,6 +1,6 @@
 import { item, AFFIXES, RARITY, type Rarity, type Slot, type SkillId, type CombatStyle } from '../data/items';
 import { SPELLS } from '../data/content';
-import type { Inst, Stack } from './inventory';
+import { condOf, WORN_OUT_EFFECT, type Inst, type Stack } from './inventory';
 import { levelForXp } from './xp';
 
 export function rollRarity(weights: Partial<Record<Rarity, number>>, rnd: () => number): Rarity {
@@ -93,10 +93,11 @@ export function computeStats(xp: Record<SkillId, number>, equip: Partial<Record<
     const e = st && item(st.id).equip;
     if (!e) continue;
     const b = e.bonus;
-    if (slot === 'weapon') { acc += sum(b.acc); str += sum(b.str); }
+    const k = condOf(st) <= 0 ? WORN_OUT_EFFECT : 1; // worn out: still works, less well
+    if (slot === 'weapon') { acc += sum(b.acc) * k; str += sum(b.str) * k; }
     if (slot === 'ammo' && style === 'ranged') rangedStr += sum(b.rangedStr);
-    magicDmg += sum(b.magicDmg);
-    def.melee += sum(b.defMelee); def.ranged += sum(b.defRanged); def.magic += sum(b.defMagic);
+    magicDmg += sum(b.magicDmg) * k;
+    def.melee += sum(b.defMelee) * k; def.ranged += sum(b.defRanged) * k; def.magic += sum(b.defMagic) * k;
     for (const a of st.inst?.affixes ?? []) {
       switch (a.id) {
         case 'dmg_pct': dmgPct += a.v; break;

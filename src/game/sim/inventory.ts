@@ -1,10 +1,21 @@
-import { item, RARITY, AFFIXES, type Rarity } from '../data/items';
+import { item, ITEMS, RARITY, AFFIXES, type Rarity } from '../data/items';
 
 export const INV_SIZE = 28;
 
 export interface Affix { id: string; v: number }
 export interface Inst { uid: number; rarity: Rarity; affixes: Affix[] }
-export interface Stack { id: string; qty: number; inst?: Inst }
+export interface Stack { id: string; qty: number; inst?: Inst; cond?: number } // cond: 0..100 condition (absent = 100)
+
+/** Weapons, armour and tools wear with use; ammo, rings and consumables don't. */
+export function wears(id: string): boolean {
+  const d = ITEMS[id];
+  if (!d) return false;
+  if (d.tool) return true;
+  return !!d.equip && (d.equip.slot === 'weapon' || d.equip.slot === 'head' || d.equip.slot === 'body');
+}
+export const condOf = (s: Stack | null | undefined) => (s && wears(s.id) ? s.cond ?? 100 : 100);
+/** A worn-out item still works, at reduced effect: nothing ever breaks or vanishes. */
+export const WORN_OUT_EFFECT = 0.7;
 export type Inventory = (Stack | null)[];
 
 export const emptyInventory = (): Inventory => Array.from({ length: INV_SIZE }, () => null);

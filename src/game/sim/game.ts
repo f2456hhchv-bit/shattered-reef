@@ -5,7 +5,7 @@ import { NPCS, QUESTS, type DialogueNode, type Effect } from '../data/quests';
 import { PLACES } from '../world/island';
 import { buildIsland, type IslandLayout } from '../world/layout';
 import type { World } from '../world/world';
-import { add, canAdd, count, remove, displayName, stackValue, type Stack } from './inventory';
+import { add, canAdd, count, remove, displayName, stackValue, wears, condOf, WORN_OUT_EFFECT, type Stack } from './inventory';
 import { computeStats, makeInstance, rollRarity, hitChance, reqBlock, type PlayerStats, type Stance } from './gear';
 import { levelForXp, MAX_XP } from './xp';
 import { defaultSave, SAVE_VERSION, BANK_MAX, type SaveData } from './save';
@@ -79,6 +79,9 @@ export interface Target { key: string; kind: 'node' | 'npc' | 'station' | 'bank'
 const DT_GATHER = 2.4;
 const DT_CRAFT = 1.8;
 const SAFE_RADIUS = 16;
+/** Condition lost per use: ~1000 swings, ~1250 hits taken, ~2000 gathers from new to worn out. */
+const WEAR = { weapon: 0.1, armour: 0.08, tool: 0.05 };
+
 export const STATION_NAMES: Record<Station, string> = { furnace: 'Furnace', anvil: 'Anvil', fire: 'Cookfire', bench: 'Gunsmith\'s bench' };
 
 export class Game {
@@ -197,7 +200,8 @@ export class Game {
     for (const st of this.p.inv) {
       const t = st && item(st.id).tool;
       if (only && st?.id !== only) continue;
-      if (t && t.skill === skill && t.level <= lvl && (!best || t.power > best.power)) best = { id: st!.id, power: t.power };
+      const power = t ? t.power - (condOf(st) <= 0 ? 1 : 0) : 0; // a worn-out tool works like the tier below
+      if (t && t.skill === skill && t.level <= lvl && (!best || power > best.power)) best = { id: st!.id, power };
     }
     return best;
   }
@@ -407,6 +411,7 @@ export class Game {
       if (d.bonus && this.rnd() < d.bonus.chance) { this.give(d.bonus.item, 1); this.msg(`You find a ${item(d.bonus.item).name.toLowerCase()}!`, 'loot'); }
     }
     if (d.skill) this.addXp(d.skill, d.xp);
+    if (tool.id !== 'hands') this.wear(this.p.inv.find((x) => x?.id === tool.id), WEAR.tool);
     if (d.depleteChance > 0 && this.rnd() < d.depleteChance) {
       // dig spots wander: they come back after a random while (the sand is disturbed somewhere else meanwhile)
       n.depletedUntil = this.time + d.respawn * (d.verb === 'Dig' ? 0.5 + this.rnd() : 1);
@@ -557,6 +562,53 @@ export class Game {
   }
 
   // ------------------------------------------------------------------ shop
+  // ------------------------------------------------------------------ wear and repair
+  /** Use wears gear down slowly; warnings at 20% and when worn out (it keeps working at reduced effect). */
+  private wear(st: Stack | null | undefined, amount: number) {
+    if (!st || !wears(st.id)) return;
+    const before = st.cond ?? 100;
+    if (before <= 0) return;
+    st.cond = Math.max(0, before - amount);
+    if (before > 20 && st.cond <= 20) this.msg(`Your ${displayName(st).toLowerCase()} is wearing thin (20%). Repair it at an anvil.`, 'warn');
+    if (st.cond <= 0) { this.msg(`Your ${displayName(st).toLowerCase()} is worn out: it works at ${Math.round(WORN_OUT_EFFECT * 100)}% until repaired.`, 'warn'); this.recalc(); }
+    if (Math.floor(before) !== Math.floor(st.cond)) this.rev++;
+  }
+
+  /** Everything worn in the pack and on you, with what each repair costs. */
+  repairList(): { key: string; st: Stack; coins: number; bar: string | null; xp: number }[] {
+    const out: { key: string; st: Stack; coins: number; bar: string | null; xp: number }[] = [];
+    const add = (key: string, st: Stack | null | undefined) => {
+      if (!st || !wears(st.id) || condOf(st) >= 100) return;
+      const lost = 1 - condOf(st) / 100;
+      const metal = st.id.match(/_(bronze|iron|steel|storm|abyss|tide)$/)?.[1] ?? (st.id === 'pistol_flintlock' ? 'bronze' : null);
+      const tier = ['bronze', 'iron', 'steel', 'storm', 'abyss', 'tide'].indexOf(metal ?? '');
+      out.push({ key, st, coins: Math.max(1, Math.round(stackValue({ ...st, qty: 1 }) * lost * 0.3)), bar: metal ? `bar_${metal}` : null, xp: metal ? Math.round(10 * (tier + 1) * lost) : 0 });
+    };
+    for (const [sl, st] of Object.entries(this.p.equip)) add(`equip:${sl}`, st);
+    this.p.inv.forEach((st, i) => add(`inv:${i}`, st));
+    return out;
+  }
+
+  /** Bram (at the village smithy) repairs for coins. */
+  nearSmith() { const b = this.layout.npcs.find((n) => n.id === 'bram'); return !!b && !this.p.onShip && Math.hypot(b.x - this.p.x, b.z - this.p.z) < 6; }
+
+  repair(key: string, self: boolean) {
+    const r = this.repairList().find((x) => x.key === key);
+    if (!r || !this.nearStation('anvil')) return;
+    if (self) {
+      if (!r.bar) { this.msg('Only Bram can mend that.', 'warn'); return; }
+      if (!remove(this.p.inv, r.bar, 1)) { this.msg(`You need a ${item(r.bar).name.toLowerCase()}.`, 'warn'); return; }
+      this.addXp('smithing', r.xp);
+    } else {
+      if (!this.nearSmith()) { this.msg('Bram works at the village smithy.', 'warn'); return; }
+      if (!remove(this.p.inv, 'coins', r.coins)) { this.msg(`Bram wants ${r.coins} coins.`, 'warn'); return; }
+    }
+    r.st.cond = 100; // rarity, affixes and everything else are kept
+    this.recalc();
+    this.rev++;
+    this.msg(`${displayName(r.st)} is as good as new.`, 'good');
+  }
+
   // ------------------------------------------------------------------ strongbox (bank)
   nearBank() { return !this.p.onShip && this.layout.banks.some((b) => Math.hypot(b.x - this.p.x, b.z - this.p.z) < 3.2); }
 
@@ -567,7 +619,7 @@ export class Game {
     const put = (idx: number) => {
       const st = this.p.inv[idx];
       if (!st) return true;
-      const same = !st.inst && bank.find((b) => b.id === st.id && !b.inst);
+      const same = !st.inst && st.cond === undefined && bank.find((b) => b.id === st.id && !b.inst && b.cond === undefined); // worn items keep their own entry
       if (same) same.qty += st.qty;
       else { if (bank.length >= BANK_MAX) return false; bank.push({ ...st }); }
       this.p.inv[idx] = null;
@@ -593,7 +645,7 @@ export class Game {
       for (; moved < Math.min(qty, e.qty); moved++) {
         const slot = this.p.inv.indexOf(null);
         if (slot < 0) { if (!moved) this.msg('Your pack is full.', 'warn'); break; }
-        this.p.inv[slot] = { id: e.id, qty: 1, ...(e.inst ? { inst: e.inst } : {}) };
+        this.p.inv[slot] = { id: e.id, qty: 1, ...(e.inst ? { inst: e.inst } : {}), ...(e.cond !== undefined ? { cond: e.cond } : {}) };
       }
     }
     e.qty -= moved;
@@ -876,6 +928,7 @@ export class Game {
   /** One normal attack with whatever is equipped. Returns false if it couldn't fire. */
   private performAttack(t: Enemy): boolean {
     const st = this.stats;
+    this.wear(this.p.equip.weapon, WEAR.weapon);
     if (st.style === 'melee') {
       this.emit({ type: 'swing' });
       const r = this.rollAgainst(t);
@@ -1040,6 +1093,7 @@ export class Game {
     if (this.rollT > 0) { this.emit({ type: 'dodge', x: this.p.x, z: this.p.z }); return; }
     this.p.hp -= dmg;
     this.combatTimer = 0;
+    if (dmg > 0) { this.wear(this.p.equip.head, WEAR.armour); this.wear(this.p.equip.body, WEAR.armour); }
     this.emit({ type: 'hit', target: 'player', id: 0, amount: dmg, crit: false, x: this.p.x, z: this.p.z });
     if (this.p.hp <= 0) {
       this.p.hp = 0;

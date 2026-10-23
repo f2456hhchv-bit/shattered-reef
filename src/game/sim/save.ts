@@ -40,6 +40,7 @@ function validStack(v: unknown, banked = false): Stack | null {
   const qty = Math.floor(num(s.qty, 0, 0, 1e9));
   if (qty <= 0) return null;
   const out: Stack = { id: s.id, qty: ITEMS[s.id].stackable || (banked && !s.inst) ? qty : 1 };
+  if (typeof s.cond === 'number' && Number.isFinite(s.cond) && s.cond < 100) out.cond = Math.max(0, s.cond);
   if (s.inst && typeof s.inst === 'object') {
     const i = s.inst as Record<string, unknown>;
     const rarity = typeof i.rarity === 'string' && i.rarity in RARITY ? (i.rarity as keyof typeof RARITY) : 'common';
