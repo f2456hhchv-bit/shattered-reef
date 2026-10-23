@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { mat, mesh, PAL, type PalKey } from '../materials';
+import { buildToy } from './toy';
 
 // Jointed humanoid, ~1.8m. Faces +z. Rigid parts on pivots, animated in code (no skinning).
 // Built from turned (lathe) profiles, capsules and spheres so every silhouette is rounded:
@@ -21,6 +22,7 @@ export interface HumanoidLook {
   apron?: PalKey | number;
   spectacles?: boolean;
   eyes?: number; // iris colour
+  style?: 'toy'; // big-headed vinyl-toy build (toy.ts)
 }
 
 export interface HumanoidRig {
@@ -64,6 +66,7 @@ function tricornBrim(r: number): THREE.BufferGeometry {
 }
 
 export function buildHumanoid(look: HumanoidLook): HumanoidRig {
+  if (look.style === 'toy') return buildToy(look, buildHeld);
   const root = new THREE.Group();
   const body = new THREE.Group();
   root.add(body);
