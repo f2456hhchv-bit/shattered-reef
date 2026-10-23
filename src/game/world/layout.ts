@@ -8,7 +8,8 @@ export type BuildingKind = 'store' | 'chart' | 'house' | 'tent' | 'smithy';
 export interface Building { kind: BuildingKind; x: number; z: number; rot: number; w: number; d: number; seed: number }
 /** `scenery` nodes are the island's ordinary trees, boulders, bushes and kelp: drawn instanced, still usable. */
 export interface NodePlacement { uid: string; def: string; x: number; z: number; seed: number; scenery?: boolean; s?: number; rot?: number }
-export interface Prop { kind: 'pine' | 'broadleaf' | 'rock' | 'crate' | 'barrel' | 'lantern' | 'pillar' | 'campfire'; x: number; z: number; rot: number; s: number; seed: number }
+export type DecorKind = 'netrack' | 'rowboat' | 'signpost' | 'fence' | 'well' | 'driftwood' | 'shells' | 'pots' | 'cannon' | 'wreck' | 'woodpile' | 'flowers';
+export interface Prop { kind: 'pine' | 'broadleaf' | 'rock' | 'crate' | 'barrel' | 'lantern' | 'pillar' | 'campfire' | DecorKind; x: number; z: number; rot: number; s: number; seed: number; aux?: number[] }
 export interface SpawnPoint { enemy: string; x: number; z: number }
 
 export interface IslandLayout {
@@ -276,6 +277,66 @@ export function buildIsland(seed = 1): IslandLayout {
   for (const [kind, x, z] of dress) {
     props.push({ kind, x, z, rot: rnd() * 6.28, s: 1, seed: Math.floor(rnd() * 1e6) });
     world.solids.push({ x, z, r: kind === 'lantern' ? 0.2 : 0.5 });
+  }
+
+  // ---- set dressing: quay gear, village life, beachcombing, the cove's guns and an old wreck. Nothing may
+  // crowd a path, a door, a station, a person or anything you can use.
+  const clearOf = (x: number, z: number, r: number) => {
+    const p = nearestPathDist(x, z);
+    if (p.d < p.width + r + 0.6) return false;
+    for (const b of buildings) if (Math.hypot(x - b.x, z - b.z) < Math.max(b.w, b.d) * 0.75 + r + 1.2) return false;
+    for (const q of [...stations, ...banks, ...npcs]) if (Math.hypot(x - q.x, z - q.z) < r + 2.6) return false;
+    for (const n of nodes) if (Math.hypot(x - n.x, z - n.z) < r + 1.6) return false;
+    for (const pr of props) if (Math.hypot(x - pr.x, z - pr.z) < r + 1.0) return false;
+    if (Math.hypot(x - mooring.x, z - mooring.z) < r + 6) return false;
+    return true;
+  };
+  const decor = (kind: DecorKind, x: number, z: number, r: number, rot: number, solid: boolean, aux?: number[]) => {
+    for (let k = 0; k < 8; k++) {
+      const a = k * 2.4, d = k * 0.7, px = x + Math.cos(a) * d, pz = z + Math.sin(a) * d; // nudge outward if crowded
+      if (!clearOf(px, pz, r)) continue;
+      props.push({ kind, x: px, z: pz, rot, s: 1, seed: Math.floor(rnd() * 1e6), aux });
+      if (solid) world.solids.push({ x: px, z: pz, r });
+      return true;
+    }
+    return false;
+  };
+  const DB = LAYOUT.dockBase;
+  decor('netrack', DB.x - 6.5, DB.z - 1.5, 1.3, 0.15, true);
+  decor('pots', DB.x + 5.5, DB.z - 1.2, 0.8, -0.3, true);
+  decor('cannon', DB.x - 9, DB.z - 3.5, 0.7, -0.2, true); // muzzles out to sea (+z)
+  decor('cannon', DB.x + 9, DB.z - 3.5, 0.7, 0.2, true);
+  decor('well', V.x - 6, V.z - 7, 1.0, 0.3, true);
+  decor('woodpile', S.x + 4.5, S.z - 2, 0.8, -0.4, true);
+  decor('woodpile', V.x - 19, V.z - 1.2, 0.8, 0.35, true);
+  for (const [cx, cz, rot] of [[V.x - 19, V.z + 3, 0.35], [V.x + 21, V.z - 7, -0.4]] as const) {
+    // a garden fence behind each cottage, with flowers inside it
+    const bx = cx + Math.sin(rot) * 4.2, bz = cz - Math.cos(rot) * 4.2;
+    decor('fence', bx, bz, 0.3, -rot, false, [4.8]);
+    decor('flowers', bx + Math.cos(rot) * 1.2, bz + Math.sin(rot) * 1.2 + 1, 0.4, 0, false);
+  }
+  const X = LAYOUT.crossroads, toward = (t: { x: number; z: number }) => Math.atan2(t.z - X.z, t.x - X.x);
+  decor('signpost', X.x + 2.8, X.z + 2.2, 0.25, 0, true, [toward(LAYOUT.village), toward(LAYOUT.camp), toward(LAGOON), toward(LAYOUT.ruin)]);
+  const CV = LAYOUT.cove;
+  decor('cannon', CV.x + 3.5, CV.z + 2.5, 0.7, Math.atan2(CV.x, CV.z), true);
+  decor('cannon', CV.x - 1, CV.z + 4.5, 0.7, Math.atan2(CV.x, CV.z) + 0.3, true);
+  decor('rowboat', ...coastPoint(36 + 6, 2.2), 1.2, 0.8, true);
+  decor('rowboat', ...coastPoint(104, 2.4), 1.2, -0.6, true);
+  decor('rowboat', ...coastPoint(150, 2.2), 1.2, 2.2, true);
+  {
+    const [wx, wz] = coastPoint(316, 0.8);
+    if (decor('wreck', wx, wz, 2.2, Math.atan2(wz, wx) + Math.PI / 2, false)) {
+      const w = props[props.length - 1];
+      for (const d of [-2.6, 0, 2.6]) world.solids.push({ x: w.x + Math.cos(w.rot - Math.PI / 2) * d, z: w.z - Math.sin(w.rot - Math.PI / 2) * d, r: 1.1 });
+    }
+  }
+  // beachcombing: driftwood and shells all round the shore, flowers in the meadows
+  for (let k = 0; k < 26; k++) { const th = k * 13.8 + rnd() * 6, [x, z] = coastPoint(th, 2.5 + rnd() * 5); if (Math.hypot(x - V.x, z - V.z) > 22) decor('driftwood', x, z, 0.6, rnd() * 6.28, false); }
+  for (let k = 0; k < 34; k++) { const th = k * 10.6 + rnd() * 5, [x, z] = coastPoint(th, 1 + rnd() * 6); if (Math.hypot(x - V.x, z - V.z) > 18) decor('shells', x, z, 0.5, rnd() * 6.28, false); }
+  for (let k = 0, made = 0; k < 200 && made < 30; k++) {
+    const a = rnd() * Math.PI * 2, r = 10 + rnd() * 55, x = Math.cos(a) * r, z = Math.sin(a) * r;
+    if (coastDist(x, z) < BEACH + 2 || world.ground(x, z) > 6) continue;
+    if (decor('flowers', x, z, 0.4, 0, false)) made++;
   }
 
   world.bake();

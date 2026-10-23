@@ -84,7 +84,7 @@ export class UI {
     add('bossbar', h('div', {}, '<b></b><div class="bar"><i></i></div>')).hidden = true;
     const mm = add('mm', h('div', { role: 'button', 'aria-label': 'Minimap. Tap to walk there.', tabindex: '0' }, '<canvas></canvas><div id="compass">N</div>'));
     this.mmCtx = (mm.querySelector('canvas') as HTMLCanvasElement).getContext('2d')!;
-    add('orbs', h('div', {}, '<div class="orb" id="hp" title="Health"><div class="fill"></div><div class="txt"></div></div><div class="orb lvl" title="Combat level"><div class="fill"></div><div class="txt" id="cbl"></div></div>'));
+    add('orbs', h('div', {}, `<div class="orb" id="hp" title="Health"><div class="fill"></div><div class="txt"></div><span class="oic">${SKILL_ICONS.hitpoints}</span></div><div class="orb lvl" title="Combat level"><div class="fill"></div><div class="txt" id="cbl"></div><span class="oic">${SKILL_ICONS.attack}</span></div>`));
     this.el.hp = document.getElementById('hp')!;
     const side = add('side', h('div', { class: 'panel' }));
     const tabs = h('div', { id: 'tabs', role: 'tablist' });
@@ -167,7 +167,7 @@ export class UI {
     switch (e.type) {
       case 'msg': this.log(e.text, e.kind); break;
       case 'xp': this.xpDrop(e.skill, e.amount); break;
-      case 'level': this.banner(`${cap(e.skill)} level ${e.level}`, this.nextUnlockText(e.skill) ?? 'Keep going.'); break;
+      case 'level': this.banner(`${cap(e.skill)} level ${e.level}`, this.nextUnlockText(e.skill) ?? 'Keep going.', e.skill); break;
       case 'discover': { const f = this.game.placeInfo(e.id).foes; this.banner(e.name, f ? `Discovered · Foes level ${f[0]}${f[1] > f[0] ? `–${f[1]}` : ''}` : 'Discovered · Peaceful'); break; }
       case 'quest': {
         const q = QUESTS[e.id];
@@ -200,14 +200,15 @@ export class UI {
     const s = SKILLS.find((x) => x.id === skill)!;
     const d = h('div');
     d.style.color = s.colour;
-    d.textContent = `+${fmt(amt)} ${s.name}`;
+    d.innerHTML = `<span class="xi" style="--c:${s.colour}">${SKILL_ICONS[skill]}</span>+${fmt(amt)} ${s.name}`;
     this.el.xpdrops.appendChild(d);
     setTimeout(() => d.remove(), 1900);
     while (this.el.xpdrops.children.length > 5) this.el.xpdrops.firstElementChild!.remove();
   }
 
-  banner(title: string, sub: string) {
-    this.el.banner.innerHTML = `<b>${esc(title)}</b><span>${esc(sub)}</span>`;
+  banner(title: string, sub: string, icon?: SkillId) {
+    const s = icon && SKILLS.find((x) => x.id === icon);
+    this.el.banner.innerHTML = `${s ? `<i class="medal" style="--c:${s.colour}">${SKILL_ICONS[s.id]}</i>` : ''}<b>${esc(title)}</b><span>${esc(sub)}</span>`;
     this.el.banner.classList.add('show');
     this.bannerT = 2.6;
   }
@@ -321,6 +322,7 @@ export class UI {
       d.el.style.opacity = String(Math.min(1, 2.6 - d.t * 2.8));
     }
     const seen = new Set<number>();
+    const placed: [number, number, number][] = []; // name tags this frame: x, y, half-width
     for (const e of g.enemies) {
       if (!e.alive || e.def.boss || e.state === 'rise') continue;
       const show = e.hp < e.maxHp || g.target === e.id;
@@ -339,7 +341,12 @@ export class UI {
         if (!tg) { tg = h('div', { class: 'nametag elite' }); this.el.overlay.appendChild(tg); this.tags.set(e.id, tg); }
         tg.textContent = g.enemyName(e);
         tg.title = ELITE_AFFIXES.find((a) => a.id === e.elite)?.desc ?? '';
-        tg.style.left = `${s.x}px`; tg.style.top = `${s.y - 6}px`;
+        // two elites side by side: lift the later tag above the earlier one instead of overprinting it
+        const hw = tg.textContent.length * 3.4 + 6;
+        let y = s.y - 6;
+        for (let k = 0; k < 4 && placed.some(([px, py, pw]) => Math.abs(px - s.x) < pw + hw && Math.abs(py - y) < 15); k++) y -= 15;
+        placed.push([s.x, y, hw]);
+        tg.style.left = `${Math.max(hw, Math.min(innerWidth - hw, s.x))}px`; tg.style.top = `${y}px`; // never cut off at the screen edge
       }
     }
     for (const [id, b] of this.bars) if (!seen.has(id)) { b.remove(); this.bars.delete(id); }
