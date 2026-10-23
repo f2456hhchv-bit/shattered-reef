@@ -214,3 +214,58 @@ body.portrait #dialog { bottom: calc(var(--tab-h) + 18px + env(safe-area-inset-b
 #confirm .acts .btn { flex: 1; }
 #ko { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; background: #3a0d08a0; font: 700 clamp(22px, 5vw, 34px) var(--display); color: #ffd0c0; text-shadow: 0 2px 0 #000; pointer-events: none; }
 @media (prefers-reduced-motion: reduce) { #xpdrops div { animation-duration: .01s; } #banner { transition: none; } }
+
+/* ================================================ UI pass 1: carved, framed, rounded (no flat boxes) */
+:root { --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9 0.08' numOctaves='2' seed='4'/%3E%3CfeColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.35 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url%28%23n%29'/%3E%3C/svg%3E"); }
+.panel {
+  border: 0; border-radius: 16px;
+  background: var(--grain), repeating-linear-gradient(91deg, #ffffff05 0 1px, transparent 1px 7px), linear-gradient(180deg, #5a3e27, #3b291b 38%, #2a1c12);
+  box-shadow: 0 0 0 1px #0d0804, 0 0 0 3px #7a5a32, 0 0 0 4px #0d0804, inset 0 1px 0 #8a6a42, inset 0 -2px 6px #0007, 0 12px 30px #000b;
+}
+.panel::before {
+  content: ""; position: absolute; inset: 4px; border-radius: 12px; pointer-events: none; z-index: 0;
+  border: 1px solid #c9a05040;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='34' height='34' viewBox='0 0 34 34'%3E%3Cg fill='none' stroke-linecap='round'%3E%3Cpath d='M3 31V12Q3 3 12 3h19' stroke='%232a1a0c' stroke-width='4'/%3E%3Cpath d='M3 31V12Q3 3 12 3h19' stroke='%23d9b56a' stroke-width='2'/%3E%3Cpath d='M9 24q0-15 15-15' stroke='%23b88a3e' stroke-width='1.4'/%3E%3Cpath d='M13 9q-5 1-4 6q3 3 6 0q1-3-2-3' stroke='%23f0d49b' stroke-width='1.4'/%3E%3C/g%3E%3Ccircle cx='7.5' cy='7.5' r='2.6' fill='%23f0d49b' stroke='%235a3a14' stroke-width='1'/%3E%3C/svg%3E") top left / 34px no-repeat, url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='34' height='34' viewBox='0 0 34 34'%3E%3Cg transform='translate%2834 0%29 scale%28-1 1%29'%3E%3Cg fill='none' stroke-linecap='round'%3E%3Cpath d='M3 31V12Q3 3 12 3h19' stroke='%232a1a0c' stroke-width='4'/%3E%3Cpath d='M3 31V12Q3 3 12 3h19' stroke='%23d9b56a' stroke-width='2'/%3E%3Cpath d='M9 24q0-15 15-15' stroke='%23b88a3e' stroke-width='1.4'/%3E%3Cpath d='M13 9q-5 1-4 6q3 3 6 0q1-3-2-3' stroke='%23f0d49b' stroke-width='1.4'/%3E%3C/g%3E%3Ccircle cx='7.5' cy='7.5' r='2.6' fill='%23f0d49b' stroke='%235a3a14' stroke-width='1'/%3E%3C/g%3E%3C/svg%3E") top right / 34px no-repeat, url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='34' height='34' viewBox='0 0 34 34'%3E%3Cg transform='translate%280 34%29 scale%281 -1%29'%3E%3Cg fill='none' stroke-linecap='round'%3E%3Cpath d='M3 31V12Q3 3 12 3h19' stroke='%232a1a0c' stroke-width='4'/%3E%3Cpath d='M3 31V12Q3 3 12 3h19' stroke='%23d9b56a' stroke-width='2'/%3E%3Cpath d='M9 24q0-15 15-15' stroke='%23b88a3e' stroke-width='1.4'/%3E%3Cpath d='M13 9q-5 1-4 6q3 3 6 0q1-3-2-3' stroke='%23f0d49b' stroke-width='1.4'/%3E%3C/g%3E%3Ccircle cx='7.5' cy='7.5' r='2.6' fill='%23f0d49b' stroke='%235a3a14' stroke-width='1'/%3E%3C/g%3E%3C/svg%3E") bottom left / 34px no-repeat, url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='34' height='34' viewBox='0 0 34 34'%3E%3Cg transform='translate%2834 34%29 scale%28-1 -1%29'%3E%3Cg fill='none' stroke-linecap='round'%3E%3Cpath d='M3 31V12Q3 3 12 3h19' stroke='%232a1a0c' stroke-width='4'/%3E%3Cpath d='M3 31V12Q3 3 12 3h19' stroke='%23d9b56a' stroke-width='2'/%3E%3Cpath d='M9 24q0-15 15-15' stroke='%23b88a3e' stroke-width='1.4'/%3E%3Cpath d='M13 9q-5 1-4 6q3 3 6 0q1-3-2-3' stroke='%23f0d49b' stroke-width='1.4'/%3E%3C/g%3E%3Ccircle cx='7.5' cy='7.5' r='2.6' fill='%23f0d49b' stroke='%235a3a14' stroke-width='1'/%3E%3C/g%3E%3C/svg%3E") bottom right / 34px no-repeat;
+}
+.panel > * { position: relative; z-index: 1; }
+body.landscape #side { border-radius: 18px 0 0 18px; }
+body.portrait #side { border-radius: 20px 20px 0 0; }
+body.portrait #side::after { content: ""; position: absolute; top: -9px; left: 50%; width: 120px; height: 18px; margin-left: -60px; border-radius: 9px; z-index: 2;
+  background: radial-gradient(circle at 50% 50%, #f0d49b 0 3px, transparent 4px), linear-gradient(180deg, #e2bd6e, #8a6a32); box-shadow: 0 0 0 1px #0d0804, 0 2px 4px #0009; }
+
+/* medallion tabs */
+#tabs { gap: 6px; }
+#tabs button { border: 0; border-radius: 14px; background: radial-gradient(circle at 50% 30%, #6e4e2e, #2e2014 78%);
+  box-shadow: 0 0 0 1px #0d0804, inset 0 0 0 2px #9a7a4a40, inset 0 2px 0 #b08a5a55, 0 2px 4px #0008; transition: transform .12s, box-shadow .12s; }
+#tabs button svg { filter: drop-shadow(0 1px 1px #000); }
+#tabs button.on { background: radial-gradient(circle at 50% 30%, #b08a4e, #5a3e22 80%);
+  box-shadow: 0 0 0 1px #0d0804, inset 0 0 0 2px var(--brass-hi), 0 0 12px #f0d49b55, 0 2px 4px #0008; transform: translateY(-1px); }
+
+/* tooled-leather inset */
+#content { border-radius: 12px; background: radial-gradient(ellipse at 50% -10%, #33251a, #1a120b 70%);
+  box-shadow: inset 0 0 0 1px #0d0804, inset 0 0 0 3px #4a3420, inset 0 0 0 4px #0d080466, inset 0 4px 12px #000c; }
+
+/* slots: rounded slate, empty ones carry a faint engraved ring, a brass rivet instead of a square corner */
+.slot { border-radius: 12px; }
+.slot.empty { background: radial-gradient(circle, transparent 0 30%, #e9d3a412 31% 34%, transparent 35%), radial-gradient(120% 90% at 30% 20%, #3c2d20, #1d140d 85%);
+  box-shadow: inset 0 0 0 1px #0d0804, inset 0 2px 7px #000a, 0 1px 0 #5a40281f; }
+.slot:not(.empty)::after { width: 8px; height: 8px; right: 4px; top: 4px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #fff0c8, #c9a050 55%, #6b4a1e); box-shadow: 0 0 2px #000; }
+.btn, .stances button, .seg, .quest, .recipe, .win .x { border-radius: 12px; }
+.btn { box-shadow: 0 0 0 1px #0d0804, inset 0 1px 0 #9a7a4a, inset 0 -2px 4px #0006; border: 0; }
+.btn.primary { box-shadow: 0 0 0 1px #3a2a0a, inset 0 1px 0 #fff0c8, inset 0 -2px 4px #6b4a1e88; }
+
+/* round orbs (RuneScape-style): liquid rises from the bottom */
+.orb { width: 50px; height: 50px; border-radius: 50%; border: 0; background: radial-gradient(circle at 50% 35%, #2e2014, #0d0804 75%);
+  box-shadow: 0 0 0 2px #0d0804, 0 0 0 4px #c9a050, 0 0 0 5px #0d0804, 0 4px 10px #000a; }
+.orb .fill { transform-origin: bottom; border-radius: 50%; background: radial-gradient(circle at 40% 30%, #ff8a70, #c0301e 55%, #6a120a); }
+.orb .txt { font-size: 16px; }
+.orb::after { content: ""; position: absolute; left: 18%; top: 10%; width: 40%; height: 26%; border-radius: 50%; background: linear-gradient(180deg, #ffffff55, transparent); pointer-events: none; }
+.orb.lvl { width: 50px; }
+.orb.lvl .fill { background: radial-gradient(circle at 40% 30%, #6a4c30, #2c1f14 70%); }
+body.landscape #orbs { right: calc(var(--side-w) / 2 - 54px); top: calc(var(--mm) + 18px + env(safe-area-inset-top, 0px)); }
+#mm { box-shadow: 0 0 0 2px #0d0804, 0 0 0 5px #c9a050, 0 0 0 6px #0d0804, 0 0 0 9px #5a3e27, 0 0 0 10px #0d0804, 0 6px 16px #000a; }
+#log div { background: linear-gradient(90deg, #1a120bd0, #1a120b70 80%, transparent); padding: 3px 12px 3px 10px; border-radius: 10px; width: fit-content; max-width: 100%; }
+body.landscape #side { padding-top: calc(var(--mm) + 80px + env(safe-area-inset-top, 0px)); }
+.stances.spells { grid-template-columns: 1fr 1fr; }
+.stances button:disabled { opacity: .4; }

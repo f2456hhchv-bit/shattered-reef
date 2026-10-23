@@ -32,7 +32,8 @@ export class Input {
   private down(e: PointerEvent) {
     if (!this.enabled) return;
     try { this.canvas.setPointerCapture(e.pointerId); } catch { /* synthetic or already-released pointer */ }
-    this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, t: performance.now(), type: e.pointerType });
+    // t = when the finger went down per the browser, so a slow frame can't turn a tap into a long-press
+    this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, t: e.timeStamp, type: e.pointerType });
     if (this.pointers.size === 2) {
       const [a, b] = [...this.pointers.values()];
       this.pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), zoom: this.r.zoom };
@@ -75,7 +76,7 @@ export class Input {
     if (!p) return;
     if (this.stickId === e.pointerId) { this.releaseStick(); return; }
     const moved = Math.hypot(p.x - p.sx, p.y - p.sy);
-    if (moved < 14 && performance.now() - p.t < 600 && !this.pinch && (e.pointerType !== 'mouse' || e.button === 0)) this.tap(e.clientX, e.clientY, p.type);
+    if (moved < 14 && e.timeStamp - p.t < 700 && !this.pinch && (e.pointerType !== 'mouse' || e.button === 0)) this.tap(e.clientX, e.clientY, p.type);
   }
 
   private cancel(e: PointerEvent) {

@@ -175,9 +175,48 @@ function builders(shape: IconShape, col: string, acc: string | undefined, seed: 
       add(g, new THREE.BoxGeometry(0.03, 0.42, 0.02), m(acc ?? '#c9a050', 'metal'), [0.05, 0.0, 0.185]);
       break;
     }
+    case 'plate': {
+      // breastplate: turned torso shell, rounded pauldrons, a raised central ridge and rivets
+      const prof = [[0.0, 0.24], [0.13, 0.23], [0.19, 0.16], [0.2, 0.0], [0.17, -0.16], [0.19, -0.22], [0.0, -0.23]].map(([r, y]) => new THREE.Vector2(r, y));
+      add(g, new THREE.LatheGeometry(prof, 18), m(col, 'metal'), [0, 0, 0], [0, 0, 0], [1, 1, 0.72]);
+      for (const sx of [-1, 1]) {
+        add(g, new THREE.SphereGeometry(0.1, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), m(shade(col, 0.85).getHex(), 'metal'), [sx * 0.2, 0.17, 0], [0, 0, -sx * 0.5], [1, 0.8, 1]);
+        add(g, new THREE.SphereGeometry(0.018, 6, 4), m('#e9d3a4', 'metal'), [sx * 0.1, 0.12, 0.13]);
+      }
+      add(g, new THREE.CapsuleGeometry(0.018, 0.32, 3, 8), m(shade(col, 1.2).getHex(), 'metal'), [0, 0, 0.146]);
+      add(g, new THREE.TorusGeometry(0.17, 0.016, 6, 22), m(shade(col, 0.7).getHex(), 'metal'), [0, -0.2, 0], [Math.PI / 2, 0, 0], [1, 0.72, 1]);
+      break;
+    }
+    case 'harpoon': {
+      add(g, new THREE.CylinderGeometry(0.018, 0.022, 0.7, 8), m('#7a5534'), [0, 0, 0], [0, 0, 0.7]);
+      add(g, new THREE.ConeGeometry(0.04, 0.16, 10), m(col, 'metal'), [-0.27, 0.22, 0], [0, 0, 0.7]);
+      for (const sx of [-1, 1]) add(g, new THREE.ConeGeometry(0.018, 0.09, 6), m(col, 'metal'), [-0.2 + sx * 0.02, 0.17 + sx * 0.03, 0], [0, 0, 0.7 + Math.PI + sx * 0.5]);
+      add(g, new THREE.TorusGeometry(0.05, 0.008, 6, 16), m('#c9b28a'), [0.2, -0.17, 0], [0.4, 0.6, 0]);
+      break;
+    }
+    case 'pot': {
+      // wicker cage: hoops and ribs around a dark interior, with a funnel mouth
+      add(g, new THREE.CylinderGeometry(0.16, 0.18, 0.26, 14, 1, true), m('#2a1e14'), [0, 0, 0], [Math.PI / 2, 0, 0]);
+      for (const z of [-0.12, 0, 0.12]) add(g, new THREE.TorusGeometry(0.17, 0.015, 6, 18), m(col), [0, 0, z]);
+      for (let k = 0; k < 8; k++) { const a = (k / 8) * Math.PI * 2; add(g, new THREE.CylinderGeometry(0.01, 0.01, 0.27, 5), m(shade(col, 0.85).getHex()), [Math.cos(a) * 0.17, Math.sin(a) * 0.17, 0], [Math.PI / 2, 0, 0]); }
+      add(g, new THREE.ConeGeometry(0.11, 0.1, 12, 1, true), m(shade(col, 0.9).getHex()), [0, 0, 0.12], [-Math.PI / 2, 0, 0]);
+      break;
+    }
+    case 'lobster': {
+      add(g, nudge(new THREE.CapsuleGeometry(0.075, 0.26, 4, 12), 0.006, seed), m(col), [0, 0, 0], [0, 0, Math.PI / 2], [1, 1, 0.8]);
+      for (let k = 0; k < 4; k++) add(g, new THREE.TorusGeometry(0.07, 0.012, 5, 12, Math.PI), m(shade(col, 0.8).getHex()), [-0.12 + k * 0.05, 0.02, 0], [0, Math.PI / 2, 0]);
+      for (const sz of [-1, 1]) {
+        add(g, new THREE.CapsuleGeometry(0.02, 0.14, 3, 8), m(col), [0.22, 0, sz * 0.08], [0, sz * 0.5, Math.PI / 2]);
+        add(g, nudge(new THREE.SphereGeometry(0.06, 10, 8), 0.004, seed + sz), m(shade(col, 1.1).getHex()), [0.32, 0, sz * 0.14], [0, 0, 0], [1.5, 0.6, 0.9]);
+        add(g, new THREE.CylinderGeometry(0.004, 0.002, 0.3, 4), m(shade(col, 0.7).getHex()), [0.3, 0.06, sz * 0.03], [0, sz * 0.3, -1.2]);
+      }
+      add(g, new THREE.ConeGeometry(0.07, 0.1, 10), m(shade(col, 0.9).getHex()), [-0.22, 0, 0], [0, 0, Math.PI / 2], [1, 1, 0.5]);
+      break;
+    }
     case 'ring': {
-      add(g, new THREE.TorusGeometry(0.14, 0.035, 10, 24), m(col, 'metal'), [0, 0, 0], [0.9, 0, 0]);
-      add(g, new THREE.OctahedronGeometry(0.06, 0), m(acc ?? '#59d0c4', 'gloss'), [0, 0.1, 0.11], [0.9, 0.4, 0]);
+      // nearly face-on to the icon camera (which looks down ~30 degrees), set stone on top
+      add(g, new THREE.TorusGeometry(0.14, 0.035, 12, 28), m(col, 'metal'), [0, 0, 0], [-0.25, 0, 0]);
+      add(g, new THREE.OctahedronGeometry(0.06, 0), m(acc ?? '#59d0c4', 'gloss'), [0, 0.18, 0.04], [0, 0.4, 0]);
       break;
     }
     case 'bell': {

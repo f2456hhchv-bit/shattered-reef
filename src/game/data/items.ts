@@ -6,7 +6,7 @@ export type SkillId =
   | 'smithing' | 'gunsmithing' | 'cooking';
 export type CombatStyle = 'melee' | 'ranged' | 'magic';
 export type Slot = 'weapon' | 'ammo' | 'head' | 'body' | 'ring';
-export type IconShape = 'log' | 'ore' | 'bar' | 'fish' | 'meat' | 'coins' | 'bread' | 'hatchet' | 'pickaxe' | 'rod' | 'cutlass' | 'helm' | 'cap' | 'coat' | 'ring' | 'bell' | 'tooth' | 'shell' | 'burnt' | 'pistol' | 'shot' | 'staff' | 'charm';
+export type IconShape = 'log' | 'ore' | 'bar' | 'fish' | 'meat' | 'coins' | 'bread' | 'hatchet' | 'pickaxe' | 'rod' | 'cutlass' | 'helm' | 'cap' | 'coat' | 'plate' | 'ring' | 'bell' | 'tooth' | 'shell' | 'burnt' | 'pistol' | 'shot' | 'staff' | 'charm' | 'harpoon' | 'pot' | 'lobster';
 
 /** RuneScape-style equipment bonuses. Accuracy applies to the weapon's own style. */
 export interface Bonuses {
@@ -44,6 +44,96 @@ const I = (d: ItemDef) => d;
 const MELEE_AFFIX = ['dmg_pct', 'atk_speed', 'crit', 'cleave', 'elite_dmg', 'accuracy'];
 const RANGED_AFFIX = ['dmg_pct', 'atk_speed', 'crit', 'elite_dmg', 'accuracy', 'leech'];
 const ARMOUR_AFFIX = ['max_hp', 'armour', 'regen'];
+
+
+// ---- tiers: generated so every metal, wood and fish follows one rule set --------------------------
+/** Metals, low to high. `m` indexes the gear stat tables below. Existing early ids are kept for saves. */
+export const METALS = [
+  { key: 'bronze', name: 'Bronze', color: '#c08a4a', req: 1, toolReq: 1 },
+  { key: 'iron', name: 'Iron', color: '#9aa0a4', req: 10, toolReq: 10 },
+  { key: 'steel', name: 'Steel', color: '#b9c4cc', req: 20, toolReq: 20 },
+  { key: 'storm', name: 'Stormsilver', color: '#86b6dc', req: 30, toolReq: 30 },
+  { key: 'abyss', name: 'Abyssite', color: '#3f7a66', req: 40, toolReq: 40 },
+  { key: 'tide', name: 'Tidecore', color: '#3cc6c4', req: 50, toolReq: 50 },
+] as const;
+const CUT = { acc: [9, 14, 21, 30, 40, 52], str: [8, 13, 20, 29, 39, 51] };
+const HELM = [5, 8, 12, 17, 23, 30];
+const PLATE = [14, 21, 32, 46, 62, 80];
+const SHOT_STR = [7, 13, 20, 28, 37, 47];
+const PISTOL = { acc: [10, 22, 32, 44, 58, 72], req: [1, 15, 25, 35, 45, 55], range: [9, 10, 10, 11, 11, 12] };
+const BAR_VALUE = [18, 40, 70, 140, 280, 560];
+
+export const WOODS = [
+  { key: 'pine', name: 'Saltpine', color: '#8a6440', accent: '#d6b07a', value: 4 },
+  { key: 'oak', name: 'Sea-oak', color: '#6b4a30', accent: '#c49a64', value: 10 },
+  { key: 'willow', name: 'Mire willow', color: '#7d7448', accent: '#cfc28a', value: 18 },
+  { key: 'amber', name: 'Amberwood', color: '#9a5a32', accent: '#eaa250', value: 32 },
+  { key: 'yew', name: 'Ghost yew', color: '#5a4a34', accent: '#d8d2b8', value: 60 },
+  { key: 'star', name: 'Starbark', color: '#46486a', accent: '#b8c6ff', value: 110 },
+  { key: 'cedar', name: 'Leviathan cedar', color: '#7a3424', accent: '#e8805a', value: 200 },
+] as const;
+
+export const FISH = [
+  { key: 'sprat', name: 'reef sprat', cooked: 'Grilled sprat', raw: '#9fb7bf', done: '#c9934f', heal: 3, value: 3 },
+  { key: 'bell', name: 'bellfish', cooked: 'Seared bellfish', raw: '#6f9fbf', done: '#b77a3e', heal: 8, value: 14 },
+  { key: 'trout', name: 'lagoon trout', cooked: 'Smoked trout', raw: '#8aa86a', done: '#b8834a', heal: 8, value: 12 },
+  { key: 'salmon', name: 'fen salmon', cooked: 'Baked salmon', raw: '#d88a6a', done: '#c0603a', heal: 10, value: 20 },
+  { key: 'lobster', name: 'cove lobster', cooked: 'Boiled lobster', raw: '#3a5a7a', done: '#d8442a', heal: 12, value: 34 },
+  { key: 'sword', name: 'swordfish', cooked: 'Grilled swordfish', raw: '#5a7aa0', done: '#a8703a', heal: 14, value: 50 },
+  { key: 'gloom', name: 'gloomfish', cooked: 'Charred gloomfish', raw: '#4a4a5a', done: '#7a5a4a', heal: 16, value: 70 },
+  { key: 'shark', name: 'shark', cooked: 'Shark steak', raw: '#7a8a96', done: '#a87a5a', heal: 20, value: 110 },
+  { key: 'angler', name: 'abyssal angler', cooked: 'Roast angler', raw: '#2a3a4a', done: '#8a5a3a', heal: 22, value: 140 },
+] as const;
+
+const ORES = [
+  { id: 'ore_coal', name: 'Coal', desc: 'Black, crumbly, burns long. Smelting stronger metals needs it.', accent: '#1d1d1f', value: 22 },
+  { id: 'ore_gold', name: 'Gold ore', desc: 'Soft and bright.', accent: '#e3c25e', value: 40 },
+  { id: 'ore_storm', name: 'Stormsilver ore', desc: 'Crackles faintly when you hold it.', accent: '#8fc0e8', value: 70 },
+  { id: 'ore_abyss', name: 'Abyssite ore', desc: 'Green-black, cold as deep water.', accent: '#3f8f6e', value: 120 },
+  { id: 'ore_tide', name: 'Tidecore ore', desc: 'It pulls toward the sea like a compass needle.', accent: '#3fd8d0', value: 220 },
+];
+
+function tierItems(): ItemDef[] {
+  const out: ItemDef[] = [];
+  for (const o of ORES) out.push(I({ id: o.id, name: o.name, desc: o.desc, icon: { shape: 'ore', color: '#55524f', accent: o.accent }, stackable: true, value: o.value }));
+  out.push(I({ id: 'bar_gold', name: 'Gold bar', desc: 'Too soft for blades. Perfect for rings.', icon: { shape: 'bar', color: '#e3c25e' }, stackable: true, value: 90 }));
+  out.push(I({ id: 'ring_gold', name: 'Gold signet', desc: 'Smith-made. Gold takes enchantment well.', icon: { shape: 'ring', color: '#e3c25e', accent: '#d8442a' }, stackable: false, value: 160,
+    equip: { slot: 'ring', reqs: { defence: 1 }, bonus: { acc: 2, defMelee: 1, defRanged: 1, defMagic: 2 }, affixPool: ['gather_speed', 'xp_bonus', 'crit', 'max_hp', 'dmg_pct', 'accuracy', 'regen'] } }));
+  METALS.forEach((mt, m) => {
+    const col = mt.color, nm = mt.name;
+    if (m >= 2) out.push(I({ id: `bar_${mt.key}`, name: `${nm} bar`, desc: `A bar of ${nm.toLowerCase()}.`, icon: { shape: 'bar', color: col }, stackable: true, value: BAR_VALUE[m] }));
+    if (m >= 2) {
+      out.push(I({ id: `hatchet_${mt.key}`, name: `${nm} hatchet`, desc: 'A better edge fells trees faster.', icon: { shape: 'hatchet', color: col }, stackable: false, value: BAR_VALUE[m] * 2, tool: { skill: 'woodcutting', power: m + 1, level: mt.toolReq } }));
+      out.push(I({ id: `pickaxe_${mt.key}`, name: `${nm} pickaxe`, desc: 'A harder point bites harder rock.', icon: { shape: 'pickaxe', color: col }, stackable: false, value: BAR_VALUE[m] * 2, tool: { skill: 'mining', power: m + 1, level: mt.toolReq } }));
+      out.push(I({ id: `cutlass_${mt.key}`, name: `${nm} cutlass`, desc: `A ${nm.toLowerCase()} blade, balanced for boarding fights.`, icon: { shape: 'cutlass', color: col }, stackable: false, value: BAR_VALUE[m] * 3,
+        equip: { slot: 'weapon', reqs: { attack: mt.req }, style: 'melee', speed: 2.4, bonus: { acc: CUT.acc[m], str: CUT.str[m] }, affixPool: [...MELEE_AFFIX, 'leech'] } }));
+      out.push(I({ id: `shot_${mt.key}`, name: `${nm} shot`, desc: 'Pistol balls. Equip in the ammo slot.', icon: { shape: 'shot', color: col }, stackable: true, value: Math.ceil(BAR_VALUE[m] / 12),
+        equip: { slot: 'ammo', reqs: { ranged: mt.req }, bonus: { rangedStr: SHOT_STR[m] }, affixPool: [] } }));
+      out.push(I({ id: `pistol_${mt.key}`, name: `${nm} pistol`, desc: 'Fires shot from your ammo slot.', icon: { shape: 'pistol', color: '#5a3e28', accent: col }, stackable: false, value: BAR_VALUE[m] * 3,
+        equip: { slot: 'weapon', reqs: { ranged: PISTOL.req[m] }, style: 'ranged', speed: 2.4, range: PISTOL.range[m], bonus: { acc: PISTOL.acc[m] }, affixPool: RANGED_AFFIX } }));
+    }
+    if (m >= 1) out.push(I({ id: `helm_${mt.key}`, name: `${nm} helm`, desc: 'Good against blades, poor against spells.', icon: { shape: 'helm', color: col }, stackable: false, value: BAR_VALUE[m] * 2,
+      equip: { slot: 'head', reqs: { defence: mt.req }, bonus: { defMelee: HELM[m], defRanged: Math.round(HELM[m] * 0.85), defMagic: -1 - m }, affixPool: ARMOUR_AFFIX } }));
+    out.push(I({ id: `plate_${mt.key}`, name: `${nm} plate`, desc: 'Heavy chest armour. Spells find the gaps.', icon: { shape: 'plate', color: col }, stackable: false, value: BAR_VALUE[m] * 5,
+      equip: { slot: 'body', reqs: { defence: mt.req }, bonus: { defMelee: PLATE[m], defRanged: Math.round(PLATE[m] * 0.85), defMagic: -3 - m * 2 }, affixPool: ARMOUR_AFFIX } }));
+  });
+  WOODS.forEach((w, t) => { if (t >= 2) out.push(I({ id: `logs_${w.key}`, name: `${w.name} logs`, desc: 'Prized by smiths for hafts and stocks.', icon: { shape: 'log', color: w.color, accent: w.accent }, stackable: true, value: w.value })); });
+  FISH.forEach((f, t) => {
+    if (t < 2) return;
+    const shape = f.key === 'lobster' ? 'lobster' : 'fish';
+    out.push(I({ id: `fish_${f.key}_raw`, name: `Raw ${f.name}`, desc: 'Needs cooking.', icon: { shape, color: f.raw }, stackable: true, value: f.value }));
+    out.push(I({ id: `fish_${f.key}`, name: f.cooked, desc: `Heals ${f.heal}.`, icon: { shape, color: f.done }, stackable: true, value: Math.round(f.value * 1.8), heal: f.heal }));
+  });
+  // fishing tools and magic staffs
+  out.push(I({ id: 'lobster_pot', name: 'Lobster pot', desc: 'Wicker and twine. Lobsters walk in; they rarely walk out.', icon: { shape: 'pot', color: '#a8865a' }, stackable: false, value: 25, tool: { skill: 'fishing', power: 0, level: 1 } }));
+  out.push(I({ id: 'harpoon', name: 'Harpoon', desc: 'For fish that fight back.', icon: { shape: 'harpoon', color: '#9aa0a4' }, stackable: false, value: 60, tool: { skill: 'fishing', power: 0, level: 1 } }));
+  const STAFFS: [string, string, number, number, number, string][] = [
+    ['staff_coral', 'Coral staff', 20, 14, 5, '#e07a6a'], ['staff_storm', 'Stormsilver staff', 40, 22, 10, '#86b6dc'], ['staff_tide', 'Tidecore staff', 60, 32, 15, '#3cc6c4'],
+  ];
+  for (const [id, name, req, acc, dmg, col] of STAFFS) out.push(I({ id, name, desc: `Casts your chosen spell. +${dmg}% spell damage.`, icon: { shape: 'staff', color: '#6a4a30', accent: col }, stackable: false, value: req * 12,
+    equip: { slot: 'weapon', reqs: { magic: req }, style: 'magic', speed: 2.4, range: 9 + Math.floor(req / 30), bonus: { acc, magicDmg: dmg, defMagic: 4 + req / 5 }, affixPool: ['dmg_pct', 'crit', 'elite_dmg', 'accuracy', 'leech'] } }));
+  return out;
+}
 
 export const ITEMS: Record<string, ItemDef> = Object.fromEntries(
   [
@@ -110,6 +200,7 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(
     // ---- quest
     I({ id: 'tuning_bell', name: 'Tuning bell', desc: 'Cast by Iven Marr from your bronze. Ring it at the Broken Ring.', icon: { shape: 'bell', color: '#c08a4a' }, stackable: false, value: 0, quest: true }),
     I({ id: 'keels_tooth', name: 'Keel\'s Tooth', desc: 'A key shaped like a tooth, warm as a living thing.', icon: { shape: 'tooth', color: '#efe3c4', accent: '#59d0c4' }, stackable: false, value: 0, quest: true }),
+    ...tierItems(),
   ].map((d) => [d.id, d]),
 );
 

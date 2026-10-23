@@ -1,4 +1,6 @@
 import { item, RARITY, AFFIXES, type Slot, type SkillId } from '../game/data/items';
+import { morph, forget } from './morph';
+import { onTap } from './tap';
 import { SKILLS, UNLOCKS, RECIPES, SHOP, ELITE_AFFIXES, PLAYER_BASE, SPELLS, type Station } from '../game/data/content';
 import type { Stance } from '../game/sim/gear';
 import { NPCS, QUESTS } from '../game/data/quests';
@@ -53,7 +55,7 @@ export class UI {
   private playerBar!: HTMLElement;
   private bannerT = 0;
   private portrait = false;
-  private lastPointer = '';
+  private confirmOk: (() => void) | null = null;
   onSave: () => void = () => {};
   onReset: () => void = () => {};
   onQuality: (q: 'high' | 'low') => void = () => {};
@@ -84,27 +86,28 @@ export class UI {
     const tabs = h('div', { id: 'tabs', role: 'tablist' });
     for (const t of TABS) {
       const btn = h('button', { 'data-tab': t.id, role: 'tab', 'aria-label': `${t.name} (${t.key})`, title: `${t.name} (${t.key})` }, TAB_ICONS[t.id]);
-      btn.addEventListener('click', () => this.selectTab(t.id, true));
+      onTap(btn, 'button', () => this.selectTab(t.id, true));
       tabs.appendChild(btn);
     }
     side.appendChild(tabs);
     const content = h('div', { id: 'content', role: 'tabpanel' });
     side.appendChild(content);
     this.el.content = content;
+    this.bindContent(content);
     this.el.tabs = tabs;
     const col = add('collapse', h('button', { class: 'btn', 'aria-label': 'Toggle side panel' }, '›'));
-    col.addEventListener('click', () => { this.sideOpen = !this.sideOpen; this.layout(); });
+    onTap(col, 'button', () => { this.sideOpen = !this.sideOpen; this.layout(); });
     const actions = add('actions', h('div'));
     const mk = (id: string, label: string, icon: string, fn: () => void) => {
       const b = h('button', { id, class: 'round ability', 'aria-label': label, title: label }, `${icon}<div class="cd"></div>`);
-      b.addEventListener('click', fn);
+      onTap(b, 'button', fn);
       this.el[id] = b;
       return b;
     };
     const roll = mk('ab-roll', 'Dodge roll (Space)', ROLL, () => this.game.useRoll());
     const special = mk('ab-special', 'Special attack (R)', WHIRL, () => this.game.useSpecial());
     const ctx = h('button', { id: 'ctx', class: 'round', 'aria-label': 'Interact (E)' }, '<span></span><small></small>');
-    ctx.addEventListener('click', () => { const t = this.game.contextTarget(); if (t) this.game.interact(t.key); });
+    onTap(ctx, 'button', () => { const t = this.game.contextTarget(); if (t) this.game.interact(t.key); });
     const abil = h('div', { id: 'abilities' });
     abil.append(roll, special);
     actions.append(abil, ctx);
@@ -161,7 +164,7 @@ export class UI {
       case 'msg': this.log(e.text, e.kind); break;
       case 'xp': this.xpDrop(e.skill, e.amount); break;
       case 'level': this.banner(`${cap(e.skill)} level ${e.level}`, this.nextUnlockText(e.skill) ?? 'Keep going.'); break;
-      case 'discover': this.banner(e.name, 'Discovered'); break;
+      case 'discover': { const f = this.game.placeInfo(e.id).foes; this.banner(e.name, f ? `Discovered · Foes level ${f[0]}${f[1] > f[0] ? `–${f[1]}` : ''}` : 'Discovered · Peaceful'); break; }
       case 'quest': {
         const q = QUESTS[e.id];
         const done = e.stage === q.stages.length - 1;
@@ -218,7 +221,7 @@ export class UI {
     const p = g.p;
     // orbs
     const hp = this.el.hp;
-    (hp.querySelector('.fill') as HTMLElement).style.transform = `scaleX(${Math.max(0, p.hp / g.stats.maxHp)})`;
+    (hp.querySelector('.fill') as HTMLElement).style.transform = `scaleY(${Math.max(0, p.hp / g.stats.maxHp)})`;
     (hp.querySelector('.txt') as HTMLElement).textContent = `${Math.ceil(p.hp)}`;
     document.getElementById('cbl')!.textContent = String(g.stats.combatLevel);
     // context + ability
@@ -356,18 +359,41 @@ export class UI {
   private renderTab() {
     const c = this.el.content;
     switch (this.tab) {
-      case 'pack': c.innerHTML = this.packHtml(); this.bindSlots(c); break;
-      case 'gear':
-        c.innerHTML = this.gearHtml();
-        this.bindSlots(c);
-        c.querySelectorAll<HTMLButtonElement>('[data-stance]').forEach((b) => b.addEventListener('click', () => this.game.setStance(b.dataset.stance as Stance)));
-        c.querySelectorAll<HTMLButtonElement>('[data-spell]').forEach((b) => b.addEventListener('click', () => this.game.setSpell(b.dataset.spell!)));
-        break;
-      case 'skills': c.innerHTML = this.skillsHtml(); break;
-      case 'quests': c.innerHTML = this.questsHtml(); break;
-      case 'map': c.innerHTML = '<h2 class="title">Bellwether Isle</h2><canvas id="mapbig" width="600" height="600" aria-label="Island map. Tap to walk there."></canvas><p class="muted" style="font-size:12px;margin:8px 0 0">Gold star: quest objective. Tap the map to walk there.</p>'; this.bindBigMap(); this.drawBigMap(); break;
-      case 'settings': c.innerHTML = this.settingsHtml(); this.bindSettings(c); break;
+      case 'pack': morph(c, this.packHtml()); break;
+      case 'gear': morph(c, this.gearHtml()); break;
+      case 'skills': morph(c, this.skillsHtml()); break;
+      case 'quests': morph(c, this.questsHtml()); break;
+      case 'map': c.innerHTML = '<h2 class="title">Bellwether Isle</h2><canvas id="mapbig" width="600" height="600" aria-label="Island map. Tap to walk there."></canvas><p class="muted" style="font-size:12px;margin:8px 0 0">Gold star: quest objective. Tap the map to walk there.</p>'; forget(c); this.bindBigMap(); this.drawBigMap(); break;
+      case 'settings': morph(c, this.settingsHtml()); break;
     }
+  }
+
+  /** One set of handlers on the tab panel for its whole life (content is patched, never re-bound). */
+  private bindContent(c: HTMLElement) {
+    const g = this.game;
+    onTap(c, '[data-slot], [data-equip], [data-stance], [data-spell], [data-q], [data-dmg], #saveNow, #resetSave', (t, pointer) => {
+      if (t.dataset.slot !== undefined) {
+        const i = Number(t.dataset.slot);
+        const st = g.p.inv[i];
+        if (!st) return;
+        const d = item(st.id);
+        // mouse: left-click eats/equips directly (RuneScape-style); touch opens the details panel
+        if (pointer === 'mouse' && !this.shopOpen && (d.heal || d.equip)) { g.useSlot(i); return; }
+        this.openPop({ slot: i }, t);
+      } else if (t.dataset.equip !== undefined) { const sl = t.dataset.equip as Slot; if (g.p.equip[sl]) this.openPop({ equip: sl }, t); }
+      else if (t.dataset.stance) g.setStance(t.dataset.stance as Stance);
+      else if (t.dataset.spell) g.setSpell(t.dataset.spell);
+      else if (t.dataset.q) { g.s.settings.quality = t.dataset.q as 'high' | 'low'; this.onQuality(g.s.settings.quality); this.lastRev = -1; }
+      else if (t.dataset.dmg) { g.s.settings.showDamage = t.dataset.dmg === '1'; this.lastRev = -1; }
+      else if (t.id === 'saveNow') { this.onSave(); this.log('Voyage saved.', 'good'); this.lastRev = -1; }
+      else if (t.id === 'resetSave') this.confirm('Erase your progress and start again?', 'Erase and restart', () => this.onReset());
+    });
+    c.addEventListener('contextmenu', (ev) => {
+      const t = ev.target as HTMLElement;
+      const slot = t.closest<HTMLElement>('[data-slot]'), eq = t.closest<HTMLElement>('[data-equip]');
+      if (slot) { ev.preventDefault(); if (g.p.inv[Number(slot.dataset.slot)]) this.openPop({ slot: Number(slot.dataset.slot) }, slot); }
+      else if (eq) { ev.preventDefault(); if (g.p.equip[eq.dataset.equip as Slot]) this.openPop({ equip: eq.dataset.equip as Slot }, eq); }
+    });
   }
 
   private slotHtml(s: Stack | null, attrs: string, label = '') {
@@ -396,7 +422,7 @@ export class UI {
         ? { accurate: ['Accurate', 'Ranged XP'], aggressive: ['Rapid', 'Ranged XP, faster'], defensive: ['Longrange', 'Ranged + Defence XP'] }
         : { accurate: ['Accurate', 'Magic XP'], aggressive: ['Focused', 'Magic XP'], defensive: ['Defensive', 'Magic + Defence XP'] };
     const stances = (['accurate', 'aggressive', 'defensive'] as Stance[]).map((k) => `<button data-stance="${k}" class="${stance === k ? 'on' : ''}"><b>${stanceLabel[k][0]}</b><small>${stanceLabel[k][1]}</small></button>`).join('');
-    const spells = st.style === 'magic' ? `<div class="toggle"><span>Spell</span><span class="seg">${SPELLS.map((sp) => `<button data-spell="${sp.id}" class="${st.spell?.id === sp.id ? 'on' : ''}" ${g.level('magic') < sp.level ? 'disabled' : ''}>${sp.name} (${sp.level})</button>`).join('')}</span></div>` : '';
+    const spells = st.style === 'magic' ? `<h2 class="title" style="font-size:13px">Spell</h2><div class="stances spells">${SPELLS.map((sp) => `<button data-spell="${sp.id}" class="${st.spell?.id === sp.id ? 'on' : ''}" ${g.level('magic') < sp.level ? 'disabled' : ''}><b>${esc(sp.name)}</b><small>Lv ${sp.level} · max ${sp.maxHit} · ${sp.charms} charm${sp.charms > 1 ? 's' : ''}</small></button>`).join('')}</div>` : '';
     const ammo = st.style === 'ranged' ? (g.p.equip.ammo ? `${fmt(g.p.equip.ammo.qty)} × ${esc(item(g.p.equip.ammo.id).name)}` : '<span class="miss">No shot equipped</span>')
       : st.style === 'magic' ? `${fmt(count(g.p.inv, 'charm_tide'))} tide charms (${st.spell?.charms ?? 1} per cast)` : '';
     const sp = g.specialInfo();
@@ -458,7 +484,13 @@ export class UI {
       const status = st === 0 ? '<span class="status todo">Not started</span>' : st >= last ? '<span class="status done">Complete</span>' : '<span class="status active">In progress</span>';
       return `<div class="quest"><b>${esc(q.name)}</b>${status}<p style="margin:6px 0">${esc(q.stages[st].text)}</p><small class="muted">Reward: ${esc(q.reward)}</small></div>`;
     }).join('');
-    const disc = PLACES.map((p) => g.s.discovered.includes(p.id) ? `<li>${esc(p.name)}</li>` : '<li class="muted">Undiscovered</li>').join('');
+    const disc = PLACES.map((p) => {
+      if (!g.s.discovered.includes(p.id)) return '<li class="muted">Undiscovered</li>';
+      const info = g.placeInfo(p.id);
+      const foes = info.foes ? `<span class="miss">Foes ${info.foes[0]}${info.foes[1] > info.foes[0] ? `–${info.foes[1]}` : ''}</span>` : '<span class="muted">Peaceful</span>';
+      const gather = info.gather.map((n) => `${esc(n.name)} ${n.level}`).join(', ');
+      return `<li><b>${esc(p.name)}</b> · ${foes}${gather ? `<br><small class="muted">${gather}</small>` : ''}</li>`;
+    }).join('');
     return `<h2 class="title">Quests</h2>${qs}<div class="brass-rule"></div><h2 class="title">Places (${g.s.discovered.length}/${PLACES.length})</h2><ul style="margin:0;padding-left:18px">${disc}</ul>`;
   }
 
@@ -477,41 +509,11 @@ export class UI {
       <p class="muted" style="font-size:12px">Your cutlass swings automatically at anything in reach. Pick a stance in Equipment to choose which skill you train. Roll through red markers to take no damage.</p>`;
   }
 
-  private bindSettings(c: HTMLElement) {
-    c.querySelectorAll<HTMLButtonElement>('[data-q]').forEach((b) => b.addEventListener('click', () => { this.game.s.settings.quality = b.dataset.q as 'high' | 'low'; this.onQuality(this.game.s.settings.quality); this.lastRev = -1; }));
-    c.querySelectorAll<HTMLButtonElement>('[data-dmg]').forEach((b) => b.addEventListener('click', () => { this.game.s.settings.showDamage = b.dataset.dmg === '1'; this.lastRev = -1; }));
-    c.querySelector('#saveNow')!.addEventListener('click', () => { this.onSave(); this.log('Voyage saved.', 'good'); this.lastRev = -1; });
-    c.querySelector('#resetSave')!.addEventListener('click', () => this.confirm('Erase your progress and start again?', 'Erase and restart', () => this.onReset()));
-  }
-
   // ------------------------------------------------------------------ item interactions
-  private bindSlots(c: HTMLElement) {
-    c.querySelectorAll<HTMLButtonElement>('[data-slot]').forEach((b) => {
-      const i = Number(b.dataset.slot);
-      // Some mobile browsers report taps as 'mouse' on the click event, so trust pointerdown instead.
-      b.addEventListener('pointerdown', (ev) => { this.lastPointer = ev.pointerType; });
-      b.addEventListener('click', () => {
-        const st = this.game.p.inv[i];
-        if (!st) return;
-        const d = item(st.id);
-        const mouse = this.lastPointer === 'mouse';
-        // mouse: left-click eats/equips directly (RuneScape-style); everything else opens the details panel
-        if (mouse && !this.shopOpen && (d.heal || d.equip)) { this.game.useSlot(i); return; }
-        this.openPop({ slot: i }, b);
-      });
-      b.addEventListener('contextmenu', (ev) => { ev.preventDefault(); if (this.game.p.inv[i]) this.openPop({ slot: i }, b); });
-    });
-    c.querySelectorAll<HTMLButtonElement>('[data-equip]').forEach((b) => {
-      const sl = b.dataset.equip as Slot;
-      b.addEventListener('click', () => { if (this.game.p.equip[sl]) this.openPop({ equip: sl }, b); });
-      b.addEventListener('contextmenu', (ev) => { ev.preventDefault(); if (this.game.p.equip[sl]) this.openPop({ equip: sl }, b); });
-    });
-  }
-
   private openPop(target: { slot?: number; equip?: Slot }, anchor: HTMLElement) {
     this.pop = target;
     let el = document.getElementById('itempop');
-    if (!el) { el = h('div', { id: 'itempop', class: 'panel', role: 'dialog' }); document.body.appendChild(el); }
+    if (!el) { el = h('div', { id: 'itempop', class: 'panel', role: 'dialog' }); document.body.appendChild(el); this.bindPop(el); }
     this.renderPop();
     const r = anchor.getBoundingClientRect();
     const w = el.offsetWidth, ht = el.offsetHeight;
@@ -561,24 +563,29 @@ export class UI {
       if (!d.quest) acts.push('<button class="btn" data-a="drop">Drop</button>');
     }
     const req = e && g.equipBlock(st);
-    el.innerHTML = `<button class="x" aria-label="Close" style="position:absolute;right:6px;top:6px;width:34px;height:34px;border-radius:8px;background:#2a1e14;border:1px solid #120b06">×</button>
+    morph(el, `<button class="x" aria-label="Close" style="position:absolute;right:6px;top:6px;width:34px;height:34px;border-radius:8px;background:#2a1e14;border:1px solid #120b06">×</button>
       <div class="nm" style="color:${rar ? rar.color : '#efe3c4'};padding-right:36px">${esc(displayName(st))}${st.qty > 1 ? ` × ${fmt(st.qty)}` : ''}</div>
       ${rar ? `<div class="rl" style="color:${rar.color}">${rar.label}${e ? ` ${e.slot}` : ''}</div>` : e ? `<div class="rl muted">${e.slot}</div>` : ''}
       <div class="muted" style="font-size:13px">${esc(d.desc)}</div>
       ${lines.length ? `<div style="font-size:13px;margin-top:6px">${lines.map(esc).join('<br>')}</div>` : ''}
       ${affixes ? `<ul>${affixes}</ul>` : ''}
       ${req ? `<div class="req">${esc(req)}</div>` : ''}
-      <div class="acts">${acts.join('')}</div>`;
-    el.querySelector('.x')!.addEventListener('click', () => this.closePop());
-    el.querySelectorAll<HTMLButtonElement>('[data-a]').forEach((b) => b.addEventListener('click', () => {
-      const a = b.dataset.a, i = this.pop?.slot;
-      if (a === 'unequip') { g.unequip(this.pop!.equip!); this.closePop(); return; }
+      <div class="acts">${acts.join('')}</div>`);
+  }
+
+  private bindPop(el: HTMLElement) {
+    const g = this.game;
+    onTap(el, '.x, [data-a]', (b) => {
+      if (b.classList.contains('x')) { this.closePop(); return; }
+      if (!this.pop) return;
+      const a = b.dataset.a, i = this.pop.slot;
+      if (a === 'unequip') { g.unequip(this.pop.equip!); this.closePop(); return; }
       if (i === undefined) return;
       if (a === 'use') { g.useSlot(i); if (!g.p.inv[i] || item(g.p.inv[i]!.id).equip) this.closePop(); }
       if (a === 'drop') { g.dropSlot(i); this.closePop(); }
       if (a === 'sell1') g.sell(i, false);
       if (a === 'sellall') { g.sell(i, true); this.closePop(); }
-    }));
+    });
   }
 
   closePop() {
@@ -592,9 +599,15 @@ export class UI {
     if (!el) {
       el = h('div', { id, class: 'win panel', role: 'dialog', 'aria-label': title });
       document.body.appendChild(el);
+      const g = this.game;
+      onTap(el, '.x, [data-r], [data-buy], [data-c]', (b) => {
+        if (b.classList.contains('x')) { this.closeWindows(); return; }
+        if (b.dataset.r) { g.craft(b.dataset.r, Number(b.dataset.n)); this.lastRev = -1; }
+        else if (b.dataset.buy) g.buy(b.dataset.buy);
+        else if (b.dataset.c) { const ok = this.confirmOk; this.confirmOk = null; el!.remove(); if (b.dataset.c === 'yes') ok?.(); }
+      });
     }
-    el.innerHTML = `<button class="x" aria-label="Close">×</button><h2 class="title" style="padding-right:44px">${esc(title)}</h2><div class="body">${bodyHtml}</div>`;
-    el.querySelector('.x')!.addEventListener('click', () => this.closeWindows());
+    morph(el, `<button class="x" aria-label="Close">×</button><h2 class="title" style="padding-right:44px">${esc(title)}</h2><div class="body">${bodyHtml}</div>`);
     return el;
   }
 
@@ -629,8 +642,7 @@ export class UI {
         <div class="btns"><button class="btn primary" data-r="${r.id}" data-n="1" ${block ? 'disabled' : ''}>Make 1</button><button class="btn" data-r="${r.id}" data-n="${Math.max(1, max)}" ${block || max < 2 ? 'disabled' : ''}>All (${Math.max(0, max)})</button></div></div>`;
     }).join('');
     const busy = g.action?.type === 'craft' ? `<p class="muted">Working... (${g.action.remaining} left)</p>` : '';
-    const el = this.win('stationwin', title, rows + busy);
-    el.querySelectorAll<HTMLButtonElement>('[data-r]').forEach((b) => b.addEventListener('click', () => { g.craft(b.dataset.r!, Number(b.dataset.n)); this.lastRev = -1; }));
+    this.win('stationwin', title, rows + busy);
   }
 
   private openShop() {
@@ -647,8 +659,7 @@ export class UI {
       const price = g.buyPrice(id);
       return `<div class="recipe"><img src="${itemIcon(id)}" alt=""><div><b>${qty > 1 ? `${qty} × ` : ''}${esc(item(id).name)}</b><div class="need">${esc(item(id).desc)}</div></div><div class="btns"><button class="btn primary" data-buy="${id}" ${coins < price ? 'disabled' : ''}>Buy ${price}c</button></div></div>`;
     }).join('');
-    const el = this.win('shopwin', SHOP.name, `<p class="muted" style="margin-top:0">You have ${fmt(coins)} coins. To sell, tap an item in your pack.</p>${rows}`);
-    el.querySelectorAll<HTMLButtonElement>('[data-buy]').forEach((b) => b.addEventListener('click', () => g.buy(b.dataset.buy!)));
+    this.win('shopwin', SHOP.name, `<p class="muted" style="margin-top:0">You have ${fmt(coins)} coins. To sell, tap an item in your pack.</p>${rows}`);
   }
 
   private openDialog(npc: string, lines: string[]) {
@@ -665,7 +676,7 @@ export class UI {
     const last = this.dialog.i >= this.dialog.lines.length - 1;
     el.innerHTML = `<div class="who">${esc(n.name)}<small>${esc(n.title)}</small></div><p>${esc(this.dialog.lines[this.dialog.i])}</p><div class="act"><button class="btn primary">${last ? 'Close' : 'Continue'}</button></div>`;
     const btn = el.querySelector('button')!;
-    btn.addEventListener('click', () => this.advanceDialog());
+    onTap(btn, 'button', () => this.advanceDialog());
     btn.focus({ preventScroll: true });
   }
 
@@ -686,8 +697,8 @@ export class UI {
 
   confirm(text: string, okLabel: string, ok: () => void) {
     const el = this.win('confirm', 'Are you sure?', `<p>${esc(text)}</p><div class="acts"><button class="btn" data-c="no">Cancel</button><button class="btn primary" data-c="yes">${esc(okLabel)}</button></div>`);
-    el.querySelector('[data-c="no"]')!.addEventListener('click', () => el.remove());
-    el.querySelector('[data-c="yes"]')!.addEventListener('click', () => { el.remove(); ok(); });
+    this.confirmOk = ok;
+    void el;
   }
 
   // ------------------------------------------------------------------ maps

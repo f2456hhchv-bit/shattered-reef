@@ -5,7 +5,7 @@ import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { LOOK_BRIGHT as LOOK } from '../art/looks';
 import { createGradePass } from '../art/grade';
 import { createWater } from '../art/water';
-import { PAL, mat } from '../art/materials';
+import { PAL, mat, recolour, type PalKey } from '../art/materials';
 import { mulberry32 } from '../art/noise';
 import { buildSloop, buildBarrel, type ShipRig } from '../art/models/ship';
 import { buildHumanoid, animateIdle, animateWalk, animateSwing, animateWork, animateFish, type HumanoidRig, type HumanoidLook } from '../art/models/character';
@@ -31,6 +31,34 @@ const NPC_LOOKS: Record<string, HumanoidLook> = {
 const PLAYER_LOOK: HumanoidLook = { skin: 'skin', coat: 'coat', coatTrim: 'coatTrim', shirt: 'shirt', trousers: 'trousers', boots: 'leather', hat: 'hat', hair: 'hair', held: 'cutlass' };
 const BRIGAND_LOOK: HumanoidLook = { skin: 0xc48c62, coat: 0x4a2f24, coatTrim: 0x8a2e22, shirt: 0xb5a58a, trousers: 0x3a3a30, boots: 'leather', hat: 0x9a2a1e, hair: 0x2a1a12, hatStyle: 'bandana', held: 'cutlass' };
 const GUNNER_LOOK: HumanoidLook = { ...BRIGAND_LOOK, coat: 0x2f3a2e, hat: 0x2a2a2a, held: 'musket' };
+const DROWNED_SKIN = 0x86a49a;
+/** Outfits per enemy look; gunner-type enemies get a musket automatically. */
+const HUMAN_LOOKS: Record<string, HumanoidLook> = {
+  brigand: BRIGAND_LOOK,
+  gunner: GUNNER_LOOK,
+  smuggler: { skin: 0xc8946a, coat: 0x23364a, coatTrim: 0xb8b0a0, shirt: 0xd8ccb0, trousers: 0x2e2a26, boots: 'leather', hat: 0x161616, hair: 0x2a1a12, hatStyle: 'tricorn', held: 'cutlass' },
+  poacher: { skin: 0xb98058, coat: 0x445228, coatTrim: 0x7a5a30, shirt: 0x9a8a62, trousers: 0x3a3424, boots: 'leather', hat: 0x5a4024, hair: 0x6a4a2a, hatStyle: 'cap', held: 'cutlass' },
+  drowned: { skin: DROWNED_SKIN, coat: 0x2c3b3a, coatTrim: 0x5a6a5a, shirt: 0x7a8a7a, trousers: 0x2a3030, boots: 0x1e2424, hat: 0x2a3a34, hair: 0x3a4a44, hatStyle: 'bandana', held: 'cutlass' },
+  captain: { skin: DROWNED_SKIN, coat: 0x3a1828, coatTrim: 'brass', shirt: 0x8a9a8a, trousers: 0x22201e, boots: 0x1e2424, hat: 0x141414, hair: 0x3a4a44, hatStyle: 'tricorn', held: 'cutlass' },
+};
+const CRAB_SHELLS: Record<string, Partial<Record<PalKey, number>>> = {
+  mire: { crabShell: 0x5e7a3a, crabDark: 0x3c5228, crabBelly: 0xb8bc8a, barnacle: 0x7a8a5a },
+  ironshell: { crabShell: 0x6a6e74, crabDark: 0x44484e, crabBelly: 0xb0a890, barnacle: 0x9a9a90 },
+};
+interface TreeLook { kind: 'pine' | 'broad'; scale: number; squash?: number; colours?: Partial<Record<PalKey, number>>; glow?: Partial<Record<PalKey, number>> }
+const TREE_LOOK: Record<string, TreeLook> = {
+  tree_pine: { kind: 'pine', scale: 1.05 },
+  tree_oak: { kind: 'broad', scale: 1.25 },
+  tree_willow: { kind: 'broad', scale: 1.3, squash: 0.8, colours: { leaf: 0x7f9a48, leafLight: 0xa2b85e, trunk: 0x6a5a3a } },
+  tree_amber: { kind: 'broad', scale: 1.4, colours: { leaf: 0xc0622a, leafLight: 0xe89a3e, trunk: 0x5a3a28 } },
+  tree_yew: { kind: 'pine', scale: 1.5, colours: { pine: 0x203c2c, pineLight: 0x2c5038, trunk: 0x4a3a2a } },
+  tree_star: { kind: 'pine', scale: 1.55, colours: { pine: 0x3a3f7a, pineLight: 0x5a6ab8, trunk: 0x2e2a40 }, glow: { pineLight: 0.35 } },
+  tree_cedar: { kind: 'pine', scale: 2.1, colours: { pine: 0x264630, pineLight: 0x33583c, trunk: 0x8a3a24 } },
+};
+const ORE_TINT: Record<string, [number, number]> = {
+  rock_copper: [PAL.copper, 0.12], rock_tin: [0xd6d9d4, 0.12], rock_iron: [0xa5543a, 0.12], rock_coal: [0x202022, 0], rock_gold: [0xe3c25e, 0.25],
+  rock_storm: [0x8fc0e8, 0.35], rock_abyss: [0x3f8f6e, 0.3], rock_tide: [0x3fd8d0, 0.6],
+};
 
 interface RigView { kind: 'human'; rig: HumanoidRig; mat: THREE.MeshStandardMaterial }
 interface CrabView { kind: 'crab'; rig: CrabRig; mat: THREE.MeshStandardMaterial }
@@ -265,13 +293,18 @@ export class GameRenderer {
       const def = NODES[n.def];
       let live: THREE.Object3D, dead: THREE.Object3D | undefined, ripples: THREE.Group | undefined;
       if (def.skill === 'woodcutting') {
-        live = n.def === 'tree_oak' ? buildBroadleaf(n.seed) : buildPine(n.seed, 1.05);
-        if (n.def === 'tree_oak') live.scale.multiplyScalar(1.25);
+        const tv = TREE_LOOK[n.def] ?? TREE_LOOK.tree_pine;
+        live = tv.kind === 'broad' ? buildBroadleaf(n.seed) : buildPine(n.seed, tv.scale);
+        if (tv.kind === 'broad') live.scale.multiplyScalar(tv.scale);
+        if (tv.squash) live.scale.y *= tv.squash;
+        if (tv.colours) recolour(live, tv.colours, tv.glow);
         dead = buildStump(n.seed);
+        if (tv.colours?.trunk) recolour(dead, { trunk: tv.colours.trunk });
+        dead.scale.setScalar(Math.max(1, tv.scale * 0.8));
       } else if (def.skill === 'mining') {
         const g = buildOreRock(n.seed);
-        const tint = n.def === 'rock_tin' ? 0xd6d9d4 : n.def === 'rock_iron' ? 0xa5543a : PAL.copper;
-        g.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh && (m.material as THREE.MeshStandardMaterial).color.getHex() === PAL.copper) m.material = mat(tint, { emissive: tint, emissiveIntensity: 0.12 }); });
+        const [tint, glowK] = ORE_TINT[n.def] ?? [PAL.copper, 0.12];
+        g.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh && (m.material as THREE.MeshStandardMaterial).color.getHex() === PAL.copper) m.material = mat(tint, { emissive: tint, emissiveIntensity: glowK }); });
         live = g;
         dead = buildRock(n.seed, 1.0, 'stoneDark');
         dead.position.y = 0.3;
@@ -279,7 +312,7 @@ export class GameRenderer {
         holder.add(dead);
         dead = holder;
       } else {
-        ripples = buildRipples(def.fromShip ? 0xf2e6b0 : 0xe9f5f2);
+        ripples = buildRipples(def.fromShip ? 0xf2e6b0 : def.tool === 'lobster_pot' ? 0xf0c890 : 0xe9f5f2);
         live = ripples;
         if (def.fromShip) live.scale.setScalar(2.2);
       }
@@ -298,15 +331,18 @@ export class GameRenderer {
     let v: EnemyView;
     if (e.def.model === 'crab') {
       const rig = buildCrab(e.id);
+      if (e.def.look && CRAB_SHELLS[e.def.look]) recolour(rig.root, CRAB_SHELLS[e.def.look]!);
       rig.root.scale.setScalar(e.def.scale * (e.elite ? 1.2 : 1));
       bakeRig(rig.root, material);
       v = { kind: 'crab', rig, mat: material, root: rig.root, swingT: 0, seen: true, baseScale: rig.root.scale.x };
     } else if (e.def.model === 'guardian') {
       const rig = buildGuardian();
+      if (!e.def.boss) { recolour(rig.root, { stoneDark: 0x4e4c54, stone: 0x77737c }); rig.root.scale.setScalar(e.def.scale); }
       bakeRig(rig.root, material);
       v = { kind: 'guardian', rig, mat: material, root: rig.root, swingT: 0, seen: true, baseScale: rig.root.scale.x };
     } else {
-      const rig = buildHumanoid(e.def.model === 'gunner' ? GUNNER_LOOK : BRIGAND_LOOK);
+      const look = HUMAN_LOOKS[e.def.look ?? e.def.model] ?? BRIGAND_LOOK;
+      const rig = buildHumanoid(e.def.model === 'gunner' ? { ...look, held: 'musket' } : look);
       rig.root.scale.setScalar(e.def.scale * (e.elite ? 1.15 : 1));
       bakeRig(rig.root, material);
       v = { kind: 'human', rig, mat: material, root: rig.root, swingT: 0, seen: true, baseScale: rig.root.scale.x };

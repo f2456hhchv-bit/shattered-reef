@@ -70,7 +70,7 @@ const sizes = [
         out.questStage = g.questStage('bell');
         const f = L.stations.find((s) => s.id === 'furnace');
         near(f.x - 1.5, f.z + 1.4);
-        g.interact('station:furnace');
+        g.interact('station:' + L.stations.indexOf(f));
         out.station = !!document.getElementById('stationwin');
         r.ui.closeWindows();
         const m = L.npcs.find((n) => n.id === 'marta');
