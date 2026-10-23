@@ -9,7 +9,7 @@ import { fbm, lerp, smooth } from '../../art/noise';
 export const WORLD_HALF = 150; // world spans [-150, 150] on both axes
 export const ISLAND_RADIUS = 80;
 
-export interface Flat { x: number; z: number; r: number; h: number }
+export interface Flat { x: number; z: number; r: number; h: number | 'auto' } // 'auto': level at the natural height there
 export interface Hill { x: number; z: number; r: number; h: number }
 export interface Dip { x: number; z: number; r: number; floor: number }
 export interface PathDef { pts: [number, number][]; width: number }
@@ -77,6 +77,12 @@ export const FLATS: Flat[] = [
   { x: L.camp.x, z: L.camp.z, r: 6, h: 1.6 },
   { x: L.cove.x, z: L.cove.z, r: 6, h: 1.2 },
   { x: L.crossroads.x, z: L.crossroads.z, r: 4, h: 1.5 },
+  // the smithy and its gunsmith's bench sit at the village's edge: same level as the square
+  { x: L.smithy.x + 1.5, z: L.smithy.z + 0.5, r: 5.5, h: 1.1 },
+  // pads under the outlying cottages and the Ironcrag camp (forge, anvil, strongbox) so nothing sits in a slope
+  { x: L.village.x - 19, z: L.village.z + 3, r: 3.6, h: 'auto' },
+  { x: L.village.x + 21, z: L.village.z - 7, r: 3.6, h: 'auto' },
+  { x: L.peak.x + 6, z: L.peak.z + 20, r: 5.5, h: 'auto' },
 ];
 
 export const HILLS: Hill[] = [
@@ -137,6 +143,11 @@ export function coastDist(x: number, z: number): number {
 }
 
 export function rawHeight(x: number, z: number): number {
+  return shapedHeight(x, z, true);
+}
+
+/** Natural ground height, optionally levelled by the flats (auto flats take the natural height at their centre). */
+function shapedHeight(x: number, z: number, levelled: boolean): number {
   const d = coastDist(x, z);
   const n = fbm(x * 0.06 + 40, z * 0.06 + 40, 4, 3);
   let h: number;
@@ -151,9 +162,9 @@ export function rawHeight(x: number, z: number): number {
     h = 0.05 + d * 0.35 * (0.8 + n * 0.5);
     h = Math.max(h, -6 + n);
   }
-  for (const f of FLATS) {
+  if (levelled) for (const f of FLATS) {
     const k = 1 - smooth(Math.hypot(x - f.x, z - f.z), f.r, f.r + 4);
-    h = lerp(h, f.h, k);
+    if (k > 0) h = lerp(h, f.h === 'auto' ? (f.h = Math.max(0.6, shapedHeight(f.x, f.z, false))) : f.h, k);
   }
   for (const dp of DIPS) {
     const k = 1 - smooth(Math.hypot(x - dp.x, z - dp.z), dp.r * 0.45, dp.r + 2.5);

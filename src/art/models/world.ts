@@ -119,7 +119,8 @@ export function buildSmithyShed(): THREE.Group {
   }
   // roof: a gently arched shell of tiles, lower at the back
   const roofGeo = new THREE.CylinderGeometry(6, 6, 5.6, 24, 1, true, -0.38, 0.76);
-  roofGeo.rotateZ(Math.PI / 2);
+  roofGeo.rotateZ(Math.PI / 2); // axis along the shed's width (x)...
+  roofGeo.rotateX(-Math.PI / 2); // ...and the arc on top, not on its side
   const roof = mesh(roofGeo, mat('roof', { side: THREE.DoubleSide }));
   roof.position.set(0, 2.72 - 6 + 0.05, 0);
   roof.rotation.x = -0.12;
