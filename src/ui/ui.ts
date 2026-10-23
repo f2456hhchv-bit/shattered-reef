@@ -164,7 +164,7 @@ export class UI {
       case 'msg': this.log(e.text, e.kind); break;
       case 'xp': this.xpDrop(e.skill, e.amount); break;
       case 'level': this.banner(`${cap(e.skill)} level ${e.level}`, this.nextUnlockText(e.skill) ?? 'Keep going.'); break;
-      case 'discover': this.banner(e.name, 'Discovered'); break;
+      case 'discover': { const f = this.game.placeInfo(e.id).foes; this.banner(e.name, f ? `Discovered · Foes level ${f[0]}${f[1] > f[0] ? `–${f[1]}` : ''}` : 'Discovered · Peaceful'); break; }
       case 'quest': {
         const q = QUESTS[e.id];
         const done = e.stage === q.stages.length - 1;
@@ -484,7 +484,13 @@ export class UI {
       const status = st === 0 ? '<span class="status todo">Not started</span>' : st >= last ? '<span class="status done">Complete</span>' : '<span class="status active">In progress</span>';
       return `<div class="quest"><b>${esc(q.name)}</b>${status}<p style="margin:6px 0">${esc(q.stages[st].text)}</p><small class="muted">Reward: ${esc(q.reward)}</small></div>`;
     }).join('');
-    const disc = PLACES.map((p) => g.s.discovered.includes(p.id) ? `<li>${esc(p.name)}</li>` : '<li class="muted">Undiscovered</li>').join('');
+    const disc = PLACES.map((p) => {
+      if (!g.s.discovered.includes(p.id)) return '<li class="muted">Undiscovered</li>';
+      const info = g.placeInfo(p.id);
+      const foes = info.foes ? `<span class="miss">Foes ${info.foes[0]}${info.foes[1] > info.foes[0] ? `–${info.foes[1]}` : ''}</span>` : '<span class="muted">Peaceful</span>';
+      const gather = info.gather.map((n) => `${esc(n.name)} ${n.level}`).join(', ');
+      return `<li><b>${esc(p.name)}</b> · ${foes}${gather ? `<br><small class="muted">${gather}</small>` : ''}</li>`;
+    }).join('');
     return `<h2 class="title">Quests</h2>${qs}<div class="brass-rule"></div><h2 class="title">Places (${g.s.discovered.length}/${PLACES.length})</h2><ul style="margin:0;padding-left:18px">${disc}</ul>`;
   }
 

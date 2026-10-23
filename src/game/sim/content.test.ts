@@ -53,6 +53,14 @@ describe('content placement', () => {
     expect(Object.values(ENEMIES).filter((e) => !e.boss && !spawned.has(e.id)).map((e) => e.id)).toEqual([]);
   });
 
+  it('places report their danger and what can be gathered there', () => {
+    expect(g.placeInfo('ruin').foes).toEqual([22, 22]); // the Guardian, though it is not a regular spawn
+    const peak = g.placeInfo('peak');
+    expect(peak.foes![0]).toBeGreaterThanOrEqual(30);
+    expect(peak.gather.map((n) => n.name)).toContain('Stormsilver vein');
+    expect(g.placeInfo('wood').foes).toBeNull();
+  });
+
   it('land nodes can be used from walkable ground; ship nodes sit in open water', () => {
     const bad: string[] = [];
     for (const n of g.layout.nodes) {

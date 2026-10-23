@@ -224,6 +224,18 @@ export class Game {
     return out;
   }
 
+  /** What a place offers: the level range of its foes and what can be gathered there (for banners and the Places list). */
+  placeInfo(id: string): { foes: [number, number] | null; gather: { name: string; level: number }[] } {
+    const pl = PLACES.find((p) => p.id === id);
+    if (!pl) return { foes: null, gather: [] };
+    const near = (x: number, z: number) => Math.hypot(x - pl.x, z - pl.z) < pl.r + 8;
+    const lv = this.layout.spawns.filter((s) => near(s.x, s.z)).map((s) => ENEMIES[s.enemy].level);
+    if (near(this.layout.ruin.x, this.layout.ruin.z)) lv.push(...Object.values(ENEMIES).filter((e) => e.boss).map((e) => e.level)); // the ring's guardian
+    const seen = new Set<string>();
+    const gather = this.layout.nodes.filter((n) => near(n.x, n.z) && !seen.has(n.def) && seen.add(n.def)).map((n) => ({ name: NODES[n.def].name, level: NODES[n.def].level })).sort((a, b) => a.level - b.level);
+    return { foes: lv.length ? [Math.min(...lv), Math.max(...lv)] : null, gather };
+  }
+
   enemyName(e: Enemy) {
     const a = e.elite ? ELITE_AFFIXES.find((x) => x.id === e.elite) : null;
     return a ? `${a.name} ${e.def.name.toLowerCase()}` : e.def.name;

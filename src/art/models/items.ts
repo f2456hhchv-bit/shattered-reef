@@ -214,8 +214,9 @@ function builders(shape: IconShape, col: string, acc: string | undefined, seed: 
       break;
     }
     case 'ring': {
-      add(g, new THREE.TorusGeometry(0.14, 0.035, 10, 24), m(col, 'metal'), [0, 0, 0], [0.9, 0, 0]);
-      add(g, new THREE.OctahedronGeometry(0.06, 0), m(acc ?? '#59d0c4', 'gloss'), [0, 0.1, 0.11], [0.9, 0.4, 0]);
+      // nearly face-on to the icon camera (which looks down ~30 degrees), set stone on top
+      add(g, new THREE.TorusGeometry(0.14, 0.035, 12, 28), m(col, 'metal'), [0, 0, 0], [-0.25, 0, 0]);
+      add(g, new THREE.OctahedronGeometry(0.06, 0), m(acc ?? '#59d0c4', 'gloss'), [0, 0.18, 0.04], [0, 0.4, 0]);
       break;
     }
     case 'bell': {

@@ -113,15 +113,17 @@ export function buildShack(seed: number): Shack {
   const blocks: THREE.BufferGeometry[] = [];
   for (let x = -W / 2; x < W / 2 - 0.01; x += 0.6) {
     for (const z of [-D / 2, D / 2]) {
-      const b = jitter(new THREE.BoxGeometry(0.58, 0.45, 0.5), 0.06, seed + Math.round(x * 10) + (z > 0 ? 100 : 0));
+      const b = jitter(new THREE.DodecahedronGeometry(0.33, 1), 0.06, seed + Math.round(x * 10) + (z > 0 ? 100 : 0));
+      b.scale(0.95, 0.72, 0.8);
       b.translate(x + 0.3, 0.2, z);
       blocks.push(b);
     }
   }
   for (let z = -D / 2 + 0.5; z < D / 2 - 0.3; z += 0.6) {
     for (const x of [-W / 2, W / 2]) {
-      const b = jitter(new THREE.BoxGeometry(0.5, 0.45, 0.58), 0.06, seed + 300 + Math.round(z * 10) + (x > 0 ? 50 : 0));
-      b.translate(x + (x > 0 ? 0 : 0.0), 0.2, z + 0.3);
+      const b = jitter(new THREE.DodecahedronGeometry(0.33, 1), 0.06, seed + 300 + Math.round(z * 10) + (x > 0 ? 50 : 0));
+      b.scale(0.8, 0.72, 0.95);
+      b.translate(x, 0.2, z + 0.3);
       blocks.push(b);
     }
   }
@@ -161,7 +163,7 @@ export function buildShack(seed: number): Shack {
 
   // corner posts
   for (const [x, z] of [[-W / 2, -D / 2], [W / 2, -D / 2], [-W / 2, D / 2], [W / 2, D / 2]] as const) {
-    const p = mesh(new THREE.BoxGeometry(0.2, H + 0.1, 0.2), mat('woodDark'));
+    const p = mesh(jitter(new THREE.CylinderGeometry(0.11, 0.13, H + 0.1, 10), 0.012, seed + Math.round(x * 7 + z)), mat('woodDark'));
     p.position.set(x, 0.4 + H / 2, z);
     g.add(p);
   }
@@ -180,29 +182,38 @@ export function buildShack(seed: number): Shack {
     }
     g.add(roofSide);
   }
-  const ridge = mesh(new THREE.CylinderGeometry(0.1, 0.1, W + 0.8, 6), mat('woodDark'));
+  const ridge = mesh(new THREE.CylinderGeometry(0.1, 0.1, W + 0.8, 10), mat('woodDark'));
   ridge.rotation.z = Math.PI / 2;
   ridge.position.y = 0.4 + H + 1.36;
   g.add(ridge);
 
   // chimney
-  const chimney = mesh(jitter(new THREE.BoxGeometry(0.6, 1.6, 0.6), 0.05, seed + 77), mat('stoneDark'));
-  chimney.position.set(W / 2 - 0.8, 0.4 + H + 1.3, -0.5);
-  g.add(chimney);
+  // chimney: a stack of rounded stones, narrowing to a lip
+  for (let k = 0; k < 5; k++) {
+    const st = mesh(jitter(new THREE.CylinderGeometry(0.3 - k * 0.012, 0.32 - k * 0.012, 0.34, 12), 0.04, seed + 77 + k), mat(k % 2 ? 'stone' : 'stoneDark'));
+    st.position.set(W / 2 - 0.8, 0.4 + H + 0.65 + k * 0.32, -0.5);
+    st.rotation.y = k * 0.7;
+    g.add(st);
+  }
 
   // door + window on the front (+z)
-  const door = mesh(new THREE.BoxGeometry(0.9, 1.6, 0.06), mat('woodDark'));
-  door.position.set(-0.8, 0.4 + 0.8, D / 2 + 0.02);
-  const handle = mesh(new THREE.BoxGeometry(0.06, 0.06, 0.06), mat('brass'));
+  // arched door
+  const ds = new THREE.Shape();
+  ds.moveTo(-0.45, 0); ds.lineTo(0.45, 0); ds.lineTo(0.45, 1.15); ds.absarc(0, 1.15, 0.45, 0, Math.PI, false); ds.lineTo(-0.45, 0);
+  const door = mesh(new THREE.ExtrudeGeometry(ds, { depth: 0.06, bevelEnabled: true, bevelSize: 0.02, bevelThickness: 0.02, bevelSegments: 2, curveSegments: 12 }), mat('woodDark'));
+  door.position.set(-0.8, 0.4, D / 2 - 0.02);
+  const handle = mesh(new THREE.SphereGeometry(0.045, 10, 8), mat('brass'));
   handle.position.set(-0.5, 1.2, D / 2 + 0.07);
   const windowMat = mat(PAL.glass, { emissive: PAL.glass, emissiveIntensity: 0.2 }).clone();
   const win = mesh(new THREE.BoxGeometry(0.8, 0.6, 0.05), windowMat, false);
   win.position.set(0.9, 1.6, D / 2 + 0.03);
-  const frameH = mesh(new THREE.BoxGeometry(0.95, 0.08, 0.1), mat('woodDark'));
+  const frameH = mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.95, 8), mat('woodDark'));
+  frameH.rotation.z = Math.PI / 2;
   frameH.position.set(0.9, 1.6, D / 2 + 0.05);
-  const frameV = mesh(new THREE.BoxGeometry(0.08, 0.72, 0.1), mat('woodDark'));
+  const frameV = mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.72, 8), mat('woodDark'));
   frameV.position.set(0.9, 1.6, D / 2 + 0.05);
-  const sill = mesh(new THREE.BoxGeometry(1.0, 0.08, 0.2), mat('woodDark'));
+  const sill = mesh(new THREE.CapsuleGeometry(0.05, 0.9, 3, 8), mat('woodDark'));
+  sill.rotation.z = Math.PI / 2;
   sill.position.set(0.9, 1.27, D / 2 + 0.08);
   g.add(door, handle, win, frameH, frameV, sill);
   return { group: g, windowMat };

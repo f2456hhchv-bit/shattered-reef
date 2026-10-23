@@ -4,12 +4,12 @@ Reflects the actual repository, not the roadmap.
 
 ## Status (2026-10-23)
 
-**Live:** art pass 1 + 2.5× starter island (PR #3, deployed). **In progress on `ui-characters`:** rounded characters, framed UI.
+**Live:** art pass 1 + 2.5× starter island (PR #3, deployed). **Ready on `ui-characters` (not live):** rounded characters + framed UI, phone tap fixes, levels 1–99 content for all 12 skills, rounded Guardian/buildings.
 
 | Check | Result |
 |---|---|
 | `npm run typecheck` | passes |
-| `npm test` (vitest, 28 tests, ~17 s) | passes: full quest play-through, save fuzzing, every zone reachable on foot, sea routes never cross land, Guardian balance bot |
+| `npm test` (vitest, 39 tests, ~35 s) | passes: full quest play-through, save fuzzing, every zone reachable on foot, sea routes never cross land, Guardian balance bot |
 | `node scripts/e2e.cjs` (browser, laptop + phone) | passes, no console errors |
 | `node scripts/tour.cjs` (12 places) | renders, no errors |
 | Real phone | combat build tested by Tom (smooth, no heat); art pass 1 + big island **not yet tested** on a phone |
@@ -40,7 +40,8 @@ Reflects the actual repository, not the roadmap.
 | System | Where | Notes |
 |---|---|---|
 | World + collision + A* pathing | `src/game/world/` | 300 m world: 0.5 m walk grid, 1 m sail grid, hull-clearance sea grid; one A* (reused buffers) for walking and for ship routes round headlands |
-| Island layout (data) | `src/game/world/island.ts`, `layout.ts` | radius ~80 m. Zones: Bellwether Quay, Crab Strand, Saltpine Wood, oak grove, Mirewater Fen + lagoon, Heartwood, Copperback Hills, Ironcrag peak, Broken Ring (walled arena), Brigand Camp, Smugglers' Cove headland, Wreckers' Point; 3 offshore shoals, ~20 sea stacks. Fen, Heartwood, peak, cove, point are landscape only until Phase 3 content |
+| Content tiers (data) | `data/items.ts`, `data/content.ts` | generated from tier tables: 6 metals, 7 woods, 9 fish, 7 ores, 7 spells, 13 enemies (lvl 2–80). Unlock lists are generated too. `content.test.ts` enforces: no missing items, no level gap > 15 in any skill, everything placed and reachable |
+| Island layout (data) | `src/game/world/island.ts`, `layout.ts` | radius ~80 m. Zones: Bellwether Quay, Crab Strand, Saltpine Wood, oak grove, Mirewater Fen + lagoon, Heartwood, Copperback Hills, Ironcrag peak, Broken Ring (walled arena), Brigand Camp, Smugglers' Cove headland, Wreckers' Point; 3 offshore shoals, ~20 sea stacks. every zone has content; stations exist in several places (village, Ironcrag forge, fen + cove fires) |
 | Skills (12) | `src/game/data/content.ts` | Attack, Strength, Defence, Hitpoints, Ranged, Magic, Woodcutting, Mining, Fishing, Smithing, Gunsmithing, Cooking; unlock tables in UI |
 | Combat maths | `sim/gear.ts` | OSRS hit chance, max hit, combat level; stances; specials per style (Whirl, Scatter shot, Squall) |
 | Items, rarity, affixes | `src/game/data/items.ts`, `sim/gear.ts` | Common/Fine/Rare/Relic; 11 affixes, all applied in `computeStats` |
@@ -79,13 +80,13 @@ Reflects the actual repository, not the roadmap.
 - Buildings and the Guardian are still blocky; next art target after characters/UI.
 - One island. Terrain (64 chunks of 40 m) and grass (40 m buckets) are frustum-culled; camera far plane follows the fog. Not streamed: the whole 300 m world is built at load (~0.4 s for the simulation in Node).
 - Performance measured only in software rendering; big-island frame rate on a real phone unmeasured.
-- New outer zones have scenery only; their skills content is Phase 3.
+- Frame cost after content (software renderer, phone viewport, shadows on): 150–240 draw calls, 280–340k triangles (was ~150 / ~200k). Not yet measured on a real phone.
+- Items 60+ have no new gear tiers yet (combat gear tops out at level 50–60 crafted, relic drops above); new skills (Agility, Thieving, ...) not started.
 
 ## Next
-1. Phase 3: level 1–99 content for the 12 current skills across the zones (tiers of trees, ores, fish, recipes, enemies), one skill at a time, each with tests.
-2. Characters and buildings brought up to the art pass 1 standard.
-3. Tom plays the big island on a real phone; measure frame rate.
-4. Sound (code-generated effects + ambient sea).
+1. Tom plays the content build on his phone: tap fixes, frame rate, difficulty of the new zones.
+2. Sound (code-generated effects + ambient sea).
+3. New skills one at a time (docs/SKILLS.md), each with real content.
 5. Survivor.io-style encounter upgrades for the camp and boss fights.
 6. Naval combat (raider skiffs) and the Kraken.
 7. Second island + streaming.

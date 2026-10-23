@@ -18,6 +18,8 @@ const W = +(process.argv[3] || 960), H = +(process.argv[4] || 600);
       const r = window.__reef, g = r.game, L = g.layout;
       const go = (x, z) => { const q = g.world.nearestWalkable(x, z, 6); g.p.x = q[0]; g.p.z = q[1]; };
       if (g.p.onShip) { g.p.onShip = false; }
+      if (g.dead) g.step(10);
+      for (const k of Object.keys(g.p.xp)) g.p.xp[k] = 13034431; g.recalc(); g.p.hp = g.stats.maxHp; // a sightseer that survives every zone
       if (sc === 'quay') go(L.respawn.x, L.respawn.z + 6);
       if (sc === 'forest') { const n = L.nodes.find((n) => n.def === 'tree_pine'); go(n.x + 2, n.z + 2); }
       if (sc === 'hills') { const n = L.nodes.find((n) => n.def === 'rock_copper'); go(n.x + 1.5, n.z + 1); }
