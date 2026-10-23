@@ -62,6 +62,7 @@ export class UI {
   onSave: () => void = () => {};
   onReset: () => void = () => {};
   onQuality: (q: 'high' | 'low') => void = () => {};
+  onAudio: () => void = () => {};
   lastSaved = 0;
 
   constructor(private game: Game, private r: GameRenderer) {
@@ -397,6 +398,8 @@ export class UI {
       else if (t.dataset.spell) g.setSpell(t.dataset.spell);
       else if (t.dataset.q) { g.s.settings.quality = t.dataset.q as 'high' | 'low'; this.onQuality(g.s.settings.quality); this.lastRev = -1; }
       else if (t.dataset.dmg) { g.s.settings.showDamage = t.dataset.dmg === '1'; this.lastRev = -1; }
+      else if (t.dataset.music) { g.s.settings.music = t.dataset.music === '1'; this.onAudio(); this.lastRev = -1; }
+      else if (t.dataset.sfx) { g.s.settings.sfx = t.dataset.sfx === '1'; this.onAudio(); this.lastRev = -1; }
       else if (t.id === 'saveNow') { this.onSave(); this.log('Voyage saved.', 'good'); this.lastRev = -1; }
       else if (t.id === 'resetSave') this.confirm('Erase your progress and start again?', 'Erase and restart', () => this.onReset());
     });
@@ -515,6 +518,8 @@ export class UI {
     return `<h2 class="title">Settings</h2>
       <div class="toggle"><span>Graphics</span><span class="seg"><button data-q="high" class="${s.quality === 'high' ? 'on' : ''}">High</button><button data-q="low" class="${s.quality === 'low' ? 'on' : ''}">Battery saver</button></span></div>
       <div class="toggle"><span>Damage numbers</span><span class="seg"><button data-dmg="1" class="${s.showDamage ? 'on' : ''}">On</button><button data-dmg="0" class="${!s.showDamage ? 'on' : ''}">Off</button></span></div>
+      <div class="toggle"><span>Music</span><span class="seg"><button data-music="1" class="${s.music ? 'on' : ''}">On</button><button data-music="0" class="${!s.music ? 'on' : ''}">Off</button></span></div>
+      <div class="toggle"><span>Sound effects</span><span class="seg"><button data-sfx="1" class="${s.sfx ? 'on' : ''}">On</button><button data-sfx="0" class="${!s.sfx ? 'on' : ''}">Off</button></span></div>
       <div class="toggle"><span>Progress saves automatically<br><small class="muted">Last saved ${ago}</small></span><button class="btn" id="saveNow">Save now</button></div>
       <div class="toggle"><span>Start a new voyage<br><small class="muted">Erases this browser's save</small></span><button class="btn" id="resetSave">Reset</button></div>
       <div class="brass-rule"></div><h2 class="title">Controls</h2>

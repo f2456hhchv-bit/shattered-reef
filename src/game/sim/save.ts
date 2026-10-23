@@ -22,7 +22,7 @@ export interface SaveData {
   flags: Record<string, boolean>;
   discovered: string[];
   nextUid: number;
-  settings: { quality: 'high' | 'low'; showDamage: boolean };
+  settings: { quality: 'high' | 'low'; showDamage: boolean; music: boolean; sfx: boolean };
   combat: { stance: Stance; spell: string };
 }
 
@@ -75,7 +75,7 @@ export function defaultSave(spawn: { x: number; z: number }, ship: { x: number; 
     discovered: [],
     bank: [],
     nextUid: 1,
-    settings: { quality: 'high', showDamage: true },
+    settings: { quality: 'high', showDamage: true, music: true, sfx: true },
     combat: { stance: 'accurate', spell: 'spray' },
   };
 }
@@ -146,7 +146,7 @@ export function parseSave(json: string | null, fallback: SaveData): SaveData | n
   d.playTime = num(raw.playTime, 0, 0);
   d.savedAt = num(raw.savedAt, 0, 0);
   const st = (raw.settings ?? {}) as Record<string, unknown>;
-  d.settings = { quality: st.quality === 'low' ? 'low' : 'high', showDamage: st.showDamage !== false };
+  d.settings = { quality: st.quality === 'low' ? 'low' : 'high', showDamage: st.showDamage !== false, music: st.music !== false, sfx: st.sfx !== false };
   const cb = (raw.combat ?? {}) as Record<string, unknown>;
   d.combat = {
     stance: cb.stance === 'aggressive' || cb.stance === 'defensive' ? cb.stance : 'accurate',

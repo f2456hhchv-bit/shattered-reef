@@ -6,6 +6,7 @@ import { LAYOUT } from './game/world/island';
 import { GameRenderer } from './render/renderer';
 import { UI } from './ui/ui';
 import { Input } from './input/input';
+import { GameAudio } from './audio/audio';
 
 // Boot: load (validated) save, build the world, run a fixed-step simulation under a variable-rate renderer.
 
@@ -22,6 +23,14 @@ const renderer = new GameRenderer(canvas, game);
 renderer.setQuality(game.s.settings.quality);
 const ui = new UI(game, renderer);
 const input = new Input(canvas, game, renderer, ui);
+const audio = new GameAudio(game);
+const applyAudio = () => { audio.setMusic(game.s.settings.music); audio.setSfx(game.s.settings.sfx); };
+applyAudio();
+ui.onAudio = applyAudio;
+// browsers only allow sound after a user gesture: the title button, or failing that the first touch/click
+const unlockAudio = () => { audio.start(); applyAudio(); };
+window.addEventListener('pointerdown', unlockAudio, { once: true, capture: true });
+window.addEventListener('keydown', unlockAudio, { once: true, capture: true });
 
 function save() {
   try {
@@ -57,6 +66,7 @@ title.innerHTML = `<div class="card panel">
     ${hasSave ? '<button class="btn primary" id="cont">Continue voyage</button><button class="btn" id="fresh">New voyage</button>' : '<button class="btn primary" id="cont">Begin voyage</button>'}
   </div></div>`;
 const start = () => {
+  unlockAudio();
   title.remove();
   started = true;
   ui.setInitialPanel();
@@ -88,7 +98,7 @@ function frame(now: number) {
     if (saveT > 10) { saveT = 0; save(); }
   }
   renderer.frame(dt, now / 1000);
-  if (started) ui.update(dt);
+  if (started) { ui.update(dt); audio.update(dt); }
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
@@ -97,4 +107,4 @@ document.addEventListener('visibilitychange', () => { if (document.hidden && sta
 window.addEventListener('pagehide', () => { if (started) save(); });
 
 // test / debug handle (read-only use in E2E tests)
-(window as unknown as { __reef: unknown }).__reef = { game, ui, renderer, input, save, zones: LAYOUT, get started() { return started; }, start };
+(window as unknown as { __reef: unknown }).__reef = { game, ui, renderer, input, audio, save, zones: LAYOUT, get started() { return started; }, start };
