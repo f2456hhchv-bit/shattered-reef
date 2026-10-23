@@ -1,56 +1,12 @@
 import * as THREE from 'three';
-import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { item, type IconShape } from '../../game/data/items';
-import { hash2, mulberry32 } from '../noise';
+import { item, METALS, type IconShape } from '../../game/data/items';
+import { mulberry32 } from '../noise';
+import { m, nudge, shade, add } from './itemkit';
+import { buildHatchet, buildPickaxe, buildCutlass, buildHelm, buildPlate, buildPistol, buildStaff } from './gear';
+import { buildFish, buildSteak } from './fish';
 
 // Item models: one small, readable 3D object per item. Used for inventory icons (rendered on a
 // slate tile) and inside the sea-glass shards that loot washes up in. ~0.6 units across.
-
-const c = (hex: string | number) => new THREE.Color(hex);
-const matCache = new Map<string, THREE.MeshStandardMaterial>();
-
-/** Matte for organic things, a little sheen for metal, gloss for glass. */
-function m(colour: string | number, kind: 'matte' | 'metal' | 'gloss' | 'glow' = 'matte'): THREE.MeshStandardMaterial {
-  const key = `${colour}|${kind}`;
-  let mt = matCache.get(key);
-  if (!mt) {
-    const col = c(colour);
-    mt = new THREE.MeshStandardMaterial({
-      color: col,
-      roughness: kind === 'metal' ? 0.32 : kind === 'gloss' ? 0.15 : 0.82,
-      metalness: kind === 'metal' ? 0.55 : 0,
-      emissive: kind === 'glow' ? col : 0x000000,
-      emissiveIntensity: kind === 'glow' ? 0.9 : 0,
-    });
-    matCache.set(key, mt);
-  }
-  return mt;
-}
-
-function nudge(geo: THREE.BufferGeometry, amount: number, seed: number): THREE.BufferGeometry {
-  geo.deleteAttribute('normal');
-  geo.deleteAttribute('uv');
-  const w = mergeVertices(geo, 1e-4);
-  const p = w.getAttribute('position') as THREE.BufferAttribute;
-  for (let i = 0; i < p.count; i++) {
-    const kx = Math.round(p.getX(i) * 1000), ky = Math.round(p.getY(i) * 1000), kz = Math.round(p.getZ(i) * 1000);
-    p.setXYZ(i, p.getX(i) + (hash2(kx, ky + kz, seed) - 0.5) * amount, p.getY(i) + (hash2(ky, kz + kx, seed + 3) - 0.5) * amount, p.getZ(i) + (hash2(kz, kx + ky, seed + 7) - 0.5) * amount);
-  }
-  w.computeVertexNormals();
-  return w;
-}
-
-const shade = (hex: string, k: number) => c(hex).multiplyScalar(k);
-
-function add(g: THREE.Object3D, geo: THREE.BufferGeometry, mat: THREE.Material, pos: [number, number, number] = [0, 0, 0], rot: [number, number, number] = [0, 0, 0], scale?: [number, number, number]) {
-  const me = new THREE.Mesh(geo, mat);
-  me.position.set(...pos);
-  me.rotation.set(...rot);
-  if (scale) me.scale.set(...scale);
-  me.castShadow = true;
-  g.add(me);
-  return me;
-}
 
 function bladeShape(len: number, curve: number, width: number): THREE.Shape {
   const s = new THREE.Shape();
@@ -303,9 +259,38 @@ function builders(shape: IconShape, col: string, acc: string | undefined, seed: 
 }
 
 /** Fresh model for an item id (qty only changes coin piles). Centred on the origin. */
+/** Metal tier from an id's suffix: -1 for the worn starter kit, 0 bronze, 1 iron, ... */
+function tierOf(id: string): number {
+  const key = id.slice(id.indexOf('_') + 1);
+  if (key === 'chipped' || key === 'rusty') return -1;
+  if (key === 'brigand') return 1;
+  return METALS.findIndex((mt) => mt.key === key);
+}
+
+/** Gear and fish have their own detailed builders; everything else uses the shape table below. */
+function special(id: string, shape: IconShape, col: string, acc: string | undefined): THREE.Group | null {
+  const tier = tierOf(id);
+  switch (shape) {
+    case 'hatchet': return buildHatchet(col, tier);
+    case 'pickaxe': return buildPickaxe(col, tier);
+    case 'cutlass': return buildCutlass(col, acc ?? (tier >= 3 ? '#c9a050' : shade(col, 0.8).getStyle()), tier, id === 'cutlass_brigand');
+    case 'helm': return buildHelm(col, tier);
+    case 'plate': return buildPlate(col, tier);
+    case 'pistol': return buildPistol(col, acc ?? '#9aa0a4', Math.max(0, tier));
+    case 'staff': return buildStaff(col, acc ?? '#59d0c4', id === 'staff_driftwood' ? 0 : id === 'staff_coral' ? 1 : id === 'staff_storm' ? 2 : 3);
+    case 'fish': {
+      const sp = /^fish_([a-z]+?)(_raw)?$/.exec(id)?.[1] ?? 'sprat', cooked = !id.endsWith('_raw');
+      return sp === 'shark' && cooked ? buildSteak(col) : buildFish(sp, cooked, col);
+    }
+  }
+  return null;
+}
+
 export function buildItemModel(id: string, qty = 1): THREE.Group {
   const d = item(id);
-  const g = builders(d.icon.shape, d.icon.color, d.icon.accent, id.length * 31 + id.charCodeAt(0), qty, !id.endsWith('_raw'));
+  const sp = special(id, d.icon.shape, d.icon.color, d.icon.accent);
+  // special builders lean their own model; wrap it so the icon camera's rotation doesn't overwrite that
+  const g = sp ? new THREE.Group().add(sp) : builders(d.icon.shape, d.icon.color, d.icon.accent, id.length * 31 + id.charCodeAt(0), qty, !id.endsWith('_raw'));
   const box = new THREE.Box3().setFromObject(g);
   const centre = box.getCenter(new THREE.Vector3());
   for (const ch of g.children) ch.position.sub(centre);

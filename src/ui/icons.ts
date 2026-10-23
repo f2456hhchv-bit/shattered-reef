@@ -30,6 +30,38 @@ function iconRenderer() {
   return icon;
 }
 
+/** Frame the model's actual projected silhouette (not its bounding sphere), so long thin items
+ *  like a swordfish or a pistol fill the tile without being clipped. */
+function fitCamera(cam: THREE.PerspectiveCamera, model: THREE.Object3D, sphere: THREE.Sphere) {
+  const dir = new THREE.Vector3(0, 0.55, 1).normalize();
+  const target = sphere.center.clone();
+  let dist = (sphere.radius / Math.sin(THREE.MathUtils.degToRad(cam.fov / 2))) * 0.8;
+  model.updateMatrixWorld(true);
+  const pts: THREE.Vector3[] = [];
+  model.traverse((o) => {
+    const me = o as THREE.Mesh;
+    if (!me.isMesh) return;
+    const p = me.geometry.getAttribute('position');
+    const step = Math.max(1, Math.floor(p.count / 400)); // a few hundred points per part is plenty
+    for (let i = 0; i < p.count; i += step) pts.push(new THREE.Vector3().fromBufferAttribute(p, i).applyMatrix4(me.matrixWorld));
+  });
+  const v = new THREE.Vector3();
+  for (let iter = 0; iter < 3 && pts.length; iter++) {
+    cam.position.copy(dir).multiplyScalar(dist).add(target);
+    cam.lookAt(target);
+    cam.updateMatrixWorld(true);
+    let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+    for (const p of pts) { v.copy(p).project(cam); x0 = Math.min(x0, v.x); x1 = Math.max(x1, v.x); y0 = Math.min(y0, v.y); y1 = Math.max(y1, v.y); }
+    // recentre on the silhouette, then scale the distance so its larger side spans ~84% of the tile
+    const half = Math.tan(THREE.MathUtils.degToRad(cam.fov / 2)) * dist;
+    const right = new THREE.Vector3().setFromMatrixColumn(cam.matrixWorld, 0), up = new THREE.Vector3().setFromMatrixColumn(cam.matrixWorld, 1);
+    target.addScaledVector(right, ((x0 + x1) / 2) * half).addScaledVector(up, ((y0 + y1) / 2) * half);
+    dist *= Math.max(x1 - x0, y1 - y0) / 2 / 0.84;
+  }
+  cam.position.copy(dir).multiplyScalar(dist).add(target);
+  cam.lookAt(target);
+}
+
 let ink: { out: HTMLCanvasElement; sil: HTMLCanvasElement } | null = null;
 
 /** RuneScape-style finish: a dark 2px outline and a soft drop shadow so every icon reads on any slot. */
@@ -72,9 +104,7 @@ export function itemIcon(id: string, qty = 1): string {
   model.traverse((o) => { const me = o as THREE.Mesh; if (me.isMesh) (me.material as THREE.Material).side = THREE.DoubleSide; });
   scene.add(model);
   const sphere = new THREE.Box3().setFromObject(model).getBoundingSphere(new THREE.Sphere());
-  const dist = (sphere.radius / Math.sin(THREE.MathUtils.degToRad(cam.fov / 2))) * 0.74;
-  cam.position.set(0, 0.55, 1).normalize().multiplyScalar(dist).add(sphere.center);
-  cam.lookAt(sphere.center);
+  fitCamera(cam, model, sphere);
   r.render(scene, cam);
   const url = outlined(r.domElement);
   scene.remove(model);
