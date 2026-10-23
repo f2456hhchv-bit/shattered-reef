@@ -60,6 +60,7 @@ Reflects the actual repository, not the roadmap.
 | Saves | `sim/save.ts` | versioned, validated, migration table; autosave every 10 s + on hide |
 | UI | `src/ui/` | landscape side panel / portrait bottom sheet; pack 4×7 (7×4 portrait), equipment + stats, skills, quests + places, map, settings |
 | Audio | `src/audio/audio.ts` | all synthesised with Web Audio (no files): effects per game event, surf that follows the coast, wind, gulls; generative sea-folk music (calm / combat with drums / boss). Starts on first tap; Music and Sound toggles saved in settings; suspends when the tab is hidden |
+| Opening credits | `src/ui/credits.ts`, `main.ts` | first visit: "Tap to begin" gate (unlocks sound) → ~21 s fly-over (quay, Saltpine Wood, Broken Ring) with letterbox, title cards and the cracked-gold logo + audio cue → title menu over a slow camera sway. Tap/key skips; returning players go straight to the menu ("Watch the opening again" replays). Shots and cards are data; renderer has a `cinematic` camera override that glides down to the player on start |
 | Input | `src/input/input.ts` | invisible joystick, tap/click to walk or use, hover labels, WASD, hotkeys, pinch/wheel zoom |
 
 ## Controls
@@ -82,6 +83,7 @@ Reflects the actual repository, not the roadmap.
 
 ## Known issues / limitations
 - Sound is synthesised, not recorded: decent for hits and surf, thinner than real samples. Not yet heard on a real phone speaker.
+- Overlapping enemy name labels when two enemies stand close (seen in screenshots).
 - No naval combat; sea is for travel, fishing and discovery only.
 - Buildings and the Guardian are still blocky; next art target after characters/UI.
 - One island. Terrain (64 chunks of 40 m) and grass (40 m buckets) are frustum-culled; camera far plane follows the fog. Not streamed: the whole 300 m world is built at load (~0.4 s for the simulation in Node).
@@ -93,7 +95,7 @@ Reflects the actual repository, not the roadmap.
 
 ## Next
 1. Tom plays the content build on his phone: tap fixes, frame rate, difficulty of the new zones.
-2. Opening credits sequence, then a further visual pass (sprites, items, UI, HUD).
+2. Further visual pass (sprites, items, UI, HUD).
 3. New skills one at a time (docs/SKILLS.md), each with real content.
 4. Survivor.io-style encounter upgrades for the camp and boss fights.
 5. Naval combat (raider skiffs) and the Kraken.

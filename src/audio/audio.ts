@@ -125,6 +125,19 @@ export class GameAudio {
     osc.start(at); osc2.start(at); osc.stop(at + dur + 0.05); osc2.stop(at + dur + 0.05);
   }
 
+  /** The title reveal: a deep swell, a struck bell chord and a glassy shatter. Routed to music so the music toggle mutes it. */
+  logoCue() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime, out = this.music;
+    this.hiss(2.4, { type: 'lowpass', freq: 200, to: 1400, gain: 0.5, attack: 1.6, at: t, out, brown: true });
+    this.tone(36.7, 4, { type: 'sawtooth', gain: 0.35, attack: 1.4, lp: 220, at: t, out });
+    const hit = t + 1.6;
+    this.tone(73.4, 3.5, { to: 36.7, gain: 0.6, at: hit, out });
+    [146.8, 220, 293.7, 349.2].forEach((f, i) => this.bell(f, 5, 0.12, hit + i * 0.03, out));
+    this.hiss(1.2, { type: 'highpass', freq: 5000, gain: 0.18, at: hit, out });
+    for (let i = 0; i < 9; i++) this.tone(2400 + Math.random() * 3000, 0.25, { gain: 0.03, at: hit + 0.05 + Math.random() * 0.6, out });
+  }
+
   /** Distance falloff for things that happen somewhere in the world. */
   private near(x: number, z: number) {
     const p = this.game.p;
