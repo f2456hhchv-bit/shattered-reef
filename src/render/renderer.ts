@@ -20,6 +20,7 @@ import { item } from '../game/data/items';
 import { NODES, PLAYER_BASE } from '../game/data/content';
 import type { Game, GameEvent, Enemy, Telegraph } from '../game/sim/game';
 import { coastDist, nearestPathDist, WORLD_HALF, BEACH } from '../game/world/island';
+import { HN, HCELL } from '../game/world/world';
 import { buildTerrainMesh } from './terrainMesh';
 import { bakeRig, bakeStatic, mergeColoured } from './bake';
 import { InstancedField, type FieldItem } from './instanced';
@@ -143,7 +144,7 @@ export class GameRenderer {
     const world = game.world;
     this.terrain = buildTerrainMesh(world, LOOK);
     this.scene.add(this.terrain.group);
-    this.water = createWater(WORLD_HALF * 2 + 120, 230, (x, z) => (Math.abs(x) > WORLD_HALF || Math.abs(z) > WORLD_HALF ? 6 : -world.ground(x, z)), LOOK);
+    this.water = createWater(WORLD_HALF * 2 + 120, 230, (x, z) => (Math.abs(x) > WORLD_HALF || Math.abs(z) > WORLD_HALF ? 6 : -world.ground(x, z)), LOOK, { data: world.heights, side: HN + 1, cell: HCELL, half: WORLD_HALF });
     this.water.uniforms.uSunDir.value.copy(this.sunDir);
     this.scene.add(this.water.mesh);
 
@@ -790,8 +791,10 @@ export class GameRenderer {
     const dist = aerial ? Math.min(pos.distanceTo(look), 62) : pos.distanceTo(look);
     if (this.grass) this.grass.visible = !aerial && this.quality === 'high';
     const fog = this.scene.fog as THREE.Fog;
-    fog.near = dist * LOOK.fog.near;
-    fog.far = dist * LOOK.fog.far;
+    // a tall phone screen sees much further up the island at the top edge: push the haze back to match
+    const tall = THREE.MathUtils.clamp((1 - this.camera.aspect) / 0.55, 0, 1);
+    fog.near = dist * LOOK.fog.near * (1 + 0.6 * tall);
+    fog.far = dist * LOOK.fog.far * (1 + 0.4 * tall);
     // nothing past full fog is visible, so let the frustum cull it
     const far = Math.ceil(fog.far + 15);
     if (this.camera.far !== far) { this.camera.far = far; this.camera.updateProjectionMatrix(); }

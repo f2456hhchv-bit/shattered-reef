@@ -140,9 +140,9 @@ varying vec2 vCloudUv;
 varying float vCobble;
 // cobbles: distance to nearest and second-nearest jittered cell centre gives stone edges
 vec2 cH2(vec2 p) { return fract(sin(vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)))) * 43758.5453); }
-vec2 cells(vec2 p) { vec2 i = floor(p), f = fract(p); float d1 = 8.0, d2 = 8.0;
+vec2 cells(vec2 p, out vec2 cid) { vec2 i = floor(p), f = fract(p); float d1 = 8.0, d2 = 8.0; cid = i;
   for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) { vec2 o = vec2(x, y); vec2 r = o + cH2(i + o) * 0.8 - f; float d = dot(r, r);
-    if (d < d1) { d2 = d1; d1 = d; } else if (d < d2) d2 = d; }
+    if (d < d1) { d2 = d1; d1 = d; cid = i + o; } else if (d < d2) d2 = d; }
   return vec2(sqrt(d1), sqrt(d2)); }
 float cHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float cNoise(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
@@ -152,10 +152,12 @@ float cNoise(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 *
 float g1 = cNoise(vCloudUv * 1.7), g2 = cNoise(vCloudUv * 5.3 + 7.0);
 gl_FragColor.rgb *= 0.9 + g1 * 0.12 + g2 * 0.08;
 if (vCobble > 0.01) {
-  vec2 cc = cells(vCloudUv * 1.6);
-  float edge = smoothstep(0.02, 0.12, cc.y - cc.x);
-  float stone = 0.86 + cH2(floor(vCloudUv * 1.6 + 0.5)).x * 0.2;
-  gl_FragColor.rgb *= mix(1.0, mix(0.55, stone, edge), vCobble);
+  vec2 cid; vec2 cc = cells(vCloudUv * 1.6, cid);
+  vec2 sh = cH2(cid); // one random pair per stone: brightness and warm/cool tint
+  float edge = smoothstep(0.03, 0.14, cc.y - cc.x);
+  float dome = 1.06 - smoothstep(0.0, 0.6, cc.x) * 0.14; // worn, rounded tops catch more light
+  vec3 stone = (0.82 + sh.x * 0.24) * dome * mix(vec3(1.05, 1.0, 0.92), vec3(0.94, 0.98, 1.04), sh.y);
+  gl_FragColor.rgb *= mix(vec3(1.0), mix(vec3(0.5, 0.48, 0.45), stone, edge), vCobble);
 }
 vec2 cuv = vCloudUv * 0.018 + vec2(uTime * 0.006, uTime * 0.004);
 float cloud = cNoise(cuv) * 0.65 + cNoise(cuv * 2.3) * 0.35;
