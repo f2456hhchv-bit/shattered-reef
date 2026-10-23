@@ -136,4 +136,9 @@ export const LOOT: Record<string, LootTable> = {
     gear: { chance: 1, items: ['lockplate', 'cutlass_iron', 'ring_brass'], weights: { rare: 70, relic: 30 } } },
 };
 
-export const PLAYER_BASE = { hp: 40, hpPerLevel: 4, speed: 4.6, abilityCooldown: 7, abilityRange: 13, abilityDamage: [12, 18] as [number, number] };
+export const PLAYER_BASE = {
+  hp: 40, hpPerLevel: 4, speed: 4.6,
+  abilityCooldown: 7, abilityRange: 13, abilityDamage: [12, 18] as [number, number], // flintlock
+  whirlCooldown: 6, whirlRadius: 3.2, whirlMul: 1.4, // spin attack: weapon damage x mul to everything in radius
+  rollCooldown: 3, rollTime: 0.32, rollSpeed: 13, // dodge: invulnerable while rolling
+};

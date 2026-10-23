@@ -78,23 +78,25 @@ body.portrait #orbs { top: calc(10px + env(safe-area-inset-top, 0px)); left: max
 #actions { position: fixed; z-index: 6; display: flex; gap: 10px; align-items: flex-end; }
 body.landscape #actions { right: calc(var(--side-w) + 16px); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
 body.landscape:not(.side-open) #actions { right: calc(46px + env(safe-area-inset-right, 0px)); }
-body.portrait #actions { right: max(12px, env(safe-area-inset-right, 0px)); bottom: calc(var(--tab-h) + 22px + env(safe-area-inset-bottom, 0px)); flex-direction: column-reverse; }
+body.portrait #actions { right: max(12px, env(safe-area-inset-right, 0px)); bottom: calc(var(--tab-h) + 22px + env(safe-area-inset-bottom, 0px)); flex-direction: column-reverse; align-items: center; }
 body.portrait.side-open #actions { display: none; }
 .round { border-radius: 50%; border: 2px solid #120b06; box-shadow: 0 0 0 2px var(--brass), 0 4px 12px #0009; background: radial-gradient(circle at 35% 30%, #6a4c30, #2c1f14); display: grid; place-items: center; padding: 0; position: relative; }
 #ctx { width: 76px; height: 76px; font: 700 12px/1.1 var(--body); text-align: center; color: var(--ink); }
 #ctx span { display: block; padding: 0 6px; overflow: hidden; text-overflow: ellipsis; max-width: 72px; }
 #ctx small { display: block; font-weight: 500; font-size: 10px; color: var(--ink-dim); max-width: 70px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #ctx[hidden] { display: none; }
-#ability { width: 58px; height: 58px; }
-#ability svg { width: 30px; height: 30px; }
-#ability .cd { position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(#000a var(--cd, 0deg), transparent 0); }
-#ability.off { opacity: .45; }
+#abilities { display: flex; gap: 10px; align-items: flex-end; }
+body.portrait #abilities { flex-direction: column-reverse; }
+.ability { width: 56px; height: 56px; }
+.ability svg { width: 30px; height: 30px; }
+.ability .cd { position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(#000b var(--cd, 0deg), transparent 0); pointer-events: none; }
+.ability.off svg { opacity: .55; }
 
 /* ------------------------------------------------ chat log (RuneScape chatbox) */
 #log { position: fixed; z-index: 4; left: max(10px, env(safe-area-inset-left, 0px)); pointer-events: none; display: flex; flex-direction: column; gap: 2px; font-size: 13px; text-shadow: 0 1px 2px #000, 0 0 6px #000; }
 body.landscape #log { bottom: calc(14px + env(safe-area-inset-bottom, 0px)); width: min(460px, calc(100vw - var(--side-w) - 200px)); }
 body.portrait #log { bottom: calc(var(--tab-h) + 22px + env(safe-area-inset-bottom, 0px)); right: 110px; }
-body.portrait.side-open #log { display: none; }
+body.portrait.side-open #log { bottom: calc(var(--tab-h) + 44dvh + 26px + env(safe-area-inset-bottom, 0px)); right: 12px; }
 #log div { transition: opacity .6s; }
 #log .info { color: #f4ecd8; } #log .warn { color: var(--warn); } #log .good { color: var(--good); } #log .loot { color: var(--loot); } #log .quest { color: var(--quest); } #log .combat { color: #ff8a6a; }
 

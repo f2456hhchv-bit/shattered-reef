@@ -21,6 +21,9 @@ export type GameEvent =
   | { type: 'gain'; id: string; qty: number; name: string }
   | { type: 'hit'; target: 'player' | 'enemy'; id: number; amount: number; crit: boolean; x: number; z: number }
   | { type: 'swing' }
+  | { type: 'whirl' }
+  | { type: 'roll' }
+  | { type: 'dodge'; x: number; z: number }
   | { type: 'shoot'; x: number; z: number; tx: number; tz: number }
   | { type: 'enemyAttack'; id: number }
   | { type: 'enemyDeath'; id: number; x: number; z: number; elite: boolean; boss: boolean }
@@ -99,6 +102,10 @@ export class Game {
   action: Action = null;
   attackCd = 0;
   abilityCd = 0;
+  whirlCd = 0;
+  rollCd = 0;
+  rollT = 0; // > 0 while rolling (invulnerable)
+  private rollDir = { x: 0, z: 1 };
   eatCd = 0;
   combatTimer = 99;
   regenTimer = 0;
@@ -654,6 +661,38 @@ export class Game {
     e.hp = e.maxHp;
   }
 
+  /** Spin attack: weapon damage to everything around you, with knockback. */
+  useWhirl() {
+    if (this.dead || this.p.onShip || this.whirlCd > 0) return;
+    this.whirlCd = PLAYER_BASE.whirlCooldown;
+    this.emit({ type: 'whirl' });
+    this.combatTimer = 0;
+    const [a, b] = this.stats.damage;
+    let hit = 0;
+    for (const e of [...this.enemies]) {
+      if (!e.alive || e.state === 'rise') continue;
+      if (Math.hypot(e.x - this.p.x, e.z - this.p.z) > PLAYER_BASE.whirlRadius + e.def.radius) continue;
+      const crit = this.rnd() < this.stats.crit;
+      const dmg = Math.round((a + this.rnd() * (b - a)) * PLAYER_BASE.whirlMul * (crit ? 1.75 : 1));
+      this.damageEnemy(e, dmg, crit, 1.4);
+      hit++;
+    }
+    if (!hit) this.msg('Your whirl hits only air.');
+  }
+
+  /** Dodge roll: short dash, no damage taken while rolling. */
+  useRoll() {
+    if (this.dead || this.p.onShip || this.rollCd > 0 || this.rollT > 0) return;
+    const m = Math.hypot(this.moveDir.x, this.moveDir.z);
+    this.rollDir = m > 0.1 ? { x: this.moveDir.x / m, z: this.moveDir.z / m } : { x: Math.cos(this.facing), z: Math.sin(this.facing) };
+    this.rollCd = PLAYER_BASE.rollCooldown;
+    this.rollT = PLAYER_BASE.rollTime;
+    this.path = [];
+    this.pending = null;
+    if (this.action) this.stopAction();
+    this.emit({ type: 'roll' });
+  }
+
   useAbility() {
     if (this.dead || this.p.onShip || this.abilityCd > 0) return;
     let best: Enemy | null = null, bd = PLAYER_BASE.abilityRange;
@@ -674,7 +713,7 @@ export class Game {
     this.combatTimer = 0;
   }
 
-  private damageEnemy(e: Enemy, raw: number, crit: boolean) {
+  private damageEnemy(e: Enemy, raw: number, crit: boolean, knock = 0.35) {
     if (!e.alive || e.state === 'rise') return;
     let dmg = raw;
     if (e.elite || e.def.boss) dmg *= 1 + this.stats.eliteDmg;
@@ -687,7 +726,13 @@ export class Game {
     this.addXp('combat', dmg * e.def.xpPerDamage);
     if (this.stats.leech > 0) this.p.hp = Math.min(this.stats.maxHp, this.p.hp + dmg * this.stats.leech);
     if (e.state === 'idle' || e.state === 'return') e.state = 'chase';
-    if (e.hp <= 0) this.killEnemy(e);
+    if (e.hp <= 0) { this.killEnemy(e); return; }
+    if (!e.def.boss && knock > 0) {
+      const dx = e.x - this.p.x, dz = e.z - this.p.z, d = Math.hypot(dx, dz) || 1;
+      const k = e.elite === 'barnacled' ? knock * 0.4 : knock;
+      const nx = e.x + (dx / d) * k, nz = e.z + (dz / d) * k;
+      if (this.world.walkable(nx, nz)) { e.x = nx; e.z = nz; }
+    }
   }
 
   private killEnemy(e: Enemy) {
@@ -727,6 +772,7 @@ export class Game {
 
   damagePlayer(raw: number) {
     if (this.dead || this.p.onShip) return;
+    if (this.rollT > 0) { this.emit({ type: 'dodge', x: this.p.x, z: this.p.z }); return; }
     const dmg = mitigate(raw, this.stats.armour);
     this.p.hp -= dmg;
     this.combatTimer = 0;
@@ -757,7 +803,7 @@ export class Game {
 
   private stepPlayerCombat(dt: number) {
     this.attackCd = Math.max(0, this.attackCd - dt);
-    if (this.p.onShip || this.dead) return;
+    if (this.p.onShip || this.dead || this.rollT > 0) return;
     let tgt: Enemy | null = null;
     if (this.target !== null) {
       tgt = this.enemies.find((e) => e.id === this.target && e.alive) ?? null;
@@ -1049,6 +1095,12 @@ export class Game {
   private stepFoot(dt: number) {
     const m = Math.hypot(this.moveDir.x, this.moveDir.z);
     this.moving = false;
+    if (this.rollT > 0) {
+      this.rollT = Math.max(0, this.rollT - dt);
+      this.walkStep(this.rollDir.x, this.rollDir.z, PLAYER_BASE.rollSpeed * dt);
+      this.moving = true;
+      return;
+    }
     if (m > 0.05) {
       this.moving = this.walkStep(this.moveDir.x / m, this.moveDir.z / m, PLAYER_BASE.speed * Math.min(1, m) * dt);
     } else if (this.path.length) {
@@ -1113,6 +1165,8 @@ export class Game {
     this.time += dt;
     this.s.playTime += dt;
     this.abilityCd = Math.max(0, this.abilityCd - dt);
+    this.whirlCd = Math.max(0, this.whirlCd - dt);
+    this.rollCd = Math.max(0, this.rollCd - dt);
     this.eatCd = Math.max(0, this.eatCd - dt);
     this.combatTimer += dt;
     if (this.dead > 0) {

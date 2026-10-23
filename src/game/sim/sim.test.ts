@@ -244,4 +244,32 @@ describe('gameplay loop', () => {
     expect(g.dead).toBe(0);
     expect(Math.hypot(g.p.x - g.layout.respawn.x, g.p.z - g.layout.respawn.z)).toBeLessThan(0.1);
   });
+
+  it('whirl hits every enemy in range and knocks them back', () => {
+    const g = fresh(21);
+    const crabs = g.enemies.filter((e) => e.def.id === 'reef_crab').slice(0, 3);
+    goNear(g, crabs[0].x, crabs[0].z);
+    for (const [k, c] of crabs.entries()) { const a = (k / 3) * Math.PI * 2; c.x = g.p.x + Math.cos(a) * 1.6; c.z = g.p.z + Math.sin(a) * 1.6; c.elite = null; }
+    const before = crabs.map((c) => c.hp);
+    g.useWhirl();
+    crabs.forEach((c, k) => expect(c.hp < before[k] || !c.alive).toBe(true));
+    expect(g.whirlCd).toBeGreaterThan(0);
+    const hp = crabs.map((c) => c.hp);
+    g.useWhirl(); // on cooldown: no effect
+    expect(crabs.map((c) => c.hp)).toEqual(hp);
+  });
+
+  it('a dodge roll avoids telegraphed damage and moves the player', () => {
+    const g = fresh(23);
+    const x0 = g.p.x, z0 = g.p.z;
+    g.telegraphs.push({ id: 999, kind: 'circle', x: g.p.x, z: g.p.z, r: 3, angle: 0, width: 0, t: 0, dur: 0.1, damage: 30, source: 0 });
+    g.setMoveDir(0, -1);
+    g.useRoll();
+    const hp = g.p.hp;
+    run(g, 0.2);
+    expect(g.p.hp).toBe(hp);
+    run(g, 0.3);
+    expect(Math.hypot(g.p.x - x0, g.p.z - z0)).toBeGreaterThan(2);
+    expect(g.rollCd).toBeGreaterThan(0);
+  });
 });

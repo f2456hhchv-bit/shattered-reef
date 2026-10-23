@@ -27,7 +27,7 @@ Reflects the actual repository, not the roadmap.
 - **Stack:** TypeScript + Vite + Three.js. Static hosting on GitHub Pages (`.github/workflows/deploy.yml` runs typecheck, tests, build, deploy on `main`).
 - **Simulation is separate from rendering.** `src/game/**` has no Three.js import; the renderer reads state and listens to events. This is what makes headless tests (and later multiplayer) possible.
 - **XP:** RuneScape curve continued to level 126; XP stored, level derived; 200M cap.
-- **Combat:** auto-attack anything in reach (Survivor.io feel), tap/click an enemy to chase it, flintlock ability on a cooldown, telegraphed enemy attacks you can walk out of.
+- **Combat:** auto-attack anything in reach (Survivor.io feel), tap/click an enemy to chase it. Three active skills: dodge roll (3 s, no damage while rolling), whirl (6 s, hits everything within 3.2 m, knockback), flintlock (7 s, ranged). Enemy attacks are telegraphed; rolling through them is the skill play.
 - **Encounter upgrades (Survivor.io level-up choices):** not built yet; deliberately deferred so permanent skills stay the focus of the first island.
 
 ## Systems in the build
@@ -49,8 +49,14 @@ Reflects the actual repository, not the roadmap.
 | Input | `src/input/input.ts` | invisible joystick, tap/click to walk or use, hover labels, WASD, hotkeys, pinch/wheel zoom |
 
 ## Controls
-- **Phone:** drag anywhere to move or steer; tap things to walk to them and use them; round button = nearest action; pistol button = flintlock; pinch = zoom; tap minimap or map to walk there.
-- **Laptop:** click to walk/use (RuneScape-style); right-click items for details; WASD/arrows move; E action; Space flintlock; I G K J M O tabs; Esc closes; scroll zooms.
+- **Phone:** drag anywhere to move or steer; tap things to walk to them and use them; big round button = nearest action; small buttons = roll, whirl, flintlock; pinch = zoom; tap minimap or map to walk there.
+- **Laptop:** click to walk/use (RuneScape-style); right-click items for details; WASD/arrows move; E action; Space dodge roll; R whirl; F flintlock; I G K J M O tabs; Esc closes; scroll zooms.
+
+## Playtest log
+- **2026-10-23, Tom, iPhone (live Pages build):** smooth, no heat; joystick + tap-to-move liked; camera distance and zoom liked.
+  - Bug: inventory taps did nothing. Cause [likely]: tap reported as a mouse click, so it tried to use the item and the message went to a hidden log. Fixed: pointer type taken from pointerdown, touch always opens the details panel, log stays visible above the open sheet.
+  - Combat felt passive (one button). Added dodge roll, whirl, swing arc, knockback, hit squash.
+  - Found while fixing: with the portrait sheet open the player was hidden behind it. Camera now shifts up.
 
 ## Known issues / limitations
 - No sound yet.

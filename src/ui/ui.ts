@@ -1,5 +1,5 @@
 import { item, RARITY, AFFIXES, type Slot, type SkillId } from '../game/data/items';
-import { SKILLS, UNLOCKS, RECIPES, SHOP, ELITE_AFFIXES, type Station } from '../game/data/content';
+import { SKILLS, UNLOCKS, RECIPES, SHOP, ELITE_AFFIXES, PLAYER_BASE, type Station } from '../game/data/content';
 import { NPCS, QUESTS } from '../game/data/quests';
 import { PLACES, WORLD_HALF, coastDist, nearestPathDist, FLATS } from '../game/world/island';
 import { count, displayName, type Stack } from '../game/sim/inventory';
@@ -18,6 +18,8 @@ const TABS: { id: Tab; name: string; key: string }[] = [
   { id: 'settings', name: 'Settings', key: 'O' },
 ];
 const SLOT_ORDER: Slot[] = ['weapon', 'head', 'body', 'ring'];
+const WHIRL = '<svg viewBox="0 0 32 32"><path d="M16 4a12 12 0 0 1 11 7l-5-1M28 16a12 12 0 0 1-7 11l1-5M16 28a12 12 0 0 1-11-7l5 1M4 16a12 12 0 0 1 7-11l-1 5" fill="none" stroke="#e9e5d5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="16" cy="16" r="4" fill="#c9a050" stroke="#1a120a" stroke-width="2"/></svg>';
+const ROLL = '<svg viewBox="0 0 32 32"><path d="M6 22c0-8 6-14 13-14 4 0 7 2 7 2" fill="none" stroke="#e9e5d5" stroke-width="3.2" stroke-linecap="round"/><path d="M22 4l5 6-7 2" fill="none" stroke="#e9e5d5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 27h12" stroke="#c9a050" stroke-width="3" stroke-linecap="round"/></svg>';
 const PISTOL = '<svg viewBox="0 0 32 32"><path d="M4 12h18l4-3h3v6h-3l-2 2h-6l-3 9H8l2-8H4z" fill="#9aa0a4" stroke="#1a120a" stroke-width="2" stroke-linejoin="round"/><path d="M12 17l-2 7" stroke="#8a6440" stroke-width="3"/></svg>';
 
 const h = (tag: string, attrs: Record<string, string> = {}, html = '') => {
@@ -48,6 +50,7 @@ export class UI {
   private playerBar!: HTMLElement;
   private bannerT = 0;
   private portrait = false;
+  private lastPointer = '';
   onSave: () => void = () => {};
   onReset: () => void = () => {};
   onQuality: (q: 'high' | 'low') => void = () => {};
@@ -89,12 +92,21 @@ export class UI {
     const col = add('collapse', h('button', { class: 'btn', 'aria-label': 'Toggle side panel' }, '›'));
     col.addEventListener('click', () => { this.sideOpen = !this.sideOpen; this.layout(); });
     const actions = add('actions', h('div'));
-    const ab = h('button', { id: 'ability', class: 'round', 'aria-label': 'Flintlock shot (Space)', title: 'Flintlock shot (Space)' }, `${PISTOL}<div class="cd"></div>`);
-    ab.addEventListener('click', () => this.game.useAbility());
+    const mk = (id: string, label: string, icon: string, fn: () => void) => {
+      const b = h('button', { id, class: 'round ability', 'aria-label': label, title: label }, `${icon}<div class="cd"></div>`);
+      b.addEventListener('click', fn);
+      this.el[id] = b;
+      return b;
+    };
+    const roll = mk('ab-roll', 'Dodge roll (Space)', ROLL, () => this.game.useRoll());
+    const whirl = mk('ab-whirl', 'Whirl attack (R)', WHIRL, () => this.game.useWhirl());
+    const shot = mk('ab-shot', 'Flintlock shot (F)', PISTOL, () => this.game.useAbility());
     const ctx = h('button', { id: 'ctx', class: 'round', 'aria-label': 'Interact (E)' }, '<span></span><small></small>');
     ctx.addEventListener('click', () => { const t = this.game.contextTarget(); if (t) this.game.interact(t.key); });
-    actions.append(ab, ctx);
-    this.el.ability = ab;
+    const abil = h('div', { id: 'abilities' });
+    abil.append(roll, whirl, shot);
+    actions.append(abil, ctx);
+    this.el.abilities = abil;
     this.el.ctx = ctx;
     add('hover', h('div')).hidden = true;
     add('stick', h('div', {}, '<i></i>')).hidden = true;
@@ -118,7 +130,11 @@ export class UI {
     const cv = this.el.mm.querySelector('canvas') as HTMLCanvasElement;
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     cv.width = cv.height = Math.round(mm * dpr);
-    requestAnimationFrame(() => this.r.resize());
+    requestAnimationFrame(() => {
+      this.r.resize();
+      const content = this.el.content;
+      this.r.coveredBottom = this.portrait && this.sideOpen ? content.getBoundingClientRect().height + 20 : 0;
+    });
   }
 
   selectTab(t: Tab, user: boolean) {
@@ -154,6 +170,7 @@ export class UI {
       case 'openStation': this.openStation(e.station); break;
       case 'openShop': this.openShop(); break;
       case 'hit': this.damageNumber(e.x, e.z, e.amount, e.target === 'player', e.crit); break;
+      case 'dodge': this.damageNumber(e.x, e.z, 'Dodged', false, true); break;
       case 'boss': if (e.state === 'defeat') this.banner('Guardian defeated', 'The Broken Ring falls silent'); break;
       case 'board': this.closeWindows(); break;
     }
@@ -211,10 +228,13 @@ export class UI {
       (ctx.querySelector('small') as HTMLElement).textContent = t.label;
       ctx.setAttribute('aria-label', `${t.verb} ${t.label} (E)`);
     }
-    const ab = this.el.ability;
-    ab.classList.toggle('off', g.p.onShip || g.abilityCd > 0);
-    ab.hidden = g.p.onShip;
-    (ab.querySelector('.cd') as HTMLElement).style.setProperty('--cd', `${(g.abilityCd / 7) * 360}deg`);
+    const abs: [string, number, number][] = [['ab-roll', g.rollCd, PLAYER_BASE.rollCooldown], ['ab-whirl', g.whirlCd, PLAYER_BASE.whirlCooldown], ['ab-shot', g.abilityCd, PLAYER_BASE.abilityCooldown]];
+    for (const [id, cd, max] of abs) {
+      const b = this.el[id];
+      b.classList.toggle('off', cd > 0);
+      (b.querySelector('.cd') as HTMLElement).style.setProperty('--cd', `${(cd / max) * 360}deg`);
+    }
+    this.el.abilities.hidden = g.p.onShip || g.dead > 0;
     // boss bar
     const bb = this.el.bossbar;
     if (g.boss && g.boss.alive) {
@@ -245,7 +265,7 @@ export class UI {
   }
 
   // ------------------------------------------------------------------ overlay: damage numbers, bars, tags
-  private damageNumber(x: number, z: number, amount: number, player: boolean, crit: boolean) {
+  private damageNumber(x: number, z: number, amount: number | string, player: boolean, crit: boolean) {
     if (!this.game.s.settings.showDamage) return;
     let d = this.dmgPool.find((q) => !q.live);
     if (!d) {
@@ -422,9 +442,9 @@ export class UI {
       <div class="toggle"><span>Progress saves automatically<br><small class="muted">Last saved ${ago}</small></span><button class="btn" id="saveNow">Save now</button></div>
       <div class="toggle"><span>Start a new voyage<br><small class="muted">Erases this browser's save</small></span><button class="btn" id="resetSave">Reset</button></div>
       <div class="brass-rule"></div><h2 class="title">Controls</h2>
-      ${fine ? `<p>Click to walk, click things to use them. <kbd>WASD</kbd> also moves.<br><kbd>E</kbd> interact · <kbd>Space</kbd> flintlock · <kbd>I</kbd> <kbd>G</kbd> <kbd>K</kbd> <kbd>J</kbd> <kbd>M</kbd> tabs · <kbd>Esc</kbd> close · scroll to zoom.</p>`
-        : '<p>Drag anywhere on the world to move. Tap things to walk to them and use them. The round button does the nearest action. Pinch to zoom.</p>'}
-      <p class="muted" style="font-size:12px">Your cutlass swings automatically at anything in reach. Keep moving to dodge red markers on the ground.</p>`;
+      ${fine ? `<p>Click to walk, click things to use them. <kbd>WASD</kbd> also moves.<br><kbd>E</kbd> interact · <kbd>Space</kbd> dodge roll · <kbd>R</kbd> whirl · <kbd>F</kbd> flintlock · <kbd>I</kbd> <kbd>G</kbd> <kbd>K</kbd> <kbd>J</kbd> <kbd>M</kbd> tabs · <kbd>Esc</kbd> close · scroll to zoom.</p>`
+        : '<p>Drag anywhere on the world to move. Tap things to walk to them and use them. The big round button does the nearest action; the three smaller ones are dodge roll, whirl and flintlock. Pinch to zoom.</p>'}
+      <p class="muted" style="font-size:12px">Your cutlass swings automatically at anything in reach. Whirl to hit a crowd, roll through red markers to take no damage.</p>`;
   }
 
   private bindSettings(c: HTMLElement) {
@@ -438,12 +458,15 @@ export class UI {
   private bindSlots(c: HTMLElement) {
     c.querySelectorAll<HTMLButtonElement>('[data-slot]').forEach((b) => {
       const i = Number(b.dataset.slot);
-      b.addEventListener('click', (ev) => {
+      // Some mobile browsers report taps as 'mouse' on the click event, so trust pointerdown instead.
+      b.addEventListener('pointerdown', (ev) => { this.lastPointer = ev.pointerType; });
+      b.addEventListener('click', () => {
         const st = this.game.p.inv[i];
         if (!st) return;
-        const fine = (ev as PointerEvent).pointerType === 'mouse' || (ev as MouseEvent).detail === 0 && matchMedia('(pointer: fine)').matches;
-        if (this.shopOpen) { this.openPop({ slot: i }, b); return; }
-        if (fine) { this.game.useSlot(i); return; }
+        const d = item(st.id);
+        const mouse = this.lastPointer === 'mouse';
+        // mouse: left-click eats/equips directly (RuneScape-style); everything else opens the details panel
+        if (mouse && !this.shopOpen && (d.heal || d.equip)) { this.game.useSlot(i); return; }
         this.openPop({ slot: i }, b);
       });
       b.addEventListener('contextmenu', (ev) => { ev.preventDefault(); if (this.game.p.inv[i]) this.openPop({ slot: i }, b); });
