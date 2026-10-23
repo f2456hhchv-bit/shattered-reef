@@ -18,7 +18,7 @@ Reflects the actual repository, not the roadmap.
 
 1. Implement one feature in one batch of edits.
 2. `npx tsc --noEmit && npx vitest run`: rules are pure TS, so whole play-throughs run headless in seconds.
-3. `node scripts/e2e.cjs <dir>` against `npx vite`: boots in Chromium at 1280×800 and 390×844, fails on any console error.
+3. `node scripts/e2e.cjs <dir>` against `npx vite`: boots in Chromium at 1280×800 and 390×844, fails on any console error. Touch/UI changes also run `node scripts/touch-e2e.cjs` (real held touches with state churn).
 4. Screenshots only when visuals changed: `--shots` on e2e, or `node scripts/tour.cjs out.jpg` for a one-image contact sheet of every area (`SCENES=peak,fen` for a subset). Layout changes: `npx vite-node scripts/mapshot.ts out.ppm` draws the island top-down (walk grid, paths, nodes, spawns) in under a second, no browser.
 5. Commit when green. A stage is done only when its tests pass.
 
@@ -65,6 +65,9 @@ Reflects the actual repository, not the roadmap.
   - Combat felt passive (one button). Added dodge roll, whirl, swing arc, knockback, hit squash.
   - Found while fixing: with the portrait sheet open the player was hidden behind it. Camera now shifts up.
 
+- **2026-10-23, Tom (live big island):** "inventory still doesn't work on phones when clicking; couldn't cut trees down".
+  - Trees, root cause [certain, reproduced]: tap detection compared *handling* time against 600 ms. Any slow frame (the bigger island makes hitches likelier) made a tap look like a long-press and it was dropped. Fixed with the browser's input timestamps. Reproduced and verified with held CDP touches (`scripts/touch-e2e.cjs`); the old code fails that test.
+  - Inventory, root cause [likely, not reproducible here: no WebKit in the container]: iOS Safari drops the synthetic `click` when page content changes visibility during its hover phase, and HUD elements change every frame. Panels also rebuilt their HTML on every state change. Fixed both: all game buttons act on `pointerup` for touch (`src/ui/tap.ts`), and panels patch the DOM in place (`src/ui/morph.ts`). Needs Tom's phone to confirm.
 - **2026-10-23, Tom:** approved art pass 1; asked for a bigger starter island holding every skill's level range. Built the landmass (radius 50 → 80 m, 2.5× area) with zones and a road network. Found while testing:
   - Click-to-sail went in a straight line and beached on the new headland. Added sea routing (A* on a hull-clearance grid).
   - The Guardian balance test swung from 8/8 to 0/8 wins when the arena moved 0.3 m: the test bot was snagging on grid corners, not measuring balance. Rewrote the bot to dodge to a real escape point and kite; added glancing movement off round obstacles for real players too; walled the arena with fallen masonry. Honest result: ranged is neutral vs the Guardian (pistol needs ~13, like melee ~12); magic remains the shortcut (level 10). The earlier "ranged 10 wins" was the bot exploiting pillar snags.
