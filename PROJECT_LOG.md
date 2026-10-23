@@ -33,6 +33,7 @@ Reflects the actual repository, not the roadmap.
 - **Starter island holds every skill's level range** (Tom, 2026-10-23). Easy content near the quay, harder toward the far coasts and Ironcrag. Skill-specific islands come later. A zone joins the Places list only when it has content.
 - **Art standard (art pass 1, approved by Tom 2026-10-23):** smooth shading, blended vertex-colour terrain with speckle, cobbles and cloud shadows; item models rendered to slate-tile icons; loot as rarity-tinted sea-glass shards. Characters and buildings get the same treatment next.
 - **No boxes in characters, UI or effects** (Tom, 2026-10-23: "boxy, like Minecraft"). Humanoids are turned profiles, capsules and spheres; UI panels are framed with brass filigree, tabs are medallions, orbs are round; particles are round.
+- **Graphics pass 2 (2026-10-23):** image-based lighting from a painted sky (PMREM), baked terrain AO (horizon + contact shadows under every solid), world-space procedural surface detail (tonal grain + micro-bump) on props/buildings/characters, warm rim light on characters, bloom on emissives only. Battery saver turns detail and bloom off. Brightness measured against the previous build: +6–15%.
 - **Workflow:** work accumulates on one branch; a PR is opened only when Tom says to put it live (a merged PR cannot be reused).
 - **Encounter upgrades (Survivor.io level-up choices):** not built yet; deliberately deferred so permanent skills stay the focus of the first island.
 

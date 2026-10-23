@@ -60,6 +60,36 @@ export function buildTerrainMesh(world: World, look: Look): TerrainView {
       col[k] = tmp.r; col[k + 1] = tmp.g; col[k + 2] = tmp.b;
     }
   }
+  // baked ambient occlusion: (1) horizon occlusion from the terrain itself, so hollows and valley floors
+  // sit in soft shade; (2) contact shadows where every tree, rock and building meets the ground
+  const ao = new Float32Array(R * R).fill(1);
+  const DIRS = 8, STEPS = [1.25, 2.5, 4, 6.5, 10];
+  for (let j = 0; j < R; j++)
+    for (let i = 0; i < R; i++) {
+      const x = i * HCELL - WORLD_HALF, z = j * HCELL - WORLD_HALF, y = H[j * R + i];
+      if (y < -1) continue; // deep seabed is under water anyway
+      let occ = 0;
+      for (let k = 0; k < DIRS; k++) {
+        const a = (k / DIRS) * Math.PI * 2, cx = Math.cos(a), cz = Math.sin(a);
+        let m = 0;
+        for (const d of STEPS) m = Math.max(m, (world.ground(x + cx * d, z + cz * d) - y) / d);
+        occ += Math.atan(m) / (Math.PI / 2);
+      }
+      ao[j * R + i] = 1 - 0.7 * (occ / DIRS);
+    }
+  for (const so of world.solids) {
+    const r = 'r' in so ? so.r : Math.hypot(so.w, so.d) * 0.42;
+    const ext = r + 1.4;
+    const i0 = Math.max(0, Math.floor((so.x - ext + WORLD_HALF) / HCELL)), i1 = Math.min(HN, Math.ceil((so.x + ext + WORLD_HALF) / HCELL));
+    const j0 = Math.max(0, Math.floor((so.z - ext + WORLD_HALF) / HCELL)), j1 = Math.min(HN, Math.ceil((so.z + ext + WORLD_HALF) / HCELL));
+    for (let j = j0; j <= j1; j++)
+      for (let i = i0; i <= i1; i++) {
+        const d = Math.hypot(i * HCELL - WORLD_HALF - so.x, j * HCELL - WORLD_HALF - so.z);
+        ao[j * R + i] *= 1 - 0.32 * (1 - smooth(d, r * 0.5, ext));
+      }
+  }
+  for (let v = 0; v < R * R; v++) { col[v * 3] *= ao[v]; col[v * 3 + 1] *= ao[v]; col[v * 3 + 2] *= ao[v]; }
+
   // smooth normals straight from the height grid, so chunk edges match exactly
   const nrm = new Float32Array(R * R * 3);
   const hAt = (a: number, b: number) => H[Math.max(0, Math.min(HN, b)) * R + Math.max(0, Math.min(HN, a))];
