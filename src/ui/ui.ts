@@ -10,7 +10,7 @@ import { NPCS, QUESTS } from '../game/data/quests';
 import { PLACES, WORLD_HALF, coastDist, nearestPathDist, FLATS } from '../game/world/island';
 import { count, displayName, type Stack } from '../game/sim/inventory';
 import { levelForXp, levelProgress, xpForLevel, MAX_LEVEL } from '../game/sim/xp';
-import type { Game, GameEvent, MsgKind } from '../game/sim/game';
+import { earlyBoost, EARLY_BOOST_TO, type Game, type GameEvent, type MsgKind } from '../game/sim/game';
 import type { GameRenderer } from '../render/renderer';
 import { itemIcon, rarityColour, TAB_ICONS, SKILL_ICONS, SLOT_ICONS } from './icons';
 import { LEVEL_GAIN } from '../game/data/perks';
@@ -54,6 +54,7 @@ export class UI {
   private mmT = 0;
   private station: Station | null = null;
   private shopOpen = false;
+  private shopTab: 'buy' | 'sell' = 'buy';
   private dialog: { npc: string; lines: string[]; i: number } | null = null;
   private pop: { slot?: number; equip?: Slot } | null = null;
   private dmgPool: { el: HTMLElement; x: number; y: number; z: number; t: number; live: boolean }[] = [];
@@ -74,6 +75,15 @@ export class UI {
     game.on((e) => this.onEvent(e));
     this.layout();
     window.addEventListener('resize', () => this.layout());
+    // a tap anywhere outside the item popup closes it (a slot tap opens the next one instead)
+    document.addEventListener('pointerdown', (e) => {
+      const t = e.target as HTMLElement | null;
+      if (this.pop && !t?.closest('#itempop, [data-slot], [data-equip]')) this.closePop();
+    }, true);
+    // after a rotation some phones report the old size at first: lay out again once it has settled
+    const settle = () => { this.layout(); setTimeout(() => this.layout(), 150); setTimeout(() => this.layout(), 500); };
+    window.addEventListener('orientationchange', settle);
+    window.visualViewport?.addEventListener('resize', () => this.layout());
     this.buildMinimapBase();
   }
 
@@ -116,8 +126,10 @@ export class UI {
     const special = mk('ab-special', 'Special attack (R)', WHIRL, () => this.game.useSpecial());
     const ctx = h('button', { id: 'ctx', class: 'round', 'aria-label': 'Interact (E)' }, '<span></span><small></small>');
     onTap(ctx, 'button', () => { const t = this.game.contextTarget(); if (t) this.game.interact(t.key); });
+    const eat = mk('ab-eat', 'Eat the best food (H)', '<img alt="">', () => this.game.quickEat());
+    eat.insertAdjacentHTML('beforeend', '<b class="n"></b>');
     const abil = h('div', { id: 'abilities' });
-    abil.append(roll, special);
+    abil.append(eat, roll, special);
     actions.append(abil, ctx);
     this.el.abilities = abil;
     this.el.ctx = ctx;
@@ -136,6 +148,7 @@ export class UI {
     document.body.classList.toggle('portrait', this.portrait);
     document.body.classList.toggle('landscape', !this.portrait);
     document.body.classList.toggle('side-open', this.sideOpen);
+    if (!this.sideOpen) this.closePop(); // the popup belongs to the panel
     const mm = this.portrait ? Math.min(118, w * 0.3) : Math.min(150, hgt * 0.24);
     document.documentElement.style.setProperty('--mm', `${mm}px`);
     document.documentElement.style.setProperty('--side-w', `${Math.max(232, Math.min(300, w * 0.3))}px`);
@@ -228,6 +241,7 @@ export class UI {
 
   // ------------------------------------------------------------------ per-frame
   update(dt: number) {
+    if ((window.innerHeight > window.innerWidth) !== this.portrait) this.layout(); // rotated without a resize event
     const g = this.game;
     const p = g.p;
     // orbs
@@ -259,6 +273,18 @@ export class UI {
     for (const [b, cd, max, blocked] of abs) {
       b.classList.toggle('off', cd > 0 || blocked);
       (b.querySelector('.cd') as HTMLElement).style.setProperty('--cd', `${(cd / max) * 360}deg`);
+    }
+    // quick eat: shows the food it would pick right now (any food when you're at full health)
+    const eatBtn = this.el['ab-eat'], fi = g.bestFood() ?? g.foodSlot();
+    eatBtn.hidden = fi === null;
+    if (fi !== null) {
+      const st = g.p.inv[fi]!, img = eatBtn.querySelector('img') as HTMLImageElement, src = itemIcon(st.id);
+      if (img.getAttribute('src') !== src) img.setAttribute('src', src);
+      const n = String(g.p.inv.reduce((a, x) => a + (x && x.id === st.id ? x.qty : 0), 0));
+      const nb = eatBtn.querySelector('.n') as HTMLElement;
+      if (nb.textContent !== n) nb.textContent = n;
+      eatBtn.classList.toggle('off', g.bestFood() === null || g.eatCd > 0);
+      (eatBtn.querySelector('.cd') as HTMLElement).style.setProperty('--cd', `${(Math.max(0, g.eatCd) / 1.2) * 360}deg`);
     }
     this.el.abilities.hidden = g.p.onShip || g.dead > 0;
     // boss bar
@@ -525,7 +551,7 @@ export class UI {
       rows.push(`<div class="lvrow${L <= cur ? ' got' : ''}${L === cur ? ' cur' : ''}${at.length ? ' has' : ''}" data-lv="${L}"><span class="n">${L}</span><div>${body}</div></div>`);
     }
     return `<div class="row lvhead" style="gap:10px;margin-bottom:8px"><button class="btn small" data-skillback aria-label="Back to all skills">‹ Skills</button>
-      <span class="medal" style="--c:${sk.colour}">${SKILL_ICONS[id]}</span><div><h2 class="title" style="margin:0">${sk.name}</h2><span class="muted" style="font-size:12px">Level ${cur} · ${esc(sk.blurb)}</span></div></div>
+      <span class="medal" style="--c:${sk.colour}">${SKILL_ICONS[id]}</span><div><h2 class="title" style="margin:0">${sk.name}</h2><span class="muted" style="font-size:12px">Level ${cur} · ${esc(sk.blurb)}${cur < EARLY_BOOST_TO ? ` · <b style="color:var(--brass)">×${earlyBoost(cur).toFixed(1)} XP</b> while learning (to level ${EARLY_BOOST_TO})` : ''}</span></div></div>
       <div class="lvlist">${rows.join('')}</div>`;
   }
 
@@ -695,8 +721,10 @@ export class UI {
       el = h('div', { id, class: 'win panel', role: 'dialog', 'aria-label': title });
       document.body.appendChild(el);
       const g = this.game;
-      onTap(el, '.x, [data-r], [data-buy], [data-c], [data-wd], [data-dep], [data-rep]', (b) => {
+      onTap(el, '.x, [data-r], [data-buy], [data-c], [data-wd], [data-dep], [data-rep], [data-sell], [data-shoptab]', (b) => {
         if (b.classList.contains('x')) { this.closeWindows(); return; }
+        if (b.dataset.shoptab) { this.shopTab = b.dataset.shoptab as 'buy' | 'sell'; this.renderShop(); return; }
+        if (b.dataset.sell) { const [i, n] = b.dataset.sell.split(':'); g.sell(Number(i), n === 'all'); this.renderShop(); return; }
         if (b.dataset.rep) { const i = b.dataset.rep.lastIndexOf(':'); g.repair(b.dataset.rep.slice(0, i), b.dataset.rep.slice(i + 1) === 'self'); this.lastRev = -1; return; }
         if (b.dataset.wd) { const [idx, n] = b.dataset.wd.split(':').map(Number); g.withdraw(idx, n); return; }
         if (b.dataset.dep) { g.deposit('all'); return; }
@@ -780,7 +808,15 @@ export class UI {
       return `<div class="recipe"><img src="${itemIcon(id)}" alt=""><div><b>${qty > 1 ? `${qty} × ` : ''}${esc(item(id).name)}</b><div class="need">${esc(item(id).desc)}</div></div><div class="btns"><button class="btn primary" data-buy="${id}" ${coins < price ? 'disabled' : ''}>Buy ${price}c</button></div></div>`;
     }).join('');
     const wants = (shop.wants ?? []).map((w) => w.note).join(' ');
-    this.win('shopwin', shop.name, `<p class="muted" style="margin-top:0">You have ${fmt(coins)} coins. To sell, tap an item in your pack.${wants ? ` ${esc(wants)}` : ''}</p>${rows}`);
+    // selling: everything in your pack the trader will take, with what they'd pay
+    const sell = g.p.inv.map((st, i) => {
+      if (!st || st.id === 'coins' || item(st.id).quest) return '';
+      const each = g.sellPrice({ ...st, qty: 1 });
+      return `<div class="recipe"><img src="${itemIcon(st.id, st.qty)}" alt=""><div><b>${st.qty > 1 ? `${st.qty} × ` : ''}${esc(displayName(st))}</b><div class="need">${each}c each</div></div><div class="btns"><button class="btn" data-sell="${i}:1">Sell 1</button>${st.qty > 1 ? `<button class="btn" data-sell="${i}:all">All ${each * st.qty}c</button>` : ''}</div></div>`;
+    }).join('');
+    const tab = this.shopTab;
+    this.win('shopwin', shop.name, `<div class="seg shoptabs" style="margin-bottom:8px"><button data-shoptab="buy" class="${tab === 'buy' ? 'on' : ''}">Buy</button><button data-shoptab="sell" class="${tab === 'sell' ? 'on' : ''}">Sell</button></div>
+      <p class="muted" style="margin-top:0">You have ${fmt(coins)} coins.${wants ? ` ${esc(wants)}` : ''}</p>${tab === 'buy' ? rows : sell || '<p class="muted">Nothing in your pack to sell.</p>'}`);
   }
 
   private openDialog(npc: string, lines: string[]) {

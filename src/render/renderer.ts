@@ -688,8 +688,17 @@ export class GameRenderer {
     this.resize();
   }
 
+  private sized = '';
+  /** Phones change the canvas size after rotating (and when browser bars slide) without a reliable resize event:
+   * a stale buffer stretches the picture and puts taps in the wrong place. Checked every frame, costs nothing. */
+  private keepSized() {
+    const key = `${this.canvas.clientWidth}x${this.canvas.clientHeight}@${window.devicePixelRatio}`;
+    if (key !== this.sized) this.resize();
+  }
+
   resize() {
     const w = this.canvas.clientWidth || window.innerWidth, h = this.canvas.clientHeight || window.innerHeight;
+    this.sized = `${this.canvas.clientWidth}x${this.canvas.clientHeight}@${window.devicePixelRatio}`;
     this.renderer.setSize(w, h, false);
     this.composer.setPixelRatio(this.renderer.getPixelRatio());
     this.composer.setSize(w, h);
@@ -828,6 +837,7 @@ export class GameRenderer {
     this.terrain.uniforms.uTime.value = t;
     for (const u of this.grassTime) u.value = t;
     this.updateCamera(dt);
+    this.keepSized();
     this.composer.render();
   }
 

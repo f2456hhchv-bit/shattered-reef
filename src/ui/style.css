@@ -376,3 +376,7 @@ body.landscape #side { padding-top: calc(var(--mm) + 80px + env(safe-area-inset-
 
 .lvhead { position: sticky; top: -10px; z-index: 2; padding: 8px 0; background: linear-gradient(180deg, #24180f 85%, #24180f00); }
 #itempop .trait { color: #9fe8d8; } #itempop .trait-name { list-style: none; margin-left: -18px; color: #9fe8d8; font-style: italic; font-size: 12px; }
+.shoptabs button { min-height: 44px; padding: 8px 22px; font-size: 14px; }
+#ab-eat img { width: 40px; height: 40px; pointer-events: none; }
+#ab-eat.off img { opacity: .55; }
+#ab-eat .n { position: absolute; right: -2px; bottom: -2px; min-width: 20px; height: 20px; padding: 0 4px; border-radius: 10px; background: #20150a; color: #f1e3b8; font: 700 11px/20px system-ui, sans-serif; box-shadow: 0 0 0 1px #c9a050; pointer-events: none; }

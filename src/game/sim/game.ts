@@ -65,7 +65,12 @@ export interface Enemy {
   moving: boolean;
 }
 
-export interface Drop { id: number; x: number; z: number; stack: Stack; t: number }
+/** Early levels come quicker (Tom, 2026-10-24: 15 minutes for level 2 was too slow): x3 XP at level 1, fading
+ * to x1 at 30. Level 30 is 0.1% of the XP to 99, so the long game is untouched. */
+export const EARLY_BOOST_TO = 30;
+export function earlyBoost(level: number): number { return level >= EARLY_BOOST_TO ? 1 : 1 + (2 * (EARLY_BOOST_TO - level)) / (EARLY_BOOST_TO - 1); }
+
+export interface Drop { id: number; x: number; z: number; stack: Stack; t: number; home?: boolean } // home: loot from your kill, flies to you
 export interface Projectile { id: number; x: number; z: number; vx: number; vz: number; life: number; damage: number; from: 'player' | 'enemy'; kind?: 'shot' | 'magic'; crit?: boolean; style?: CombatStyle; spellBase?: number; knock?: number }
 export interface Telegraph { id: number; kind: 'circle' | 'cone' | 'line'; x: number; z: number; r: number; angle: number; width: number; t: number; dur: number; damage: number; source: number }
 
@@ -168,7 +173,7 @@ export class Game {
 
   // ------------------------------------------------------------------ xp + items
   addXp(skill: SkillId, amount: number) {
-    const amt = Math.round(amount * (1 + (COMBAT_SKILLS.includes(skill) ? 0 : this.stats.xpBonus) + perkTotal(skill, this.level(skill), 'xp') / 100) * 10) / 10;
+    const amt = Math.round(amount * earlyBoost(this.level(skill)) * (1 + (COMBAT_SKILLS.includes(skill) ? 0 : this.stats.xpBonus) + perkTotal(skill, this.level(skill), 'xp') / 100) * 10) / 10;
     if (amt <= 0) return;
     const before = this.level(skill);
     this.p.xp[skill] = Math.min(MAX_XP, this.p.xp[skill] + amt);
@@ -524,6 +529,32 @@ export class Game {
       return;
     }
     this.msg(d.desc);
+  }
+
+  /** The food the quick-eat button would eat: the smallest that tops you up without waste, or the biggest you
+   * have when even that won't fill you (so a big heal is saved for when you're low). */
+  bestFood(): number | null {
+    const missing = this.stats.maxHp - this.p.hp;
+    if (missing <= 0) return null;
+    let fit = -1, fitHeal = Infinity, big = -1, bigHeal = 0;
+    this.p.inv.forEach((st, i) => {
+      const h = st ? item(st.id).heal : undefined;
+      if (!h) return;
+      const heal = Math.round(h * (1 + this.stats.healBonus));
+      if (heal >= missing && heal < fitHeal) { fit = i; fitHeal = heal; }
+      if (heal > bigHeal) { big = i; bigHeal = heal; }
+    });
+    return fit >= 0 ? fit : big >= 0 ? big : null;
+  }
+  /** Any food at all in the pack (for showing the quick-eat button). */
+  foodSlot(): number | null {
+    const i = this.p.inv.findIndex((st) => !!st && !!item(st.id).heal);
+    return i >= 0 ? i : null;
+  }
+  quickEat() {
+    const i = this.bestFood();
+    if (i === null) { this.msg(this.foodSlot() === null ? 'You have no food.' : 'You are already at full health.'); return; }
+    this.eat(i);
   }
 
   eat(i: number) {
@@ -1087,8 +1118,10 @@ export class Game {
     this.emit({ type: 'enemyDeath', id: e.id, x: e.x, z: e.z, elite: !!e.elite, boss: !!e.def.boss });
     if (this.target === e.id) this.target = null;
     if (e.elite === 'volatile') this.telegraphs.push({ id: this.nextId++, kind: 'circle', x: e.x, z: e.z, r: 2.6, angle: 0, width: 0, t: 0, dur: 1.1, damage: 4, source: e.id });
+    const before = this.drops.length;
     if (!e.summoned) this.rollLoot(LOOT[e.def.loot], e.x, e.z);
     if (e.elite) this.rollLoot(LOOT.elite, e.x, e.z);
+    for (let i = before; i < this.drops.length; i++) this.drops[i].home = true; // shot from range, it still reaches you
     if (e.def.boss) this.bossDefeated(e);
   }
 
@@ -1487,7 +1520,8 @@ export class Game {
       d.t += dt;
       if (d.t < 0.6) continue;
       const dx = this.p.x - d.x, dz = this.p.z - d.z, dist = Math.hypot(dx, dz);
-      if (dist < 3 && dist > 0.01) { d.x += (dx / dist) * Math.min(dist, 6 * dt); d.z += (dz / dist) * Math.min(dist, 6 * dt); }
+      const reach = d.home ? 16 : 3, speed = d.home ? 10 : 6;
+      if (dist < reach && dist > 0.01) { d.x += (dx / dist) * Math.min(dist, speed * dt); d.z += (dz / dist) * Math.min(dist, speed * dt); }
       if (dist < 0.8) {
         if (!canAdd(this.p.inv, d.stack.id)) {
           if (this.time - this.fullWarned > 4) { this.fullWarned = this.time; this.msg('Your pack is full.', 'warn'); }

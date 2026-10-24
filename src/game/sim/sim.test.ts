@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { Game } from './game';
+import { earlyBoost, Game } from './game';
 import { levelForXp, xpForLevel, MAX_LEVEL, MAX_XP } from './xp';
 import { add, count, emptyInventory, remove } from './inventory';
 import { parseSave, defaultSave, SAVE_VERSION, HP_START_XP } from './save';
@@ -62,7 +62,7 @@ describe('save', () => {
   it('round-trips and rejects garbage', () => {
     const g = fresh();
     g.give('ore_tin', 4);
-    g.addXp('mining', 500);
+    g.p.xp.mining = 500;
     const json = JSON.stringify(g.serialize());
     const fb = defaultSave(base.layout.respawn, base.layout.mooring);
     const back = parseSave(json, fb)!;
@@ -248,7 +248,7 @@ describe('gameplay loop', () => {
     run(g, 5, () => count(g.p.inv, 'bar_bronze') >= 1);
     expect(count(g.p.inv, 'bar_bronze')).toBe(1);
     expect(count(g.p.inv, 'ore_copper')).toBe(0);
-    expect(g.p.xp.smithing).toBeCloseTo(6.25, 0);
+    expect(g.p.xp.smithing).toBeCloseTo(6.25 * earlyBoost(1), 0); // RuneScape's bronze bar, with the early-levels boost
   });
 
   it('refuses to craft without ingredients and consumes nothing', () => {
@@ -412,7 +412,7 @@ describe('combat skills (RuneScape model)', () => {
     for (const [stance, skill] of [['accurate', 'attack'], ['aggressive', 'strength'], ['defensive', 'defence']] as const) {
       const g = fresh(31);
       g.setStance(stance);
-      g.p.xp.attack = g.p.xp.strength = xpForLevel(20);
+      g.p.xp.attack = g.p.xp.strength = g.p.xp.defence = g.p.xp.hitpoints = xpForLevel(30); // past the early-levels boost
       g.recalc();
       const before = { ...g.p.xp };
       const crab = g.enemies.find((e) => e.def.id === 'reef_crab')!;
@@ -470,7 +470,7 @@ describe('combat skills (RuneScape model)', () => {
     expect(d.quests.bell).toBe(2);
   });
 
-  it('pacing: 10 minutes of crab fighting at level 1 lands around Attack 5-9, not 20+', () => {
+  it('pacing: 10 minutes of crab fighting at level 1 lands around Attack 9-14 (early-level boost), not 20+', () => {
     const g = fresh(41);
     let kills = 0;
     g.on((e) => { if (e.type === 'enemyDeath') kills++; });
@@ -483,7 +483,7 @@ describe('combat skills (RuneScape model)', () => {
       g.step(1 / 30);
     }
     expect(kills).toBeGreaterThan(5);
-    expect(g.level('attack')).toBeGreaterThanOrEqual(4);
-    expect(g.level('attack')).toBeLessThanOrEqual(12);
+    expect(g.level('attack')).toBeGreaterThanOrEqual(8);
+    expect(g.level('attack')).toBeLessThanOrEqual(16);
   });
 });
