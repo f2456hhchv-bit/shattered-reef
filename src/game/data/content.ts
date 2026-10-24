@@ -1,4 +1,5 @@
 import { ITEMS, METALS, WOODS, FISH, type SkillId, type CombatStyle } from './items';
+import { PERKS, perkText } from './perks';
 
 // Skills, resource nodes, recipes, shop, spells, enemies, loot. All tunable here.
 
@@ -38,6 +39,7 @@ export interface NodeDef {
   bonus?: { item: string; chance: number }; // rare extra per success (geodes)
   loot?: string; // a loot table rolled on success instead of `item` (treasure)
   reach?: number; // interaction range override (kelp grows just offshore)
+  islet?: boolean; // on an offshore islet: walk to it from a beach you sail to
 }
 
 // XP per action follows RuneScape's values (logs 25 ... redwood 380, copper 17.5 ... runite 125, shrimp 10 ... anglerfish 120).
@@ -55,9 +57,12 @@ const spot = (t: number, level: number, xp: number, rate: number, tool: string, 
 };
 export const NODES: Record<string, NodeDef> = Object.fromEntries(([
   tree(0, 1, 25, 0.24, 14), tree(1, 15, 37.5, 0.25, 25), tree(2, 30, 67.5, 0.25, 30), tree(3, 45, 100, 0.22, 40), tree(4, 60, 175, 0.15, 60), tree(5, 75, 250, 0.133, 90), tree(6, 90, 380, 0.105, 120),
+  // mining follows the metal ladder: each metal's ore sits ~10 levels apart, tier = the metal it makes
   rock('rock_copper', 'Copper rock', 'ore_copper', 0, 1, 17.5, 0.3, 6), rock('rock_tin', 'Tin rock', 'ore_tin', 0, 1, 17.5, 0.3, 6), rock('rock_iron', 'Iron rock', 'ore_iron', 1, 15, 35, 0.29, 10),
-  rock('rock_coal', 'Coal seam', 'ore_coal', 2, 30, 50, 0.29, 25), rock('rock_gold', 'Gold vein', 'ore_gold', 3, 40, 65, 0.29, 40), rock('rock_storm', 'Stormsilver vein', 'ore_storm', 4, 55, 80, 0.29, 70),
-  rock('rock_abyss', 'Abyssite vein', 'ore_abyss', 5, 70, 95, 0.29, 120), rock('rock_tide', 'Tidecore vein', 'ore_tide', 6, 85, 125, 0.27, 240),
+  rock('rock_coal', 'Coal seam', 'ore_coal', 2, 25, 50, 0.29, 25), rock('rock_gold', 'Gold vein', 'ore_gold', 2, 35, 65, 0.29, 40), rock('rock_storm', 'Stormsilver vein', 'ore_storm', 3, 45, 80, 0.28, 70),
+  rock('rock_abyss', 'Abyssite vein', 'ore_abyss', 4, 55, 95, 0.27, 100), rock('rock_tide', 'Tidecore vein', 'ore_tide', 5, 65, 125, 0.25, 150),
+  rock('rock_cinder', 'Cinderite vent', 'ore_cinder', 6, 75, 145, 0.22, 180), rock('rock_sky', 'Fallen star', 'ore_sky', 7, 82, 170, 0.2, 220),
+  { ...rock('rock_levi', 'Leviathan bones', 'ore_levi', 8, 88, 190, 0.19, 260), islet: true }, { ...rock('rock_ori', 'Drowned spire', 'ore_ori', 9, 94, 220, 0.17, 300), fromShip: true },
   spot(0, 1, 10, 0.4, 'fishing_rod'), spot(1, 8, 35, 0.29, 'fishing_rod', true), spot(2, 20, 50, 0.27, 'fishing_rod'), spot(3, 30, 70, 0.25, 'fishing_rod'), spot(4, 40, 90, 0.22, 'lobster_pot'),
   spot(5, 50, 100, 0.23, 'harpoon', true), spot(6, 62, 120, 0.22, 'harpoon'), spot(7, 76, 110, 0.27, 'harpoon', true), spot(8, 85, 120, 0.28, 'harpoon', true),
   // the living island: every boulder can be mined, bushes and kelp picked, disturbed sand dug
@@ -65,10 +70,11 @@ export const NODES: Record<string, NodeDef> = Object.fromEntries(([
     difficulty: 0.45, tier: 0, rate: 0.3, depleteChance: 0.25, respawn: 45, verb: 'Mine' },
   { id: 'bush_berry', name: 'Bramble bush', level: 1, xp: 0, item: 'berries', difficulty: 0, tier: 0, rate: 0.9, depleteChance: 0.3, respawn: 60, verb: 'Pick' },
   { id: 'kelp_bed', name: 'Kelp bed', level: 1, xp: 0, item: 'kelp', difficulty: 0, tier: 0, rate: 0.8, depleteChance: 0.3, respawn: 50, verb: 'Gather', reach: 3.4 },
+  { id: 'salt_pan', name: 'Salt pan', level: 1, xp: 0, item: 'sea_salt', difficulty: 0, tier: 0, rate: 0.6, depleteChance: 0.3, respawn: 90, verb: 'Scrape' },
   { id: 'dig_spot', name: 'Disturbed sand', level: 1, xp: 0, item: 'coins', loot: 'treasure', tool: 'spade', difficulty: 0, tier: 0, rate: 0.45, depleteChance: 1, respawn: 420, verb: 'Dig' },
 ] as NodeDef[]).map((d) => [d.id, d]));
 
-export type Station = 'furnace' | 'anvil' | 'fire' | 'bench';
+export type Station = 'furnace' | 'anvil' | 'fire' | 'bench' | 'vent';
 
 export interface Recipe {
   id: string;
@@ -82,25 +88,31 @@ export interface Recipe {
   rarityRoll?: boolean; // forged equipment can roll Fine/Rare
 }
 
-// Smithing follows RuneScape: bar XP 6.25 (bronze) ... 50 (rune); items 12.5 XP per bar for bronze up to 75 for rune.
+// Smithing follows RuneScape's shape (bar XP 6.25 bronze ... 50 rune) stretched over ten metals. From Abyssite up
+// each bar needs a flux from another skill: kelp ash (cooking), sea salt (salt pans), geode crystals (mining and
+// digging), and Cinderite only melts in the volcanic vent forge on Ironcrag's summit.
 // Tools and pistols need a log of the matching tier, so woodcutting feeds the forge.
-const SMELT: { metal: string; level: number; xp: number; inputs: { id: string; qty: number }[] }[] = [
-  { metal: 'bronze', level: 1, xp: 6.25, inputs: [{ id: 'ore_copper', qty: 1 }, { id: 'ore_tin', qty: 1 }] },
-  { metal: 'iron', level: 15, xp: 12.5, inputs: [{ id: 'ore_iron', qty: 1 }, { id: 'logs_pine', qty: 1 }] },
-  { metal: 'steel', level: 30, xp: 17.5, inputs: [{ id: 'ore_iron', qty: 1 }, { id: 'ore_coal', qty: 2 }] },
-  { metal: 'storm', level: 50, xp: 30, inputs: [{ id: 'ore_storm', qty: 1 }, { id: 'ore_coal', qty: 4 }] },
-  { metal: 'abyss', level: 70, xp: 37.5, inputs: [{ id: 'ore_abyss', qty: 1 }, { id: 'ore_coal', qty: 6 }] },
-  { metal: 'tide', level: 85, xp: 50, inputs: [{ id: 'ore_tide', qty: 1 }, { id: 'ore_coal', qty: 8 }] },
+const SMELT: { metal: string; level: number; xp: number; station: Station; inputs: { id: string; qty: number }[] }[] = [
+  { metal: 'bronze', level: 1, xp: 6.25, station: 'furnace', inputs: [{ id: 'ore_copper', qty: 1 }, { id: 'ore_tin', qty: 1 }] },
+  { metal: 'iron', level: 12, xp: 12.5, station: 'furnace', inputs: [{ id: 'ore_iron', qty: 1 }, { id: 'logs_pine', qty: 1 }] },
+  { metal: 'steel', level: 24, xp: 17.5, station: 'furnace', inputs: [{ id: 'ore_iron', qty: 1 }, { id: 'ore_coal', qty: 2 }] },
+  { metal: 'storm', level: 36, xp: 30, station: 'furnace', inputs: [{ id: 'ore_storm', qty: 1 }, { id: 'ore_coal', qty: 3 }] },
+  { metal: 'abyss', level: 48, xp: 37.5, station: 'furnace', inputs: [{ id: 'ore_abyss', qty: 1 }, { id: 'ore_coal', qty: 3 }, { id: 'kelp_ash', qty: 1 }] },
+  { metal: 'tide', level: 58, xp: 50, station: 'furnace', inputs: [{ id: 'ore_tide', qty: 1 }, { id: 'ore_coal', qty: 4 }, { id: 'sea_salt', qty: 1 }] },
+  { metal: 'cinder', level: 68, xp: 60, station: 'vent', inputs: [{ id: 'ore_cinder', qty: 1 }, { id: 'ore_coal', qty: 2 }] },
+  { metal: 'sky', level: 78, xp: 70, station: 'furnace', inputs: [{ id: 'ore_sky', qty: 1 }, { id: 'ore_coal', qty: 4 }, { id: 'crystal_geode', qty: 1 }] },
+  { metal: 'levi', level: 86, xp: 80, station: 'furnace', inputs: [{ id: 'ore_levi', qty: 1 }, { id: 'ore_coal', qty: 4 }, { id: 'sea_salt', qty: 2 }] },
+  { metal: 'ori', level: 92, xp: 90, station: 'furnace', inputs: [{ id: 'ore_ori', qty: 1 }, { id: 'ore_coal', qty: 5 }, { id: 'crystal_geode', qty: 1 }] },
 ];
-const PER_BAR = [12.5, 25, 37.5, 50, 62.5, 75];
-const TOOL_LOG = ['pine', 'oak', 'willow', 'amber', 'yew', 'star'];
-const PISTOL_LOG = ['pine', 'oak', 'willow', 'amber', 'yew', 'cedar'];
-const SHOT_LVL = [1, 15, 30, 50, 70, 85];
-const PISTOL_LVL = [5, 20, 35, 55, 75, 90];
+const PER_BAR = [12.5, 25, 37.5, 50, 62.5, 75, 87.5, 100, 112.5, 125];
+const TOOL_LOG = ['pine', 'oak', 'willow', 'amber', 'yew', 'star', 'star', 'cedar', 'cedar', 'cedar'];
+const PISTOL_LOG = ['pine', 'oak', 'willow', 'amber', 'yew', 'star', 'star', 'cedar', 'cedar', 'cedar'];
+const SHOT_LVL = [1, 10, 20, 30, 40, 50, 60, 70, 80, 90];
+const PISTOL_LVL = [5, 15, 25, 35, 45, 55, 65, 75, 85, 93];
 
 function buildRecipes(): Recipe[] {
   const out: Recipe[] = [];
-  for (const s of SMELT) out.push({ id: `smelt_${s.metal}`, station: 'furnace', skill: 'smithing', level: s.level, xp: s.xp, inputs: s.inputs, output: { id: `bar_${s.metal}`, qty: 1 } });
+  for (const s of SMELT) out.push({ id: `smelt_${s.metal}`, station: s.station, skill: 'smithing', level: s.level, xp: s.xp, inputs: s.inputs, output: { id: `bar_${s.metal}`, qty: 1 } });
   out.push({ id: 'smelt_gold', station: 'furnace', skill: 'smithing', level: 40, xp: 22.5, inputs: [{ id: 'ore_gold', qty: 1 }], output: { id: 'bar_gold', qty: 1 } });
   // high staffs are smithed too (never drop-only): metal fittings, a rare haft, and charms to wake the focus
   out.push({ id: 'forge_staff_storm', station: 'anvil', skill: 'smithing', level: 52, xp: 140, inputs: [{ id: 'bar_storm', qty: 2 }, { id: 'logs_amber', qty: 1 }, { id: 'charm_tide', qty: 50 }], output: { id: 'staff_storm', qty: 1 }, rarityRoll: true });
@@ -112,9 +124,9 @@ function buildRecipes(): Recipe[] {
       out.push({ id: `forge_${kind}_${mt.key}`, station: 'anvil', skill: 'smithing', level: Math.min(99, lvl), xp: xp * bars, inputs: [{ id: bar, qty: bars }, ...extra], output: { id: `${kind}_${mt.key}`, qty: 1 }, rarityRoll: roll || undefined });
     forge('hatchet', L, 1, [{ id: `logs_${TOOL_LOG[m]}`, qty: 1 }], false);
     forge('pickaxe', L, 1, [{ id: `logs_${TOOL_LOG[m]}`, qty: 1 }], false);
-    forge('cutlass', L + 3, 2);
-    forge('helm', L + 5, 2);
-    forge('plate', L + (m === 5 ? 14 : 12), 5);
+    forge('cutlass', L + 2, 2);
+    forge('helm', L + 4, 2);
+    forge('plate', L + 7, 5);
     out.push({ id: `gun_shot_${mt.key}`, station: 'bench', skill: 'gunsmithing', level: SHOT_LVL[m], xp: xp, inputs: [{ id: bar, qty: 1 }], output: { id: `shot_${mt.key}`, qty: 15 } });
     out.push({ id: `gun_pistol_${mt.key}`, station: 'bench', skill: 'gunsmithing', level: PISTOL_LVL[m], xp: xp * 2.4, inputs: [{ id: bar, qty: 1 }, { id: `logs_${PISTOL_LOG[m]}`, qty: 1 }], output: { id: m === 0 ? 'pistol_flintlock' : `pistol_${mt.key}`, qty: 1 }, rarityRoll: true });
   });
@@ -123,6 +135,7 @@ function buildRecipes(): Recipe[] {
   FISH.forEach((f, t) => out.push({ id: `cook_${f.key}`, station: 'fire', skill: 'cooking', level: COOK[t][0], xp: COOK[t][1], inputs: [{ id: `fish_${f.key}_raw`, qty: 1 }], output: { id: `fish_${f.key}`, qty: 1 }, burn: { item: 'burnt_food', stopLevel: COOK[t][2] } }));
   out.push({ id: 'cook_parcel_sprat', station: 'fire', skill: 'cooking', level: 5, xp: 40, inputs: [{ id: 'fish_sprat_raw', qty: 1 }, { id: 'kelp', qty: 1 }], output: { id: 'parcel_sprat', qty: 1 }, burn: { item: 'burnt_food', stopLevel: 25 } });
   out.push({ id: 'cook_parcel_trout', station: 'fire', skill: 'cooking', level: 22, xp: 85, inputs: [{ id: 'fish_trout_raw', qty: 1 }, { id: 'kelp', qty: 1 }], output: { id: 'parcel_trout', qty: 1 }, burn: { item: 'burnt_food', stopLevel: 46 } });
+  out.push({ id: 'burn_kelp', station: 'fire', skill: 'cooking', level: 12, xp: 12, inputs: [{ id: 'kelp', qty: 2 }], output: { id: 'kelp_ash', qty: 1 } });
   out.push({ id: 'cook_crab', station: 'fire', skill: 'cooking', level: 4, xp: 35, inputs: [{ id: 'crab_meat_raw', qty: 1 }], output: { id: 'crab_meat', qty: 1 }, burn: { item: 'burnt_food', stopLevel: 26 } });
   return out;
 }
@@ -143,6 +156,7 @@ function buildUnlocks(): Record<SkillId, { level: number; text: string }[]> {
   for (const e of Object.values(ENEMIES)) if (!e.boss) put('attack', Math.max(1, Math.round(e.level * 0.8)), `Fight: ${e.name} (level ${e.level})`);
   put('hitpoints', 11, '+1 health every level');
   put('strength', 10, 'Max hit +1 roughly every 4 levels');
+  for (const [skill, list] of Object.entries(PERKS)) for (const p of list) put(skill, p.level, `Perk · ${p.name}: ${perkText(p)}`);
   for (const k of Object.keys(u)) {
     const seen = new Set<string>();
     u[k] = u[k].sort((a, b) => a.level - b.level).filter((x) => (seen.has(x.text) ? false : (seen.add(x.text), true)));
@@ -273,11 +287,13 @@ export const LOOT: Record<string, LootTable> = {
     gear: { chance: 0.12, items: ['cutlass_storm', 'helm_storm', 'pistol_storm', 'staff_storm', 'ring_gold'], weights: { common: 48, fine: 38, rare: 14 } } },
   drowned: { coins: [40, 90], drops: [{ item: 'charm_tide', chance: 0.6, qty: [10, 25] }, { item: 'fish_gloom', chance: 0.3 }, { item: 'bar_abyss', chance: 0.08 }],
     gear: { chance: 0.12, items: ['cutlass_abyss', 'helm_abyss', 'plate_abyss', 'pistol_abyss', 'staff_tide'], weights: { common: 45, fine: 38, rare: 15, relic: 2 } } },
-  captain: { coins: [120, 260], drops: [{ item: 'bar_abyss', chance: 0.4, qty: [1, 2] }, { item: 'fish_shark', chance: 0.4, qty: [1, 2] }],
+  captain: { coins: [120, 260], drops: [{ item: 'bar_abyss', chance: 0.4, qty: [1, 2] }, { item: 'sea_salt', chance: 0.4, qty: [2, 5] }, { item: 'fish_shark', chance: 0.4, qty: [1, 2] }],
     gear: { chance: 0.4, items: ['cutlass_tide', 'pistol_tide', 'staff_tide', 'plate_abyss', 'ring_gold'], weights: { fine: 50, rare: 40, relic: 10 } } },
-  sentinel: { coins: [150, 320], drops: [{ item: 'ore_tide', chance: 0.35 }, { item: 'ore_storm', chance: 0.5, qty: [1, 3] }, { item: 'charm_tide', chance: 1, qty: [20, 40] }],
+  sentinel: { coins: [150, 320], drops: [{ item: 'ore_tide', chance: 0.35 }, { item: 'ore_cinder', chance: 0.25 }, { item: 'crystal_geode', chance: 0.2 }, { item: 'ore_storm', chance: 0.5, qty: [1, 3] }, { item: 'charm_tide', chance: 1, qty: [20, 40] }],
     gear: { chance: 0.35, items: ['helm_tide', 'plate_tide', 'cutlass_tide', 'staff_tide'], weights: { fine: 50, rare: 40, relic: 10 } } },
-  geode: { coins: [10, 60], drops: [{ item: 'charm_tide', chance: 0.5, qty: [3, 10] }, { item: 'ore_gold', chance: 0.15 }, { item: 'shell_fragment', chance: 0.3 }] },
+  geode: { coins: [10, 60], drops: [{ item: 'crystal_geode', chance: 0.4 }, { item: 'charm_tide', chance: 0.5, qty: [3, 10] }, { item: 'ore_gold', chance: 0.15 }, { item: 'shell_fragment', chance: 0.3 }] },
+  nest: { coins: [5, 40], drops: [{ item: 'charm_tide', chance: 0.4, qty: [3, 8] }, { item: 'berries', chance: 0.4, qty: [2, 5] }, { item: 'crystal_geode', chance: 0.08 }],
+    gear: { chance: 0.05, items: ['ring_brass', 'ring_gold'], weights: { common: 50, fine: 40, rare: 10 } } },
   treasure: { coins: [20, 120], drops: [{ item: 'charm_tide', chance: 0.5, qty: [5, 15] }, { item: 'geode', chance: 0.25 }, { item: 'bar_iron', chance: 0.15 }, { item: 'bar_steel', chance: 0.07 }, { item: 'ore_gold', chance: 0.15 }],
     gear: { chance: 0.08, items: ['ring_brass', 'ring_gold', 'cutlass_steel', 'pistol_steel', 'helm_steel'], weights: { common: 50, fine: 40, rare: 10 } } },
   guardian: { coins: [80, 130], drops: [{ item: 'bar_iron', chance: 1, qty: [2, 4] }, { item: 'charm_tide', chance: 1, qty: [20, 40] }],

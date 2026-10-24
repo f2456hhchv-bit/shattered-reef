@@ -138,12 +138,31 @@ describe('content placement', () => {
     const seen = new Set<string>();
     const bad: string[] = [];
     for (const n of g.layout.nodes) {
-      if (NODES[n.def].fromShip || seen.has(n.def)) continue;
+      if (NODES[n.def].fromShip || NODES[n.def].islet || seen.has(n.def)) continue;
       seen.add(n.def);
       if (!g.world.findPath(g.p.x, g.p.z, n.x, n.z)) bad.push(n.def);
     }
     for (const s of g.layout.spawns) if (!g.world.findPath(g.p.x, g.p.z, s.x, s.z)) bad.push(s.enemy);
     expect(bad).toEqual([]);
+  });
+
+  it('islet nodes can be reached from a beach the ship can sail up to', () => {
+    const I = LAYOUT.islet;
+    // a landing: walkable islet ground with open, ship-navigable water within a few metres
+    let landing: [number, number] | null = null;
+    for (let a = 0; a < Math.PI * 2 && !landing; a += 0.1) for (let r = 8; r < 20 && !landing; r += 0.5) {
+      const x = I.x + Math.cos(a) * r, z = I.z + Math.sin(a) * r;
+      if (!g.world.walkable(x, z)) continue;
+      for (let k = 0; k < 12; k++) { const sx = x + Math.cos(a) * (3 + k), sz = z + Math.sin(a) * (3 + k); if (g.world.seaClear(sx, sz)) { landing = [x, z]; break; } }
+    }
+    expect(landing).not.toBeNull();
+    expect(g.world.findSeaPath(g.ship.x, g.ship.z, landing![0], landing![1])).not.toBeNull();
+    const isletNodes = g.layout.nodes.filter((n) => NODES[n.def].islet);
+    expect(isletNodes.length).toBeGreaterThanOrEqual(3);
+    for (const n of isletNodes) {
+      const q = g.world.nearestWalkable(n.x, n.z, 1.6)!;
+      expect(g.world.findPath(landing![0], landing![1], q[0], q[1]), n.def).not.toBeNull();
+    }
   });
 });
 
@@ -172,7 +191,7 @@ describe('end-game content works end to end', () => {
 
   it('smelts tidecore and forges tidecore plate at the Ironcrag forge', () => {
     const g = maxed();
-    g.give('ore_tide', 5); g.give('ore_coal', 40);
+    g.give('ore_tide', 5); g.give('ore_coal', 40); g.give('sea_salt', 5);
     const camp = g.layout.stations.filter((s) => s.id === 'furnace')[1];
     goTo(g, camp.x + 1.6, camp.z + 1.6);
     g.craft('smelt_tide', 5);

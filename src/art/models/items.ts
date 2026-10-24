@@ -249,6 +249,37 @@ function builders(shape: IconShape, col: string, acc: string | undefined, seed: 
       add(g, new THREE.TorusGeometry(0.06, 0.012, 5, 10), m('#c9a050', 'metal'), [-0.11, 0.27, 0], [Math.PI / 2, 0, 0.35]);
       break;
     }
+    case 'ash': {
+      add(g, nudge(new THREE.ConeGeometry(0.24, 0.16, 14), 0.02, seed), m(col), [0, 0, 0], [0, 0, 0], [1.1, 1, 1]);
+      for (let k = 0; k < 6; k++) add(g, new THREE.SphereGeometry(0.03, 6, 4), m(acc ?? '#a8a890'), [(rnd() - 0.5) * 0.3, 0.02 + rnd() * 0.04, (rnd() - 0.5) * 0.3]);
+      add(g, new THREE.SphereGeometry(0.02, 6, 4), m('#ff7a2a', 'glow'), [0.03, 0.07, 0.02]);
+      break;
+    }
+    case 'salt': {
+      add(g, new THREE.CylinderGeometry(0.2, 0.17, 0.12, 14, 1, true), m('#8a6440'), [0, -0.02, 0]);
+      add(g, new THREE.CylinderGeometry(0.17, 0.17, 0.02, 14), m('#6a4a30'), [0, -0.08, 0]);
+      add(g, nudge(new THREE.SphereGeometry(0.19, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), 0.015, seed), m(col, 'gloss'), [0, 0.02, 0], [0, 0, 0], [1, 0.7, 1]);
+      break;
+    }
+    case 'crystal': {
+      for (let k = 0; k < 4; k++) add(g, new THREE.OctahedronGeometry(0.08 + k * 0.012, 0), m(col, 'gloss'), [(k - 1.5) * 0.08, 0.02 + (k % 2) * 0.04, (k % 2) * 0.05], [0.2, k, (k - 1.5) * 0.25], [0.7, 2.2, 0.7]);
+      add(g, nudge(new THREE.DodecahedronGeometry(0.12, 0), 0.02, seed), m('#8a8478'), [0, -0.12, 0], [0, 0, 0], [1.8, 0.6, 1.2]);
+      break;
+    }
+    case 'nest': {
+      add(g, new THREE.TorusGeometry(0.18, 0.07, 8, 18), m(col), [0, 0, 0], [Math.PI / 2, 0, 0]);
+      for (let k = 0; k < 10; k++) { const a = (k / 10) * Math.PI * 2; add(g, new THREE.CylinderGeometry(0.008, 0.008, 0.2, 4), m('#9a7a4a'), [Math.cos(a) * 0.2, 0.03, Math.sin(a) * 0.2], [rnd(), a, 1.2]); }
+      for (const [x, z] of [[-0.05, 0.02], [0.06, -0.03], [0.0, 0.07]]) add(g, new THREE.SphereGeometry(0.06, 10, 8), m(acc ?? '#e9e3d0', 'gloss'), [x, 0.03, z], [0, 0, 0], [1, 1.3, 1]);
+      break;
+    }
+    case 'casket': {
+      add(g, nudge(new THREE.BoxGeometry(0.42, 0.22, 0.28), 0.01, seed), m(col), [0, -0.04, 0]);
+      add(g, new THREE.CylinderGeometry(0.14, 0.14, 0.42, 12, 1, false, 0, Math.PI), m(shade(col, 1.1).getHex()), [0, 0.07, 0], [0, 0, Math.PI / 2]);
+      for (const x of [-0.15, 0.15]) add(g, new THREE.BoxGeometry(0.03, 0.36, 0.3), m(acc ?? '#c9a050', 'metal'), [x, 0.02, 0]);
+      add(g, new THREE.BoxGeometry(0.06, 0.07, 0.02), m(acc ?? '#c9a050', 'metal'), [0, 0.02, 0.15]);
+      for (let k = 0; k < 6; k++) add(g, new THREE.SphereGeometry(0.025, 6, 4), m('#cfc6b0'), [(rnd() - 0.5) * 0.4, 0.1 + rnd() * 0.08, (rnd() - 0.5) * 0.25]);
+      break;
+    }
     case 'charm': {
       add(g, nudge(new THREE.OctahedronGeometry(0.12, 1), 0.02, seed), m(col, 'gloss'), [0, 0, 0], [0, 0.3, 0], [0.8, 1.4, 0.8]);
       add(g, new THREE.TorusGeometry(0.1, 0.01, 4, 16), m(acc ?? '#2a7f78'), [0, 0.05, 0], [1.2, 0, 0]);

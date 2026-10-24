@@ -8,7 +8,7 @@ export type BuildingKind = 'store' | 'chart' | 'house' | 'tent' | 'smithy';
 export interface Building { kind: BuildingKind; x: number; z: number; rot: number; w: number; d: number; seed: number }
 /** `scenery` nodes are the island's ordinary trees, boulders, bushes and kelp: drawn instanced, still usable. */
 export interface NodePlacement { uid: string; def: string; x: number; z: number; seed: number; scenery?: boolean; s?: number; rot?: number }
-export type DecorKind = 'netrack' | 'rowboat' | 'signpost' | 'fence' | 'well' | 'driftwood' | 'shells' | 'pots' | 'cannon' | 'wreck' | 'woodpile' | 'flowers';
+export type DecorKind = 'leviathan' | 'crater' | 'netrack' | 'rowboat' | 'signpost' | 'fence' | 'well' | 'driftwood' | 'shells' | 'pots' | 'cannon' | 'wreck' | 'woodpile' | 'flowers';
 export interface Prop { kind: 'pine' | 'broadleaf' | 'rock' | 'crate' | 'barrel' | 'lantern' | 'pillar' | 'campfire' | DecorKind; x: number; z: number; rot: number; s: number; seed: number; aux?: number[] }
 export interface SpawnPoint { enemy: string; x: number; z: number }
 
@@ -20,7 +20,7 @@ export interface IslandLayout {
   nodes: NodePlacement[];
   props: Prop[];
   reefs: { x: number; z: number; r: number }[];
-  stations: { id: 'furnace' | 'anvil' | 'fire' | 'bench'; x: number; z: number }[];
+  stations: { id: 'furnace' | 'anvil' | 'fire' | 'bench' | 'vent'; x: number; z: number }[];
   banks: { x: number; z: number }[]; // harbour strongboxes
   npcs: { id: string; x: number; z: number; facing: number }[];
   spawns: SpawnPoint[];
@@ -74,11 +74,13 @@ export function buildIsland(seed = 1): IslandLayout {
     { id: 'anvil', x: LAYOUT.peak.x + 6, z: LAYOUT.peak.z + 20.5 },
     { id: 'fire', x: LAYOUT.fen.x + 2.5, z: LAYOUT.fen.z + 3 },
     { id: 'fire', x: LAYOUT.cove.x - 2.5, z: LAYOUT.cove.z + 1.5 },
+    // the vent forge on Ironcrag's summit: the only heat that melts Cinderite
+    { id: 'vent', x: LAYOUT.summit.x, z: LAYOUT.summit.z },
   ];
   // strongboxes: one at the quay, one at the Ironcrag mining camp
   const banks = [{ x: V.x + 4.6, z: V.z + 2.2 }, { x: LAYOUT.peak.x + 2.5, z: LAYOUT.peak.z + 21 }];
   for (const b of banks) world.solids.push({ x: b.x, z: b.z, w: 1.2, d: 0.8 });
-  const solidOf = { furnace: 1.0, anvil: 0.45, fire: 0.7 } as const;
+  const solidOf = { furnace: 1.0, anvil: 0.45, fire: 0.7, vent: 1.2 } as const;
   for (const st of stations) world.solids.push(st.id === 'bench' ? { x: st.x, z: st.z, w: 1.8, d: 0.9 } : { x: st.x, z: st.z, r: solidOf[st.id] });
 
   const npcs = [
@@ -165,6 +167,17 @@ export function buildIsland(seed = 1): IslandLayout {
   scatter('rock_abyss', M.x + 4, M.z - 3, 6, 3, 3);
   // Wreckers' Point: tidecore veins in the rocks
   scatter('rock_tide', LAYOUT.wreck.x - 3, LAYOUT.wreck.z + 3, 7, 3, 3);
+  // the high metals: Cinderite vents round the summit forge, fallen stars at Starfall
+  scatter('rock_cinder', LAYOUT.summit.x, LAYOUT.summit.z, 10, 3, 3);
+  scatter('rock_sky', LAYOUT.starfall.x, LAYOUT.starfall.z, 6, 3, 3.2);
+  // Leviathan's Rest: the bones lie along the islet's crown (no free() here: it's off the main coast)
+  const IS = LAYOUT.islet;
+  for (let k = 0, made = 0; k < 40 && made < 3; k++) {
+    const a = k * 2.1, r = 3.5 + (k % 3) * 1.5, x = IS.x + Math.cos(a) * r, z = IS.z + Math.sin(a) * r;
+    if (world.ground(x, z) < 0.6 || nodes.some((n) => Math.hypot(n.x - x, n.z - z) < 3.2)) continue;
+    nodes.push({ uid: `n${uid++}`, def: 'rock_levi', x, z, seed: 900 + k });
+    made++;
+  }
   for (const n of nodes) world.solids.push({ x: n.x, z: n.z, r: n.def.startsWith('tree') ? 0.45 : 0.75 });
 
   // fishing: sprats off the dock head (reachable on foot), shore spots found by walking from land into water
@@ -193,6 +206,8 @@ export function buildIsland(seed = 1): IslandLayout {
   const outward = (p: { x: number; z: number }) => Math.atan2(p.z, p.x);
   placeShore('spot_lobster', LAYOUT.cove.x, LAYOUT.cove.z, [outward(LAYOUT.cove) - 0.5, outward(LAYOUT.cove) + 0.5, outward(LAYOUT.cove)]);
   placeShore('spot_gloom', LAYOUT.wreck.x, LAYOUT.wreck.z, [outward(LAYOUT.wreck) - 0.6, outward(LAYOUT.wreck) + 0.6]);
+  // the Drowned Spire stands in open water: mined from the deck
+  nodes.push({ uid: `n${uid++}`, def: 'rock_ori', x: LAYOUT.spire.x, z: LAYOUT.spire.z, seed: 77 });
   for (const [def, list] of Object.entries(SEA_SPOTS)) for (const [deg, inset] of list) {
     const [x, z] = coastPoint(deg, inset);
     nodes.push({ uid: `n${uid++}`, def, x, z, seed: deg });
@@ -203,7 +218,8 @@ export function buildIsland(seed = 1): IslandLayout {
   for (let tries = 0; tries < 600 && reefs.length < 22; tries++) {
     const [x, z] = coastPoint(rnd() * 360, -(4 + rnd() * 26));
     if (Math.hypot(x - mooring.x, z - mooring.z) < 18) continue;
-    if (nodes.some((n) => n.def.startsWith('spot_') && Math.hypot(n.x - x, n.z - z) < 9)) continue;
+    if (nodes.some((n) => (n.def.startsWith('spot_') || n.def === 'rock_ori') && Math.hypot(n.x - x, n.z - z) < 9)) continue;
+    if (Math.hypot(x - LAYOUT.islet.x, z - LAYOUT.islet.z) < 24) continue; // keep the islet's landing clear
     if (world.ground(x, z) > -0.6) continue;
     reefs.push({ x, z, r: 0.8 + rnd() * 1.2 });
   }
@@ -211,7 +227,7 @@ export function buildIsland(seed = 1): IslandLayout {
 
   // ---- decorative vegetation and rocks (solid): woods are dense, open country is sparse
   const woods = [{ x: F.x, z: F.z, r: 20 }, { x: GV.x, z: GV.z, r: 13 }, { x: LAYOUT.heartwood.x, z: LAYOUT.heartwood.z, r: 20 }, { x: LAYOUT.fen.x, z: LAYOUT.fen.z, r: 16 }];
-  const keepClear = [{ x: R.x, z: R.z, r: 11 }, { x: C.x, z: C.z, r: 9 }, { x: LAYOUT.cove.x, z: LAYOUT.cove.z, r: 9 }, { x: LAYOUT.crossroads.x, z: LAYOUT.crossroads.z, r: 6 }];
+  const keepClear = [{ x: LAYOUT.starfall.x, z: LAYOUT.starfall.z, r: 10 }, { x: R.x, z: R.z, r: 11 }, { x: C.x, z: C.z, r: 9 }, { x: LAYOUT.cove.x, z: LAYOUT.cove.z, r: 9 }, { x: LAYOUT.crossroads.x, z: LAYOUT.crossroads.z, r: 6 }];
   for (let tries = 0, made = 0; tries < 9000 && made < 260; tries++) {
     const a = rnd() * Math.PI * 2, r = Math.sqrt(rnd()) * 92;
     const x = Math.cos(a) * r, z = Math.sin(a) * r;
@@ -333,6 +349,18 @@ export function buildIsland(seed = 1): IslandLayout {
   // beachcombing: driftwood and shells all round the shore, flowers in the meadows
   for (let k = 0; k < 26; k++) { const th = k * 13.8 + rnd() * 6, [x, z] = coastPoint(th, 2.5 + rnd() * 5); if (Math.hypot(x - V.x, z - V.z) > 22) decor('driftwood', x, z, 0.6, rnd() * 6.28, false); }
   for (let k = 0; k < 34; k++) { const th = k * 10.6 + rnd() * 5, [x, z] = coastPoint(th, 1 + rnd() * 6); if (Math.hypot(x - V.x, z - V.z) > 18) decor('shells', x, z, 0.5, rnd() * 6.28, false); }
+  // salt pans on the beaches (sea salt flux for Tidecore and Leviathite)
+  for (let th = 7, made = 0; th < 367 && made < 7; th += 9) {
+    const [x, z] = coastPoint(th, 4.5);
+    if (!clearOf(x, z, 1.2) || nodes.some((n) => n.def === 'salt_pan' && Math.hypot(n.x - x, n.z - z) < 30)) continue;
+    nodes.push({ uid: `n${uid++}`, def: 'salt_pan', x, z, seed: th });
+    world.solids.push({ x, z, r: 1.0 });
+    made++;
+  }
+  // the leviathan's skeleton (the bones you mine are the loose ones) and the star's scorched crater
+  props.push({ kind: 'leviathan', x: LAYOUT.islet.x, z: LAYOUT.islet.z, rot: 0.6, s: 1, seed: 5 });
+  world.solids.push({ x: LAYOUT.islet.x, z: LAYOUT.islet.z, r: 1.4 });
+  props.push({ kind: 'crater', x: LAYOUT.starfall.x, z: LAYOUT.starfall.z, rot: 0, s: 1, seed: 6 });
   for (let k = 0, made = 0; k < 200 && made < 30; k++) {
     const a = rnd() * Math.PI * 2, r = 10 + rnd() * 55, x = Math.cos(a) * r, z = Math.sin(a) * r;
     if (coastDist(x, z) < BEACH + 2 || world.ground(x, z) > 6) continue;

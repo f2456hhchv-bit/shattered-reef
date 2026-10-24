@@ -1,5 +1,6 @@
 import { mulberry32 } from '../../art/noise';
 import { item, type Slot, type SkillId, type CombatStyle } from '../data/items';
+import { perkTotal } from '../data/perks';
 import { NODES, RECIPES, ENEMIES, LOOT, ELITE_AFFIXES, SHOP, PLAYER_BASE, COMBAT_SKILLS, XP_PER_DAMAGE, type EnemyDef, type Recipe, type Station } from '../data/content';
 import { NPCS, QUESTS, type DialogueNode, type Effect } from '../data/quests';
 import { PLACES } from '../world/island';
@@ -43,7 +44,7 @@ export type GameEvent =
   | { type: 'discover'; id: string; name: string }
   | { type: 'explode'; x: number; z: number; r: number };
 
-export interface NodeRt { uid: string; def: string; x: number; z: number; seed: number; depletedUntil: number }
+export interface NodeRt { uid: string; def: string; x: number; z: number; seed: number; depletedUntil: number; scenery?: boolean }
 
 export interface Enemy {
   id: number;
@@ -81,8 +82,10 @@ const DT_CRAFT = 1.8;
 const SAFE_RADIUS = 16;
 /** Condition lost per use: ~1000 swings, ~1250 hits taken, ~2000 gathers from new to worn out. */
 const WEAR = { weapon: 0.1, armour: 0.08, tool: 0.05 };
+/** Rare finds from the gathering perks. */
+const FINDS: Partial<Record<SkillId, string>> = { woodcutting: 'bird_nest', mining: 'geode', fishing: 'casket' };
 
-export const STATION_NAMES: Record<Station, string> = { furnace: 'Furnace', anvil: 'Anvil', fire: 'Cookfire', bench: 'Gunsmith\'s bench' };
+export const STATION_NAMES: Record<Station, string> = { furnace: 'Furnace', anvil: 'Anvil', fire: 'Cookfire', bench: 'Gunsmith\'s bench', vent: 'Vent forge' };
 
 export class Game {
   readonly layout: IslandLayout;
@@ -165,7 +168,7 @@ export class Game {
 
   // ------------------------------------------------------------------ xp + items
   addXp(skill: SkillId, amount: number) {
-    const amt = Math.round(amount * (1 + (COMBAT_SKILLS.includes(skill) ? 0 : this.stats.xpBonus)) * 10) / 10;
+    const amt = Math.round(amount * (1 + (COMBAT_SKILLS.includes(skill) ? 0 : this.stats.xpBonus) + perkTotal(skill, this.level(skill), 'xp') / 100) * 10) / 10;
     if (amt <= 0) return;
     const before = this.level(skill);
     this.p.xp[skill] = Math.min(MAX_XP, this.p.xp[skill] + amt);
@@ -218,7 +221,7 @@ export class Game {
     }
     if (!onShip) {
       for (const n of this.layout.npcs) out.push({ key: `npc:${n.id}`, kind: 'npc', x: n.x, z: n.z, range: 2.2, label: NPCS[n.id].name, verb: NPCS[n.id].shop ? 'Trade' : 'Talk' });
-      this.layout.stations.forEach((st, i) => out.push({ key: `station:${i}`, kind: 'station', x: st.x, z: st.z, range: 2.3, label: STATION_NAMES[st.id], verb: st.id === 'fire' ? 'Cook' : st.id === 'furnace' ? 'Smelt' : st.id === 'bench' ? 'Craft' : 'Forge' }));
+      this.layout.stations.forEach((st, i) => out.push({ key: `station:${i}`, kind: 'station', x: st.x, z: st.z, range: 2.3, label: STATION_NAMES[st.id], verb: st.id === 'fire' ? 'Cook' : st.id === 'furnace' || st.id === 'vent' ? 'Smelt' : st.id === 'bench' ? 'Craft' : 'Forge' }));
       this.layout.banks.forEach((b, i) => out.push({ key: `bank:${i}`, kind: 'bank', x: b.x, z: b.z, range: 2.2, label: 'Harbour strongbox', verb: 'Open' }));
       out.push({ key: 'ship', kind: 'ship', x: this.ship.x, z: this.ship.z, range: 4.2, label: 'Your sloop', verb: 'Board' });
       out.push({ key: 'ruin', kind: 'ruin', x: this.layout.plinth.x, z: this.layout.plinth.z, range: 2.2, label: 'Bell hollow', verb: 'Ring' });
@@ -245,14 +248,17 @@ export class Game {
   }
 
   /** What it takes to use a target, for hover pop-ups: e.g. "Woodcutting 15" (met or not), "Needs a spade". */
-  targetNeeds(t: Target): { text: string; ok: boolean } | null {
+  targetNeeds(t: Target): { text: string; ok: boolean; detail?: string } | null {
     if (t.kind === 'node') {
       const d = NODES[this.nodes.find((n) => `node:${n.uid}` === t.key)?.def ?? ''];
       if (!d) return null;
       const skill = d.skill ? `${d.skill[0].toUpperCase()}${d.skill.slice(1)} ${d.level}` : 'Anyone can';
-      if (d.skill && this.level(d.skill) < d.level) return { text: `Needs ${skill} (you have ${this.level(d.skill)})`, ok: false };
-      if (!this.gatherTool(d)) return { text: `${skill} · needs ${d.tool ? `a ${item(d.tool).name.toLowerCase()}` : d.skill === 'woodcutting' ? 'a hatchet' : 'a pickaxe'}`, ok: false };
-      return { text: d.skill ? `${skill} ✓` : `${skill} ✓`, ok: true };
+      // what it gives: the item (or loot), its XP, and where it's worked from
+      const gives = d.loot ? 'Treasure' : d.drops ? d.drops.map((x) => item(x.item).name).join(' or ') : item(d.item).name;
+      const detail = `${gives}${d.xp ? ` · ${d.xp} xp` : ''}${d.fromShip ? ' · from your ship' : ''}`;
+      if (d.skill && this.level(d.skill) < d.level) return { text: `Needs ${skill} (you have ${this.level(d.skill)})`, ok: false, detail };
+      if (!this.gatherTool(d)) return { text: `${skill} · needs ${d.tool ? `a ${item(d.tool).name.toLowerCase()}` : d.skill === 'woodcutting' ? 'a hatchet' : 'a pickaxe'}`, ok: false, detail };
+      return { text: `${skill} ✓`, ok: true, detail };
     }
     if (t.kind === 'enemy') {
       const e = this.enemies.find((x) => `enemy:${x.id}` === t.key);
@@ -381,8 +387,9 @@ export class Game {
   gatherChance(d: (typeof NODES)[string], toolPower: number) {
     if (!d.skill) return d.rate;
     const lvl = this.level(d.skill);
-    const toolK = d.skill === 'fishing' ? 1 : Math.min(1.6, Math.max(0.45, 1 + 0.15 * (toolPower - Math.min(6, d.tier + 1))));
-    return Math.min(0.85, d.rate * (1 + Math.max(0, lvl - d.level) * 0.012) * toolK * (1 + this.stats.gather));
+    const toolK = d.skill === 'fishing' ? 1 : Math.min(1.6, Math.max(0.45, 1 + 0.15 * (toolPower - Math.min(10, d.tier + 1))));
+    const perk = perkTotal(d.skill, lvl, 'speed') / 100;
+    return Math.min(0.85, d.rate * (1 + Math.max(0, lvl - d.level) * 0.012) * toolK * (1 + this.stats.gather + perk));
   }
 
   /** Interaction range for a node (ship spots are fished from deck; kelp and fish lie just offshore). */
@@ -409,9 +416,15 @@ export class Game {
       if (!canAdd(this.p.inv, got)) { this.msg('Your pack is full.', 'warn'); this.stopAction(); return; }
       this.give(got, 1);
       if (d.bonus && this.rnd() < d.bonus.chance) { this.give(d.bonus.item, 1); this.msg(`You find a ${item(d.bonus.item).name.toLowerCase()}!`, 'loot'); }
+      if (d.skill) {
+        const lvl = this.level(d.skill);
+        if (this.rnd() < perkTotal(d.skill, lvl, 'double') / 100 && canAdd(this.p.inv, got)) { this.give(got, 1); this.msg(`Lucky haul: a second ${item(got).name.toLowerCase()}.`, 'good'); }
+        const find = FINDS[d.skill];
+        if (find && this.rnd() < perkTotal(d.skill, lvl, 'find') / 100 && canAdd(this.p.inv, find)) { this.give(find, 1); this.msg(`You find a ${item(find).name.toLowerCase()}!`, 'loot'); }
+      }
     }
     if (d.skill) this.addXp(d.skill, d.xp);
-    if (tool.id !== 'hands') this.wear(this.p.inv.find((x) => x?.id === tool.id), WEAR.tool);
+    if (tool.id !== 'hands') this.wear(this.p.inv.find((x) => x?.id === tool.id), WEAR.tool * (1 - (d.skill ? perkTotal(d.skill, this.level(d.skill), 'tool_care') / 100 : 0)));
     if (d.depleteChance > 0 && this.rnd() < d.depleteChance) {
       // dig spots wander: they come back after a random while (the sand is disturbed somewhere else meanwhile)
       n.depletedUntil = this.time + d.respawn * (d.verb === 'Dig' ? 0.5 + this.rnd() : 1);
@@ -457,12 +470,15 @@ export class Game {
     if (!this.nearStation(r.station)) { this.stopAction(); return; }
     const block = this.recipeBlock(r);
     if (block) { this.msg(block + '.', 'warn'); this.stopAction(); return; }
-    for (const i of r.inputs) remove(this.p.inv, i.id, i.qty); // validated above: all-or-nothing
-    this.emit({ type: 'craftFx', station: r.station });
     const lvl = this.level(r.skill);
+    // Thrifty perks: sometimes the materials survive the work
+    const saved = this.rnd() < perkTotal(r.skill, lvl, 'save') / 100;
+    if (!saved) for (const i of r.inputs) remove(this.p.inv, i.id, i.qty); // validated above: all-or-nothing
+    else this.msg('Thrifty: you keep your materials.', 'good');
+    this.emit({ type: 'craftFx', station: r.station });
     if (r.burn) {
       const span = Math.max(1, r.burn.stopLevel - r.level);
-      const burnChance = Math.max(0, 0.45 * (1 - (lvl - r.level) / span));
+      const burnChance = Math.max(0, 0.45 * (1 - (lvl - r.level) / span)) * (1 - perkTotal(r.skill, lvl, 'burn') / 100);
       if (this.rnd() < burnChance) {
         this.give(r.burn.item, 1);
         this.msg(`You burn the ${item(r.inputs[0].id).name.toLowerCase().replace('raw ', '')}.`, 'warn');
@@ -470,14 +486,16 @@ export class Game {
       }
     }
     if (r.rarityRoll) {
-      const fine = 0.08 + lvl * 0.01, rare = 0.015 + lvl * 0.003;
+      const fine = 0.08 + lvl * 0.01 + perkTotal(r.skill, lvl, 'fine') / 100, rare = 0.015 + lvl * 0.003;
       const roll = this.rnd();
       const rarity = roll < rare ? 'rare' : roll < rare + fine ? 'fine' : 'common';
       const inst = makeInstance(r.output.id, rarity, this.rnd, this.uid());
       this.give(r.output.id, 1, inst);
       if (rarity !== 'common') this.msg(`Masterwork! ${displayName({ id: r.output.id, qty: 1, inst })}.`, 'loot');
     } else {
-      this.give(r.output.id, r.output.qty);
+      const extra = item(r.output.id).stackable && r.output.qty > 1 ? perkTotal(r.skill, lvl, 'extra') : 0;
+      this.give(r.output.id, r.output.qty + extra);
+      if (r.burn && this.rnd() < perkTotal(r.skill, lvl, 'double') / 100 && canAdd(this.p.inv, r.output.id)) { this.give(r.output.id, 1); this.msg('Two pans: you cook an extra one.', 'good'); }
     }
     this.addXp(r.skill, r.xp);
     this.afterCraft(a);
@@ -485,7 +503,8 @@ export class Game {
 
   private afterCraft(a: Extract<NonNullable<Action>, { type: 'craft' }>) {
     a.remaining--;
-    a.next = this.time + DT_CRAFT;
+    const r = RECIPES.find((x) => x.id === a.recipe);
+    a.next = this.time + DT_CRAFT * (1 - (r ? perkTotal(r.skill, this.level(r.skill), 'quick') / 100 : 0));
     if (a.remaining <= 0) this.stopAction();
     this.rev++;
   }
@@ -511,7 +530,7 @@ export class Game {
     const st = this.p.inv[i];
     if (!st || !item(st.id).heal || this.dead) return;
     if (this.eatCd > 0) return;
-    const heal = item(st.id).heal!;
+    const heal = Math.round(item(st.id).heal! * (1 + this.stats.healBonus));
     if (this.p.hp >= this.stats.maxHp) { this.msg('You are already at full health.'); return; }
     st.qty--;
     if (st.qty <= 0) this.p.inv[i] = null;
@@ -566,6 +585,8 @@ export class Game {
   /** Use wears gear down slowly; warnings at 20% and when worn out (it keeps working at reduced effect). */
   private wear(st: Stack | null | undefined, amount: number) {
     if (!st || !wears(st.id)) return;
+    const tough = item(st.id).innate?.find((x) => x.id === 'durable');
+    if (tough) amount *= 1 - tough.v / 100;
     const before = st.cond ?? 100;
     if (before <= 0) return;
     st.cond = Math.max(0, before - amount);
@@ -876,10 +897,10 @@ export class Game {
   private consumeAmmo(n = 1) {
     if (this.stats.style === 'ranged') {
       const a = this.p.equip.ammo!;
-      a.qty -= n;
+      for (let k = 0; k < n; k++) if (this.rnd() >= this.stats.ammoSave) a.qty--; // Thrifty powder perks
       if (a.qty <= 0) { delete this.p.equip.ammo; this.recalc(); this.msg('You are out of shot.', 'warn'); }
     } else if (this.stats.style === 'magic') {
-      remove(this.p.inv, 'charm_tide', (this.stats.spell?.charms ?? 1) * n);
+      if (this.rnd() >= this.stats.charmSave) remove(this.p.inv, 'charm_tide', (this.stats.spell?.charms ?? 1) * n);
     }
     this.rev++;
   }
@@ -899,6 +920,7 @@ export class Game {
     // a successful hit always lands at least 1, so a 0 always means a miss
     let dmg = crit ? maxHit : 1 + Math.floor(this.rnd() * maxHit);
     if ((e.elite || e.def.boss) && dmg > 0) dmg = Math.round(dmg * (1 + st.eliteDmg));
+    if (st.seaDmg && (e.def.model === 'crab' || e.def.look === 'drowned' || e.def.look === 'captain')) dmg = Math.round(dmg * (1 + st.seaDmg));
     return { dmg, crit };
   }
 
@@ -1091,6 +1113,7 @@ export class Game {
   applyPlayerDamage(dmg: number) {
     if (this.dead || this.p.onShip) return;
     if (this.rollT > 0) { this.emit({ type: 'dodge', x: this.p.x, z: this.p.z }); return; }
+    if (dmg > 0 && this.stats.dr) dmg = Math.max(1, Math.round(dmg * (1 - this.stats.dr)));
     this.p.hp -= dmg;
     this.combatTimer = 0;
     if (dmg > 0) { this.wear(this.p.equip.head, WEAR.armour); this.wear(this.p.equip.body, WEAR.armour); }

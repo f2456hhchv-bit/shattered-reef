@@ -10,13 +10,14 @@ import { createWater } from '../art/water';
 import { PAL, mat, recolour, type PalKey } from '../art/materials';
 import { mulberry32 } from '../art/noise';
 import { buildSloop, buildBarrel, type ShipRig } from '../art/models/ship';
+import { buildCinderVent, buildFallenStar, buildBones, buildSpire, buildSaltPan, buildVentForge, buildLeviathan, buildCrater } from '../art/models/highnodes';
 import { buildNetRack, buildRowboat, buildSignpost, buildFence, buildWell, buildDriftwood, buildShells, buildPotStack, buildCannon, buildWreckRibs, buildWoodpile, buildFlowers } from '../art/models/decor';
 import { NPC_LOOKS, PLAYER_LOOK, BRIGAND_LOOK, HUMAN_LOOKS } from '../art/cast';
 import { buildHumanoid, animateIdle, animateWalk, animateSwing, animateWork, animateFish, type HumanoidRig } from '../art/models/character';
 import { buildCrab, animateCrab, type CrabRig } from '../art/models/crab';
 import { buildPine, buildBroadleaf, buildRock, buildOreRock, buildCrate, buildLanternPost, buildShack, buildDock, buildGrass, buildBush, buildKelp } from '../art/models/props';
 import { buildBench, buildFurnace, buildAnvil, buildCookfire, buildTent, buildSmithyShed, buildPillar, buildPlinth, buildStrongbox, buildDigSpot, buildGuardian, buildStump, buildRipples, type GuardianRig } from '../art/models/world';
-import { buildLootShard, SHARD_TINT, type LootShard, type ShardKind } from '../art/models/items';
+import { buildLootShard, buildItemModel, SHARD_TINT, type LootShard, type ShardKind } from '../art/models/items';
 import { item } from '../game/data/items';
 import { NODES, PLAYER_BASE } from '../game/data/content';
 import type { Game, GameEvent, Enemy, Telegraph } from '../game/sim/game';
@@ -76,7 +77,7 @@ export class GameRenderer {
   private ship: ShipRig;
   private npcs = new Map<string, HumanoidRig>();
   private enemyViews = new Map<number, EnemyView>();
-  private nodeViews = new Map<string, { live: THREE.Object3D; dead?: THREE.Object3D; ripples?: THREE.Group }>();
+  private nodeViews = new Map<string, { live: THREE.Object3D; dead?: THREE.Object3D; ripples?: THREE.Group; leap?: THREE.Object3D }>();
   private dropViews = new Map<number, LootShard>();
   private projViews = new Map<number, THREE.Mesh>();
   private teleViews = new Map<number, THREE.Group>();
@@ -229,6 +230,7 @@ export class GameRenderer {
       if (st.id === 'furnace') { const f = buildFurnace(); f.group.traverse((o) => { if ((o as THREE.Mesh).material === f.glow) o.userData.glow = true; }); place(f.group, st.x, st.z, 0); }
       else if (st.id === 'anvil') place(buildAnvil(), st.x, st.z, 0.3);
       else if (st.id === 'bench') place(buildBench(), st.x, st.z, 0);
+      else if (st.id === 'vent') { const f = buildVentForge(); f.group.traverse((o) => { if ((o as THREE.Mesh).material === f.glow) o.userData.glow = true; }); place(f.group, st.x, st.z, 0); }
       else { const f = buildCookfire(); f.flames.forEach((m) => (m.userData.flame = true)); place(f.group, st.x, st.z, 0); }
     }
     for (const p of L.props) {
@@ -242,6 +244,8 @@ export class GameRenderer {
         case 'pillar': place(buildPillar(p.seed, p.s), p.x, p.z, p.rot); break;
         case 'campfire': { const f = buildCookfire(); f.flames.forEach((m) => (m.userData.flame = true)); place(f.group, p.x, p.z); break; }
         case 'netrack': place(buildNetRack(p.seed), p.x, p.z, p.rot); break;
+        case 'leviathan': place(buildLeviathan(), p.x, p.z, p.rot); break;
+        case 'crater': place(buildCrater(), p.x, p.z, p.rot); break;
         case 'rowboat': place(buildRowboat(p.seed), p.x, p.z, p.rot, w.ground(p.x, p.z) - 0.12); break;
         case 'signpost': place(buildSignpost(p.seed, p.aux ?? []), p.x, p.z, 0); break;
         case 'fence': place(buildFence(p.seed, p.aux?.[0] ?? 4), p.x, p.z, p.rot); break;
@@ -306,6 +310,7 @@ export class GameRenderer {
 
   private buildNodes() {
     const w = this.game.world;
+    const leapFish = new Map<string, THREE.Object3D>();
     this.buildScenery();
     for (const n of this.game.nodes) {
       if (this.scenery.has(n.uid)) continue;
@@ -320,6 +325,17 @@ export class GameRenderer {
         dead = buildStump(n.seed);
         if (tv.colours?.trunk) recolour(dead, { trunk: tv.colours.trunk });
         dead.scale.setScalar(Math.max(1, tv.scale * 0.8));
+      } else if (n.def === 'rock_cinder' || n.def === 'rock_sky' || n.def === 'rock_levi') {
+        live = n.def === 'rock_cinder' ? buildCinderVent(n.seed) : n.def === 'rock_sky' ? buildFallenStar(n.seed) : buildBones(n.seed);
+        dead = buildRock(n.seed, 0.8, 'stoneDark');
+        if (n.def === 'rock_levi') recolour(dead, { stoneDark: 0xb8ab90 });
+      } else if (n.def === 'rock_ori') {
+        const h = -w.ground(n.x, n.z) + 3.4; // from the seabed to well above the waterline
+        live = buildSpire(n.seed, h);
+        dead = buildSpire(n.seed, h, true);
+      } else if (n.def === 'salt_pan') {
+        live = buildSaltPan(n.seed, true);
+        dead = buildSaltPan(n.seed, false);
       } else if (def.skill === 'mining') {
         const g = buildOreRock(n.seed);
         const [tint, glowK] = ORE_TINT[n.def] ?? [PAL.copper, 0.12];
@@ -335,14 +351,20 @@ export class GameRenderer {
       } else {
         ripples = buildRipples(def.fromShip ? 0xf2e6b0 : def.tool === 'lobster_pot' ? 0xf0c890 : 0xe9f5f2);
         live = ripples;
+        // the spot's own fish leaps now and then, so you can see what's biting before you cast
+        const fish = buildItemModel(def.item);
+        fish.scale.setScalar(def.fromShip ? 2.4 : 1.4);
+        fish.visible = false;
+        this.scene.add(fish);
+        leapFish.set(n.uid, fish);
         if (def.fromShip) live.scale.setScalar(2.2);
       }
-      const y = def.skill === 'fishing' ? 0.06 : w.ground(n.x, n.z) - (def.skill ? 0.05 : 0.02);
+      const y = def.skill === 'fishing' ? 0.06 : n.def === 'rock_ori' ? w.ground(n.x, n.z) - 0.05 : w.ground(n.x, n.z) - (def.skill ? 0.05 : 0.02);
       live.position.set(n.x, y, n.z);
       this.scene.add(live);
       if (dead) { dead.position.set(n.x, y, n.z); dead.visible = false; this.scene.add(dead); }
       if (live !== ripples) bakeRig(live, addSurfaceDetail(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: false, roughness: 0.92 }), PROP_SURFACE));
-      this.nodeViews.set(n.uid, { live, dead, ripples });
+      this.nodeViews.set(n.uid, { live, dead, ripples, leap: leapFish.get(n.uid) });
     }
   }
 
@@ -710,6 +732,16 @@ export class GameRenderer {
           ((r as THREE.Mesh).material as THREE.MeshBasicMaterial).opacity = (1 - k) * 0.7;
         }
         v.ripples.visible = !depleted;
+        if (v.leap) {
+          // a leap every ~6 s, staggered per spot: up out of the ripples in an arc and back in
+          const seed = (n.seed * 0.37) % 1, cyc = (t / 6 + seed) % 1, k = cyc / 0.15;
+          v.leap.visible = !depleted && k < 1;
+          if (k < 1) {
+            const s = v.leap.scale.x, heading = seed * Math.PI * 2;
+            v.leap.position.set(n.x + Math.cos(heading) * (k - 0.5) * 1.6 * s * 0.5, 0.05 + Math.sin(Math.PI * k) * 0.55 * s, n.z + Math.sin(heading) * (k - 0.5) * 1.6 * s * 0.5);
+            v.leap.rotation.set(0, -heading, (0.5 - k) * 2.2);
+          }
+        }
       } else {
         v.live.visible = !depleted;
         if (v.dead) v.dead.visible = depleted;

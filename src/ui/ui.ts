@@ -1,10 +1,10 @@
-import { item, RARITY, AFFIXES, type Slot, type SkillId } from '../game/data/items';
+import { item, RARITY, AFFIXES, METALS, METAL_TRAITS, type Slot, type SkillId } from '../game/data/items';
 import { morph, forget } from './morph';
 import { wears, condOf, WORN_OUT_EFFECT } from '../game/sim/inventory';
 import { onTap } from './tap';
 import { portrait } from './portrait';
 import { NPC_LOOKS, PLAYER_LOOK } from '../art/cast';
-import { SKILLS, UNLOCKS, RECIPES, SHOP, ELITE_AFFIXES, PLAYER_BASE, SPELLS, type Station } from '../game/data/content';
+import { NODES, SKILLS, UNLOCKS, RECIPES, SHOP, ELITE_AFFIXES, PLAYER_BASE, SPELLS, type Station } from '../game/data/content';
 import type { Stance } from '../game/sim/gear';
 import { NPCS, QUESTS } from '../game/data/quests';
 import { PLACES, WORLD_HALF, coastDist, nearestPathDist, FLATS } from '../game/world/island';
@@ -13,6 +13,7 @@ import { levelForXp, levelProgress, xpForLevel, MAX_LEVEL } from '../game/sim/xp
 import type { Game, GameEvent, MsgKind } from '../game/sim/game';
 import type { GameRenderer } from '../render/renderer';
 import { itemIcon, rarityColour, TAB_ICONS, SKILL_ICONS, SLOT_ICONS } from './icons';
+import { LEVEL_GAIN } from '../game/data/perks';
 
 type Tab = 'pack' | 'gear' | 'skills' | 'quests' | 'map' | 'settings';
 const TABS: { id: Tab; name: string; key: string }[] = [
@@ -42,6 +43,9 @@ const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
 
 export class UI {
   tab: Tab = 'pack';
+  /** Skills tab: the skill whose level-by-level unlock list is open, if any. */
+  skillView: SkillId | null = null;
+  private skillScroll = false;
   sideOpen = true;
   private lastRev = -1;
   private el: Record<string, HTMLElement> = {};
@@ -149,6 +153,7 @@ export class UI {
   selectTab(t: Tab, user: boolean) {
     if (user && this.portrait && this.tab === t && this.sideOpen) { this.sideOpen = false; this.layout(); return; }
     if (user && !this.sideOpen) { this.sideOpen = true; this.layout(); }
+    if (t !== this.tab) this.skillView = null;
     this.tab = t;
     for (const b of this.el.tabs.querySelectorAll('button')) b.classList.toggle('on', b.getAttribute('data-tab') === t);
     for (const b of this.el.tabs.querySelectorAll('button')) b.setAttribute('aria-selected', String(b.getAttribute('data-tab') === t));
@@ -215,10 +220,10 @@ export class UI {
 
   private nextUnlockText(skill: SkillId): string | null {
     const lvl = this.game.level(skill);
-    const u = UNLOCKS[skill].find((x) => x.level === lvl);
-    if (u) return `Unlocked: ${u.text}`;
+    const now = UNLOCKS[skill].filter((x) => x.level === lvl).map((x) => x.text);
+    if (now.length) return `Unlocked: ${now.slice(0, 3).join(' · ')}${now.length > 3 ? ` +${now.length - 3} more` : ''}`;
     const next = UNLOCKS[skill].find((x) => x.level > lvl);
-    return next ? `Next: ${next.text} at level ${next.level}` : null;
+    return `${LEVEL_GAIN[skill]}.${next ? ` Next at ${next.level}: ${next.text}` : ''}`;
   }
 
   // ------------------------------------------------------------------ per-frame
@@ -350,6 +355,7 @@ export class UI {
       }
     }
     for (const [id, b] of this.bars) if (!seen.has(id)) { b.remove(); this.bars.delete(id); }
+    this.updateNodeBadges();
     for (const [id, tg] of this.tags) if (!seen.has(-id)) { tg.remove(); this.tags.delete(id); }
     const showPlayer = g.combatTimer < 5 && !g.p.onShip && !g.dead;
     this.playerBar.style.display = showPlayer ? '' : 'none';
@@ -360,6 +366,34 @@ export class UI {
     }
   }
 
+  /** Small badges over nearby skill spots: the skill and level needed, green if you have it, red if not. */
+  private badgePool: HTMLElement[] = [];
+  private updateNodeBadges() {
+    const g = this.game, r = this.r, p = g.p;
+    const near: { n: (typeof g.nodes)[number]; d: number }[] = [];
+    if (g.s.settings.nodeLevels && !g.dead && g.combatTimer > 3) for (const n of g.nodes) {
+      const def = NODES[n.def];
+      if (!def.skill || def.level <= 1 || n.depletedUntil > g.time || !!def.fromShip !== p.onShip) continue;
+      const d = Math.hypot(n.x - p.x, n.z - p.z);
+      if (d < (p.onShip ? 26 : 13)) near.push({ n, d });
+    }
+    near.sort((a, b) => a.d - b.d);
+    let k = 0;
+    for (const { n } of near.slice(0, 10)) {
+      const def = NODES[n.def], skill = def.skill as SkillId;
+      const s = r.project(n.x, (def.skill === 'fishing' ? 0.4 : g.world.ground(n.x, n.z) + (def.skill === 'woodcutting' ? 3.2 : 1.7)), n.z);
+      if (!s.visible) continue;
+      let el = this.badgePool[k];
+      if (!el) { el = h('div', { class: 'nodebadge' }); this.el.overlay.appendChild(el); this.badgePool.push(el); }
+      const ok = g.level(skill) >= def.level, key = `${skill}|${def.level}|${ok}`;
+      if (el.dataset.key !== key) { el.dataset.key = key; el.className = `nodebadge ${ok ? 'ok' : 'no'}`; el.innerHTML = `${SKILL_ICONS[skill]}<b>${def.level}</b>`; }
+      el.style.display = '';
+      el.style.left = `${s.x}px`; el.style.top = `${s.y}px`;
+      k++;
+    }
+    for (; k < this.badgePool.length; k++) this.badgePool[k].style.display = 'none';
+  }
+
   showStick(x: number, y: number, kx: number, ky: number) {
     const s = this.el.stick;
     s.hidden = false;
@@ -368,11 +402,11 @@ export class UI {
   }
   hideStick() { this.el.stick.hidden = true; }
 
-  showHover(x: number, y: number, verb: string | null, label: string, enemy: boolean, needs: { text: string; ok: boolean } | null = null) {
+  showHover(x: number, y: number, verb: string | null, label: string, enemy: boolean, needs: { text: string; ok: boolean; detail?: string } | null = null) {
     const hv = this.el.hover;
     if (!verb) { hv.hidden = true; return; }
     hv.hidden = false;
-    hv.innerHTML = `<b>${esc(verb)}</b> ${enemy ? `<span style="color:#ffb070">${esc(label)}</span>` : `<em>${esc(label)}</em>`}${needs ? `<div class="needs ${needs.ok ? 'ok' : 'no'}">${esc(needs.text)}</div>` : ''}`;
+    hv.innerHTML = `<b>${esc(verb)}</b> ${enemy ? `<span style="color:#ffb070">${esc(label)}</span>` : `<em>${esc(label)}</em>`}${needs ? `<div class="needs ${needs.ok ? 'ok' : 'no'}">${esc(needs.text)}</div>${needs.detail ? `<div class="gives">${esc(needs.detail)}</div>` : ''}` : ''}`;
     hv.style.left = `${Math.min(x + 16, window.innerWidth - hv.offsetWidth - 8)}px`;
     hv.style.top = `${y + 18}px`;
   }
@@ -383,7 +417,11 @@ export class UI {
     switch (this.tab) {
       case 'pack': morph(c, this.packHtml()); break;
       case 'gear': morph(c, this.gearHtml()); break;
-      case 'skills': morph(c, this.skillsHtml()); break;
+      case 'skills': {
+        morph(c, this.skillsHtml());
+        if (this.skillView && this.skillScroll) { this.skillScroll = false; c.querySelector('.lvrow.cur')?.scrollIntoView({ block: 'center' }); }
+        break;
+      }
       case 'quests': morph(c, this.questsHtml()); break;
       case 'map': c.innerHTML = '<h2 class="title">Bellwether Isle</h2><canvas id="mapbig" width="600" height="600" aria-label="Island map. Tap to walk there."></canvas><p class="muted" style="font-size:12px;margin:8px 0 0">Gold star: quest objective. Tap the map to walk there.</p>'; forget(c); this.bindBigMap(); this.drawBigMap(); break;
       case 'settings': morph(c, this.settingsHtml()); break;
@@ -393,7 +431,7 @@ export class UI {
   /** One set of handlers on the tab panel for its whole life (content is patched, never re-bound). */
   private bindContent(c: HTMLElement) {
     const g = this.game;
-    onTap(c, '[data-slot], [data-equip], [data-stance], [data-spell], [data-q], [data-dmg], #saveNow, #resetSave', (t, pointer) => {
+    onTap(c, '[data-slot], [data-equip], [data-stance], [data-spell], [data-q], [data-dmg], [data-music], [data-sfx], [data-lv], [data-skill], [data-skillback], #saveNow, #resetSave', (t, pointer) => {
       if (t.dataset.slot !== undefined) {
         const i = Number(t.dataset.slot);
         const st = g.p.inv[i];
@@ -410,6 +448,9 @@ export class UI {
       else if (t.dataset.dmg) { g.s.settings.showDamage = t.dataset.dmg === '1'; this.lastRev = -1; }
       else if (t.dataset.music) { g.s.settings.music = t.dataset.music === '1'; this.onAudio(); this.lastRev = -1; }
       else if (t.dataset.sfx) { g.s.settings.sfx = t.dataset.sfx === '1'; this.onAudio(); this.lastRev = -1; }
+      else if (t.dataset.lv !== undefined && t.closest('.toggle')) { g.s.settings.nodeLevels = t.dataset.lv === '1'; this.lastRev = -1; }
+      else if (t.dataset.skill) { this.skillView = t.dataset.skill as SkillId; this.skillScroll = true; this.lastRev = -1; }
+      else if (t.dataset.skillback !== undefined) { this.skillView = null; this.lastRev = -1; }
       else if (t.id === 'saveNow') { this.onSave(); this.log('Voyage saved.', 'good'); this.lastRev = -1; }
       else if (t.id === 'resetSave') this.confirm('Erase your progress and start again?', 'Erase and restart', () => this.onReset());
     });
@@ -472,15 +513,32 @@ export class UI {
       <p class="muted" style="font-size:12px;margin:8px 0 0">Every enemy is weak to one style: melee beats gunners, ranged beats brigands, magic beats crabs and the Guardian.</p>`;
   }
 
+  /** Every level of one skill, 1 to 99: what it unlocks, its perks, or what the level improves. */
+  private skillDetailHtml(id: SkillId) {
+    const g = this.game, sk = SKILLS.find((x) => x.id === id)!, cur = g.level(id);
+    const rows: string[] = [];
+    for (let L = 1; L <= 99; L++) {
+      const at = UNLOCKS[id].filter((u) => u.level === L);
+      const body = at.length
+        ? at.map((u) => (u.text.startsWith('Perk · ') ? `<span class="perk">${esc(u.text.slice(7))}</span>` : esc(u.text))).join('<br>')
+        : `<span class="muted">${L === 1 ? 'Where everyone starts' : esc(LEVEL_GAIN[id])}</span>`;
+      rows.push(`<div class="lvrow${L <= cur ? ' got' : ''}${L === cur ? ' cur' : ''}${at.length ? ' has' : ''}" data-lv="${L}"><span class="n">${L}</span><div>${body}</div></div>`);
+    }
+    return `<div class="row lvhead" style="gap:10px;margin-bottom:8px"><button class="btn small" data-skillback aria-label="Back to all skills">‹ Skills</button>
+      <span class="medal" style="--c:${sk.colour}">${SKILL_ICONS[id]}</span><div><h2 class="title" style="margin:0">${sk.name}</h2><span class="muted" style="font-size:12px">Level ${cur} · ${esc(sk.blurb)}</span></div></div>
+      <div class="lvlist">${rows.join('')}</div>`;
+  }
+
   private skillsHtml() {
     const g = this.game;
+    if (this.skillView) return this.skillDetailHtml(this.skillView);
     let total = 0;
     const row = (sk: (typeof SKILLS)[number]) => {
       const xp = g.p.xp[sk.id], lvl = levelForXp(xp);
       total += lvl;
       const next = lvl >= MAX_LEVEL ? 'Maximum level' : `${fmt(Math.ceil(xpForLevel(lvl + 1) - xp))} XP to ${lvl + 1}`;
       const unlock = UNLOCKS[sk.id].find((u) => u.level > lvl);
-      return `<div class="skill" title="${esc(sk.blurb)}" style="--c:${sk.colour}"><span class="medal">${SKILL_ICONS[sk.id]}</span><b>${sk.name}</b><span class="lv">${lvl}</span>
+      return `<div class="skill" data-skill="${sk.id}" role="button" tabindex="0" title="${esc(sk.blurb)} Tap for every level's unlocks." style="--c:${sk.colour}"><span class="medal">${SKILL_ICONS[sk.id]}</span><b>${sk.name}</b><span class="lv">${lvl}</span>
         <div class="xpbar"><i style="width:${levelProgress(xp) * 100}%"></i></div>
         <small>${fmt(Math.floor(xp))} XP · ${next}${unlock ? `<br><span class="nx">Lv ${unlock.level}</span> ${esc(unlock.text)}` : ''}</small></div>`;
     };
@@ -528,6 +586,7 @@ export class UI {
     return `<h2 class="title">Settings</h2>
       <div class="toggle"><span>Graphics</span><span class="seg"><button data-q="high" class="${s.quality === 'high' ? 'on' : ''}">High</button><button data-q="low" class="${s.quality === 'low' ? 'on' : ''}">Battery saver</button></span></div>
       <div class="toggle"><span>Damage numbers</span><span class="seg"><button data-dmg="1" class="${s.showDamage ? 'on' : ''}">On</button><button data-dmg="0" class="${!s.showDamage ? 'on' : ''}">Off</button></span></div>
+      <div class="toggle"><span>Level badges on skill spots</span><span class="seg"><button data-lv="1" class="${s.nodeLevels ? 'on' : ''}">On</button><button data-lv="0" class="${!s.nodeLevels ? 'on' : ''}">Off</button></span></div>
       <div class="toggle"><span>Music</span><span class="seg"><button data-music="1" class="${s.music ? 'on' : ''}">On</button><button data-music="0" class="${!s.music ? 'on' : ''}">Off</button></span></div>
       <div class="toggle"><span>Sound effects</span><span class="seg"><button data-sfx="1" class="${s.sfx ? 'on' : ''}">On</button><button data-sfx="0" class="${!s.sfx ? 'on' : ''}">Off</button></span></div>
       <div class="toggle"><span>Progress saves automatically<br><small class="muted">Last saved ${ago}</small></span><button class="btn" id="saveNow">Save now</button></div>
@@ -580,7 +639,10 @@ export class UI {
     if (wears(st.id)) { const c = condOf(st); lines.push(c <= 0 ? `Condition: worn out (works at ${Math.round(WORN_OUT_EFFECT * 100)}%). Repair at an anvil.` : `Condition ${Math.round(c)}%`); }
     if (d.heal) lines.push(`Heals ${d.heal}`);
     if (d.tool) lines.push(`${cap(d.tool.skill)} tool, power ${d.tool.power}${d.tool.level > 1 ? `, needs level ${d.tool.level}` : ''}`);
-    const affixes = (st.inst?.affixes ?? []).map((a) => `<li>${esc(AFFIXES[a.id].fmt(a.v))}</li>`).join('');
+    // the metal's signature trait first (every copy has it), then the rolled affixes
+    const metal = METALS.find((mt) => st.id.endsWith(`_${mt.key}`)), trait = metal && METAL_TRAITS[metal.key];
+    const innate = (d.innate ?? []).map((a) => `<li class="trait">${esc(AFFIXES[a.id].fmt(a.v))}</li>`).join('');
+    const affixes = (trait && innate ? `<li class="trait-name">${esc(trait.blurb)}</li>` : '') + innate + (st.inst?.affixes ?? []).map((a) => `<li>${esc(AFFIXES[a.id].fmt(a.v))}</li>`).join('');
     const acts: string[] = [];
     if (this.pop.equip) acts.push('<button class="btn" data-a="unequip">Unequip</button>');
     else {
