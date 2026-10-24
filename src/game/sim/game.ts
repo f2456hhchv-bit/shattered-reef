@@ -52,7 +52,8 @@ export type GameEvent =
   /** the new region is loaded and the player is in it */
   | { type: 'region'; region: RegionId };
 
-export interface NodeRt { uid: string; def: string; x: number; z: number; seed: number; depletedUntil: number; scenery?: boolean }
+/** `left`: items it will give before it runs out (rolled each time it grows back). */
+export interface NodeRt { uid: string; def: string; x: number; z: number; seed: number; depletedUntil: number; left: number; scenery?: boolean }
 
 export interface Enemy {
   id: number;
@@ -176,7 +177,7 @@ export class Game {
 
   /** Fresh runtime state for the region just loaded: its nodes and foes, a valid place to stand. */
   private enterRegion() {
-    this.nodes = this.layout.nodes.map((n) => ({ ...n, depletedUntil: 0 }));
+    this.nodes = this.layout.nodes.map((n) => ({ ...n, depletedUntil: 0, left: this.rollYield(n.def) }));
     // only a few dig spots are disturbed at any time; the rest surface later
     for (const n of this.nodes) if (NODES[n.def].verb === 'Dig' && this.rnd() < 0.75) n.depletedUntil = this.rnd() * NODES[n.def].respawn;
     this.enemies = []; this.drops = []; this.projectiles = []; this.telegraphs = [];
@@ -190,6 +191,12 @@ export class Game {
       const q = this.world.nearestWalkable(this.s.player.x, this.s.player.z, 3);
       [this.s.player.x, this.s.player.z] = q ?? [this.layout.respawn.x, this.layout.respawn.z];
     }
+  }
+
+  /** How many items a fresh tree, rock or bush gives before it runs out (Tom: sometimes 5, sometimes 2 or 3). */
+  private rollYield(def: string) {
+    const y = NODES[def].yield;
+    return y ? y[0] + Math.floor(this.rnd() * (y[1] - y[0] + 1)) : Infinity;
   }
 
   /** Start a trip to another region. With a UI (deferTravel) the loading screen comes up first. */
@@ -408,16 +415,17 @@ export class Game {
     if (!this.path.length) this.msg('You can\'t reach that.', 'warn');
   }
 
-  interact(key: string) {
-    if (this.dead) return;
-    if (key === 'disembark') { this.disembark(); return; }
+  /** Walk to (or sail to) a target and use it. `quiet`: no "can't reach" message; returns whether it's under way. */
+  interact(key: string, quiet = false): boolean {
+    if (this.dead) return false;
+    if (key === 'disembark') { this.disembark(); return true; }
     const t = this.targets().find((x) => x.key === key);
-    if (!t) return;
+    if (!t) return false;
     if (this.action) this.stopAction();
-    if (t.kind === 'enemy') { this.target = Number(key.split(':')[1]); this.pending = null; this.path = []; return; }
+    if (t.kind === 'enemy') { this.target = Number(key.split(':')[1]); this.pending = null; this.path = []; return true; }
     this.target = null;
-    if (Math.hypot(t.x - this.p.x, t.z - this.p.z) <= t.range) { this.perform(t); return; }
-    if (this.p.onShip) { this.sailTo(t.x, t.z); this.pending = key; return; }
+    if (Math.hypot(t.x - this.p.x, t.z - this.p.z) <= t.range) { this.perform(t); return true; }
+    if (this.p.onShip) { this.sailTo(t.x, t.z); this.pending = key; return true; }
     // walk to the nearest reachable point beside the target
     const ang = Math.atan2(this.p.z - t.z, this.p.x - t.x);
     let path: [number, number][] | null = null;
@@ -428,9 +436,10 @@ export class Game {
       path = this.world.findPath(this.p.x, this.p.z, gx, gz);
       if (path) break;
     }
-    if (!path) { this.msg('You can\'t reach that.', 'warn'); return; }
+    if (!path) { if (!quiet) this.msg('You can\'t reach that.', 'warn'); return false; }
     this.path = path;
     this.pending = key;
+    return true;
   }
 
   private perform(t: Target) {
@@ -525,12 +534,27 @@ export class Game {
     }
     if (d.skill) this.addXp(d.skill, catchOf?.xp ?? d.xp);
     if (tool.id !== 'hands') this.wear(this.p.inv.find((x) => x?.id === tool.id), WEAR.tool * (1 - (d.skill ? perkTotal(d.skill, this.level(d.skill), 'tool_care') / 100 : 0)));
-    const lasting = d.skill ? perkTotal(d.skill, this.level(d.skill), 'last') / 100 : 0; // Lasting timber / veins / shoals
-    if (d.depleteChance > 0 && this.rnd() < d.depleteChance * (1 - lasting)) {
+    // each gather uses one of the node's items, unless a Lasting perk spares it
+    const lasting = d.skill ? perkTotal(d.skill, this.level(d.skill), 'last') / 100 : 0;
+    if (d.yield && !(this.rnd() < lasting)) n.left--;
+    if (n.left <= 0) {
       // dig spots wander: they come back after a random while (the sand is disturbed somewhere else meanwhile)
       n.depletedUntil = this.time + d.respawn * (d.verb === 'Dig' ? 0.5 + this.rnd() : 1);
       this.rev++;
       this.stopAction();
+      if (d.verb !== 'Dig') this.carryOn(n);
+    }
+  }
+
+  /** A tree falls or a rock runs dry: walk on to the nearest fresh one of the same kind close by and keep going. */
+  private carryOn(from: NodeRt) {
+    const near = this.nodes
+      .filter((n) => n.def === from.def && n !== from && n.depletedUntil <= this.time && Math.hypot(n.x - this.p.x, n.z - this.p.z) < 12)
+      .sort((a, b) => Math.hypot(a.x - this.p.x, a.z - this.p.z) - Math.hypot(b.x - this.p.x, b.z - this.p.z));
+    // not into a fight: skip anything with an awake foe beside it
+    for (const n of near.slice(0, 3)) {
+      if (this.enemies.some((e) => e.alive && Math.hypot(e.x - n.x, e.z - n.z) < e.def.aggro)) continue;
+      if (this.interact(`node:${n.uid}`, true)) return;
     }
   }
 
@@ -1805,7 +1829,7 @@ export class Game {
     this.stepEnemies(dt);
     this.stepProjectiles(dt);
     this.stepDrops(dt);
-    for (const n of this.nodes) if (n.depletedUntil && n.depletedUntil <= this.time) { n.depletedUntil = 0; this.rev++; }
+    for (const n of this.nodes) if (n.depletedUntil && n.depletedUntil <= this.time) { n.depletedUntil = 0; n.left = this.rollYield(n.def); this.rev++; }
   }
 
   /** Snapshot of persistent state, ready for JSON. */
