@@ -504,6 +504,25 @@ describe('the living island', () => {
     b.done(() => count(g.p.inv, 'ore_copper') + count(g.p.inv, 'ore_tin') >= 1);
     expect(count(g.p.inv, 'ore_copper') + count(g.p.inv, 'ore_tin')).toBeGreaterThanOrEqual(1);
   });
+  it('rocks and trees give 2-5+ items before they run out, then you carry on to the next one by yourself', () => {
+    const g = fresh();
+    g.p.xp.mining = xpForLevel(12); g.give('pickaxe_iron', 1); // below the Lasting and double-haul perks, so the count is exact
+    const rocks = g.nodes.filter((n) => n.def === 'rock_copper');
+    const seen = new Set<number>();
+    for (const r of rocks) { expect(r.left).toBeGreaterThanOrEqual(2); expect(r.left).toBeLessThanOrEqual(5); seen.add(r.left); }
+    expect(seen.size).toBeGreaterThan(1); // not the same every time
+    for (const t of g.nodes.filter((n) => n.def === 'tree_pine')) expect(t.left).toBeGreaterThanOrEqual(3);
+    // mine one rock dry with a single click: every ore it held lands, then the miner walks to the next rock
+    for (const e of g.enemies) if (Math.hypot(e.x - rocks[0].x, e.z - rocks[0].z) < 30) { e.alive = false; e.respawnAt = Infinity; }
+    const first = rocks[0], held = first.left;
+    near(g, first.x, first.z);
+    g.interact(`node:${first.uid}`);
+    expect(run(g, 120, () => first.depletedUntil > g.time)).toBe(true);
+    expect(count(g.p.inv, 'ore_copper')).toBe(held);
+    expect(run(g, 20, () => g.action?.type === 'gather' && (g.action as { node: string }).node !== first.uid)).toBe(true);
+    expect(run(g, 60, () => count(g.p.inv, 'ore_copper') > held)).toBe(true); // still mining, no second click
+  });
+
   it('picks berries bare-handed; kelp-wrapped sprat cooks into better food', () => {
     const g = fresh();
     g.p.inv = g.p.inv.map(() => null); // no tools at all

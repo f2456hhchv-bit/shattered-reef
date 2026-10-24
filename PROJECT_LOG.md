@@ -58,7 +58,7 @@ Reflects the actual repository, not the roadmap.
 | Loadout menu | `ui.ts` renderLoadout | HUD button (L) shows the weapon in hand (red ! when it can't fire): swap weapon, pick spell or ammo, change stance |
 | Fletching (13th skill) | `content.ts` | shortbow + longbow from each of 7 woods (1-95), crossbows, arrows (bar + saltpine), bolts, every metal; perks like Gunsmithing |
 | Items, rarity, affixes | `src/game/data/items.ts`, `sim/gear.ts` | Common/Fine/Rare/Relic; 11 affixes, all applied in `computeStats` |
-| Gathering | `sim/game.ts` | tool power, level, depletion + respawn; shoals need the ship. Each swing fills progress by the success chance (jittered ±25%); an item lands when it's full, so waits stay steady (gold bar over your head) |
+| Gathering | `sim/game.ts` | tool power, level, depletion + respawn; shoals need the ship. Each swing fills progress by the success chance (jittered ±25%); an item lands when it's full, so waits stay steady (gold bar over your head). Every node holds a random number of items, rolled each time it grows back (`NodeDef.yield`): ore rocks and boulders 2-5 (the top three metals 2-4), saltpine 3-6, older trees 4-7+, bushes/kelp/salt 2-4, palms 2-3; fishing spots never run out. When one runs dry you walk on to the nearest fresh one of the same kind within 12 m and keep going (not toward an awake foe). Lasting perks spare an item |
 | Mixed fishing spots | `content.ts` spot()/FISH_LV, `game.ts` pickCatch | a spot holds several fish, each at its own level (RuneScape-style): sprat+mackerel (1/14), bellfish+sea bass (8/26), trout+salmon (20/30), lobster (40), tuna+swordfish (45/50), gloomfish+barracuda (62/68), shark (76), shark+angler (76/85). The best fish you qualify for is tried first (40% at its level, up to 85%). 13 fish, each with its own model |
 | Magic utility | `content.ts` UTILITY_SPELLS | Brine Alchemy (21): item -> 60% of its value in coins; Tide-walk Home (25): teleport to the quay (not in combat, 30 s cooldown). 13 combat spells, 1 to 90 |
 | Crafting | `content.ts` RECIPES | furnace, anvil, cookfire; burn chance; forged gear can roll Fine/Rare |
@@ -112,6 +112,9 @@ Reflects the actual repository, not the roadmap.
   - Gathering [certain]: every swing was an independent roll; at 25% success, 30 s droughts are normal. Now progress-based: 30 min of chopping, longest wait 45.6 s -> 14.5 s, same haul.
   - Geodes [certain]: the item popup had no action for openable items (only clicking with a mouse worked). Crack open / Search / Prise open buttons.
   - Minimap [certain]: its brass rings are drawn 10 px outside the map, which sat 8 px from the edge.
+
+- **2026-10-24, Tom:** "shouldn't have to click after every turn on rocks and trees; they should give more than one item, sometimes 5, sometimes 2 or 3".
+  - Root cause [certain]: ore rocks were RuneScape-style one ore per rock (deplete chance 1); trees had a 15-20% chance per log to fall, so some gave one log. Now each node has a 2-5 style yield and you carry on to the next one automatically. XP per hour is unchanged (it comes from the swing rate); you just click far less.
 
 ## Known issues / limitations
 - Effects are synthesised, music uses real samples; neither has been heard by me (I can't listen) - Tom's ears are the test.

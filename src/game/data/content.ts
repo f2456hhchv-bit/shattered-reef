@@ -31,7 +31,8 @@ export interface NodeDef {
   difficulty: number; // legacy tier hint (kept for saves/tests); success comes from `rate`
   tier: number; // 0 = starter; a tool of matching tier (power tier+1) gives the base rate
   rate: number; // success chance per 2.4 s swing at the level requirement with a matching tool
-  depleteChance: number; // per successful gather
+  /** how many items it gives before it runs out, rolled afresh each time it grows back (null: never runs out) */
+  yield: [number, number] | null;
   respawn: number; // seconds
   verb: string;
   fromShip?: boolean; // only reachable by boat
@@ -49,10 +50,10 @@ export interface NodeDef {
 // 99 in a gathering skill is a few hundred hours, not a weekend. Level and tool raise it (see Game.gatherChance).
 const tree = (t: number, level: number, xp: number, rate: number, respawn: number): NodeDef => {
   const w = WOODS[t];
-  return { id: `tree_${w.key}`, name: w.name, skill: 'woodcutting', level, xp, item: `logs_${w.key}`, difficulty: 0.45 + 0.3 * t, tier: t, rate, depleteChance: t === 0 ? 0.2 : 0.15 - t * 0.01, respawn, verb: 'Chop' };
+  return { id: `tree_${w.key}`, name: w.name, skill: 'woodcutting', level, xp, item: `logs_${w.key}`, difficulty: 0.45 + 0.3 * t, tier: t, rate, yield: t === 0 ? [3, 6] : [4, 6 + Math.ceil(t / 2)], respawn, verb: 'Chop' }; // old trees give more logs
 };
 const rock = (id: string, name: string, item: string, t: number, level: number, xp: number, rate: number, respawn: number): NodeDef =>
-  ({ id, name, skill: 'mining', level, xp, item, difficulty: 0.45 + 0.3 * t, tier: t, rate, depleteChance: 1, respawn, verb: 'Mine' });
+  ({ id, name, skill: 'mining', level, xp, item, difficulty: 0.45 + 0.3 * t, tier: t, rate, yield: t >= 6 ? [2, 4] : [2, 5], respawn, verb: 'Mine' });
 // Fishing level and XP per fish (FISH order). A spot holds one or more of them (RuneScape: trout and salmon share
 // a spot); you catch what your level allows, the best of it more often as you level.
 const FISH_LV: [number, number][] = [[1, 10], [8, 35], [20, 50], [30, 70], [40, 90], [50, 100], [62, 120], [76, 110], [85, 120], [14, 40], [26, 60], [45, 80], [68, 115]];
@@ -62,7 +63,7 @@ const spot = (key: string, fish: number[], rate: number, tool: string, fromShip 
   const names = order.map((t) => FISH[t].name);
   const label = names.length > 1 ? `${names.slice(0, -1).join(', ')} & ${names[names.length - 1]}` : names[0];
   return { id: `spot_${key}`, name: `${label[0].toUpperCase()}${label.slice(1)} ${tool === 'lobster_pot' ? 'pots' : 'shoal'}`, skill: 'fishing', level: catches[0].level, xp: catches[0].xp, item: catches[0].item,
-    catches: catches.length > 1 ? catches : undefined, difficulty: 0.45 + 0.06 * order[0], tier: order[0], rate, depleteChance: 0, respawn: 0, verb: tool === 'lobster_pot' ? 'Set pot' : tool === 'harpoon' ? 'Harpoon' : 'Fish', tool, fromShip: fromShip || undefined };
+    catches: catches.length > 1 ? catches : undefined, difficulty: 0.45 + 0.06 * order[0], tier: order[0], rate, yield: null, respawn: 0, verb: tool === 'lobster_pot' ? 'Set pot' : tool === 'harpoon' ? 'Harpoon' : 'Fish', tool, fromShip: fromShip || undefined };
 };
 export const NODES: Record<string, NodeDef> = Object.fromEntries(([
   tree(0, 1, 25, 0.24, 14), tree(1, 15, 37.5, 0.25, 25), tree(2, 30, 67.5, 0.25, 30), tree(3, 45, 100, 0.22, 40), tree(4, 60, 175, 0.15, 60), tree(5, 75, 250, 0.133, 90), tree(6, 90, 380, 0.105, 120),
@@ -76,12 +77,12 @@ export const NODES: Record<string, NodeDef> = Object.fromEntries(([
   spot('sword', [11, 5], 0.23, 'harpoon', true), spot('gloom', [6, 12], 0.22, 'harpoon'), spot('shark', [7], 0.27, 'harpoon', true), spot('angler', [7, 8], 0.28, 'harpoon', true),
   // the living island: every boulder can be mined, bushes and kelp picked, disturbed sand dug
   { id: 'rock_boulder', name: 'Boulder', skill: 'mining', level: 1, xp: 10, item: 'ore_copper', drops: [{ item: 'ore_copper', w: 1 }, { item: 'ore_tin', w: 1 }], bonus: { item: 'geode', chance: 0.04 },
-    difficulty: 0.45, tier: 0, rate: 0.3, depleteChance: 0.25, respawn: 45, verb: 'Mine' },
-  { id: 'bush_berry', name: 'Bramble bush', level: 1, xp: 0, item: 'berries', difficulty: 0, tier: 0, rate: 0.9, depleteChance: 0.3, respawn: 60, verb: 'Pick' },
-  { id: 'palm', name: 'Coconut palm', level: 1, xp: 0, item: 'coconut', difficulty: 0, tier: 0, rate: 0.7, depleteChance: 0.35, respawn: 70, verb: 'Pick' },
-  { id: 'kelp_bed', name: 'Kelp bed', level: 1, xp: 0, item: 'kelp', difficulty: 0, tier: 0, rate: 0.8, depleteChance: 0.3, respawn: 50, verb: 'Gather', reach: 3.4 },
-  { id: 'salt_pan', name: 'Salt pan', level: 1, xp: 0, item: 'sea_salt', difficulty: 0, tier: 0, rate: 0.6, depleteChance: 0.3, respawn: 90, verb: 'Scrape' },
-  { id: 'dig_spot', name: 'Disturbed sand', level: 1, xp: 0, item: 'coins', loot: 'treasure', tool: 'spade', difficulty: 0, tier: 0, rate: 0.45, depleteChance: 1, respawn: 420, verb: 'Dig' },
+    difficulty: 0.45, tier: 0, rate: 0.3, yield: [2, 5], respawn: 45, verb: 'Mine' },
+  { id: 'bush_berry', name: 'Bramble bush', level: 1, xp: 0, item: 'berries', difficulty: 0, tier: 0, rate: 0.9, yield: [2, 4], respawn: 60, verb: 'Pick' },
+  { id: 'palm', name: 'Coconut palm', level: 1, xp: 0, item: 'coconut', difficulty: 0, tier: 0, rate: 0.7, yield: [2, 3], respawn: 70, verb: 'Pick' },
+  { id: 'kelp_bed', name: 'Kelp bed', level: 1, xp: 0, item: 'kelp', difficulty: 0, tier: 0, rate: 0.8, yield: [2, 4], respawn: 50, verb: 'Gather', reach: 3.4 },
+  { id: 'salt_pan', name: 'Salt pan', level: 1, xp: 0, item: 'sea_salt', difficulty: 0, tier: 0, rate: 0.6, yield: [2, 4], respawn: 90, verb: 'Scrape' },
+  { id: 'dig_spot', name: 'Disturbed sand', level: 1, xp: 0, item: 'coins', loot: 'treasure', tool: 'spade', difficulty: 0, tier: 0, rate: 0.45, yield: [1, 1], respawn: 420, verb: 'Dig' },
 ] as NodeDef[]).map((d) => [d.id, d]));
 
 export type Station = 'furnace' | 'anvil' | 'fire' | 'bench' | 'vent';
