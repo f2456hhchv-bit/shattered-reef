@@ -49,7 +49,8 @@ export interface ItemDef {
   innate?: { id: string; v: number }[]; // traits every copy has (the metal's signature), on top of rolled affixes
 }
 
-const I = (d: ItemDef) => d;
+// food descriptions quote health in the game's ×10 scale ("Heals 5." in the data reads "Heals 50.")
+const I = (d: ItemDef) => (d.heal ? { ...d, desc: d.desc.replace(/Heals (\d+)/, (_, n) => `Heals ${Number(n) * 10}`) } : d);
 /** A weapon's family (older items only say their style). */
 export function weaponKind(d: ItemDef | undefined): WeaponKind {
   const e = d?.equip;
@@ -330,7 +331,7 @@ export const AFFIXES: Record<string, AffixDef> = {
   cleave: { id: 'cleave', prefix: 'Broad', suffix: 'of Sweeping', min: 25, max: 50, fmt: (v) => `Swings also hit nearby foes for ${v}%` },
   elite_dmg: { id: 'elite_dmg', prefix: 'Hunter\'s', suffix: 'of the Hunt', min: 10, max: 25, fmt: (v) => `+${v}% damage to elites and bosses` },
   leech: { id: 'leech', prefix: 'Thirsty', suffix: 'of Leeching', min: 5, max: 12, fmt: (v) => `Heal ${v}% of damage dealt` },
-  max_hp: { id: 'max_hp', prefix: 'Hale', suffix: 'of Vigour', min: 1, max: 4, fmt: (v) => `+${v} max health` },
+  max_hp: { id: 'max_hp', prefix: 'Hale', suffix: 'of Vigour', min: 1, max: 4, fmt: (v) => `+${v * 10} max health` },
   armour: { id: 'armour', prefix: 'Sturdy', suffix: 'of the Bulwark', min: 2, max: 7, fmt: (v) => `+${v} defence against everything` },
   regen: { id: 'regen', prefix: 'Mending', suffix: 'of Mending', min: 1, max: 2, fmt: (v) => `+${v} health every 10s` },
   gather_speed: { id: 'gather_speed', prefix: 'Diligent', suffix: 'of Labour', min: 4, max: 10, fmt: (v) => `+${v}% gathering success` },

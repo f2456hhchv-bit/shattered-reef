@@ -521,6 +521,27 @@ describe('the living island', () => {
     expect(UNLOCKS.mining.filter((u) => u.cat === 'Rocks').every((u) => ITEMS[u.icon!])).toBe(true);
   });
 
+  it('only camps, lairs and late-game foes attack on sight; the rest fight back when hit. Health is x10', () => {
+    const g = fresh();
+    expect(g.stats.maxHp).toBe(100);
+    const crab = g.enemies.find((e) => e.def.id === 'reef_crab')!;
+    for (const e of g.enemies) if (e !== crab) e.alive = false;
+    const q = g.world.nearestWalkable(crab.x + 1.2, crab.z, 2)!; g.p.x = q[0]; g.p.z = q[1];
+    run(g, 5);
+    expect(crab.state).not.toBe('chase'); // a crab minds its own business
+    expect(g.p.hp).toBe(100);
+    g.target = crab.id;
+    run(g, 3, () => crab.state === 'chase' || !crab.alive);
+    expect(crab.state === 'chase' || !crab.alive).toBe(true); // hit it and it fights back
+    const h = fresh();
+    const brig = h.enemies.find((e) => e.def.id === 'brigand')!;
+    expect(brig.def.hostile).toBe(true);
+    for (const e of h.enemies) if (e !== brig) e.alive = false;
+    const r = h.world.nearestWalkable(brig.x + 3, brig.z, 2)!; h.p.x = r[0]; h.p.z = r[1];
+    run(h, 3, () => brig.state === 'chase');
+    expect(brig.state).toBe('chase'); // a brigand guarding his camp comes for you
+  });
+
   it('the pack sorts by type, value and quality', () => {
     const g = fresh();
     g.p.inv = g.p.inv.map(() => null);

@@ -399,7 +399,7 @@ describe('combat skills (RuneScape model)', () => {
   it('a new character is combat level 3 with 10 hitpoints', () => {
     const g = fresh();
     expect(g.level('hitpoints')).toBe(10);
-    expect(g.stats.maxHp).toBe(10);
+    expect(g.stats.maxHp).toBe(100); // health is ×10: 100 at the start, 990 at 99
     expect(combatLevel(levelsOf(g.p.xp))).toBe(3);
   });
 

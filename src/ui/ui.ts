@@ -534,7 +534,7 @@ export class UI {
         const title = chart ? 'The Shattered Reef' : this.game.region.name;
         const note = chart ? 'Sail off the dashed lane at a chart\'s edge to cross between islands. Caves are entered on foot.' : 'Gold star: quest objective. Tap the map to walk there.';
         c.innerHTML = `<div class="row" style="justify-content:space-between;align-items:center;margin-bottom:6px"><h2 class="title" style="margin:0">${title}</h2><span class="seg maptabs">${tabs}</span></div><canvas id="mapbig" width="600" height="600" aria-label="${chart ? 'Sea chart' : 'Map. Tap to walk there.'}"></canvas><p class="muted" style="font-size:12px;margin:8px 0 0">${note}</p>` + this.utilityRow();
-        forget(c); this.bindBigMap(); this.drawBigMap(); break;
+        forget(c); this.bindBigMap(); this.fitBigMap(c); this.drawBigMap(); break;
       }
       case 'settings': morph(c, this.settingsHtml()); break;
     }
@@ -773,7 +773,7 @@ export class UI {
       if (reqs.length) lines.push(`Requires ${reqs.join(', ')}`);
     }
     if (wears(st.id)) { const c = condOf(st); lines.push(c <= 0 ? `Condition: worn out (works at ${Math.round(WORN_OUT_EFFECT * 100)}%). Repair at an anvil.` : `Condition ${Math.round(c)}%`); }
-    if (d.heal) lines.push(`Heals ${d.heal}`);
+    if (d.heal) lines.push(`Heals ${this.game.healOf(d.id)}`);
     if (d.tool) lines.push(`${cap(d.tool.skill)} tool, power ${d.tool.power}${d.tool.level > 1 ? `, needs level ${d.tool.level}` : ''}`);
     // the metal's signature trait first (every copy has it), then the rolled affixes
     const metal = METALS.find((mt) => st.id.endsWith(`_${mt.key}`)), trait = metal && METAL_TRAITS[metal.key];
@@ -934,7 +934,7 @@ export class UI {
 
   private spellButtons(): string {
     const g = this.game, st = g.stats;
-    return SPELLS.map((sp) => `<button data-spell="${sp.id}" class="${st.spell?.id === sp.id ? 'on' : ''}" ${g.level('magic') < sp.level ? 'disabled' : ''}><b>${esc(sp.name)}</b><small>Lv ${sp.level} · max ${sp.maxHit} · ${sp.charms ? `${sp.charms} charm${sp.charms > 1 ? 's' : ''}` : 'free'}</small></button>`).join('');
+    return SPELLS.map((sp) => `<button data-spell="${sp.id}" class="${st.spell?.id === sp.id ? 'on' : ''}" ${g.level('magic') < sp.level ? 'disabled' : ''}><b>${esc(sp.name)}</b><small>Lv ${sp.level} · max ${sp.maxHit * 10} · ${sp.charms ? `${sp.charms} charm${sp.charms > 1 ? 's' : ''}` : 'free'}</small></button>`).join('');
   }
 
   private renderLoadout() {
@@ -1173,6 +1173,16 @@ export class UI {
       c.fillStyle = p.sea ? '#bfefff' : '#ffe9b8'; c.fillText(p.name, x, y - 12);
     }
     this.drawMarkers(c, toPx, 1.6, true);
+  }
+
+  /** The map is square: on a phone's half-height sheet it must shrink to the sheet's height, not run off the bottom. */
+  private fitBigMap(panel: HTMLElement) {
+    const cv = document.getElementById('mapbig') as HTMLCanvasElement | null;
+    if (!cv) return;
+    cv.style.width = '';
+    const p = panel.getBoundingClientRect(), top = cv.getBoundingClientRect().top;
+    const room = p.bottom - top - 12;
+    if (room > 120 && room < cv.getBoundingClientRect().width) { cv.style.width = `${Math.floor(room)}px`; cv.classList.add('fit'); }
   }
 
   private bindBigMap() {

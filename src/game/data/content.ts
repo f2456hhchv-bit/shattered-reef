@@ -4,6 +4,10 @@ import { PERKS, perkText } from './perks';
 // Skills, resource nodes, recipes, shop, spells, enemies, loot. All tunable here.
 
 export type SkillGroup = 'Combat' | 'Gathering' | 'Production';
+/** Health and damage are shown and stored ×10 (Tom: 100 health at the start, 990 at Hitpoints 99, like RuneScape 3's
+ * life points). The data below stays in RuneScape's small numbers; the game multiplies at the point of use. */
+export const HP_SCALE = 10;
+
 export const SKILLS: { id: SkillId; name: string; colour: string; group: SkillGroup; blurb: string }[] = [
   { id: 'attack', name: 'Attack', colour: '#c9584a', group: 'Combat', blurb: 'Melee accuracy. Train with the Accurate stance. Unlocks better weapons.' },
   { id: 'strength', name: 'Strength', colour: '#4f9a52', group: 'Combat', blurb: 'Melee max hit. Train with the Aggressive stance.' },
@@ -214,11 +218,11 @@ function buildUnlocks(): Record<SkillId, Unlock[]> {
     if (!it.equip) continue;
     for (const [k, v] of Object.entries(it.equip.reqs)) if ((v ?? 0) > 1) put(k, v!, ITEMS[it.id].name, madeCat(it.id), it.id);
   }
-  for (const sp of SPELLS) put('magic', sp.level, `${sp.name} (max hit ${sp.maxHit})`, 'Spells', 'charm_tide');
+  for (const sp of SPELLS) put('magic', sp.level, `${sp.name} (max hit ${sp.maxHit * HP_SCALE})`, 'Spells', 'charm_tide');
   for (const x of Object.values(UTILITY_SPELLS)) put('magic', x.level, `${x.name} (${x === UTILITY_SPELLS.alchemy ? 'turn an item into coins' : 'teleport to Bellwether'})`, 'Spells', x === UTILITY_SPELLS.alchemy ? 'coins' : 'charm_tide');
   for (const e of Object.values(ENEMIES)) if (!e.boss) put('attack', Math.max(1, Math.round(e.level * 0.8)), `Fight: ${e.name} (level ${e.level})`, 'Foes');
-  put('hitpoints', 11, '+1 health every level', 'Other');
-  put('strength', 10, 'Max hit +1 roughly every 4 levels', 'Other');
+  put('hitpoints', 11, '+10 health every level', 'Other');
+  put('strength', 10, 'Max hit +10 roughly every 4 levels', 'Other');
   for (const [skill, list] of Object.entries(PERKS)) for (const p of list) put(skill, p.level, `${p.name}: ${perkText(p)}`, 'Perks', undefined, true);
   for (const k of Object.keys(u)) {
     const seen = new Set<string>();
@@ -345,36 +349,38 @@ export interface EnemyDef {
   scale: number;
   look?: EnemyLook;
   boss?: boolean;
+  /** attacks on sight (camps, lairs, late-game zones); everything else only fights back when you attack it */
+  hostile?: boolean;
 }
 
 // OSRS-scale numbers: you start with 10 health; a reef crab hits at most 1.
 export const ENEMIES: Record<string, EnemyDef> = {
   reef_crab: { id: 'reef_crab', name: 'Reef crab', model: 'crab', level: 2, hp: 4, att: 1, def: 1, defBonus: { melee: 10, ranged: 5, magic: -15 }, weakness: 'magic', style: 'melee', accBonus: 0, maxHit: 1,
     speed: 2.4, radius: 0.7, aggro: 6, attack: { kind: 'melee', range: 1.5, windup: 0.45, cooldown: 2.4 }, loot: 'crab', respawn: 20, scale: 1.1 },
-  brigand: { id: 'brigand', name: 'Brigand', model: 'brigand', level: 9, hp: 16, att: 8, def: 6, defBonus: { melee: 10, ranged: -10, magic: 5 }, weakness: 'ranged', style: 'melee', accBonus: 8, maxHit: 3,
+  brigand: { hostile: true, id: 'brigand', name: 'Brigand', model: 'brigand', level: 9, hp: 16, att: 8, def: 6, defBonus: { melee: 10, ranged: -10, magic: 5 }, weakness: 'ranged', style: 'melee', accBonus: 8, maxHit: 3,
     speed: 3.3, radius: 0.45, aggro: 9, attack: { kind: 'melee', range: 1.7, windup: 0.4, cooldown: 2.4 }, loot: 'brigand', respawn: 30, scale: 1.2 },
-  gunner: { id: 'gunner', name: 'Brigand gunner', model: 'gunner', level: 11, hp: 13, att: 12, def: 4, defBonus: { melee: -10, ranged: 15, magic: 5 }, weakness: 'melee', style: 'ranged', accBonus: 12, maxHit: 4,
+  gunner: { hostile: true, id: 'gunner', name: 'Brigand gunner', model: 'gunner', level: 11, hp: 13, att: 12, def: 4, defBonus: { melee: -10, ranged: 15, magic: 5 }, weakness: 'melee', style: 'ranged', accBonus: 12, maxHit: 4,
     speed: 3.0, radius: 0.45, aggro: 12, attack: { kind: 'shot', range: 10, windup: 0.9, cooldown: 3.6, keepAway: 6 }, loot: 'brigand', respawn: 30, scale: 1.2 },
   guardian: { id: 'guardian', name: 'The Lockbound Guardian', model: 'guardian', level: 22, hp: 40, att: 20, def: 8, defBonus: { melee: 15, ranged: 5, magic: -10 }, weakness: 'magic', style: 'melee', accBonus: 15, maxHit: 5,
     speed: 2.2, radius: 1.4, aggro: 30, attack: { kind: 'melee', range: 3.2, windup: 0.8, cooldown: 2.4 }, loot: 'guardian', respawn: 0, scale: 1.0, boss: true },
   // ---- the rest of the island, by zone. Each foe is weak to one style (the combat triangle).
   mire_crab: { id: 'mire_crab', name: 'Mire crab', model: 'crab', look: 'mire', level: 14, hp: 18, att: 10, def: 12, defBonus: { melee: 15, ranged: 10, magic: -10 }, weakness: 'magic', style: 'melee', accBonus: 6, maxHit: 2,
     speed: 2.6, radius: 0.8, aggro: 7, attack: { kind: 'melee', range: 1.6, windup: 0.45, cooldown: 2.4 }, loot: 'mire', respawn: 25, scale: 1.3 },
-  smuggler: { id: 'smuggler', name: 'Smuggler', model: 'brigand', look: 'smuggler', level: 24, hp: 30, att: 22, def: 18, defBonus: { melee: 20, ranged: -5, magic: 10 }, weakness: 'ranged', style: 'melee', accBonus: 18, maxHit: 4,
+  smuggler: { hostile: true, id: 'smuggler', name: 'Smuggler', model: 'brigand', look: 'smuggler', level: 24, hp: 30, att: 22, def: 18, defBonus: { melee: 20, ranged: -5, magic: 10 }, weakness: 'ranged', style: 'melee', accBonus: 18, maxHit: 4,
     speed: 3.4, radius: 0.45, aggro: 9, attack: { kind: 'melee', range: 1.7, windup: 0.4, cooldown: 2.4 }, loot: 'smuggler', respawn: 35, scale: 1.2 },
-  smuggler_gunner: { id: 'smuggler_gunner', name: 'Smuggler gunner', model: 'gunner', look: 'smuggler', level: 28, hp: 26, att: 26, def: 14, defBonus: { melee: -5, ranged: 25, magic: 10 }, weakness: 'melee', style: 'ranged', accBonus: 22, maxHit: 5,
+  smuggler_gunner: { hostile: true, id: 'smuggler_gunner', name: 'Smuggler gunner', model: 'gunner', look: 'smuggler', level: 28, hp: 26, att: 26, def: 14, defBonus: { melee: -5, ranged: 25, magic: 10 }, weakness: 'melee', style: 'ranged', accBonus: 22, maxHit: 5,
     speed: 3.0, radius: 0.45, aggro: 12, attack: { kind: 'shot', range: 10, windup: 0.85, cooldown: 3.4, keepAway: 6 }, loot: 'smuggler', respawn: 35, scale: 1.2 },
   ironshell_crab: { id: 'ironshell_crab', name: 'Ironshell crab', model: 'crab', look: 'ironshell', level: 33, hp: 40, att: 28, def: 38, defBonus: { melee: 40, ranged: 30, magic: -10 }, weakness: 'magic', style: 'melee', accBonus: 20, maxHit: 5,
     speed: 2.2, radius: 0.95, aggro: 7, attack: { kind: 'melee', range: 1.9, windup: 0.55, cooldown: 2.8 }, loot: 'ironshell', respawn: 30, scale: 1.7 },
-  poacher: { id: 'poacher', name: 'Heartwood poacher', model: 'brigand', look: 'poacher', level: 38, hp: 45, att: 36, def: 30, defBonus: { melee: 30, ranged: 0, magic: 20 }, weakness: 'ranged', style: 'melee', accBonus: 30, maxHit: 6,
+  poacher: { hostile: true, id: 'poacher', name: 'Heartwood poacher', model: 'brigand', look: 'poacher', level: 38, hp: 45, att: 36, def: 30, defBonus: { melee: 30, ranged: 0, magic: 20 }, weakness: 'ranged', style: 'melee', accBonus: 30, maxHit: 6,
     speed: 3.5, radius: 0.45, aggro: 10, attack: { kind: 'melee', range: 1.7, windup: 0.4, cooldown: 2.4 }, loot: 'poacher', respawn: 40, scale: 1.2 },
-  poacher_gunner: { id: 'poacher_gunner', name: 'Poacher marksman', model: 'gunner', look: 'poacher', level: 42, hp: 40, att: 42, def: 26, defBonus: { melee: 0, ranged: 35, magic: 20 }, weakness: 'melee', style: 'ranged', accBonus: 38, maxHit: 7,
+  poacher_gunner: { hostile: true, id: 'poacher_gunner', name: 'Poacher marksman', model: 'gunner', look: 'poacher', level: 42, hp: 40, att: 42, def: 26, defBonus: { melee: 0, ranged: 35, magic: 20 }, weakness: 'melee', style: 'ranged', accBonus: 38, maxHit: 7,
     speed: 3.1, radius: 0.45, aggro: 13, attack: { kind: 'shot', range: 11, windup: 0.8, cooldown: 3.2, keepAway: 7 }, loot: 'poacher', respawn: 40, scale: 1.2 },
-  drowned: { id: 'drowned', name: 'Drowned wrecker', model: 'brigand', look: 'drowned', level: 55, hp: 65, att: 52, def: 45, defBonus: { melee: 45, ranged: 40, magic: 0 }, weakness: 'magic', style: 'melee', accBonus: 45, maxHit: 9,
+  drowned: { hostile: true, id: 'drowned', name: 'Drowned wrecker', model: 'brigand', look: 'drowned', level: 55, hp: 65, att: 52, def: 45, defBonus: { melee: 45, ranged: 40, magic: 0 }, weakness: 'magic', style: 'melee', accBonus: 45, maxHit: 9,
     speed: 3.0, radius: 0.5, aggro: 10, attack: { kind: 'melee', range: 1.8, windup: 0.5, cooldown: 2.6 }, loot: 'drowned', respawn: 45, scale: 1.25 },
-  wreck_captain: { id: 'wreck_captain', name: 'Drowned captain', model: 'brigand', look: 'captain', level: 70, hp: 90, att: 66, def: 60, defBonus: { melee: 60, ranged: 25, magic: 45 }, weakness: 'ranged', style: 'melee', accBonus: 60, maxHit: 12,
+  wreck_captain: { hostile: true, id: 'wreck_captain', name: 'Drowned captain', model: 'brigand', look: 'captain', level: 70, hp: 90, att: 66, def: 60, defBonus: { melee: 60, ranged: 25, magic: 45 }, weakness: 'ranged', style: 'melee', accBonus: 60, maxHit: 12,
     speed: 3.2, radius: 0.6, aggro: 11, attack: { kind: 'melee', range: 2.0, windup: 0.55, cooldown: 2.6 }, loot: 'captain', respawn: 90, scale: 1.45 },
-  stone_sentinel: { id: 'stone_sentinel', name: 'Stone sentinel', model: 'guardian', look: 'sentinel', level: 80, hp: 110, att: 75, def: 80, defBonus: { melee: 70, ranged: 60, magic: 10 }, weakness: 'magic', style: 'melee', accBonus: 70, maxHit: 14,
+  stone_sentinel: { hostile: true, id: 'stone_sentinel', name: 'Stone sentinel', model: 'guardian', look: 'sentinel', level: 80, hp: 110, att: 75, def: 80, defBonus: { melee: 70, ranged: 60, magic: 10 }, weakness: 'magic', style: 'melee', accBonus: 70, maxHit: 14,
     speed: 1.9, radius: 1.2, aggro: 9, attack: { kind: 'melee', range: 2.8, windup: 0.8, cooldown: 3.0 }, loot: 'sentinel', respawn: 120, scale: 0.8 },
   // ---- Sunreach and the caves (stage 2): beasts with their own bodies
   cave_spider: { id: 'cave_spider', name: 'Cave spider', model: 'spider', look: 'cave', level: 16, hp: 18, att: 14, def: 10, defBonus: { melee: 5, ranged: 10, magic: -15 }, weakness: 'magic', style: 'melee', accBonus: 10, maxHit: 3,
@@ -383,9 +389,9 @@ export const ENEMIES: Record<string, EnemyDef> = {
     speed: 4.0, radius: 0.7, aggro: 6, attack: { kind: 'melee', range: 1.7, windup: 0.5, cooldown: 2.6 }, loot: 'boar', respawn: 30, scale: 1.0 },
   jungle_snake: { id: 'jungle_snake', name: 'Gold-banded snake', model: 'snake', look: 'jungle', level: 30, hp: 28, att: 32, def: 16, defBonus: { melee: -10, ranged: 25, magic: 15 }, weakness: 'melee', style: 'melee', accBonus: 26, maxHit: 5,
     speed: 2.8, radius: 0.5, aggro: 6, attack: { kind: 'melee', range: 1.9, windup: 0.3, cooldown: 2.2 }, loot: 'snake', respawn: 30, scale: 1.4 },
-  giant_spider: { id: 'giant_spider', name: 'Giant weaver', model: 'spider', look: 'giant', level: 46, hp: 55, att: 44, def: 36, defBonus: { melee: 35, ranged: 40, magic: -10 }, weakness: 'magic', style: 'melee', accBonus: 36, maxHit: 8,
+  giant_spider: { hostile: true, id: 'giant_spider', name: 'Giant weaver', model: 'spider', look: 'giant', level: 46, hp: 55, att: 44, def: 36, defBonus: { melee: 35, ranged: 40, magic: -10 }, weakness: 'magic', style: 'melee', accBonus: 36, maxHit: 8,
     speed: 3.4, radius: 1.0, aggro: 9, attack: { kind: 'melee', range: 2.2, windup: 0.45, cooldown: 2.4 }, loot: 'spider', respawn: 45, scale: 1.7 },
-  ember_snake: { id: 'ember_snake', name: 'Ember asp', model: 'snake', look: 'ember', level: 54, hp: 60, att: 52, def: 40, defBonus: { melee: -5, ranged: 45, magic: 30 }, weakness: 'melee', style: 'ranged', accBonus: 46, maxHit: 9,
+  ember_snake: { hostile: true, id: 'ember_snake', name: 'Ember asp', model: 'snake', look: 'ember', level: 54, hp: 60, att: 52, def: 40, defBonus: { melee: -5, ranged: 45, magic: 30 }, weakness: 'melee', style: 'ranged', accBonus: 46, maxHit: 9,
     speed: 2.6, radius: 0.6, aggro: 11, attack: { kind: 'shot', range: 9, windup: 0.7, cooldown: 3.0, keepAway: 4 }, loot: 'ember', respawn: 50, scale: 1.7 },
   temple_serpent: { id: 'temple_serpent', name: 'The Sunscale', model: 'snake', look: 'sunscale', boss: true, level: 60, hp: 170, att: 58, def: 42, defBonus: { melee: 40, ranged: 10, magic: 30 }, weakness: 'ranged', style: 'melee', accBonus: 50, maxHit: 9,
     speed: 2.7, radius: 1.5, aggro: 20, attack: { kind: 'melee', range: 3.5, windup: 0.6, cooldown: 3 }, loot: 'serpent', respawn: 0, scale: 3.0 },
