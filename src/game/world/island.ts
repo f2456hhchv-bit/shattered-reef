@@ -67,9 +67,15 @@ export const LAYOUT = {
   camp: { x: 48, z: 16 }, // Brigand Camp
   cove: at(36, 13), // Smugglers' Cove on the SE headland
   wreck: at(316, 10), // Wreckers' Point, NE
+  summit: { x: 2, z: -60 }, // Ironcrag's summit: the vent forge and Cinderite
+  starfall: { x: 21, z: -40 }, // where the star came down, between the peak and the Ring
+  islet: at(215, -42), // Leviathan's Rest, an islet off the north-west coast
+  spire: at(240, -34), // the Drowned Spire, mined from the deck
 };
 
 const L = LAYOUT;
+/** Offshore islets: land you reach by ship. */
+export const ISLETS = [{ x: L.islet.x, z: L.islet.z, r: 13 }];
 export const LAGOON = { x: -34, z: -22, r: 9 };
 
 export const FLATS: Flat[] = [
@@ -85,6 +91,7 @@ export const FLATS: Flat[] = [
   { x: L.village.x - 19, z: L.village.z + 3, r: 3.6, h: 'auto' },
   { x: L.village.x + 21, z: L.village.z - 7, r: 3.6, h: 'auto' },
   { x: L.peak.x + 6, z: L.peak.z + 20, r: 5.5, h: 'auto' },
+  { x: L.summit.x, z: L.summit.z, r: 4.5, h: 'auto' }, // the vent forge stands on a levelled summit
 ];
 
 export const HILLS: Hill[] = [
@@ -109,6 +116,8 @@ export const PATHS: PathDef[] = [
   { width: 1.3, pts: [[0, X.z], [-14, X.z - 2], [F.x + 9, F.z + 3], [F.x, F.z], [F.x - 4, F.z - 14], [LAGOON.x + LAGOON.r + 4, LAGOON.z + 6], [HW.x + 12, HW.z + 14], [HW.x, HW.z]] },
   // north road: Copperback Hills -> foot of Ironcrag
   { width: 1.3, pts: [[0, X.z], [5, X.z - 14], [CH.x - 7, CH.z + 7], [CH.x - 5, CH.z - 6], [M.x + 6, M.z + 22], [M.x + 3, M.z + 13]] },
+  // a switchback trail from the Ironcrag camp up to the summit
+  { width: 1.0, pts: [[M.x + 3, M.z + 13], [M.x - 6, M.z + 6], [M.x + 4, M.z - 1], [L.summit.x, L.summit.z + 3]] },
   // hills -> Broken Ring -> Wreckers' Point
   { width: 1.1, pts: [[CH.x - 5, CH.z - 6], [R.x - 10, R.z + 12], [R.x, R.z + 7]] },
   { width: 1.1, pts: [[R.x + 7, R.z], [W.x - 8, W.z + 8], [W.x, W.z]] },
@@ -179,6 +188,14 @@ function shapedHeight(x: number, z: number, levelled: boolean): number {
     const p = nearestPathDist(x, z);
     h -= (1 - smooth(p.d, p.width * 0.5, p.width + 1.5)) * 0.12;
   }
+  for (const is of ISLETS) {
+    const a = Math.atan2(z - is.z, x - is.x);
+    const di = is.r + Math.sin(a * 3 + 1) * 1.6 + Math.sin(a * 5) * 0.8 - Math.hypot(x - is.x, z - is.z);
+    if (di < -12) continue;
+    // a sandy beach rising to a low, rocky crown (same shoreline profile as the main island)
+    const hi = di > 0 ? 0.05 + 0.3 * (1 - Math.exp(-di / 1.1)) + smooth(di, 2, 9) * (0.7 + n * 0.8) : 0.05 + di * 0.35;
+    h = Math.max(h, hi);
+  }
   return h;
 }
 
@@ -207,6 +224,10 @@ export const PLACES: Place[] = [
   { id: 'peak', name: 'Ironcrag', x: M.x, z: M.z + 6, r: 20 },
   { id: 'cove', name: 'Smugglers\' Cove', x: SC.x, z: SC.z, r: 12 },
   { id: 'wreck', name: 'Wreckers\' Point', x: W.x, z: W.z, r: 13 },
+  { id: 'summit', name: 'Ironcrag Summit', x: L.summit.x, z: L.summit.z, r: 7 },
+  { id: 'starfall', name: 'Starfall', x: L.starfall.x, z: L.starfall.z, r: 9 },
+  { id: 'islet', name: 'Leviathan\'s Rest', x: L.islet.x, z: L.islet.z, r: 16 },
+  { id: 'spire', name: 'The Drowned Spire', x: L.spire.x, z: L.spire.z, r: 14, sea: true },
   ...([['shallows', 'Bellfish Shallows', 20, -16], ['swordrun', 'Swordfish Run', 60, -23], ['deeps', 'Shark Deeps', 255, -26], ['trench', 'Angler\'s Trench', 165, -28]] as const)
     .map(([id, name, a, i]) => { const [x, z] = coastPoint(a, i); return { id, name, x, z, r: 16, sea: true }; }),
 ];

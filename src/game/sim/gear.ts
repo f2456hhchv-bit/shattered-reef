@@ -2,6 +2,7 @@ import { item, AFFIXES, RARITY, type Rarity, type Slot, type SkillId, type Comba
 import { SPELLS } from '../data/content';
 import { condOf, WORN_OUT_EFFECT, type Inst, type Stack } from './inventory';
 import { levelForXp } from './xp';
+import { perkTotal } from '../data/perks';
 
 export function rollRarity(weights: Partial<Record<Rarity, number>>, rnd: () => number): Rarity {
   const entries = Object.entries(weights) as [Rarity, number][];
@@ -76,6 +77,11 @@ export interface PlayerStats {
   regen: number; // per 10s
   gather: number;
   xpBonus: number;
+  seaDmg: number; // vs crabs and the Drowned
+  dr: number; // 0..1 damage reduction (defence perks)
+  healBonus: number; // food heals this much more (fraction)
+  ammoSave: number; // chance a shot isn't used
+  charmSave: number; // chance a spell's charms aren't used
   /** which skills receive the 4 xp/damage */
   trains: SkillId[];
 }
@@ -88,7 +94,7 @@ export function computeStats(xp: Record<SkillId, number>, equip: Partial<Record<
   const style: CombatStyle = weapon?.style ?? 'melee';
   let acc = 0, str = 0, rangedStr = 0, magicDmg = 0;
   const def: Record<CombatStyle, number> = { melee: 0, ranged: 0, magic: 0 };
-  let dmgPct = 0, speedPct = 0, crit = 0, cleave = 0, eliteDmg = 0, leech = 0, regen = 0, gather = 0, xpBonus = 0, hpBonus = 0, accAffix = 0;
+  let dmgPct = 0, speedPct = 0, crit = 0, cleave = 0, eliteDmg = 0, leech = 0, regen = 0, gather = 0, xpBonus = 0, hpBonus = 0, accAffix = 0, seaDmg = 0;
   for (const [slot, st] of Object.entries(equip) as [Slot, Stack][]) {
     const e = st && item(st.id).equip;
     if (!e) continue;
@@ -98,8 +104,10 @@ export function computeStats(xp: Record<SkillId, number>, equip: Partial<Record<
     if (slot === 'ammo' && style === 'ranged') rangedStr += sum(b.rangedStr);
     magicDmg += sum(b.magicDmg) * k;
     def.melee += sum(b.defMelee) * k; def.ranged += sum(b.defRanged) * k; def.magic += sum(b.defMagic) * k;
-    for (const a of st.inst?.affixes ?? []) {
+    // the metal's signature trait counts like an affix (gathering traits only matter on tools, which aren't worn)
+    for (const a of [...(item(st.id).innate ?? []), ...(st.inst?.affixes ?? [])]) {
       switch (a.id) {
+        case 'sea_dmg': seaDmg += a.v / 100; break;
         case 'dmg_pct': dmgPct += a.v; break;
         case 'accuracy': accAffix += a.v; break;
         case 'atk_speed': speedPct += a.v; break;
@@ -136,6 +144,14 @@ export function computeStats(xp: Record<SkillId, number>, equip: Partial<Record<
     maxHit = Math.floor(spell.maxHit * (1 + magicDmg / 100) + (L.magic >= spell.level + 10 ? 1 : 0));
     trains = stance === 'defensive' ? ['magic', 'defence'] : ['magic'];
   }
+  // perks from the skills this style uses
+  const accSkill: SkillId = style === 'melee' ? 'attack' : style, dmgSkill: SkillId = style === 'melee' ? 'strength' : style;
+  attRoll = Math.round(attRoll * (1 + perkTotal(accSkill, L[accSkill], 'acc') / 100));
+  dmgPct += perkTotal(dmgSkill, L[dmgSkill], 'dmg');
+  crit += perkTotal(accSkill, L[accSkill], 'crit') / 100;
+  if (style === 'melee') cleave = Math.max(cleave, perkTotal('strength', L.strength, 'cleave') / 100);
+  regen += perkTotal('hitpoints', L.hitpoints, 'regen');
+  hpBonus += perkTotal('hitpoints', L.hitpoints, 'hp');
   maxHit = Math.max(1, Math.floor(maxHit * (1 + dmgPct / 100)));
   const baseSpeed = weapon?.speed ?? 2.4;
   return {
@@ -157,6 +173,11 @@ export function computeStats(xp: Record<SkillId, number>, equip: Partial<Record<
     regen,
     gather,
     xpBonus,
+    seaDmg,
+    dr: perkTotal('defence', L.defence, 'dr') / 100,
+    healBonus: (perkTotal('hitpoints', L.hitpoints, 'heal') + perkTotal('cooking', L.cooking, 'heal')) / 100,
+    ammoSave: perkTotal('ranged', L.ranged, 'ammo') / 100,
+    charmSave: perkTotal('magic', L.magic, 'charms') / 100,
     trains,
   };
 }

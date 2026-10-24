@@ -108,20 +108,21 @@ export function buildToy(look: HumanoidLook, buildHeld: (held: THREE.Group, body
   for (const s of [-1, 1]) { const ear = mk(sph(0.06), skin); ear.scale.set(0.5, 0.95, 0.75); head.add(put(ear, 0.355 * s, 0.33, -0.02)); }
   const nose = mk(sph(0.035), skin);
   nose.scale.set(1.1, 0.8, 0.8);
-  head.add(put(nose, 0, 0.225, 0.31));
+  head.add(put(nose, 0, 0.29, 0.305));
   for (const s of [-1, 1]) {
-    const eye = mk(sph(0.1, 22, 18), EYE, false);
-    eye.scale.set(0.8, 1.0, 0.38);
-    head.add(put(eye, 0.15 * s, 0.31, 0.275));
-    head.add(put(mk(sph(0.022, 10, 8), SHINE, false), 0.15 * s - 0.03, 0.355, 0.31));
-    head.add(put(mk(sph(0.01, 8, 6), SHINE, false), 0.15 * s + 0.03, 0.27, 0.308));
+    // small glossy eyes (Tom preferred these to big Funko eyes)
+    const eye = mk(sph(0.075, 20, 16), EYE, false);
+    eye.scale.set(0.82, 1.0, 0.42);
+    head.add(put(eye, 0.135 * s, 0.33, 0.27));
+    head.add(put(mk(sph(0.017, 10, 8), SHINE, false), 0.135 * s - 0.022, 0.365, 0.302));
+    head.add(put(mk(sph(0.008, 8, 6), SHINE, false), 0.135 * s + 0.025, 0.3, 0.3));
     // brows: thick and readable; set a little stern for men, softer for women
-    const brow = mk(cap(0.02, 0.1), vinyl(look.hair));
-    head.add(put(brow, 0.15 * s, 0.46, 0.29, 0, 0, Math.PI / 2 + s * (female ? -0.12 : 0.18)));
+    const brow = mk(cap(0.017, 0.08), vinyl(look.hair));
+    head.add(put(brow, 0.135 * s, 0.45, 0.285, 0, 0, Math.PI / 2 + s * (female ? -0.12 : 0.18)));
     if (female) { const blush = mk(sph(0.04, 12, 8), new THREE.MeshBasicMaterial({ color: 0xe88a7a, transparent: true, opacity: 0.45 }), false); blush.scale.set(1.2, 0.6, 0.2); head.add(put(blush, 0.2 * s, 0.24, 0.27)); }
   }
   const mouth = mk(new THREE.TorusGeometry(0.035, 0.008, 6, 12, Math.PI), new THREE.MeshBasicMaterial({ color: 0x3a1a14 }), false);
-  head.add(put(mouth, 0, 0.16, 0.29, 0, 0, Math.PI));
+  head.add(put(mouth, 0, 0.215, 0.3, 0, 0, Math.PI));
 
   // hair: a chunky cap over the crown and back, plus a few big locks
   const hairM = vinyl(look.hair, 0.4);
@@ -153,7 +154,7 @@ export function buildToy(look: HumanoidLook, buildHeld: (held: THREE.Group, body
     for (const s of [-1, 1]) head.add(put(mk(cap(0.03, 0.07), hairM), 0.05 * s, 0.245, 0.31, 0, 0, Math.PI / 2 + s * 0.35));
   }
   if (look.spectacles) {
-    for (const s of [-1, 1]) head.add(put(mk(new THREE.TorusGeometry(0.105, 0.012, 8, 24), vinyl('brass', 0.8), false), 0.15 * s, 0.31, 0.315));
+    for (const s of [-1, 1]) head.add(put(mk(new THREE.TorusGeometry(0.085, 0.011, 8, 24), vinyl('brass', 0.8), false), 0.135 * s, 0.33, 0.31));
     head.add(put(mk(cap(0.008, 0.05), vinyl('brass', 0.8), false), 0, 0.345, 0.315, 0, 0, Math.PI / 2));
   }
   const style = look.hatStyle ?? 'tricorn';

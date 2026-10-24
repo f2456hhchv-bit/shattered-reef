@@ -6,7 +6,7 @@ export type SkillId =
   | 'smithing' | 'gunsmithing' | 'cooking';
 export type CombatStyle = 'melee' | 'ranged' | 'magic';
 export type Slot = 'weapon' | 'ammo' | 'head' | 'body' | 'ring';
-export type IconShape = 'log' | 'ore' | 'bar' | 'fish' | 'meat' | 'coins' | 'bread' | 'hatchet' | 'pickaxe' | 'rod' | 'cutlass' | 'helm' | 'cap' | 'coat' | 'plate' | 'ring' | 'bell' | 'tooth' | 'shell' | 'burnt' | 'pistol' | 'shot' | 'staff' | 'charm' | 'harpoon' | 'pot' | 'lobster' | 'berries' | 'kelp' | 'geode' | 'spade' | 'parcel';
+export type IconShape = 'log' | 'ore' | 'bar' | 'fish' | 'meat' | 'coins' | 'bread' | 'hatchet' | 'pickaxe' | 'rod' | 'cutlass' | 'helm' | 'cap' | 'coat' | 'plate' | 'ring' | 'bell' | 'tooth' | 'shell' | 'burnt' | 'pistol' | 'shot' | 'staff' | 'charm' | 'harpoon' | 'pot' | 'lobster' | 'berries' | 'kelp' | 'geode' | 'spade' | 'parcel' | 'ash' | 'salt' | 'crystal' | 'nest' | 'casket';
 
 /** RuneScape-style equipment bonuses. Accuracy applies to the weapon's own style. */
 export interface Bonuses {
@@ -39,6 +39,7 @@ export interface ItemDef {
   };
   quest?: boolean;
   opens?: string; // using it rolls this loot table (geodes)
+  innate?: { id: string; v: number }[]; // traits every copy has (the metal's signature), on top of rolled affixes
 }
 
 const I = (d: ItemDef) => d;
@@ -56,13 +57,32 @@ export const METALS = [
   { key: 'storm', name: 'Stormsilver', color: '#86b6dc', req: 30, toolReq: 30 },
   { key: 'abyss', name: 'Abyssite', color: '#3f7a66', req: 40, toolReq: 40 },
   { key: 'tide', name: 'Tidecore', color: '#3cc6c4', req: 50, toolReq: 50 },
+  { key: 'cinder', name: 'Cinderite', color: '#b8452a', req: 60, toolReq: 60 },
+  { key: 'sky', name: 'Skyglass', color: '#8a7ae0', req: 70, toolReq: 70 },
+  { key: 'levi', name: 'Leviathite', color: '#d8cdb4', req: 80, toolReq: 80 },
+  { key: 'ori', name: 'Orichalcum', color: '#e0a33a', req: 90, toolReq: 90 },
 ] as const;
-const CUT = { acc: [9, 14, 21, 30, 40, 52], str: [8, 13, 20, 29, 39, 51] };
-const HELM = [5, 8, 12, 17, 23, 30];
-const PLATE = [14, 21, 32, 46, 62, 80];
-const SHOT_STR = [7, 13, 20, 28, 37, 47];
-const PISTOL = { acc: [10, 22, 32, 44, 58, 72], req: [1, 15, 25, 35, 45, 55], range: [9, 10, 10, 11, 11, 12] };
-const BAR_VALUE = [18, 40, 70, 140, 280, 560];
+const CUT = { acc: [9, 14, 21, 30, 40, 52, 64, 77, 90, 104], str: [8, 13, 20, 29, 39, 51, 63, 76, 89, 103] };
+const HELM = [5, 8, 12, 17, 23, 30, 37, 45, 53, 62];
+const PLATE = [14, 21, 32, 46, 62, 80, 98, 118, 140, 164];
+const SHOT_STR = [7, 13, 20, 28, 37, 47, 57, 68, 80, 92];
+const PISTOL = { acc: [10, 22, 32, 44, 58, 72, 86, 100, 115, 130], req: [1, 15, 25, 35, 45, 55, 65, 75, 85, 92], range: [9, 10, 10, 11, 11, 12, 12, 13, 13, 14] };
+const BAR_VALUE = [18, 40, 70, 140, 280, 560, 900, 1400, 2200, 3400];
+/**
+ * Each metal has a signature trait, so a higher tier is a choice as well as an upgrade: weapons (and pistols)
+ * get the first, armour the second, tools gather faster from Stormsilver up. Values use the affix scale.
+ */
+export const METAL_TRAITS: Record<string, { weapon: { id: string; v: number }[]; armour: { id: string; v: number }[]; blurb: string }> = {
+  steel: { weapon: [{ id: 'durable', v: 40 }], armour: [{ id: 'durable', v: 40 }], blurb: 'Tough: wears 40% slower' },
+  storm: { weapon: [{ id: 'atk_speed', v: 6 }], armour: [{ id: 'atk_speed', v: 2 }], blurb: 'Crackling: strikes come faster' },
+  abyss: { weapon: [{ id: 'leech', v: 4 }], armour: [{ id: 'regen', v: 1 }], blurb: 'Thirsting: heals the wielder' },
+  tide: { weapon: [{ id: 'sea_dmg', v: 15 }], armour: [{ id: 'max_hp', v: 3 }], blurb: 'Sea-bane: bites harder into crabs and the Drowned' },
+  cinder: { weapon: [{ id: 'crit', v: 5 }], armour: [{ id: 'armour', v: 4 }], blurb: 'Smouldering: blows land at full force more often' },
+  sky: { weapon: [{ id: 'accuracy', v: 12 }], armour: [{ id: 'xp_bonus', v: 2 }], blurb: 'Starlit: rarely misses' },
+  levi: { weapon: [{ id: 'dmg_pct', v: 6 }], armour: [{ id: 'max_hp', v: 6 }], blurb: 'Leviathan-bone: heavy and unbreakable' },
+  ori: { weapon: [{ id: 'dmg_pct', v: 5 }, { id: 'atk_speed', v: 5 }], armour: [{ id: 'armour', v: 6 }, { id: 'max_hp', v: 4 }], blurb: 'Sunken gold: the best of everything' },
+};
+const toolTrait = (m: number) => (m >= 3 ? [{ id: 'gather_speed', v: (m - 2) * 2 }] : undefined);
 
 export const WOODS = [
   { key: 'pine', name: 'Saltpine', color: '#8a6440', accent: '#d6b07a', value: 4 },
@@ -92,31 +112,43 @@ const ORES = [
   { id: 'ore_storm', name: 'Stormsilver ore', desc: 'Crackles faintly when you hold it.', accent: '#8fc0e8', value: 70 },
   { id: 'ore_abyss', name: 'Abyssite ore', desc: 'Green-black, cold as deep water.', accent: '#3f8f6e', value: 120 },
   { id: 'ore_tide', name: 'Tidecore ore', desc: 'It pulls toward the sea like a compass needle.', accent: '#3fd8d0', value: 220 },
+  { id: 'ore_cinder', name: 'Cinderite ore', desc: 'Still warm from the vent. Only volcanic heat will melt it.', accent: '#e0582a', value: 340 },
+  { id: 'ore_sky', name: 'Skyglass ore', desc: 'A shard of the fallen star. It hums when you hold it to the sky.', accent: '#a99aff', value: 520 },
+  { id: 'ore_levi', name: 'Leviathite', desc: 'Bone turned to metal over a thousand years on the seabed.', accent: '#efe6cf', value: 800 },
+  { id: 'ore_ori', name: 'Orichalcum ore', desc: 'Sunken gold from the drowned spire. It never tarnishes.', accent: '#f2b84a', value: 1200 },
 ];
 
 function tierItems(): ItemDef[] {
   const out: ItemDef[] = [];
   for (const o of ORES) out.push(I({ id: o.id, name: o.name, desc: o.desc, icon: { shape: 'ore', color: '#55524f', accent: o.accent }, stackable: true, value: o.value }));
+  // fluxes: the higher metals need something from another skill
+  out.push(I({ id: 'kelp_ash', name: 'Kelp ash', desc: 'Burnt kelp. Smiths use it as flux for Abyssite.', icon: { shape: 'ash', color: '#6a6a5a', accent: '#a8a890' }, stackable: true, value: 12 }));
+  out.push(I({ id: 'sea_salt', name: 'Sea salt', desc: 'Scraped from the salt pans. Tidecore and Leviathite need it to smelt clean.', icon: { shape: 'salt', color: '#efeae0' }, stackable: true, value: 15 }));
+  out.push(I({ id: 'crystal_geode', name: 'Geode crystal', desc: 'A clear crystal from a cracked geode. Skyglass and Orichalcum will not smelt without one.', icon: { shape: 'crystal', color: '#9fe8ff' }, stackable: true, value: 120 }));
+  // rare finds from the gathering perks
+  out.push(I({ id: 'bird_nest', name: 'Bird\'s nest', desc: 'Knocked from the branches. Something glints inside. Use it to search it.', icon: { shape: 'nest', color: '#7a5a34', accent: '#e9e3d0' }, stackable: true, value: 30, opens: 'nest' }));
+  out.push(I({ id: 'casket', name: 'Sunken casket', desc: 'Barnacled and locked with rust. Use it to prise it open.', icon: { shape: 'casket', color: '#5a4030', accent: '#c9a050' }, stackable: true, value: 60, opens: 'treasure' }));
   out.push(I({ id: 'bar_gold', name: 'Gold bar', desc: 'Too soft for blades. Perfect for rings.', icon: { shape: 'bar', color: '#e3c25e' }, stackable: true, value: 90 }));
   out.push(I({ id: 'ring_gold', name: 'Gold signet', desc: 'Smith-made. Gold takes enchantment well.', icon: { shape: 'ring', color: '#e3c25e', accent: '#d8442a' }, stackable: false, value: 160,
     equip: { slot: 'ring', reqs: { defence: 1 }, bonus: { acc: 2, defMelee: 1, defRanged: 1, defMagic: 2 }, affixPool: ['gather_speed', 'xp_bonus', 'crit', 'max_hp', 'dmg_pct', 'accuracy', 'regen'] } }));
   METALS.forEach((mt, m) => {
-    const col = mt.color, nm = mt.name;
+    const col = mt.color, nm = mt.name, tr = METAL_TRAITS[mt.key];
+    const wTrait = tr?.weapon, aTrait = tr?.armour, tTrait = toolTrait(m);
     if (m >= 2) out.push(I({ id: `bar_${mt.key}`, name: `${nm} bar`, desc: `A bar of ${nm.toLowerCase()}.`, icon: { shape: 'bar', color: col }, stackable: true, value: BAR_VALUE[m] }));
     if (m >= 2) {
-      out.push(I({ id: `hatchet_${mt.key}`, name: `${nm} hatchet`, desc: 'A better edge fells trees faster.', icon: { shape: 'hatchet', color: col }, stackable: false, value: BAR_VALUE[m] * 2, tool: { skill: 'woodcutting', power: m + 1, level: mt.toolReq } }));
-      out.push(I({ id: `pickaxe_${mt.key}`, name: `${nm} pickaxe`, desc: 'A harder point bites harder rock.', icon: { shape: 'pickaxe', color: col }, stackable: false, value: BAR_VALUE[m] * 2, tool: { skill: 'mining', power: m + 1, level: mt.toolReq } }));
+      out.push(I({ id: `hatchet_${mt.key}`, name: `${nm} hatchet`, desc: 'A better edge fells trees faster.', icon: { shape: 'hatchet', color: col }, stackable: false, value: BAR_VALUE[m] * 2, tool: { skill: 'woodcutting', power: m + 1, level: mt.toolReq }, innate: tTrait }));
+      out.push(I({ id: `pickaxe_${mt.key}`, name: `${nm} pickaxe`, desc: 'A harder point bites harder rock.', icon: { shape: 'pickaxe', color: col }, stackable: false, value: BAR_VALUE[m] * 2, tool: { skill: 'mining', power: m + 1, level: mt.toolReq }, innate: tTrait }));
       out.push(I({ id: `cutlass_${mt.key}`, name: `${nm} cutlass`, desc: `A ${nm.toLowerCase()} blade, balanced for boarding fights.`, icon: { shape: 'cutlass', color: col }, stackable: false, value: BAR_VALUE[m] * 3,
-        equip: { slot: 'weapon', reqs: { attack: mt.req }, style: 'melee', speed: 2.4, bonus: { acc: CUT.acc[m], str: CUT.str[m] }, affixPool: [...MELEE_AFFIX, 'leech'] } }));
+        equip: { slot: 'weapon', reqs: { attack: mt.req }, style: 'melee', speed: 2.4, bonus: { acc: CUT.acc[m], str: CUT.str[m] }, affixPool: [...MELEE_AFFIX, 'leech'] }, innate: wTrait }));
       out.push(I({ id: `shot_${mt.key}`, name: `${nm} shot`, desc: 'Pistol balls. Equip in the ammo slot.', icon: { shape: 'shot', color: col }, stackable: true, value: Math.ceil(BAR_VALUE[m] / 12),
         equip: { slot: 'ammo', reqs: { ranged: mt.req }, bonus: { rangedStr: SHOT_STR[m] }, affixPool: [] } }));
       out.push(I({ id: `pistol_${mt.key}`, name: `${nm} pistol`, desc: 'Fires shot from your ammo slot.', icon: { shape: 'pistol', color: '#5a3e28', accent: col }, stackable: false, value: BAR_VALUE[m] * 3,
-        equip: { slot: 'weapon', reqs: { ranged: PISTOL.req[m] }, style: 'ranged', speed: 2.4, range: PISTOL.range[m], bonus: { acc: PISTOL.acc[m] }, affixPool: RANGED_AFFIX } }));
+        equip: { slot: 'weapon', reqs: { ranged: PISTOL.req[m] }, style: 'ranged', speed: 2.4, range: PISTOL.range[m], bonus: { acc: PISTOL.acc[m] }, affixPool: RANGED_AFFIX }, innate: wTrait }));
     }
     if (m >= 1) out.push(I({ id: `helm_${mt.key}`, name: `${nm} helm`, desc: 'Good against blades, poor against spells.', icon: { shape: 'helm', color: col }, stackable: false, value: BAR_VALUE[m] * 2,
-      equip: { slot: 'head', reqs: { defence: mt.req }, bonus: { defMelee: HELM[m], defRanged: Math.round(HELM[m] * 0.85), defMagic: -1 - m }, affixPool: ARMOUR_AFFIX } }));
+      equip: { slot: 'head', reqs: { defence: mt.req }, bonus: { defMelee: HELM[m], defRanged: Math.round(HELM[m] * 0.85), defMagic: -1 - m }, affixPool: ARMOUR_AFFIX }, innate: aTrait }));
     out.push(I({ id: `plate_${mt.key}`, name: `${nm} plate`, desc: 'Heavy chest armour. Spells find the gaps.', icon: { shape: 'plate', color: col }, stackable: false, value: BAR_VALUE[m] * 5,
-      equip: { slot: 'body', reqs: { defence: mt.req }, bonus: { defMelee: PLATE[m], defRanged: Math.round(PLATE[m] * 0.85), defMagic: -3 - m * 2 }, affixPool: ARMOUR_AFFIX } }));
+      equip: { slot: 'body', reqs: { defence: mt.req }, bonus: { defMelee: PLATE[m], defRanged: Math.round(PLATE[m] * 0.85), defMagic: -3 - m * 2 }, affixPool: ARMOUR_AFFIX }, innate: aTrait }));
   });
   WOODS.forEach((w, t) => { if (t >= 2) out.push(I({ id: `logs_${w.key}`, name: `${w.name} logs`, desc: 'Prized by smiths for hafts and stocks.', icon: { shape: 'log', color: w.color, accent: w.accent }, stackable: true, value: w.value })); });
   FISH.forEach((f, t) => {
@@ -242,4 +274,7 @@ export const AFFIXES: Record<string, AffixDef> = {
   regen: { id: 'regen', prefix: 'Mending', suffix: 'of Mending', min: 1, max: 2, fmt: (v) => `+${v} health every 10s` },
   gather_speed: { id: 'gather_speed', prefix: 'Diligent', suffix: 'of Labour', min: 4, max: 10, fmt: (v) => `+${v}% gathering success` },
   xp_bonus: { id: 'xp_bonus', prefix: 'Studious', suffix: 'of Learning', min: 2, max: 5, fmt: (v) => `+${v}% skill experience` },
+  // signature traits only (never rolled)
+  durable: { id: 'durable', prefix: 'Tough', suffix: 'of Endurance', min: 40, max: 40, fmt: (v) => `Wears ${v}% slower` },
+  sea_dmg: { id: 'sea_dmg', prefix: 'Sea-bane', suffix: 'of the Deep', min: 15, max: 15, fmt: (v) => `+${v}% damage to crabs and the Drowned` },
 };

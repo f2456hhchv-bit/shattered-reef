@@ -349,3 +349,30 @@ body.landscape #side { padding-top: calc(var(--mm) + 80px + env(safe-area-inset-
 .orb .oic { position: absolute; left: 50%; bottom: 3px; width: 16px; height: 16px; transform: translateX(-50%); display: grid; place-items: center; border-radius: 50%; background: #1d140d; box-shadow: 0 0 0 1.5px var(--brass); pointer-events: none; z-index: 1; }
 .orb .oic svg { width: 11px; height: 11px; }
 .orb .txt { padding-bottom: 6px; }
+
+/* skills: tap a skill for every level's unlocks */
+.skill[data-skill] { cursor: pointer; border-radius: 8px; }
+.skill[data-skill]:hover { background: #ffffff08; }
+.skill[data-skill]::after { content: "›"; grid-column: 3; grid-row: 1; justify-self: end; color: var(--ink-dim); font-size: 16px; margin-top: -2px; }
+.btn.small { min-height: 36px; padding: 0 10px; font-size: 13px; }
+.row > .medal { flex: none; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center;
+  background: radial-gradient(circle at 35% 28%, color-mix(in srgb, var(--c) 55%, #fff3), color-mix(in srgb, var(--c) 40%, #120b06) 70%);
+  box-shadow: 0 0 0 2px #120b06, 0 0 0 3.5px var(--brass); }
+.row > .medal svg { width: 26px; height: 26px; }
+.lvlist { display: grid; gap: 2px; }
+.lvrow { display: grid; grid-template-columns: 34px 1fr; gap: 8px; padding: 6px 6px; border-radius: 6px; font-size: 13px; line-height: 1.35; color: var(--ink-dim); }
+.lvrow .n { font: 700 15px var(--display); color: var(--ink-dim); text-align: right; font-variant-numeric: tabular-nums; }
+.lvrow.has { color: var(--ink); }
+.lvrow.got .n { color: var(--brass-hi); }
+.lvrow.got.has { background: #3a2a1c55; }
+.lvrow.cur { box-shadow: inset 0 0 0 2px var(--brass); background: #4a3422aa; }
+.lvrow .perk { color: #9fe8d8; font-weight: 700; }
+
+/* level badges over nearby skill spots, and the hover's "what it gives" line */
+.nodebadge { position: absolute; transform: translate(-50%, -100%); display: flex; align-items: center; gap: 2px; padding: 1px 6px 1px 2px; border-radius: 10px; font: 700 11px var(--body); color: #fff; text-shadow: 0 1px 1px #000; pointer-events: none; background: #120b06d8; box-shadow: 0 0 0 1.5px var(--bc); white-space: nowrap; }
+.nodebadge svg { width: 15px; height: 15px; }
+.nodebadge.ok { --bc: #6fbf5a; } .nodebadge.no { --bc: #d8584a; color: #ffc8c0; }
+#hover .gives, .gives { font-size: 11px; color: var(--ink-dim); margin-top: 1px; }
+
+.lvhead { position: sticky; top: -10px; z-index: 2; padding: 8px 0; background: linear-gradient(180deg, #24180f 85%, #24180f00); }
+#itempop .trait { color: #9fe8d8; } #itempop .trait-name { list-style: none; margin-left: -18px; color: #9fe8d8; font-style: italic; font-size: 12px; }

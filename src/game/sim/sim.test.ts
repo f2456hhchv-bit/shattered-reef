@@ -195,6 +195,7 @@ describe('world', () => {
   it('every zone of the starter island is reachable on foot from the quay', () => {
     const g = fresh();
     for (const [id, p] of Object.entries(LAYOUT)) {
+      if (id === 'islet' || id === 'spire') continue; // reached by ship (content.test checks those)
       const path = g.world.findPath(g.p.x, g.p.z, p.x, p.z);
       expect(path, id).not.toBeNull();
       const [ex, ez] = path![path!.length - 1];
