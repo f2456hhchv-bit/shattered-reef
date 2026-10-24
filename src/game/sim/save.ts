@@ -8,7 +8,7 @@ import { SUN } from '../world/island';
 
 // Versioned, validated save. Anything invalid is dropped or defaulted, never trusted.
 
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 5;
 export const BANK_MAX = 400; // distinct entries in the strongbox
 export const SAVE_KEY = 'shattered-reef.save';
 
@@ -68,7 +68,7 @@ export function defaultSave(spawn: { x: number; z: number }, ship: { x: number; 
     playTime: 0,
     region: 'bellwether',
     player: {
-      x: spawn.x, z: spawn.z, hp: 10, onShip: false,
+      x: spawn.x, z: spawn.z, hp: 100, onShip: false,
       xp: Object.fromEntries(SKILL_IDS.map((k) => [k, k === 'hitpoints' ? HP_START_XP : 0])) as Record<SkillId, number>,
       inv,
       equip: { weapon: { id: 'cutlass_rusty', qty: 1 } },
@@ -107,6 +107,12 @@ const MIGRATIONS: Record<number, (d: Record<string, unknown>) => Record<string, 
     if (pSun) p.x = (p.x as number) + shift;
     if (sSun) sh.x = (sh.x as number) + shift;
     return { ...d, version: 4, player: p, ship: { ...sh, region: sSun ? 'sunreach' : 'bellwether' }, region: pSun ? 'sunreach' : 'bellwether' };
+  },
+  // v4 kept health in RuneScape's small numbers; v5 stores it ×10 (100 at the start, 990 at 99)
+  4: (d) => {
+    const p = { ...((d.player ?? {}) as Record<string, unknown>) };
+    if (typeof p.hp === 'number') p.hp = p.hp * 10;
+    return { ...d, version: 5, player: p };
   },
 };
 

@@ -1,5 +1,5 @@
 import { item, AFFIXES, RARITY, AMMO_FOR, weaponKind, ammoKind, type Rarity, type Slot, type SkillId, type CombatStyle, type WeaponKind, type AmmoKind } from '../data/items';
-import { SPELLS } from '../data/content';
+import { HP_SCALE, SPELLS } from '../data/content';
 import { condOf, WORN_OUT_EFFECT, type Inst, type Stack } from './inventory';
 import { levelForXp } from './xp';
 import { perkTotal } from '../data/perks';
@@ -156,11 +156,11 @@ export function computeStats(xp: Record<SkillId, number>, equip: Partial<Record<
   if (style === 'melee') cleave = Math.max(cleave, perkTotal('strength', L.strength, 'cleave') / 100, kind === 'greatsword' ? 0.4 : 0);
   regen += perkTotal('hitpoints', L.hitpoints, 'regen');
   hpBonus += perkTotal('hitpoints', L.hitpoints, 'hp');
-  maxHit = Math.max(1, Math.floor(maxHit * (1 + dmgPct / 100)));
+  maxHit = Math.max(1, Math.floor(maxHit * (1 + dmgPct / 100))) * HP_SCALE;
   const baseSpeed = weapon?.speed ?? 2.4;
   return {
     combatLevel: combatLevel(L),
-    maxHp: L.hitpoints + hpBonus,
+    maxHp: (L.hitpoints + hpBonus) * HP_SCALE,
     style,
     kind,
     needsAmmo,

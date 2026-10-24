@@ -1,7 +1,7 @@
 import { mulberry32 } from '../../art/noise';
 import { item, ammoKind, AMMO_NAME, type Slot, type SkillId, type CombatStyle } from '../data/items';
 import { perkTotal } from '../data/perks';
-import { NODES, RECIPES, ENEMIES, LOOT, ELITE_AFFIXES, SHOPS, PLAYER_BASE, UTILITY_SPELLS, COMBAT_SKILLS, XP_PER_DAMAGE, type EnemyDef, type Recipe, type Station } from '../data/content';
+import { HP_SCALE, NODES, RECIPES, ENEMIES, LOOT, ELITE_AFFIXES, SHOPS, PLAYER_BASE, UTILITY_SPELLS, COMBAT_SKILLS, XP_PER_DAMAGE, type EnemyDef, type Recipe, type Station } from '../data/content';
 import { NPCS, QUESTS, type DialogueNode, type Effect } from '../data/quests';
 import { PLACES, placeRegion } from '../world/places';
 import { regionLayout, cachedLayout, type IslandLayout, type Arena } from '../world/layout';
@@ -269,7 +269,7 @@ export class Game {
       this.emit({ type: 'level', skill, level: after });
       // RuneScape's own words
       this.msg(`Congratulations, you've just advanced ${/^[aeiou]/.test(skill) ? 'an' : 'a'} ${skill[0].toUpperCase()}${skill.slice(1)} level. You are now level ${after}.`, 'good');
-      if (COMBAT_SKILLS.includes(skill)) { this.recalc(); if (skill === 'hitpoints') this.p.hp = Math.min(this.stats.maxHp, this.p.hp + (after - before)); }
+      if (COMBAT_SKILLS.includes(skill)) { this.recalc(); if (skill === 'hitpoints') this.p.hp = Math.min(this.stats.maxHp, this.p.hp + (after - before) * HP_SCALE); }
     }
     this.rev++;
   }
@@ -363,7 +363,7 @@ export class Game {
       const e = this.enemies.find((x) => `enemy:${x.id}` === t.key);
       if (!e) return null;
       const diff = e.def.level - this.stats.combatLevel;
-      return { text: `Level ${e.def.level}${diff > 10 ? ' · very dangerous' : diff > 3 ? ' · dangerous' : ''}`, ok: diff <= 3 };
+      return { text: `Level ${e.def.level}${e.def.hostile ? ' · attacks on sight' : ''}${diff > 10 ? ' · very dangerous' : diff > 3 ? ' · dangerous' : ''}`, ok: diff <= 3 };
     }
     return null;
   }
@@ -663,14 +663,16 @@ export class Game {
 
   /** The food the quick-eat button would eat: the smallest that tops you up without waste, or the biggest you
    * have when even that won't fill you (so a big heal is saved for when you're low). */
+  /** Health a food gives you now (food data is RuneScape-small; health is ×10). */
+  healOf(id: string) { return Math.round((item(id).heal ?? 0) * HP_SCALE * (1 + this.stats.healBonus)); }
+
   bestFood(): number | null {
     const missing = this.stats.maxHp - this.p.hp;
     if (missing <= 0) return null;
     let fit = -1, fitHeal = Infinity, big = -1, bigHeal = 0;
     this.p.inv.forEach((st, i) => {
-      const h = st ? item(st.id).heal : undefined;
-      if (!h) return;
-      const heal = Math.round(h * (1 + this.stats.healBonus));
+      if (!st || !item(st.id).heal) return;
+      const heal = this.healOf(st.id);
       if (heal >= missing && heal < fitHeal) { fit = i; fitHeal = heal; }
       if (heal > bigHeal) { big = i; bigHeal = heal; }
     });
@@ -691,7 +693,7 @@ export class Game {
     const st = this.p.inv[i];
     if (!st || !item(st.id).heal || this.dead) return;
     if (this.eatCd > 0) return;
-    const heal = Math.round(item(st.id).heal! * (1 + this.stats.healBonus));
+    const heal = this.healOf(st.id);
     if (this.p.hp >= this.stats.maxHp) { this.msg('You are already at full health.'); return; }
     st.qty--;
     if (st.qty <= 0) this.p.inv[i] = null;
@@ -1060,7 +1062,7 @@ export class Game {
   private spawnEnemy(def: EnemyDef, x: number, z: number, summoned: boolean): Enemy {
     const e: Enemy = {
       id: this.nextId++, def, x, z, facing: this.rnd() * Math.PI * 2, spawnX: x, spawnZ: z,
-      hp: def.hp, maxHp: def.hp, alive: true, state: 'idle', t: 0, cd: 0, aim: null, elite: null, respawnAt: 0, summoned, wander: null, hitFlash: 0, moving: false,
+      hp: def.hp * HP_SCALE, maxHp: def.hp * HP_SCALE, alive: true, state: 'idle', t: 0, cd: 0, aim: null, elite: null, respawnAt: 0, summoned, wander: null, hitFlash: 0, moving: false,
     };
     this.rollElite(e);
     this.enemies.push(e);
@@ -1069,11 +1071,11 @@ export class Game {
 
   private rollElite(e: Enemy) {
     e.elite = null;
-    e.maxHp = e.def.hp;
+    e.maxHp = e.def.hp * HP_SCALE;
     // elites only among foes of level 9+: a starter's first crabs shouldn't be triple-health armoured ones
     if (!e.def.boss && !e.summoned && e.def.level >= 9 && this.rnd() < 0.1) {
       e.elite = ELITE_AFFIXES[Math.floor(this.rnd() * ELITE_AFFIXES.length)].id;
-      e.maxHp = Math.round(e.def.hp * (e.elite === 'barnacled' ? 3 : 2));
+      e.maxHp = Math.round(e.def.hp * HP_SCALE * (e.elite === 'barnacled' ? 3 : 2));
     }
     e.hp = e.maxHp;
   }
@@ -1120,7 +1122,9 @@ export class Game {
     if (this.rnd() >= hitChance(st.attRoll, defRoll)) return { dmg: 0, crit: false };
     const crit = this.rnd() < st.crit;
     // a successful hit always lands at least 1, so a 0 always means a miss
-    let dmg = crit ? maxHit : 1 + Math.floor(this.rnd() * maxHit);
+    // a landed hit does HP_SCALE..max (RuneScape's 1..max, ×10), so average damage is exactly the unscaled game's
+    maxHit = Math.max(HP_SCALE, maxHit);
+    let dmg = crit ? maxHit : HP_SCALE + Math.floor(this.rnd() * (maxHit - HP_SCALE + 1));
     if ((e.elite || e.def.boss) && dmg > 0) dmg = Math.round(dmg * (1 + st.eliteDmg));
     if (st.seaDmg && (e.def.model === 'crab' || e.def.look === 'drowned' || e.def.look === 'captain')) dmg = Math.round(dmg * (1 + st.seaDmg));
     return { dmg, crit };
@@ -1128,6 +1132,7 @@ export class Game {
 
   /** RuneScape XP: 4 per damage to the trained skill(s), 1.33 to Hitpoints; spells add base XP. */
   private combatXp(dmg: number, style: CombatStyle, spellBase = 0) {
+    dmg /= HP_SCALE; // XP is RuneScape's 4 a point of (unscaled) damage
     const tr = this.stats.trains;
     if (style === 'magic') {
       this.addXp('magic', spellBase + dmg * XP_PER_DAMAGE.magic);
@@ -1236,7 +1241,7 @@ export class Game {
       for (const e of [...this.enemies]) {
         if (!e.alive || e.state === 'rise') continue;
         if (Math.hypot(e.x - this.p.x, e.z - this.p.z) > sp.radius + e.def.radius) continue;
-        const r = this.rollAgainst(e, sp.maxHit);
+        const r = this.rollAgainst(e, sp.maxHit * HP_SCALE);
         this.damageEnemy(e, r.dmg, r.crit, 'magic', sp.knock, 4);
       }
       this.rev++;
@@ -1325,7 +1330,7 @@ export class Game {
     if (dmg > 0) e.hitFlash = 0.12;
     this.emit({ type: 'hit', target: 'enemy', id: e.id, amount: dmg, crit, x: e.x, z: e.z });
     this.combatXp(dmg, style, spellBase);
-    if (this.stats.leech > 0 && dmg > 0) this.p.hp = Math.min(this.stats.maxHp, this.p.hp + Math.max(1, Math.round(dmg * this.stats.leech)) * (this.rnd() < 0.5 ? 1 : 0));
+    if (this.stats.leech > 0 && dmg > 0) this.p.hp = Math.min(this.stats.maxHp, this.p.hp + Math.max(HP_SCALE, Math.round(dmg * this.stats.leech)) * (this.rnd() < 0.5 ? 1 : 0));
     if (e.state === 'idle' || e.state === 'return') e.state = 'chase';
     if (e.hp <= 0) { this.killEnemy(e); return; }
     if (!e.def.boss && knock > 0 && dmg > 0) {
@@ -1379,11 +1384,13 @@ export class Game {
     const att = (e.def.att + 9) * (e.def.accBonus + 64);
     const def = st.defLevel * (st.def[e.def.style] + 64);
     if (this.rnd() >= hitChance(att, def)) return 0;
-    return 1 + Math.floor(this.rnd() * (e.def.maxHit + (e.elite ? 1 : 0)));
+    const max = (e.def.maxHit + (e.elite ? 1 : 0)) * HP_SCALE;
+    return HP_SCALE + Math.floor(this.rnd() * (max - HP_SCALE + 1));
   }
 
   /** Unavoidable area damage (telegraphs): only a dodge roll or armour helps. */
   damagePlayer(raw: number) {
+    raw *= HP_SCALE;
     const avgDef = (this.stats.def.melee + this.stats.def.ranged + this.stats.def.magic) / 3;
     this.applyPlayerDamage(Math.max(1, Math.round(raw * (1 - Math.min(0.4, Math.max(0, avgDef) / 150)))));
   }
@@ -1435,14 +1442,15 @@ export class Game {
       const d = Math.hypot(tgt.x - this.p.x, tgt.z - this.p.z);
       if (d > reach + tgt.def.radius && !this.path.length && Math.hypot(this.moveDir.x, this.moveDir.z) < 0.05) this.chase(tgt.x, tgt.z, dt);
     }
-    // auto-attack: explicit target first; otherwise anything in melee reach, or (ranged/magic) anything fighting you
+    // auto-attack: explicit target first; otherwise whatever is already fighting you, or a hostile foe in melee reach.
+    // A passive creature you merely walk past is left alone (Tom: only fight what you choose to)
     let best = tgt && Math.hypot(tgt.x - this.p.x, tgt.z - this.p.z) <= reach + tgt.def.radius ? tgt : null;
     if (!best) {
       let bd = Infinity;
       for (const e of this.enemies) {
         if (!e.alive || e.state === 'rise') continue;
         const d = Math.hypot(e.x - this.p.x, e.z - this.p.z) - e.def.radius;
-        const engaged = e.state === 'chase' || e.state === 'windup' || st.style === 'melee';
+        const engaged = e.state === 'chase' || e.state === 'windup' || (st.style === 'melee' && !!e.def.hostile);
         if (engaged && d <= reach && d < bd) { bd = d; best = e; }
       }
     }
@@ -1487,7 +1495,8 @@ export class Game {
       const speed = e.def.speed * fr;
       switch (e.state) {
         case 'idle': {
-          if (playerHittable && !inSafe && dP < e.def.aggro) { e.state = 'chase'; break; }
+          // only camps, lairs and late-game foes attack on sight; the rest fight back when you hit them
+          if (playerHittable && !inSafe && e.def.hostile && dP < e.def.aggro) { e.state = 'chase'; break; }
           e.t -= dt;
           if (e.t <= 0) {
             e.t = 2 + this.rnd() * 4;
@@ -1823,7 +1832,7 @@ export class Game {
       if (this.regenTimer >= PLAYER_BASE.regenEvery) {
         this.regenTimer = 0;
         const amt = (this.combatTimer > 6 ? 1 : 0) + (this.rnd() < this.stats.regen * PLAYER_BASE.regenEvery / 10 ? 1 : 0);
-        if (amt > 0 && this.p.hp < this.stats.maxHp) this.p.hp = Math.min(this.stats.maxHp, this.p.hp + amt);
+        if (amt > 0 && this.p.hp < this.stats.maxHp) this.p.hp = Math.min(this.stats.maxHp, this.p.hp + amt * HP_SCALE);
       }
       this.stepDiscovery();
     }
