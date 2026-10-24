@@ -122,6 +122,11 @@ export const FISH = [
   { key: 'gloom', name: 'gloomfish', cooked: 'Charred gloomfish', raw: '#4a4a5a', done: '#7a5a4a', heal: 16, value: 70 },
   { key: 'shark', name: 'shark', cooked: 'Shark steak', raw: '#7a8a96', done: '#a87a5a', heal: 20, value: 110 },
   { key: 'angler', name: 'abyssal angler', cooked: 'Roast angler', raw: '#2a3a4a', done: '#8a5a3a', heal: 22, value: 140 },
+  // second catches at existing spots (a spot holds several fish, each at its own level)
+  { key: 'mackerel', name: 'mackerel', cooked: 'Grilled mackerel', raw: '#4f8a7a', done: '#b8834a', heal: 6, value: 8 },
+  { key: 'bass', name: 'sea bass', cooked: 'Pan-fried bass', raw: '#7a8a80', done: '#c08a4a', heal: 9, value: 18 },
+  { key: 'tuna', name: 'tuna', cooked: 'Seared tuna', raw: '#2e4a78', done: '#a85a3a', heal: 13, value: 42 },
+  { key: 'barracuda', name: 'barracuda', cooked: 'Smoked barracuda', raw: '#8a9aa8', done: '#9a6a40', heal: 18, value: 85 },
 ] as const;
 
 const ORES = [

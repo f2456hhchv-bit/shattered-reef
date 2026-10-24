@@ -24,6 +24,10 @@ const SPECS: Record<string, Spec> = {
   sword: { len: 0.62, prof: (u) => [0.1 * bell(u, 0.7), 0.08 * bell(u, 0.7), 0.055 * bell(u, 0.7)], back: '#243656', belly: '#c9d3dc', fin: '#2e4468' },
   gloom: { len: 0.48, prof: (u) => [0.12 * bell(u, 0.55, 0.06), 0.11 * bell(u, 0.55, 0.06), 0.06 * bell(u, 0.6)], back: '#26243a', belly: '#4a4660', fin: '#3a3450' },
   shark: { len: 0.78, prof: (u) => [0.095 * bell(u, 0.75, 0.05), 0.085 * bell(u, 0.75, 0.05), 0.075 * bell(u, 0.75, 0.05)], back: '#6f808e', belly: '#eef1f3', fin: '#64737f', mid: (u) => -0.01 * u },
+  mackerel: { len: 0.52, prof: (u) => [0.065 * bell(u, 0.8), 0.055 * bell(u, 0.8), 0.04 * bell(u, 0.8)], back: '#2f7a6a', belly: '#eef2ee', fin: '#5a8a80' },
+  bass: { len: 0.56, prof: (u) => [0.11 * bell(u, 0.7), 0.085 * bell(u, 0.7), 0.045 * bell(u, 0.75)], back: '#56645e', belly: '#e2e6e0', fin: '#6e7a72' },
+  tuna: { len: 0.7, prof: (u) => [0.12 * bell(u, 0.6, 0.04), 0.11 * bell(u, 0.6, 0.04), 0.08 * bell(u, 0.6, 0.04)], back: '#1e3460', belly: '#dfe6ee', fin: '#2a4270' },
+  barracuda: { len: 0.8, prof: (u) => [0.05 * bell(u, 0.9), 0.045 * bell(u, 0.9), 0.035 * bell(u, 0.9)], back: '#5f6f7c', belly: '#eef1f2', fin: '#6a7a86', mid: (u) => (u < 0.1 ? -0.006 : 0) },
   angler: { len: 0.5, prof: (u) => [0.15 * bell(u, 0.45, 0.06), 0.16 * bell(u, 0.45, 0.06), 0.12 * bell(u, 0.5)], back: '#3e3328', belly: '#6a5644', fin: '#4a3c30' },
 };
 
@@ -152,6 +156,57 @@ export function buildFish(species: string, cooked: boolean, doneCol: string): TH
       for (let k = 0; k < 4; k++) add(g, new THREE.BoxGeometry(0.004, 0.05, 0.003), m(cooked ? '#3a2414' : '#3f4a52'), [at(0.2) - k * 0.016, -0.005, 0.073 - k * 0.002], [0, 0, 0.15]); // gill slits
       add(g, new THREE.TorusGeometry(0.03, 0.004, 4, 10, Math.PI), m('#2a2a2a'), [L / 2 - 0.05, -0.035, 0.0], [Math.PI / 2, 0, Math.PI], [1, 1.5, 1]); // mouth
       eye(g, at(0.1), 0.025, 0.05, 0.012, cooked);
+      break;
+    }
+    case 'mackerel': {
+      // slim and silver with black wavy bars on a green-blue back, a row of finlets to a forked tail
+      fin(g, curvy([[0, 0], [-0.04, 0.07], [-0.1, 0.08], [-0.07, 0], [-0.1, -0.08], [-0.04, -0.07]]), finCol, [tailX + 0.01, 0, 0]);
+      fin(g, [[0, 0], [-0.02, 0.045], [-0.05, 0]], finCol, [at(0.32), 0.06, 0]);
+      for (let k = 0; k < 4; k++) fin(g, [[0, 0], [-0.008, 0.016], [-0.016, 0]], finCol, [at(0.66 + k * 0.06), 0.035 - k * 0.004, 0]);
+      if (!cooked) for (let k = 0; k < 9; k++) {
+        const u = 0.2 + k * 0.07, [top, , w] = sp.prof(u);
+        for (const side of [-1, 1]) add(g, new THREE.BoxGeometry(0.008, top * 0.55, 0.002), m('#14261f'), [at(u), top * 0.55, side * (w * 0.75 + 0.002)], [0, 0, 0.35 + (k % 2) * 0.3]);
+      }
+      eye(g, at(0.1), 0.012, wHead * 0.78, 0.015, cooked);
+      break;
+    }
+    case 'bass': {
+      // deep grey body, a spiny front dorsal then a soft one, big mouth
+      const spines: [number, number][] = [[0, 0]];
+      for (let k = 0; k <= 6; k++) spines.push([-0.012 * k - 0.006, k % 2 ? 0.075 : 0.045], [-0.012 * k - 0.012, 0.03]);
+      spines.push([-0.09, 0]);
+      fin(g, spines, finCol, [at(0.28), 0.1, 0]);
+      fin(g, curvy([[0, 0], [-0.03, 0.05], [-0.08, 0.04], [-0.09, 0]]), finCol, [at(0.55), 0.085, 0]);
+      fin(g, curvy([[0, 0], [-0.05, 0.08], [-0.1, 0.09], [-0.08, 0], [-0.1, -0.09], [-0.05, -0.08]]), finCol, [tailX + 0.01, 0, 0]);
+      fin(g, [[0, 0], [-0.03, -0.04], [-0.06, 0]], finCol, [at(0.6), -0.075, 0]);
+      add(g, new THREE.TorusGeometry(0.03, 0.005, 4, 10, Math.PI), m(cooked ? '#3a2414' : '#2a2a28'), [L / 2 - 0.02, -0.02, 0], [Math.PI / 2, 0, Math.PI], [1, 1.3, 1]);
+      if (!cooked) add(g, new THREE.BoxGeometry(L * 0.6, 0.006, 0.002), m('#3a4440'), [-0.02, 0.01, 0.046]); // lateral line
+      eye(g, at(0.12), 0.03, wHead * 0.8, 0.018, cooked);
+      break;
+    }
+    case 'tuna': {
+      // a torpedo: dark blue back, tall sickle fins, yellow finlets and a crescent tail
+      fin(g, curvy([[0, 0], [0.005, 0.12], [-0.04, 0.1], [-0.07, 0]]), finCol, [at(0.28), 0.11, 0]);
+      fin(g, curvy([[0, 0], [-0.01, 0.08], [-0.05, 0.06], [-0.06, 0]]), cooked ? finCol : '#d8b84a', [at(0.55), 0.09, 0]);
+      fin(g, curvy([[0, 0], [-0.01, -0.08], [-0.05, -0.06], [-0.06, 0]]), cooked ? finCol : '#d8b84a', [at(0.55), -0.085, 0]);
+      for (let k = 0; k < 5; k++) for (const sy of [1, -1]) fin(g, [[0, 0], [-0.008, sy * 0.018], [-0.016, 0]], cooked ? finCol : '#f2d34a', [at(0.7 + k * 0.045), sy * (0.045 - k * 0.006), 0]);
+      fin(g, curvy([[0, 0], [-0.04, 0.03], [-0.12, 0.17], [-0.07, 0.02], [-0.07, -0.02], [-0.12, -0.17], [-0.04, -0.03]]), finCol, [tailX + 0.02, 0, 0]);
+      for (const s2 of [-1, 1]) fin(g, [[0, 0], [-0.12, -0.03], [-0.1, 0.0]], finCol, [at(0.24), -0.01, s2 * 0.075], [s2 * 0.2, 0, 0]);
+      eye(g, at(0.08), 0.02, wHead * 0.8, 0.02, cooked);
+      break;
+    }
+    case 'barracuda': {
+      // long and needle-like, dark bars, two far-back dorsals and a jutting underbite full of teeth
+      fin(g, [[0, 0], [-0.02, 0.045], [-0.05, 0]], finCol, [at(0.35), 0.048, 0]);
+      fin(g, [[0, 0], [-0.015, 0.035], [-0.045, 0]], finCol, [at(0.68), 0.04, 0]);
+      fin(g, curvy([[0, 0], [-0.04, 0.07], [-0.09, 0.08], [-0.065, 0], [-0.09, -0.08], [-0.04, -0.07]]), finCol, [tailX + 0.01, 0, 0]);
+      add(g, new THREE.ConeGeometry(0.02, 0.07, 6), m(shade(sp.back, 1.15).getHex()), [L / 2 + 0.02, -0.018, 0], [0, 0, -Math.PI / 2], [1, 1, 0.7]); // lower jaw
+      for (let k = 0; k < 6; k++) for (const sz of [-1, 1]) add(g, new THREE.ConeGeometry(0.004, 0.016, 4), m('#f2efe6'), [L / 2 - 0.008 - k * 0.009, -0.006, sz * 0.012], [0, 0, Math.PI]);
+      if (!cooked) for (let k = 0; k < 14; k++) {
+        const u = 0.15 + k * 0.05, [top, , w] = sp.prof(u);
+        for (const side of [-1, 1]) add(g, new THREE.BoxGeometry(0.009, top * 0.8, 0.002), m('#3a4650'), [at(u), top * 0.25, side * (w * 0.85 + 0.002)], [0, 0, -0.25]);
+      }
+      eye(g, at(0.08), 0.012, wHead * 0.8, 0.013, cooked);
       break;
     }
     case 'angler': {

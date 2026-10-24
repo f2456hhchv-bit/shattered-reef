@@ -261,7 +261,8 @@ export class Game {
       if (!d) return null;
       const skill = d.skill ? `${d.skill[0].toUpperCase()}${d.skill.slice(1)} ${d.level}` : 'Anyone can';
       // what it gives: the item (or loot), its XP, and where it's worked from
-      const gives = d.loot ? 'Treasure' : d.drops ? d.drops.map((x) => item(x.item).name).join(' or ') : item(d.item).name;
+      const gives = d.loot ? 'Treasure' : d.catches ? d.catches.map((c) => `${item(c.item).name.replace(/^Raw /, '')} ${c.level}${this.level('fishing') < c.level ? ' 🔒' : ''}`).join(', ')
+        : d.drops ? d.drops.map((x) => item(x.item).name).join(' or ') : item(d.item).name;
       const detail = `${gives}${d.xp ? ` · ${d.xp} xp` : ''}${d.fromShip ? ' · from your ship' : ''}`;
       if (d.skill && this.level(d.skill) < d.level) return { text: `Needs ${skill} (you have ${this.level(d.skill)})`, ok: false, detail };
       if (!this.gatherTool(d)) return { text: `${skill} · needs ${d.tool ? `a ${item(d.tool).name.toLowerCase()}` : d.skill === 'woodcutting' ? 'a hatchet' : 'a pickaxe'}`, ok: false, detail };
@@ -420,11 +421,13 @@ export class Game {
     const fx = d.skill === 'woodcutting' || d.verb === 'Pick' ? 'wood' : d.skill === 'mining' || d.verb === 'Dig' ? 'stone' : 'water';
     this.emit({ type: 'gatherFx', kind: fx, x: n.x, z: n.z, success: ok });
     if (!ok) return;
+    let catchOf: { item: string; level: number; xp: number } | null = null;
     if (d.loot) {
       this.rollLoot(LOOT[d.loot], n.x, n.z);
       this.msg('Your spade strikes something! Treasure spills out of the sand.', 'loot');
     } else {
-      const got = d.drops ? this.weighted(d.drops) : d.item;
+      catchOf = d.catches ? this.pickCatch(d.catches) : null;
+      const got = catchOf ? catchOf.item : d.drops ? this.weighted(d.drops) : d.item;
       if (!canAdd(this.p.inv, got)) { this.msg('Your pack is full.', 'warn'); this.stopAction(); return; }
       this.give(got, 1);
       if (d.bonus && this.rnd() < d.bonus.chance) { this.give(d.bonus.item, 1); this.msg(`You find a ${item(d.bonus.item).name.toLowerCase()}!`, 'loot'); }
@@ -435,7 +438,7 @@ export class Game {
         if (find && this.rnd() < perkTotal(d.skill, lvl, 'find') / 100 && canAdd(this.p.inv, find)) { this.give(find, 1); this.msg(`You find a ${item(find).name.toLowerCase()}!`, 'loot'); }
       }
     }
-    if (d.skill) this.addXp(d.skill, d.xp);
+    if (d.skill) this.addXp(d.skill, catchOf?.xp ?? d.xp);
     if (tool.id !== 'hands') this.wear(this.p.inv.find((x) => x?.id === tool.id), WEAR.tool * (1 - (d.skill ? perkTotal(d.skill, this.level(d.skill), 'tool_care') / 100 : 0)));
     const lasting = d.skill ? perkTotal(d.skill, this.level(d.skill), 'last') / 100 : 0; // Lasting timber / veins / shoals
     if (d.depleteChance > 0 && this.rnd() < d.depleteChance * (1 - lasting)) {
@@ -444,6 +447,15 @@ export class Game {
       this.rev++;
       this.stopAction();
     }
+  }
+
+  /** A mixed spot: try the best fish your level allows first (likelier the further you are past its level), then
+   * the next best, down to the lowest. */
+  private pickCatch(list: { item: string; level: number; xp: number }[]) {
+    const L = this.level('fishing');
+    const ok = list.filter((c) => c.level <= L).sort((a, b) => b.level - a.level);
+    for (const c of ok) if (this.rnd() < Math.min(0.85, 0.4 + (L - c.level) * 0.012)) return c;
+    return ok[ok.length - 1] ?? list[0];
   }
 
   private weighted(list: { item: string; w: number }[]) {
