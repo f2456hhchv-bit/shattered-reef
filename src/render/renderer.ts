@@ -43,12 +43,12 @@ const HERO = 1.2; // characters drawn larger than life so they read on phones
 const CHAR_SURFACE = { scale: 7, tone: 0.12, bump: 0.18, rim: 0.1 };
 const PROP_SURFACE = { scale: 3, tone: 0.24, bump: 0.42 };
 
-const CRAB_SHELLS: Record<string, Partial<Record<PalKey, number>>> = {
+export const CRAB_SHELLS: Record<string, Partial<Record<PalKey, number>>> = {
   mire: { crabShell: 0x5e7a3a, crabDark: 0x3c5228, crabBelly: 0xb8bc8a, barnacle: 0x7a8a5a },
   ironshell: { crabShell: 0x6a6e74, crabDark: 0x44484e, crabBelly: 0xb0a890, barnacle: 0x9a9a90 },
 };
 interface TreeLook { kind: 'pine' | 'broad'; scale: number; squash?: number; colours?: Partial<Record<PalKey, number>>; glow?: Partial<Record<PalKey, number>> }
-const TREE_LOOK: Record<string, TreeLook> = {
+export const TREE_LOOK: Record<string, TreeLook> = {
   tree_pine: { kind: 'pine', scale: 1.05 },
   tree_oak: { kind: 'broad', scale: 1.25 },
   tree_willow: { kind: 'broad', scale: 1.3, squash: 0.8, colours: { leaf: 0x7f9a48, leafLight: 0xa2b85e, trunk: 0x6a5a3a } },
@@ -57,7 +57,7 @@ const TREE_LOOK: Record<string, TreeLook> = {
   tree_star: { kind: 'pine', scale: 1.55, colours: { pine: 0x3a3f7a, pineLight: 0x5a6ab8, trunk: 0x2e2a40 }, glow: { pineLight: 0.35 } },
   tree_cedar: { kind: 'pine', scale: 2.1, colours: { pine: 0x264630, pineLight: 0x33583c, trunk: 0x8a3a24 } },
 };
-const ORE_TINT: Record<string, [number, number]> = {
+export const ORE_TINT: Record<string, [number, number]> = {
   rock_copper: [PAL.copper, 0.12], rock_tin: [0xd6d9d4, 0.12], rock_iron: [0xa5543a, 0.12], rock_coal: [0x202022, 0], rock_gold: [0xe3c25e, 0.25],
   rock_storm: [0x8fc0e8, 0.35], rock_abyss: [0x3f8f6e, 0.3], rock_tide: [0x3fd8d0, 0.6],
 };
