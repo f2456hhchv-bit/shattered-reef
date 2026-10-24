@@ -237,11 +237,18 @@ export class GameAudio {
   update(dt: number) {
     if (!this.ctx) return;
     const g = this.game, t = this.ctx.currentTime;
-    const coast = g.p.onShip ? 1 : clamp(1 - coastDist(g.p.x, g.p.z) / 28, 0.05, 1);
+    const cave = g.region.kind === 'cave';
+    const coast = cave ? 0 : g.p.onShip ? 1 : clamp(1 - coastDist(g.p.x, g.p.z) / 28, 0.05, 1);
     this.waves.gain.setTargetAtTime(coast, t, 1.2);
-    this.wind.gain.setTargetAtTime(g.p.onShip ? 1.4 : 0.7, t, 2);
+    this.wind.gain.setTargetAtTime(cave ? 0.18 : g.p.onShip ? 1.4 : 0.7, t, 2);
     this.gullT -= dt;
-    if (this.gullT <= 0) {
+    if (cave) {
+      // underground: no gulls, just water dripping somewhere in the dark
+      if (this.gullT <= 0) {
+        this.gullT = 2.5 + Math.random() * 6;
+        if (this.sfxOn) this.tone(1900 + Math.random() * 900, 0.12, { to: 1300, gain: 0.03, attack: 0.002, out: this.amb });
+      }
+    } else if (this.gullT <= 0) {
       this.gullT = 7 + Math.random() * 14;
       if (coast > 0.4 && this.sfxOn) for (let i = 0; i < 2; i++) this.tone(1500, 0.35, { to: 1100, gain: 0.025 * coast, vib: 60, attack: 0.04, at: t + i * 0.42, out: this.amb });
     }

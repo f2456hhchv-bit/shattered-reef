@@ -20,14 +20,17 @@ import type { WeaponKind } from '../game/data/items';
 
 const HELD_OF: Record<WeaponKind, HeldKind> = { cutlass: 'cutlass', dagger: 'dagger', pike: 'pike', greatsword: 'greatsword', pistol: 'pistol', pistols: 'pistol', shortbow: 'bow', longbow: 'longbow', crossbow: 'crossbow', staff: 'staff' };
 import { buildCrab, animateCrab, type CrabRig } from '../art/models/crab';
+import { buildBoar, animateBoar, buildSpider, animateSpider, buildSnake, animateSnake, type BoarRig, type SpiderRig, type SnakeRig } from '../art/models/beasts';
+import { buildCaveMouth, buildRope, buildWeb, buildCrystal, buildCaveTorch, buildStalagmite, buildLava, buildGong } from '../art/models/cave';
+import { REGIONS } from '../game/world/regions';
 import { buildPine, buildBroadleaf, buildRock, buildOreRock, buildCrate, buildLanternPost, buildDock, buildPalm, buildGrass, buildBush, buildKelp } from '../art/models/props';
 import { buildBench, buildFurnace, buildAnvil, buildCookfire, buildTent, buildSmithyShed, buildPillar, buildPlinth, buildStrongbox, buildDigSpot, buildGuardian, buildStump, buildRipples, type GuardianRig } from '../art/models/world';
 import { buildLootShard, buildItemModel, SHARD_TINT, type LootShard, type ShardKind } from '../art/models/items';
 import { item } from '../game/data/items';
 import { NODES, PLAYER_BASE } from '../game/data/content';
 import type { Game, GameEvent, Enemy, Telegraph } from '../game/sim/game';
-import { coastDist, nearestPathDist, WORLD_HALF, BEACH, SUN, SUN_LAYOUT } from '../game/world/island';
-import { HN, HCELL } from '../game/world/world';
+import { coastDist, nearestPathDist, BEACH, SUN, SUN_LAYOUT } from '../game/world/island';
+import { HCELL } from '../game/world/world';
 import { buildTerrainMesh } from './terrainMesh';
 import { bakeRig, bakeStatic, bakeFlat, mergeColoured } from './bake';
 import { humanoidShadow, blobShadow } from './shadowProxy';
@@ -62,7 +65,10 @@ const ORE_TINT: Record<string, [number, number]> = {
 interface RigView { kind: 'human'; rig: HumanoidRig; mat: THREE.MeshStandardMaterial }
 interface CrabView { kind: 'crab'; rig: CrabRig; mat: THREE.MeshStandardMaterial }
 interface GuardView { kind: 'guardian'; rig: GuardianRig; mat: THREE.MeshStandardMaterial }
-type EnemyView = (RigView | CrabView | GuardView) & { root: THREE.Group; ring?: THREE.Mesh; swingT: number; seen: boolean; baseScale: number };
+interface BoarView { kind: 'boar'; rig: BoarRig; mat: THREE.MeshStandardMaterial }
+interface SpiderView { kind: 'spider'; rig: SpiderRig; mat: THREE.MeshStandardMaterial }
+interface SnakeView { kind: 'snake'; rig: SnakeRig; mat: THREE.MeshStandardMaterial }
+type EnemyView = (RigView | CrabView | GuardView | BoarView | SpiderView | SnakeView) & { root: THREE.Group; ring?: THREE.Mesh; swingT: number; seen: boolean; baseScale: number };
 
 export class GameRenderer {
   readonly renderer: THREE.WebGLRenderer;
@@ -72,8 +78,15 @@ export class GameRenderer {
   private rt: THREE.WebGLRenderTarget;
   private sun = new THREE.DirectionalLight(LOOK.sun.color, LOOK.sun.intensity);
   private sunDir = new THREE.Vector3();
-  private water: ReturnType<typeof createWater>;
+  private water: ReturnType<typeof createWater> | null = null;
   private terrain!: ReturnType<typeof buildTerrainMesh>;
+  /** everything that belongs to the loaded region (rebuilt when you travel) */
+  private region3d = new THREE.Group();
+  private hemi!: THREE.HemisphereLight;
+  /** the lantern you carry underground */
+  private lantern = new THREE.PointLight(0xffb070, 60, 26, 1.5);
+  private fogK = { near: LOOK.fog.near, far: LOOK.fog.far };
+  private cave = false;
   private bloom!: UnrealBloomPass;
   readonly particles = new Particles(500);
   private quality: 'auto' | 'max' | 'low' = 'auto';
@@ -105,7 +118,7 @@ export class GameRenderer {
   private projViews = new Map<number, THREE.Mesh>();
   private teleViews = new Map<number, THREE.Group>();
   private flames: THREE.Mesh[] = [];
-  private furnaceGlow!: THREE.MeshStandardMaterial;
+  private glows: THREE.MeshStandardMaterial[] = [];
   private clickMarker: THREE.Mesh;
   private slash: THREE.Mesh;
   private slashT = 0;
@@ -131,7 +144,7 @@ export class GameRenderer {
   private appliedShift = -1;
   private readonly pitch = THREE.MathUtils.degToRad(54);
 
-  constructor(private canvas: HTMLCanvasElement, private game: Game) {
+  constructor(private canvas: HTMLCanvasElement, readonly game: Game) {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
@@ -154,8 +167,10 @@ export class GameRenderer {
     // The hemisphere light stays as a weaker base so the overall brightness matches the old look.
     this.scene.environment = buildSkyEnvironment(this.renderer);
     this.scene.environmentIntensity = 0.28;
-    const hemi = new THREE.HemisphereLight(LOOK.hemi.sky, LOOK.hemi.ground, LOOK.hemi.intensity * 0.72);
+    const hemi = (this.hemi = new THREE.HemisphereLight(LOOK.hemi.sky, LOOK.hemi.ground, LOOK.hemi.intensity * 0.72));
     this.scene.add(hemi);
+    this.lantern.visible = false;
+    this.scene.add(this.lantern);
     this.sun.castShadow = true;
     this.sun.shadow.mapSize.set(2048, 2048);
     this.sun.shadow.bias = -0.0004;
@@ -166,32 +181,14 @@ export class GameRenderer {
     const el = THREE.MathUtils.degToRad(LOOK.sun.elevationDeg), az = THREE.MathUtils.degToRad(LOOK.sun.azimuthDeg);
     this.sunDir.set(Math.cos(el) * Math.sin(az), Math.sin(el), Math.cos(el) * Math.cos(az));
 
-    const world = game.world;
-    this.terrain = buildTerrainMesh(world, LOOK);
-    this.scene.add(this.terrain.group);
-    this.water = createWater(WORLD_HALF * 2 + 120, 230, (x, z) => (Math.abs(x) > WORLD_HALF || Math.abs(z) > WORLD_HALF ? 6 : -world.ground(x, z)), LOOK, { data: world.heights, side: HN + 1, cell: HCELL, half: WORLD_HALF });
-    this.water.uniforms.uSunDir.value.copy(this.sunDir);
-    this.scene.add(this.water.mesh);
-
-    this.buildStatic();
-    this.buildNodes();
+    this.scene.add(this.region3d);
+    this.loadRegion();
 
     // one rig per weapon family, built the first time it's wielded, so the right weapon is in hand
     this.player = this.playerRig('cutlass');
 
     this.ship = buildSloop();
     this.scene.add(this.ship.root);
-
-    for (const n of game.layout.npcs) {
-      const rig = buildHumanoid(NPC_LOOKS[n.id]);
-      rig.root.scale.setScalar(HERO);
-      rig.root.position.set(n.x, world.standY(n.x, n.z), n.z);
-      rig.root.rotation.y = Math.PI / 2 - n.facing;
-      bakeRig(rig.root, addSurfaceDetail(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: false, roughness: 0.9 }), CHAR_SURFACE));
-      humanoidShadow(rig);
-      this.scene.add(rig.root);
-      this.npcs.set(n.id, rig);
-    }
 
     this.scene.add(this.particles.mesh);
     this.clickMarker = new THREE.Mesh(new THREE.RingGeometry(0.25, 0.42, 4), new THREE.MeshBasicMaterial({ color: 0xffd34a, transparent: true, depthWrite: false }));
@@ -213,6 +210,69 @@ export class GameRenderer {
     game.on((e) => this.onEvent(e));
   }
 
+  // ------------------------------------------------------------------ regions
+  /** Throw away the last region's scene and build the one the game is in now (under the loading screen). */
+  loadRegion() {
+    const g = this.game, world = g.world;
+    this.scene.remove(this.region3d);
+    this.region3d.traverse((o) => {
+      const m = o as THREE.Mesh;
+      if (!m.geometry) return;
+      m.geometry.dispose();
+      for (const mt of Array.isArray(m.material) ? m.material : [m.material]) mt?.dispose();
+    });
+    this.water?.uniforms.uHeight.value.dispose();
+    this.region3d = new THREE.Group();
+    this.scene.add(this.region3d);
+    this.npcs.clear(); this.houses = []; this.walkers = []; this.enemyViews.clear(); this.nodeViews.clear();
+    this.dropViews.clear(); this.projViews.clear(); this.teleViews.clear(); this.flames = []; this.glows = [];
+    this.grass = null; this.grassTime = [];
+    this.scenery = new InstancedField(addSurfaceDetail(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: false, roughness: 0.9 }), PROP_SURFACE));
+    this.sceneryState.clear();
+    this.cave = REGIONS[g.s.region].kind === 'cave';
+
+    this.terrain = buildTerrainMesh(world, LOOK, this.cave);
+    this.region3d.add(this.terrain.group);
+    this.water = null;
+    if (!this.cave) {
+      // the sea runs past the region's edge (the horizon), the shallows read the terrain grid
+      const size = world.half * 2 + 120;
+      this.water = createWater(size, Math.round(size / 1.9), (x, z) => (world.inside(x, z) ? -world.ground(x, z) : 6), LOOK, { data: world.heights, side: world.HN + 1, cell: HCELL, half: world.half, ox: world.ox, oz: world.oz }, { x: world.cx, z: world.cz });
+      this.water.uniforms.uSunDir.value.copy(this.sunDir);
+      this.region3d.add(this.water.mesh);
+    }
+    this.buildStatic();
+    this.buildNodes();
+    for (const n of g.layout.npcs) {
+      const rig = buildHumanoid(NPC_LOOKS[n.id]);
+      rig.root.scale.setScalar(HERO);
+      rig.root.position.set(n.x, world.standY(n.x, n.z), n.z);
+      rig.root.rotation.y = Math.PI / 2 - n.facing;
+      bakeRig(rig.root, addSurfaceDetail(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: false, roughness: 0.9 }), CHAR_SURFACE));
+      humanoidShadow(rig);
+      this.region3d.add(rig.root);
+      this.npcs.set(n.id, rig);
+    }
+    // underground: no sky, a cold dim fill, your lantern and the torches
+    const bg = this.cave ? 0x060608 : LOOK.fog.color;
+    (this.scene.background as THREE.Color).set(bg);
+    (this.scene.fog as THREE.Fog).color.set(bg);
+    this.water?.uniforms.uFogColor.value.set(bg);
+    this.hemi.color.set(this.cave ? 0x7d8aa8 : LOOK.hemi.sky);
+    this.hemi.groundColor.set(this.cave ? 0x2a2420 : LOOK.hemi.ground);
+    this.hemi.intensity = LOOK.hemi.intensity * (this.cave ? 0.62 : 0.72);
+    this.sun.intensity = LOOK.sun.intensity * (this.cave ? 0.28 : 1);
+    this.sun.color.set(this.cave ? 0x9db4e0 : LOOK.sun.color);
+    this.scene.environmentIntensity = this.cave ? 0.06 : 0.28;
+    this.lantern.visible = this.cave;
+    this.fogK = this.cave ? { near: 0.8, far: 1.6 } : { near: LOOK.fog.near, far: LOOK.fog.far };
+    this.renderer.shadowMap.needsUpdate = true;
+    this.snapCamera();
+  }
+
+  /** Compile every shader the new region needs while the loading screen is still up (no hitch after it lifts). */
+  warm() { this.renderer.compile(this.scene, this.camera); }
+
   // ------------------------------------------------------------------ static scenery
   private buildStatic() {
     const L = this.game.layout, w = this.game.world;
@@ -224,8 +284,7 @@ export class GameRenderer {
       return o;
     };
     const d = L.dock;
-    root.add(buildDock(d.x, d.zStart, d.len, d.headWidth, d.deckY, 21).group);
-    for (const xd of L.extraDocks) root.add(buildDock(xd.x, xd.zStart, xd.len, xd.headWidth, xd.deckY, 22).group);
+    if (d) root.add(buildDock(d.x, d.zStart, d.len, d.headWidth, d.deckY, 21).group);
     for (const b of L.buildings) {
       const y = w.ground(b.x, b.z);
       if (b.kind === 'tent') place(buildTent(b.seed), b.x, b.z, b.rot, y);
@@ -263,9 +322,16 @@ export class GameRenderer {
         case 'wreck': place(buildWreckRibs(p.seed), p.x, p.z, p.rot, w.ground(p.x, p.z) - 0.15); break;
         case 'woodpile': place(buildWoodpile(p.seed), p.x, p.z, p.rot); break;
         case 'flowers': place(buildFlowers(p.seed), p.x, p.z, p.rot); break;
+        case 'cavemouth': place(buildCaveMouth(p.seed), p.x, p.z, -p.rot); break;
+        case 'rope': place(buildRope(), p.x, p.z, 0); break;
+        case 'web': { const o = place(buildWeb(p.seed), p.x, p.z, p.rot); o.scale.setScalar(p.s); break; }
+        case 'crystal': { const o = place(buildCrystal(p.seed, this.game.s.region === 'ember_deep' ? 0x8a6af0 : 0x6ad8e8), p.x, p.z, p.rot); o.scale.setScalar(p.s); break; }
+        case 'torch': place(buildCaveTorch(), p.x, p.z, 0); break;
+        case 'stalagmite': { const o = place(buildStalagmite(p.seed), p.x, p.z, p.rot); o.scale.setScalar(p.s); break; }
+        case 'lava': place(buildLava(p.s, p.seed), p.x, p.z, 0); break;
       }
     }
-    place(buildPlinth(), L.plinth.x, L.plinth.z, 0);
+    for (const a of L.arenas) place(a.boss === 'guardian' ? buildPlinth() : buildGong(), a.altar.x, a.altar.z, 0);
     for (const b of L.banks) if (!b.booth) place(buildStrongbox(), b.x, b.z, 0);
     for (const r of L.reefs) {
       const m = buildRock(Math.round(r.x * 31 + r.z), r.r, 'stoneDark');
@@ -276,9 +342,9 @@ export class GameRenderer {
     // flames and the furnace mouth are cloned out of the bake: find them by tag
     baked.traverse((o) => {
       if (o.userData.flame) this.flames.push(o as THREE.Mesh);
-      if (o.userData.glow) this.furnaceGlow = (o as THREE.Mesh).material as THREE.MeshStandardMaterial;
+      if (o.userData.glow) this.glows.push((o as THREE.Mesh).material as THREE.MeshStandardMaterial);
     });
-    this.scene.add(baked);
+    this.region3d.add(baked);
     this.buildTown();
     this.buildGrass();
   }
@@ -295,7 +361,7 @@ export class GameRenderer {
       v.interior.visible = false; // shown only while you're inside
       v.group.position.set(b.x, w.ground(b.x, b.z), b.z);
       v.group.rotation.y = -b.rot;
-      this.scene.add(v.group);
+      this.region3d.add(v.group);
       this.houses.push({ b, v, k: 0 });
     }
     for (const wd of L.wanderers) {
@@ -303,7 +369,7 @@ export class GameRenderer {
       rig.root.scale.setScalar(HERO);
       bakeRig(rig.root, addSurfaceDetail(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: false, roughness: 0.9 }), CHAR_SURFACE));
       humanoidShadow(rig);
-      this.scene.add(rig.root);
+      this.region3d.add(rig.root);
       const cum = [0];
       for (let i = 1; i < wd.path.length; i++) cum.push(cum[i - 1] + Math.hypot(wd.path[i][0] - wd.path[i - 1][0], wd.path[i][1] - wd.path[i - 1][1]));
       this.walkers.push({ rig, path: wd.path, cum, speed: 1.1 + (this.walkers.length % 3) * 0.15, off: this.walkers.length * 37 });
@@ -339,22 +405,22 @@ export class GameRenderer {
   }
 
   private buildGrass() {
-    const w = this.game.world;
+    const w = this.game.world, L = this.game.layout;
+    if (this.cave) return;
     const rnd = mulberry32(99);
     // bucketed into 40 m cells so each clump is its own culled draw
     const CELL = 40, buckets = new Map<string, THREE.Vector3[]>();
     let made = 0;
-    // Bellwether, then Sunreach (each island gets its own share)
-    for (let i = 0; i < 130000 && made < 12500; i++) {
-      const sun = i >= 90000 || made >= 9000;
-      const x = sun ? SUN.x + (rnd() - 0.5) * 140 : (rnd() - 0.5) * 200, z = sun ? SUN.z + (rnd() - 0.5) * 140 : (rnd() - 0.5) * 200;
+    const sun = this.game.s.region === 'sunreach', cx = sun ? SUN.x : 0, cz = sun ? SUN.z : 0, span = sun ? 140 : 200, most = sun ? 4500 : 9000;
+    for (let i = 0; i < 130000 && made < most; i++) {
+      const x = cx + (rnd() - 0.5) * span, z = cz + (rnd() - 0.5) * span;
       if (coastDist(x, z) < BEACH || !w.walkable(x, z)) continue; // no grass on the beach
       const y = w.ground(x, z);
       if (y > 8) continue; // bare upper peak
       const p = nearestPathDist(x, z);
       if (p.d < p.width + 0.5) continue;
-      if (Math.hypot(x - this.game.layout.ruin.x, z - this.game.layout.ruin.z) < 8) continue;
-      if (Math.hypot(x, z - this.game.layout.respawn.z) < 15 || Math.hypot(x - SUN_LAYOUT.port.x, z - SUN_LAYOUT.port.z) < 14) continue; // the quay squares
+      if (L.arenas.some((a) => Math.hypot(x - a.x, z - a.z) < 8)) continue;
+      if (Math.hypot(x - L.respawn.x, z - L.respawn.z) < 15 || Math.hypot(x - SUN_LAYOUT.port.x, z - SUN_LAYOUT.port.z) < 14) continue; // the quay squares
       if (this.game.layout.town.some((b) => { const [lx, lz] = toLocal(b, x, z); return Math.abs(lx) < b.w / 2 + 0.4 && Math.abs(lz) < b.d / 2 + 0.4; })) continue; // not through the floors
       if (this.game.layout.stalls.some((st) => Math.hypot(st.x - x, st.z - z) < 1.6)) continue;
       const key = `${Math.floor(x / CELL)},${Math.floor(z / CELL)}`;
@@ -371,7 +437,7 @@ export class GameRenderer {
       this.grassTime.push((m.userData.uniforms as { uTime: { value: number } }).uTime);
       this.grass.add(m);
     }
-    this.scene.add(this.grass);
+    this.region3d.add(this.grass);
   }
 
   private buildNodes() {
@@ -424,14 +490,14 @@ export class GameRenderer {
         const fish = buildItemModel(def.item);
         fish.scale.setScalar(def.fromShip ? 2.4 : 1.4);
         fish.visible = false;
-        this.scene.add(fish);
+        this.region3d.add(fish);
         leapFish.set(n.uid, fish);
         if (def.fromShip) live.scale.setScalar(2.2);
       }
       const y = def.skill === 'fishing' ? 0.06 : n.def === 'rock_ori' ? w.ground(n.x, n.z) - 0.05 : w.ground(n.x, n.z) - (def.skill ? 0.05 : 0.02);
       live.position.set(n.x, y, n.z);
-      this.scene.add(live);
-      if (dead) { dead.position.set(n.x, y, n.z); dead.visible = false; this.scene.add(dead); }
+      this.region3d.add(live);
+      if (dead) { dead.position.set(n.x, y, n.z); dead.visible = false; this.region3d.add(dead); }
       if (live !== ripples) bakeRig(live, addSurfaceDetail(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: false, roughness: 0.92 }), PROP_SURFACE));
       this.nodeViews.set(n.uid, { live, dead, ripples, leap: leapFish.get(n.uid) });
     }
@@ -458,7 +524,7 @@ export class GameRenderer {
     if (by.has('rock_boulder')) this.scenery.add(by.get('rock_boulder')!, V.map((k, i) => geo(buildRock(k, 1, i % 2 ? 'stoneDark' : 'stone'))), { alt: geo(buildRock(41, 1, 'stoneDark')), altScale: [1.15, 0.35, 1.15] });
     if (by.has('bush_berry')) this.scenery.add(by.get('bush_berry')!, V.map((k) => geo(buildBush(k, true))), { alt: geo(buildBush(11, false)), castShadow: false });
     if (by.has('kelp_bed')) this.scenery.add(by.get('kelp_bed')!, [geo(buildKelp(3)), geo(buildKelp(8))], { castShadow: false });
-    this.scene.add(this.scenery.group);
+    this.region3d.add(this.scenery.group);
   }
 
   // ------------------------------------------------------------------ dynamic views
@@ -472,6 +538,24 @@ export class GameRenderer {
       bakeRig(rig.root, material);
       blobShadow(rig.root, rig.body);
       v = { kind: 'crab', rig, mat: material, root: rig.root, swingT: 0, seen: true, baseScale: rig.root.scale.x };
+    } else if (e.def.model === 'boar') {
+      const rig = buildBoar(e.id);
+      rig.root.scale.setScalar(e.def.scale * (e.elite ? 1.2 : 1));
+      bakeRig(rig.root, material);
+      blobShadow(rig.root, rig.body);
+      v = { kind: 'boar', rig, mat: material, root: rig.root, swingT: 0, seen: true, baseScale: rig.root.scale.x };
+    } else if (e.def.model === 'spider') {
+      const rig = buildSpider(e.def.look, e.id);
+      rig.root.scale.setScalar(e.def.scale * (e.elite ? 1.2 : 1));
+      bakeRig(rig.root, material);
+      blobShadow(rig.root, rig.body);
+      v = { kind: 'spider', rig, mat: material, root: rig.root, swingT: 0, seen: true, baseScale: rig.root.scale.x };
+    } else if (e.def.model === 'snake') {
+      const rig = buildSnake(e.def.look, e.id);
+      rig.root.scale.setScalar(e.def.scale * (e.elite ? 1.2 : 1));
+      bakeRig(rig.root, material);
+      if (!e.def.boss) blobShadow(rig.root, rig.segs[2]);
+      v = { kind: 'snake', rig, mat: material, root: rig.root, swingT: 0, seen: true, baseScale: rig.root.scale.x };
     } else if (e.def.model === 'guardian') {
       const rig = buildGuardian();
       if (!e.def.boss) { recolour(rig.root, { stoneDark: 0x4e4c54, stone: 0x77737c }); rig.root.scale.setScalar(e.def.scale); }
@@ -494,12 +578,12 @@ export class GameRenderer {
       v.root.add(ring);
       v.ring = ring;
     }
-    this.scene.add(v.root);
+    this.region3d.add(v.root);
     return v;
   }
 
   private disposeObject(o: THREE.Object3D) {
-    this.scene.remove(o);
+    o.removeFromParent();
     o.traverse((c) => { const m = c as THREE.Mesh; if (m.isMesh) m.geometry.dispose(); });
   }
 
@@ -525,6 +609,11 @@ export class GameRenderer {
       if (v.kind === 'crab') {
         animateCrab(v.rig, t + e.id, e.moving);
         if (e.state === 'windup') v.rig.clawR.rotation.x = -0.7;
+      } else if (v.kind === 'boar') animateBoar(v.rig, t + e.id, e.moving, e.state === 'chase' || e.state === 'windup');
+      else if (v.kind === 'spider') animateSpider(v.rig, t + e.id, e.moving, e.state === 'windup' || v.swingT > 0);
+      else if (v.kind === 'snake') {
+        animateSnake(v.rig, t + e.id, e.moving, e.state === 'windup' || v.swingT > 0);
+        if (e.state === 'rise') v.root.position.y = y - 2.5 * Math.max(0, e.t / 2.2); // the Sunscale coils up out of the flagstones
       } else if (v.kind === 'human') {
         if (e.state === 'windup') { v.rig.armR.rotation.x = e.def.attack.kind === 'shot' ? -1.5 : -2.0; }
         else if (v.swingT > 0) animateSwing(v.rig, 1 - v.swingT / 0.35);
@@ -552,7 +641,7 @@ export class GameRenderer {
       if (!v) {
         const kind: ShardKind = item(d.stack.id).quest ? 'quest' : d.stack.inst?.rarity ?? 'common';
         v = buildLootShard(d.stack.id, d.stack.qty, kind, d.id);
-        this.scene.add(v.group);
+        this.region3d.add(v.group);
         this.dropViews.set(d.id, v);
       }
       const pop = Math.max(0, Math.min(1, d.t / 0.35));
@@ -585,7 +674,7 @@ export class GameRenderer {
           m.add(tip, fl);
           m.rotation.y = -Math.atan2(p.vz, p.vx);
         } else m = new THREE.Mesh(new THREE.SphereGeometry(p.kind === 'magic' ? 0.22 : p.from === 'player' ? 0.12 : 0.12, 6, 4), new THREE.MeshBasicMaterial({ color: p.kind === 'magic' ? 0x7ff0e6 : p.from === 'player' ? 0xffe08a : 0xff6a4a }));
-        this.scene.add(m);
+        this.region3d.add(m);
         this.projViews.set(p.id, m);
       }
       m.position.set(p.x, this.game.world.standY(p.x, p.z) + 1.1, p.z);
@@ -616,7 +705,7 @@ export class GameRenderer {
     g.userData.fill = fill;
     g.position.set(t.x, this.game.world.standY(t.x, t.z) + 0.15, t.z);
     g.rotation.y = -t.angle;
-    this.scene.add(g);
+    this.region3d.add(g);
     return g;
   }
 
@@ -653,6 +742,7 @@ export class GameRenderer {
         break;
       }
       case 'swing': this.playerSwing = 0.35; this.slashT = 0.18; break;
+      case 'region': this.loadRegion(); break;
       case 'teleport': {
         // a column of spray where you left and where you land, and the camera cuts to you
         for (const [x, z] of [[e.fromX, e.fromZ], [e.x, e.z]]) this.particles.burst(x, g.world.standY(x, z) + 0.4, z, 36, 0x9fe8f0, { speed: 3, up: 7, size: 0.13, life: 0.8, grav: 4, spread: 0.6 });
@@ -703,7 +793,8 @@ export class GameRenderer {
       case 'explode': this.particles.burst(e.x, g.world.standY(e.x, e.z) + 0.3, e.z, 30, 0xb8a888, { speed: e.r * 2.5, up: 3, size: 0.2, life: 0.6 }); this.shake = Math.max(this.shake, 0.35); break;
       case 'boss': if (e.state === 'rise' || e.state === 'summon') this.shake = 0.6; break;
       case 'craftFx': {
-        const st = g.layout.stations.find((s) => s.id === e.station)!;
+        const st = g.layout.stations.find((s) => s.id === e.station);
+        if (!st) break;
         this.particles.burst(st.x, g.world.ground(st.x, st.z) + 0.9, st.z, 10, e.station === 'fire' ? 0xffb04a : 0xffd38a, { speed: 2, up: 3, size: 0.07, life: 0.5 });
         break;
       }
@@ -802,6 +893,7 @@ export class GameRenderer {
 
     // ship
     const sh = g.ship;
+    this.ship.root.visible = g.shipHere;
     this.ship.root.position.set(sh.x, 0, sh.z);
     this.ship.root.rotation.y = -sh.heading;
     this.ship.hull.position.y = Math.sin(t * 0.9) * 0.06;
@@ -897,7 +989,7 @@ export class GameRenderer {
     this.syncTelegraphs();
 
     for (const f of this.flames) { f.scale.y = 0.8 + Math.sin(t * 12 + f.position.x * 10) * 0.25; f.scale.x = 1 + Math.sin(t * 9 + f.position.z * 7) * 0.12; }
-    if (this.furnaceGlow) this.furnaceGlow.emissiveIntensity = 2 + Math.sin(t * 6) * 0.4;
+    for (const gl of this.glows) gl.emissiveIntensity = 2 + Math.sin(t * 6) * 0.4;
     if (this.clickT > 0) { this.clickT -= dt; (this.clickMarker.material as THREE.MeshBasicMaterial).opacity = Math.max(0, this.clickT / 0.6); this.clickMarker.scale.setScalar(1 + (0.6 - this.clickT)); if (this.clickT <= 0) this.clickMarker.visible = false; }
 
     // swing arc + whirl ring
@@ -920,9 +1012,10 @@ export class GameRenderer {
       this.whirlFx.rotation.z = -k * 6;
     }
     this.particles.update(dt);
-    this.water.uniforms.uTime.value = t;
     this.terrain.uniforms.uTime.value = t;
     for (const u of this.grassTime) u.value = t;
+    if (this.cave) this.lantern.position.set(p.x, world.standY(p.x, p.z) + 2.6, p.z + 0.6);
+    this.water && (this.water.uniforms.uTime.value = t);
     this.updateCamera(dt);
     this.keepSized();
     this.composer.render();
@@ -982,13 +1075,12 @@ export class GameRenderer {
     const fog = this.scene.fog as THREE.Fog;
     // a tall phone screen sees much further up the island at the top edge: push the haze back to match
     const tall = THREE.MathUtils.clamp((1 - this.camera.aspect) / 0.55, 0, 1);
-    fog.near = dist * LOOK.fog.near * (1 + 0.6 * tall);
-    fog.far = dist * LOOK.fog.far * (1 + 0.4 * tall);
+    fog.near = dist * this.fogK.near * (1 + 0.6 * tall);
+    fog.far = dist * this.fogK.far * (1 + 0.4 * tall);
     // nothing past full fog is visible, so let the frustum cull it
     const far = Math.ceil(fog.far + 15);
     if (this.camera.far !== far) { this.camera.far = far; this.camera.updateProjectionMatrix(); }
-    this.water.uniforms.uFogNear.value = fog.near;
-    this.water.uniforms.uFogFar.value = fog.far;
+    if (this.water) { this.water.uniforms.uFogNear.value = fog.near; this.water.uniforms.uFogFar.value = fog.far; }
   }
 
   snapCamera() { this.release = null; this.updateCamera(0); }

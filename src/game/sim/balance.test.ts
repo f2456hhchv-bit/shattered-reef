@@ -3,7 +3,7 @@ import { Game } from './game';
 import { defaultSave } from './save';
 import { xpForLevel } from './xp';
 const base = new Game({ seed: 1 });
-const fresh = (seed: number) => new Game({ seed, save: defaultSave(base.layout.respawn, base.layout.mooring) });
+const fresh = (seed: number) => new Game({ seed, save: defaultSave(base.layout.respawn, base.layout.mooring!) });
 // Balance guard: simulated fights with a simple bot that dodges, eats and keeps to the arena.
 it('Lockbound Guardian balance: needs ~12 melee or ranged, easier with its weakness (magic)', () => {
   const results: Record<string, number> = {};
@@ -15,13 +15,13 @@ it('Lockbound Guardian balance: needs ~12 melee or ranged, easier with its weakn
       g.p.equip.weapon = { id: weapon, qty: 1 }; g.p.equip.head = { id: 'helm_bronze', qty: 1 }; g.p.equip.ammo = { id: 'shot_bronze', qty: 300 }; g.give('charm_tide', 300);
       g.s.combat.spell = 'bolt'; g.recalc(); g.p.hp = g.stats.maxHp;
       g.give('tuning_bell', 1);
-      const q = g.world.nearestWalkable(g.layout.plinth.x, g.layout.plinth.z + 1.6, 4)!; g.p.x = q[0]; g.p.z = q[1];
-      g.interact('ruin'); let food = 10; const t0 = g.time;
+      const q = g.world.nearestWalkable(g.layout.arenas[0].altar.x, g.layout.arenas[0].altar.z + 1.6, 4)!; g.p.x = q[0]; g.p.z = q[1];
+      g.interact('arena:0'); let food = 10; const t0 = g.time;
       for (let t = 0; t < 400; t += 1 / 30) {
         if (g.boss && g.boss.state !== 'rise') g.target = g.boss.id;
         // dodge like a competent player: head for the nearest walkable spot outside the telegraph, staying in the ring
         const danger = g.telegraphs.find((tg) => tg.damage > 0 && g.insideTelegraph(tg, g.p.x, g.p.z));
-        const R = g.layout.ruin;
+        const R = g.layout.arenas[0];
         if (danger) {
           let best: [number, number] | null = null, bd = Infinity;
           for (let k = 0; k < 16; k++) for (const r of [1.5, 2.5, 3.5, 4.5]) {

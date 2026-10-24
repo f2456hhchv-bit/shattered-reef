@@ -418,3 +418,22 @@ body.portrait .skgrid { grid-template-columns: repeat(4, 1fr); }
 .sktile.total span { font-size: 11px; color: var(--ink-dim); }
 .sktile.total b { font: 700 18px var(--display); color: #f2d34a; text-shadow: 0 2px 0 #000; }
 .maptabs button { min-height: 36px; padding: 4px 10px; font-size: 12px; }
+
+/* ---- loading screen between regions: a sea chart's cartouche over dark water */
+.loading { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 20px;
+  background: radial-gradient(ellipse at 50% 40%, #12303a 0%, #081419 70%, #04090b 100%); animation: ld-in .25s ease-out; transition: opacity .45s; }
+.loading.out { opacity: 0; pointer-events: none; }
+.loading .ld-card { text-align: center; width: min(460px, 100%); padding: 28px 22px 22px; border: 2px solid var(--brass); border-radius: 14px;
+  background: linear-gradient(#2a1d13ee, #1b130cee); box-shadow: 0 0 0 4px #1b130c, 0 0 0 5px #7a5a2a, 0 18px 50px #000a; }
+.loading h1 { font: 700 clamp(26px, 7vw, 38px)/1.1 var(--display); color: var(--brass-hi); margin: 4px 0 16px; letter-spacing: .04em; text-shadow: 0 2px 0 #000; }
+.loading .ld-sub { font-size: 11px; letter-spacing: .24em; text-transform: uppercase; color: var(--ink-dim); }
+.loading p { color: var(--ink); margin: 14px auto 0; max-width: 40ch; font-size: 13px; }
+.loading .ld-bar { height: 6px; border-radius: 3px; background: #0d0906; border: 1px solid #5a4020; overflow: hidden; }
+.loading .ld-bar i { display: block; height: 100%; width: 40%; border-radius: 3px; background: linear-gradient(90deg, transparent, var(--brass-hi), transparent); animation: ld-sweep 1.1s ease-in-out infinite; }
+.loading .ld-rose { width: 64px; height: 64px; margin: 0 auto 10px; border-radius: 50%; border: 2px solid var(--brass);
+  background: conic-gradient(from 0deg, var(--brass-hi) 0 4%, transparent 4% 21%, var(--brass) 21% 29%, transparent 29% 46%, var(--brass-hi) 46% 54%, transparent 54% 71%, var(--brass) 71% 79%, transparent 79% 96%, var(--brass-hi) 96%);
+  animation: ld-spin 6s linear infinite; }
+@keyframes ld-sweep { from { transform: translateX(-110%); } to { transform: translateX(260%); } }
+@keyframes ld-spin { to { transform: rotate(360deg); } }
+@keyframes ld-in { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .loading .ld-rose, .loading .ld-bar i { animation: none; } }

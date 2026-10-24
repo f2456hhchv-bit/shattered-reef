@@ -1,14 +1,15 @@
 import { fbm, lerp, smooth } from '../../art/noise';
 import { townPlan, portPlan, mergePlans } from './town';
+import type { RegionId } from './regions';
 
 // The islands: terrain shape + named layout. Pure data/maths, no rendering. Bellwether (the starter island) sits at
-// the origin; Sunreach Isle lies east across a sailable channel. One world, sailed seamlessly between them.
+// the origin; Sunreach Isle lies far to the east. Each island is its own region (regions.ts), loaded one at a time:
+// sail off the edge of the chart toward the other, or take the ferry.
 // Coordinates: metres. +x east, +z south (camera looks north). Sea level y = 0.
 //
 // The starter island holds a zone for every level band of every skill, so it grows outward
 // from the quay: easy content near the village, harder content toward the far coasts and peak.
 
-export const WORLD_HALF = 275; // world spans [-275, 275] on both axes (Bellwether at the origin, Sunreach to the east)
 export const ISLAND_RADIUS = 80;
 /** Width of the sand belt around the island, in metres (the beach climbs gently to grass beyond it). */
 export const BEACH = 10;
@@ -41,7 +42,7 @@ export function coastR(theta: number): number {
 }
 
 // ---- Sunreach Isle: a warm jungle island east of Bellwether, its harbour in a bay on the south shore ----------
-export const SUN = { x: 190, z: -20 };
+export const SUN = { x: 420, z: -20 }; // far enough east that neither island's waters reach the other's region
 export const SUN_RADIUS = 54;
 export function sunCoastR(theta: number): number {
   const c = Math.cos(theta), s = Math.sin(theta);
@@ -111,8 +112,10 @@ export const SUN_LAYOUT = {
 };
 
 const L = LAYOUT;
-/** Bellwether town: every building, its furniture and who works there. */
-export const TOWN = mergePlans(townPlan(L.village, L.crossroads), portPlan(SUN_LAYOUT.port));
+/** Bellwether town and Port Halyard: every building, its furniture and who works there. */
+export const BELL_TOWN = townPlan(L.village, L.crossroads);
+export const PORT_TOWN = portPlan(SUN_LAYOUT.port);
+export const TOWN = mergePlans(BELL_TOWN, PORT_TOWN);
 const SL = SUN_LAYOUT;
 /** Offshore islets: land you reach by ship. */
 export const ISLETS = [{ x: L.islet.x, z: L.islet.z, r: 13 }];
@@ -283,9 +286,10 @@ export const SEA_SPOTS: Record<string, [number, number][]> = {
 
 // ---- named places (discovery) ------------------------------------------------
 // A place is only listed once it has something to do; new zones join as their content lands.
-export interface Place { id: string; name: string; x: number; z: number; r: number; sea?: boolean; island?: 'sunreach' }
+export interface Place { id: string; name: string; x: number; z: number; r: number; sea?: boolean; region?: RegionId } // no region: Bellwether
 
-export const PLACES: Place[] = [
+/** The islands' places; `places.ts` adds the caves'. */
+export const ISLAND_PLACES: Place[] = [
   { id: 'quay', name: 'Bellwether Quay', x: V.x, z: V.z + 6, r: 18 },
   { id: 'strand', name: 'Crab Strand', x: ST.x, z: ST.z, r: 14 },
   { id: 'wood', name: 'Saltpine Wood', x: F.x, z: F.z, r: 18 },
@@ -305,10 +309,10 @@ export const PLACES: Place[] = [
   ...([['shallows', 'Bellfish Shallows', 20, -16], ['swordrun', 'Swordfish Run', 60, -23], ['deeps', 'Shark Deeps', 255, -26], ['trench', 'Angler\'s Trench', 165, -28]] as const)
     .map(([id, name, a, i]) => { const [x, z] = coastPoint(a, i); return { id, name, x, z, r: 16, sea: true }; }),
   // Sunreach Isle
-  { id: 'halyard', name: 'Port Halyard', x: SL.port.x, z: SL.port.z - 6, r: 18, island: 'sunreach' },
-  { id: 'greenheart', name: 'The Greenheart', x: SL.jungle.x, z: SL.jungle.z, r: 16, island: 'sunreach' },
-  { id: 'ember', name: 'Ember Hill', x: SL.ember.x, z: SL.ember.z + 4, r: 15, island: 'sunreach' },
-  { id: 'palmcove', name: 'Palm Cove', x: SL.palms.x, z: SL.palms.z, r: 13, island: 'sunreach' },
-  { id: 'reefshore', name: 'The Reef Shore', x: SL.reefshore.x, z: SL.reefshore.z, r: 13, island: 'sunreach' },
-  { id: 'channel', name: 'Halyard Channel', x: 120, z: 10, r: 18, sea: true },
+  { id: 'halyard', name: 'Port Halyard', x: SL.port.x, z: SL.port.z - 6, r: 18, region: 'sunreach' },
+  { id: 'greenheart', name: 'The Greenheart', x: SL.jungle.x, z: SL.jungle.z, r: 16, region: 'sunreach' },
+  { id: 'ember', name: 'Ember Hill', x: SL.ember.x, z: SL.ember.z + 4, r: 15, region: 'sunreach' },
+  { id: 'palmcove', name: 'Palm Cove', x: SL.palms.x, z: SL.palms.z, r: 13, region: 'sunreach' },
+  { id: 'reefshore', name: 'The Reef Shore', x: SL.reefshore.x, z: SL.reefshore.z, r: 13, region: 'sunreach' },
+  { id: 'channel', name: 'Halyard Channel', x: SUN.x - 75, z: 10, r: 18, sea: true, region: 'sunreach' },
 ];

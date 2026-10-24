@@ -101,6 +101,8 @@ export class Credits {
   /** Per frame until the game starts: runs the shot list, then the idle sway behind the menu. */
   update(dt: number) {
     if (!this.playing) {
+      // the title sway is over Bellwether's quay: elsewhere the menu sits over wherever you are
+      if (this.renderer.game.s.region !== 'bellwether') { this.renderer.cinematic = null; return; }
       this.idleT += dt;
       this.apply(idlePose(this.idleT));
       return;
