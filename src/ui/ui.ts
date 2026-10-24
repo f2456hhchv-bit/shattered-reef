@@ -4,7 +4,7 @@ import { wears, condOf, WORN_OUT_EFFECT } from '../game/sim/inventory';
 import { onTap } from './tap';
 import { portrait } from './portrait';
 import { NPC_LOOKS, PLAYER_LOOK } from '../art/cast';
-import { NODES, SKILLS, UNLOCKS, RECIPES, SHOP, ELITE_AFFIXES, PLAYER_BASE, SPELLS, type Station } from '../game/data/content';
+import { NODES, SKILLS, UNLOCKS, RECIPES, ELITE_AFFIXES, PLAYER_BASE, SPELLS, type Station } from '../game/data/content';
 import type { Stance } from '../game/sim/gear';
 import { NPCS, QUESTS } from '../game/data/quests';
 import { PLACES, WORLD_HALF, coastDist, nearestPathDist, FLATS } from '../game/world/island';
@@ -761,7 +761,7 @@ export class UI {
     const rows = bank.length
       ? `<div class="grid28 bank">${bank.map((st, i) => `<div class="bankcell">${this.slotHtml(st, `data-bank="${i}"`)}<div class="wd"><button class="btn" data-wd="${i}:1">1</button><button class="btn" data-wd="${i}:${st.qty}">All</button></div></div>`).join('')}</div>`
       : '<p class="muted">Empty. Deposit your pack and come back for it later; tools stay with you.</p>';
-    this.win('bankwin', 'Harbour strongbox', `<div class="row" style="justify-content:space-between;margin-bottom:8px"><span class="muted">${bank.length} stacks · tap an item in your pack to deposit it</span><button class="btn primary" data-dep="1">Deposit pack</button></div>${rows}`);
+    this.win('bankwin', 'Your bank', `<div class="row" style="justify-content:space-between;margin-bottom:8px"><span class="muted">${bank.length} stacks · tap an item in your pack to deposit it</span><button class="btn primary" data-dep="1">Deposit pack</button></div>${rows}`);
   }
 
   private openShop() {
@@ -774,11 +774,13 @@ export class UI {
   private renderShop() {
     const g = this.game;
     const coins = count(g.p.inv, 'coins');
-    const rows = SHOP.stock.map(({ id, qty }) => {
+    const shop = g.shop;
+    const rows = shop.stock.map(({ id, qty }) => {
       const price = g.buyPrice(id);
       return `<div class="recipe"><img src="${itemIcon(id)}" alt=""><div><b>${qty > 1 ? `${qty} × ` : ''}${esc(item(id).name)}</b><div class="need">${esc(item(id).desc)}</div></div><div class="btns"><button class="btn primary" data-buy="${id}" ${coins < price ? 'disabled' : ''}>Buy ${price}c</button></div></div>`;
     }).join('');
-    this.win('shopwin', SHOP.name, `<p class="muted" style="margin-top:0">You have ${fmt(coins)} coins. To sell, tap an item in your pack.</p>${rows}`);
+    const wants = (shop.wants ?? []).map((w) => w.note).join(' ');
+    this.win('shopwin', shop.name, `<p class="muted" style="margin-top:0">You have ${fmt(coins)} coins. To sell, tap an item in your pack.${wants ? ` ${esc(wants)}` : ''}</p>${rows}`);
   }
 
   private openDialog(npc: string, lines: string[]) {
@@ -806,7 +808,7 @@ export class UI {
       const npc = this.dialog.npc;
       this.dialog = null;
       this.renderDialog();
-      if (NPCS[npc].shop && !this.shopOpen) this.openShop();
+      if (NPCS[npc].shop && !this.shopOpen) this.game.openShopOf(npc);
       return;
     }
     this.renderDialog();
@@ -853,6 +855,10 @@ export class UI {
     c.putImageData(img, 0, 0);
     c.fillStyle = '#3a2a1e';
     for (const b of this.game.layout.buildings) { c.fillRect((b.x + WORLD_HALF) * k - 4, (b.z + WORLD_HALF) * k - 3, 8, 6); }
+    for (const b of this.game.layout.town) {
+      // rotated footprint (rot follows the world's rect convention: canvas y is world z)
+      c.save(); c.translate((b.x + WORLD_HALF) * k, (b.z + WORLD_HALF) * k); c.rotate(b.rot); c.fillRect((-b.w / 2) * k, (-b.d / 2) * k, b.w * k, b.d * k); c.restore();
+    }
     c.fillStyle = '#2a2a28';
     for (const r of this.game.layout.reefs) { c.beginPath(); c.arc((r.x + WORLD_HALF) * k, (r.z + WORLD_HALF) * k, 2, 0, 7); c.fill(); }
     this.mmBase = cv;

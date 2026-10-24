@@ -135,6 +135,9 @@ function buildRecipes(): Recipe[] {
   FISH.forEach((f, t) => out.push({ id: `cook_${f.key}`, station: 'fire', skill: 'cooking', level: COOK[t][0], xp: COOK[t][1], inputs: [{ id: `fish_${f.key}_raw`, qty: 1 }], output: { id: `fish_${f.key}`, qty: 1 }, burn: { item: 'burnt_food', stopLevel: COOK[t][2] } }));
   out.push({ id: 'cook_parcel_sprat', station: 'fire', skill: 'cooking', level: 5, xp: 40, inputs: [{ id: 'fish_sprat_raw', qty: 1 }, { id: 'kelp', qty: 1 }], output: { id: 'parcel_sprat', qty: 1 }, burn: { item: 'burnt_food', stopLevel: 25 } });
   out.push({ id: 'cook_parcel_trout', station: 'fire', skill: 'cooking', level: 22, xp: 85, inputs: [{ id: 'fish_trout_raw', qty: 1 }, { id: 'kelp', qty: 1 }], output: { id: 'parcel_trout', qty: 1 }, burn: { item: 'burnt_food', stopLevel: 46 } });
+  // the inn's dishes, which you can learn to make yourself
+  out.push({ id: 'cook_pie_berry', station: 'fire', skill: 'cooking', level: 10, xp: 50, inputs: [{ id: 'berries', qty: 3 }, { id: 'bread', qty: 1 }], output: { id: 'pie_berry', qty: 1 }, burn: { item: 'burnt_food', stopLevel: 34 } });
+  out.push({ id: 'cook_stew', station: 'fire', skill: 'cooking', level: 30, xp: 120, inputs: [{ id: 'fish_salmon_raw', qty: 1 }, { id: 'kelp', qty: 1 }, { id: 'sea_salt', qty: 1 }], output: { id: 'fish_stew', qty: 1 }, burn: { item: 'burnt_food', stopLevel: 58 } });
   out.push({ id: 'burn_kelp', station: 'fire', skill: 'cooking', level: 12, xp: 12, inputs: [{ id: 'kelp', qty: 2 }], output: { id: 'kelp_ash', qty: 1 } });
   out.push({ id: 'cook_crab', station: 'fire', skill: 'cooking', level: 4, xp: 35, inputs: [{ id: 'crab_meat_raw', qty: 1 }], output: { id: 'crab_meat', qty: 1 }, burn: { item: 'burnt_food', stopLevel: 26 } });
   return out;
@@ -164,16 +167,42 @@ function buildUnlocks(): Record<SkillId, { level: number; text: string }[]> {
   return u as Record<SkillId, { level: number; text: string }[]>;
 }
 
-export const SHOP = {
-  name: 'Gell\'s Harbour Goods',
-  stock: [
-    { id: 'bread', qty: 1 }, { id: 'fishing_rod', qty: 1 }, { id: 'hatchet_chipped', qty: 1 }, { id: 'pickaxe_chipped', qty: 1 },
-    { id: 'pistol_flintlock', qty: 1 }, { id: 'shot_bronze', qty: 25 }, { id: 'staff_driftwood', qty: 1 }, { id: 'charm_tide', qty: 25 },
-    { id: 'cap_leather', qty: 1 }, { id: 'coat_padded', qty: 1 }, { id: 'lobster_pot', qty: 1 }, { id: 'harpoon', qty: 1 }, { id: 'spade', qty: 1 }, { id: 'staff_coral', qty: 1 },
-  ],
-  buyMul: 1.0, // player pays value * qty * buyMul
-  sellMul: 0.5, // player receives value * sellMul
+export interface Shop {
+  id: string;
+  name: string;
+  keeper: string; // npc id
+  stock: { id: string; qty: number }[];
+  buyMul: number; // player pays value * qty * buyMul
+  sellMul: number; // player receives value * sellMul
+  /** Items this trader pays extra for (multiplier on sellMul), by id prefix. */
+  wants?: { prefix: string; mul: number; note: string }[];
+}
+
+export const SHOPS: Record<string, Shop> = {
+  general: {
+    id: 'general', name: 'Gell\'s Harbour Goods', keeper: 'marta',
+    stock: [
+      { id: 'bread', qty: 1 }, { id: 'hatchet_chipped', qty: 1 }, { id: 'pickaxe_chipped', qty: 1 },
+      { id: 'pistol_flintlock', qty: 1 }, { id: 'shot_bronze', qty: 25 }, { id: 'staff_driftwood', qty: 1 }, { id: 'charm_tide', qty: 25 },
+      { id: 'cap_leather', qty: 1 }, { id: 'coat_padded', qty: 1 }, { id: 'spade', qty: 1 }, { id: 'staff_coral', qty: 1 },
+    ],
+    buyMul: 1.0, sellMul: 0.5,
+  },
+  tackle: {
+    id: 'tackle', name: 'Reed\'s Tackle & Fish', keeper: 'silas',
+    stock: [{ id: 'fishing_rod', qty: 1 }, { id: 'lobster_pot', qty: 1 }, { id: 'harpoon', qty: 1 }, { id: 'kelp', qty: 5 }, { id: 'sea_salt', qty: 5 }, { id: 'fish_sprat_raw', qty: 5 }],
+    buyMul: 1.1, sellMul: 0.5,
+    wants: [{ prefix: 'fish_', mul: 1.5, note: 'Silas pays half as much again for fish.' }],
+  },
+  inn: {
+    id: 'inn', name: 'The Drowned Bell', keeper: 'hob',
+    stock: [{ id: 'ale', qty: 1 }, { id: 'bread', qty: 1 }, { id: 'fish_stew', qty: 1 }, { id: 'pie_berry', qty: 1 }],
+    buyMul: 1.2, sellMul: 0.4,
+    wants: [{ prefix: 'berries', mul: 2, note: 'Hob pays double for berries.' }, { prefix: 'crab_meat', mul: 1.6, note: 'and well for crab.' }],
+  },
 };
+/** Marta's store: the shop the tutorial and older code mean by "the shop". */
+export const SHOP = SHOPS.general;
 
 // ---- magic -------------------------------------------------------------------
 export interface Spell { id: string; name: string; level: number; maxHit: number; baseXp: number; charms: number }

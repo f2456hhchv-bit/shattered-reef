@@ -2,7 +2,7 @@
 
 Reflects the actual repository, not the roadmap.
 
-## Status (2026-10-23)
+## Status (2026-10-24)
 
 **Live:** art pass 1 + 2.5× starter island (PR #3, deployed). **Ready on `ui-characters` (not live):** rounded characters + framed UI, phone tap fixes, levels 1–99 content for all 12 skills, rounded Guardian/buildings.
 
@@ -37,6 +37,8 @@ Reflects the actual repository, not the roadmap.
 - **Characters pass 2 (2026-10-23):** one sculpted head per character wearing a face painted in code (eyes with irises and catch-lights, lids, brows, nose shading, lips, stubble, per-character eye colour); knee and elbow joints with a real walk cycle; collar, buttons, pouch, boot tops. Dialogue and the Equipment tab show 3D-rendered portraits. Zooming in lowers the camera up to 20 degrees so faces are visible in play.
 - **Wear and repair (Tom asked, 2026-10-23):** weapons, head/body armour and tools wear (~1000 swings / ~1250 hits / ~2000 gathers). Worn out = 70% effect (tools act one tier lower); nothing breaks or vanishes. Repair at any anvil with one bar of the item's metal (+Smithing XP) or from Bram at the village smithy for ~30% of the lost value; affixes and rarity kept.
 - **Workflow:** work accumulates on one branch; a PR is opened only when Tom says to put it live (a merged PR cannot be reused).
+- **No more graphics passes for now** (Tom, 2026-10-24: "maintain this level"). New content matches the current style.
+- **Enterable buildings:** the simulation owns footprints, doors and furniture collision (`buildings.ts`, no Three.js); the renderer owns the cutaway. A building is "entered" when you're inside its walls (the doorway counts as outside, so the roof doesn't flicker).
 - **Encounter upgrades (Survivor.io level-up choices):** not built yet; deliberately deferred so permanent skills stay the focus of the first island.
 
 ## Systems in the build
@@ -52,7 +54,8 @@ Reflects the actual repository, not the roadmap.
 | Items, rarity, affixes | `src/game/data/items.ts`, `sim/gear.ts` | Common/Fine/Rare/Relic; 11 affixes, all applied in `computeStats` |
 | Gathering | `sim/game.ts` | tool power, level, depletion + respawn; shoals need the ship |
 | Crafting | `content.ts` RECIPES | furnace, anvil, cookfire; burn chance; forged gear can roll Fine/Rare |
-| Shop | `content.ts` SHOP | buy stock, sell anything non-quest at 50% |
+| Shops | `content.ts` SHOPS | one per keeper: Marta (general), Silas (tackle; pays 1.5× for fish), Hob at the inn (ale, bread, bramble pie, fisherman's stew; pays 2× for berries, 1.6× for crab). Sell anything non-quest. Pie and stew are also Cooking recipes (10, 30) |
+| Bellwether town | `world/town.ts`, `world/buildings.ts`, `art/models/buildings.ts` | 15 enterable buildings in two quarters. Quay: store, chart house, tackle shop, warehouse, 2 cottages. Upper town round a market square (4 stalls): the Drowned Bell inn (2 storeys), bank (banker Ada + a bank counter), Chapel of the Tides (Sister Maren heals you to full), town hall (Reeve Corwin), 5 houses. Walls and furniture are real collision; walk in and the roof lifts off, walls drop to waist height, windows hide. 8 new NPCs (shop, bank, healer, harbourmaster, 2 watch), 5 townsfolk walking rounds. Roads were re-routed round the buildings; each building sits on a pad levelled at the ground already there |
 | Enemies | `content.ts` ENEMIES | reef crab, brigand (melee), gunner (telegraphed shot); 10% elites: Barnacled / Frenzied / Volatile |
 | Boss | `sim/game.ts` stepBoss | Lockbound Guardian: slam circle, sweep cone, crab summons at 66% / 33%, enrage < 25%, resets if you leave or die |
 | Quest | `data/quests.ts` | *The Bell at Low Water*: talk → bronze bar → bell → boss → Keel's Tooth → return |
@@ -92,7 +95,7 @@ Reflects the actual repository, not the roadmap.
 - Buildings and the Guardian are still blocky; next art target after characters/UI.
 - One island. Terrain (64 chunks of 40 m) and grass (40 m buckets) are frustum-culled; camera far plane follows the fog. Not streamed: the whole 300 m world is built at load (~0.4 s for the simulation in Node).
 - Performance measured only in software rendering; big-island frame rate on a real phone unmeasured.
-- Frame cost (software renderer, phone viewport, shadows on): 180–270 draw calls, 300–380k triangles (art pass 1 was ~150 / ~200k). Not yet measured on a real phone; battery saver drops shadows and grass.
+- Frame cost (software renderer, shadows on): in the market square at 1100×680 ~600 draw calls, ~0.94M triangles (before the town: ~330). Town buildings merge to ~5 meshes each; vinyl characters merge per joint (58 → 22 meshes). Not yet measured on a real phone; battery saver drops shadows and grass.
 - Gathering pace: 99 takes 200–250 h of pure gathering (RuneScape-like; brief target ~400 h incl. travel). Early levels are RuneScape-quick, faster than the brief's provisional 4 h to level 30.
 - Picking and digging give no XP yet (future Foraging/Archaeology only with real loops).
 - Items 60+ have no new gear tiers yet (combat gear tops out at level 50–60 crafted, relic drops above); new skills (Agility, Thieving, ...) not started.
@@ -103,4 +106,4 @@ Reflects the actual repository, not the roadmap.
 3. New skills one at a time (docs/SKILLS.md), each with real content.
 4. Survivor.io-style encounter upgrades for the camp and boss fights.
 5. Naval combat (raider skiffs) and the Kraken.
-6. Second island + streaming.
+6. Second island (own region, port town, reached by ship), new creatures and monsters, deeper gathering/crafting (Tom, 2026-10-24: "expand the world... start filling out the world truly"). Town batch shipped first.

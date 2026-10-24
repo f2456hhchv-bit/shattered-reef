@@ -20,16 +20,32 @@ export interface NpcDef {
   id: string;
   name: string;
   title: string;
-  look: 'cartographer' | 'shopkeeper' | 'smith';
   idle: string[];
-  shop?: boolean;
+  shop?: boolean; // keeps a shop (see SHOPS: the shop's keeper)
+  bank?: boolean; // talking opens your bank
+  heals?: string; // restores you to full health, with this line
 }
 
 export const NPCS: Record<string, NpcDef> = {
-  iven: { id: 'iven', name: 'Iven Marr', title: 'Cartographer', look: 'cartographer', idle: ['The sea has a second map, captain. I mean to finish it.'] },
-  marta: { id: 'marta', name: 'Marta Gell', title: 'Harbour trader', look: 'shopkeeper', idle: ['Buying, selling, and asking no questions.'], shop: true },
-  bram: { id: 'bram', name: 'Bram Tollis', title: 'Smith', look: 'smith',
+  iven: { id: 'iven', name: 'Iven Marr', title: 'Cartographer', idle: ['The sea has a second map, captain. I mean to finish it.'] },
+  marta: { id: 'marta', name: 'Marta Gell', title: 'Harbour trader', idle: ['Buying, selling, and asking no questions.'], shop: true },
+  bram: { id: 'bram', name: 'Bram Tollis', title: 'Smith',
     idle: ['Furnace takes copper and tin, one of each, makes a bronze bar.', 'Bring bars to the anvil. Better smiths turn out better blades. Some come out Fine, now and then Rare.'] },
+  silas: { id: 'silas', name: 'Silas Reed', title: 'Tackle seller', shop: true,
+    idle: ['Rods, pots, harpoons. And I pay better for fish than Marta does, don\'t tell her.'] },
+  hob: { id: 'hob', name: 'Hob Fenner', title: 'Landlord of the Drowned Bell', shop: true,
+    idle: ['Ale\'s cold, stew\'s hot. Bring me berries and crab and I\'ll pay you for them.'] },
+  ada: { id: 'ada', name: 'Ada Quill', title: 'Banker', bank: true,
+    idle: ['What you leave here stays here. Every strongbox on the island answers to these books.'] },
+  maren: { id: 'maren', name: 'Sister Maren', title: 'Keeper of the chapel',
+    idle: ['The tide gives and the tide takes. Come back hurt and I\'ll see you mended.', 'They say the Bell rang the night the star came down on Ironcrag.'],
+    heals: 'Hold still. There: the tide\'s mended worse than you. Go carefully.' },
+  corwin: { id: 'corwin', name: 'Corwin Ashe', title: 'Reeve of Bellwether',
+    idle: ['Bellwether was a fishing camp when I was a boy. Now look at it: a bank, a chapel, an inn with a roof that doesn\'t leak.', 'The brigands on the east road cost us a cart a week. Thin them out and the town will remember it.'] },
+  wynn: { id: 'wynn', name: 'Wynn Harrow', title: 'Harbourmaster',
+    idle: ['Every ship in this harbour is yours or mine, and mine don\'t float.', 'Past the Drowned Spire the water goes deep and strange. Iven\'s charts stop there. They won\'t forever.'] },
+  watch_n: { id: 'watch_n', name: 'Watchman Pell', title: 'Town watch', idle: ['North road runs to the Copperback Hills and the foot of Ironcrag. Mind the crabs in iron shells.'] },
+  watch_e: { id: 'watch_e', name: 'Watchwoman Dory', title: 'Town watch', idle: ['East road\'s brigand country. Past their camp, the smugglers keep the cove. Go armed.'] },
 };
 
 export interface QuestStage { text: string; talk?: { npc: string; node: DialogueNode } }

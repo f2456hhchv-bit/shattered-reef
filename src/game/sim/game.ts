@@ -1,7 +1,7 @@
 import { mulberry32 } from '../../art/noise';
 import { item, type Slot, type SkillId, type CombatStyle } from '../data/items';
 import { perkTotal } from '../data/perks';
-import { NODES, RECIPES, ENEMIES, LOOT, ELITE_AFFIXES, SHOP, PLAYER_BASE, COMBAT_SKILLS, XP_PER_DAMAGE, type EnemyDef, type Recipe, type Station } from '../data/content';
+import { NODES, RECIPES, ENEMIES, LOOT, ELITE_AFFIXES, SHOPS, PLAYER_BASE, COMBAT_SKILLS, XP_PER_DAMAGE, type EnemyDef, type Recipe, type Station } from '../data/content';
 import { NPCS, QUESTS, type DialogueNode, type Effect } from '../data/quests';
 import { PLACES } from '../world/island';
 import { buildIsland, type IslandLayout } from '../world/layout';
@@ -35,7 +35,7 @@ export type GameEvent =
   | { type: 'craftFx'; station: Station }
   | { type: 'dialog'; npc: string; lines: string[] }
   | { type: 'openStation'; station: Station }
-  | { type: 'openShop' }
+  | { type: 'openShop'; shop: string }
   | { type: 'openBank' }
   | { type: 'quest'; id: string; stage: number }
   | { type: 'boss'; state: 'rise' | 'defeat' | 'reset' | 'summon' }
@@ -220,9 +220,9 @@ export class Game {
       out.push({ key: `node:${n.uid}`, kind: 'node', x: n.x, z: n.z, range: this.nodeReach(d), label: d.name, verb: d.verb });
     }
     if (!onShip) {
-      for (const n of this.layout.npcs) out.push({ key: `npc:${n.id}`, kind: 'npc', x: n.x, z: n.z, range: 2.2, label: NPCS[n.id].name, verb: NPCS[n.id].shop ? 'Trade' : 'Talk' });
+      for (const n of this.layout.npcs) out.push({ key: `npc:${n.id}`, kind: 'npc', x: n.x, z: n.z, range: 2.2, label: NPCS[n.id].name, verb: NPCS[n.id].shop ? 'Trade' : NPCS[n.id].bank ? 'Bank' : 'Talk' });
       this.layout.stations.forEach((st, i) => out.push({ key: `station:${i}`, kind: 'station', x: st.x, z: st.z, range: 2.3, label: STATION_NAMES[st.id], verb: st.id === 'fire' ? 'Cook' : st.id === 'furnace' || st.id === 'vent' ? 'Smelt' : st.id === 'bench' ? 'Craft' : 'Forge' }));
-      this.layout.banks.forEach((b, i) => out.push({ key: `bank:${i}`, kind: 'bank', x: b.x, z: b.z, range: 2.2, label: 'Harbour strongbox', verb: 'Open' }));
+      this.layout.banks.forEach((b, i) => out.push({ key: `bank:${i}`, kind: 'bank', x: b.x, z: b.z, range: 2.2, label: b.booth ? 'Bank counter' : 'Strongbox', verb: b.booth ? 'Bank' : 'Open' }));
       out.push({ key: 'ship', kind: 'ship', x: this.ship.x, z: this.ship.z, range: 4.2, label: 'Your sloop', verb: 'Board' });
       out.push({ key: 'ruin', kind: 'ruin', x: this.layout.plinth.x, z: this.layout.plinth.z, range: 2.2, label: 'Bell hollow', verb: 'Ring' });
       const mo = this.layout.mooring;
@@ -674,18 +674,32 @@ export class Game {
     this.rev++;
   }
 
+  /** The trader you last opened (each shopkeeper has their own stock and prices). */
+  shopId = 'general';
+  get shop() { return SHOPS[this.shopId] ?? SHOPS.general; }
+  /** Open the shop `npcId` keeps, if they keep one. */
+  openShopOf(npcId: string) {
+    const sh = Object.values(SHOPS).find((x) => x.keeper === npcId);
+    if (!sh) return false;
+    this.shopId = sh.id;
+    this.emit({ type: 'openShop', shop: sh.id });
+    return true;
+  }
   nearShop() {
-    const n = this.layout.npcs.find((x) => x.id === 'marta')!;
-    return !this.p.onShip && Math.hypot(n.x - this.p.x, n.z - this.p.z) < 3.5;
+    const n = this.layout.npcs.find((x) => x.id === this.shop.keeper);
+    return !!n && !this.p.onShip && Math.hypot(n.x - this.p.x, n.z - this.p.z) < 3.5;
   }
   buyPrice(id: string) {
-    const e = SHOP.stock.find((x) => x.id === id);
-    return Math.max(1, Math.ceil(item(id).value * (e?.qty ?? 1) * SHOP.buyMul));
+    const e = this.shop.stock.find((x) => x.id === id);
+    return Math.max(1, Math.ceil(item(id).value * (e?.qty ?? 1) * this.shop.buyMul));
   }
-  sellPrice(st: Stack) { return Math.floor(stackValue(st) * SHOP.sellMul); }
+  sellPrice(st: Stack) {
+    const want = this.shop.wants?.find((w) => st.id.startsWith(w.prefix));
+    return Math.floor(stackValue(st) * this.shop.sellMul * (want?.mul ?? 1));
+  }
 
   buy(id: string) {
-    const entry = SHOP.stock.find((x) => x.id === id);
+    const entry = this.shop.stock.find((x) => x.id === id);
     if (!this.nearShop() || !entry) return;
     const price = this.buyPrice(id);
     if (count(this.p.inv, 'coins') < price) { this.msg(`You need ${price} coins.`, 'warn'); return; }
@@ -698,7 +712,7 @@ export class Game {
     const st = this.p.inv[i];
     if (!st || !this.nearShop()) return;
     const d = item(st.id);
-    if (d.quest || st.id === 'coins') { this.msg('Marta won\'t buy that.', 'warn'); return; }
+    if (d.quest || st.id === 'coins') { this.msg(`${NPCS[this.shop.keeper]?.name.split(' ')[0] ?? 'They'} won't buy that.`, 'warn'); return; }
     const qty = all ? st.qty : 1;
     const each = this.sellPrice({ ...st, qty: 1 });
     st.qty -= qty;
@@ -726,7 +740,14 @@ export class Game {
         return;
       }
     }
-    if (npc.shop) { this.emit({ type: 'openShop' }); return; }
+    if (npc.shop && this.openShopOf(npcId)) return;
+    if (npc.bank) { this.emit({ type: 'openBank' }); return; }
+    if (npc.heals && this.p.hp < this.stats.maxHp) {
+      this.p.hp = this.stats.maxHp;
+      this.emit({ type: 'dialog', npc: npcId, lines: [npc.heals] });
+      this.rev++;
+      return;
+    }
     this.emit({ type: 'dialog', npc: npcId, lines: npc.idle });
   }
 
