@@ -1,3 +1,4 @@
+import { artOverride, overrideUrl } from '../art/overrides';
 import * as THREE from 'three';
 import { RARITY, type SkillId } from '../game/data/items';
 import type { Stack } from '../game/sim/inventory';
@@ -93,6 +94,8 @@ function outlined(src: HTMLCanvasElement): string {
 const tierOf = (id: string, qty: number) => (id === 'coins' ? (qty >= 100 ? 100 : qty >= 10 ? 10 : qty > 1 ? 2 : 1) : 1);
 
 export function itemIcon(id: string, qty = 1): string {
+  const art = artOverride('items', id); // your redrawn icon (art/items) wins
+  if (art) return overrideUrl(art);
   const tier = tierOf(id, qty);
   const key = `${id}|${tier}`;
   const hit = cache.get(key);

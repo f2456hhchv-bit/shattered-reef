@@ -9,6 +9,7 @@ import { UI } from './ui/ui';
 import { Input } from './input/input';
 import { GameAudio } from './audio/audio';
 import { Credits, logoHtml } from './ui/credits';
+import { loadArtOverrides } from './art/overrides';
 
 // Boot: load (validated) save, build the world, run a fixed-step simulation under a variable-rate renderer.
 
@@ -16,6 +17,7 @@ function readSave(): string | null {
   try { return localStorage.getItem(SAVE_KEY); } catch { return null; }
 }
 
+await loadArtOverrides(); // your edited art in art/ (if any) before anything is drawn
 const layoutForDefaults = buildIsland(1);
 const fallback = defaultSave(layoutForDefaults.respawn, layoutForDefaults.mooring!);
 const existing = parseSave(readSave(), fallback);

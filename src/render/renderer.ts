@@ -23,6 +23,8 @@ import { buildCrab, animateCrab, type CrabRig } from '../art/models/crab';
 import { buildBoar, animateBoar, buildSpider, animateSpider, buildSnake, animateSnake, type BoarRig, type SpiderRig, type SnakeRig } from '../art/models/beasts';
 import { buildCaveMouth, buildRope, buildWeb, buildCrystal, buildCaveTorch, buildStalagmite, buildLava, buildGong } from '../art/models/cave';
 import { REGIONS } from '../game/world/regions';
+import { artOverride, spriteSwap } from '../art/overrides';
+import { BillboardBatch } from './billboards';
 import { buildPine, buildBroadleaf, buildRock, buildOreRock, buildCrate, buildLanternPost, buildDock, buildPalm, buildGrass, buildBush, buildKelp } from '../art/models/props';
 import { buildBench, buildFurnace, buildAnvil, buildCookfire, buildTent, buildSmithyShed, buildPillar, buildPlinth, buildStrongbox, buildDigSpot, buildGuardian, buildStump, buildRipples, type GuardianRig } from '../art/models/world';
 import { buildLootShard, buildItemModel, SHARD_TINT, type LootShard, type ShardKind } from '../art/models/items';
@@ -87,6 +89,8 @@ export class GameRenderer {
   private lantern = new THREE.PointLight(0xffb070, 60, 26, 1.5);
   private fogK = { near: LOOK.fog.near, far: LOOK.fog.far };
   private cave = false;
+  /** edited art for scenery and props (billboards) */
+  private boards = new BillboardBatch();
   private bloom!: UnrealBloomPass;
   readonly particles = new Particles(500);
   private quality: 'auto' | 'max' | 'low' = 'auto';
@@ -102,6 +106,8 @@ export class GameRenderer {
     rig.root.scale.setScalar(HERO);
     bakeRig(rig.root, addSurfaceDetail(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: false, roughness: 0.9 }), CHAR_SURFACE));
     humanoidShadow(rig);
+    const art = artOverride('characters', 'player');
+    if (art) spriteSwap(rig.root, art);
     rig.root.visible = false;
     this.scene.add(rig.root);
     this.playerRigs.set(kind, rig);
@@ -189,6 +195,7 @@ export class GameRenderer {
     this.player = this.playerRig('cutlass');
 
     this.ship = buildSloop();
+    { const art = artOverride('props', 'sloop'); if (art) spriteSwap(this.ship.root, art); }
     this.scene.add(this.ship.root);
 
     this.scene.add(this.particles.mesh);
@@ -242,8 +249,11 @@ export class GameRenderer {
       this.water.uniforms.uSunDir.value.copy(this.sunDir);
       this.region3d.add(this.water.mesh);
     }
+    this.boards = new BillboardBatch();
     this.buildStatic();
     this.buildNodes();
+    this.boards.build();
+    this.region3d.add(this.boards.group);
     for (const n of g.layout.npcs) {
       const rig = buildHumanoid(NPC_LOOKS[n.id]);
       rig.root.scale.setScalar(HERO);
@@ -251,6 +261,8 @@ export class GameRenderer {
       rig.root.rotation.y = Math.PI / 2 - n.facing;
       bakeRig(rig.root, addSurfaceDetail(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: false, roughness: 0.9 }), CHAR_SURFACE));
       humanoidShadow(rig);
+      const art = artOverride('characters', n.id);
+      if (art) spriteSwap(rig.root, art);
       this.region3d.add(rig.root);
       this.npcs.set(n.id, rig);
     }
@@ -278,7 +290,11 @@ export class GameRenderer {
   private buildStatic() {
     const L = this.game.layout, w = this.game.world;
     const root = new THREE.Group();
+    // a prop you've redrawn (art/props) goes in as a billboard instead of its model
+    let propKey: string | null = null, propS = 1;
     const place = (o: THREE.Object3D, x: number, z: number, rot = 0, y?: number) => {
+      const art = propKey ? artOverride('props', propKey) : undefined;
+      if (art) { this.boards.add(art, x, y ?? w.ground(x, z), z, propS); return o; }
       o.position.set(x, y ?? w.ground(x, z), z);
       o.rotation.y = rot;
       root.add(o);
@@ -288,11 +304,14 @@ export class GameRenderer {
     if (d) root.add(buildDock(d.x, d.zStart, d.len, d.headWidth, d.deckY, 21).group);
     for (const b of L.buildings) {
       const y = w.ground(b.x, b.z);
+      propKey = b.kind;
       if (b.kind === 'tent') place(buildTent(b.seed), b.x, b.z, b.rot, y);
       else if (b.kind === 'smithy') place(buildSmithyShed(), b.x, b.z, b.rot, y);
     }
+    propKey = 'stall';
     for (const st of L.stalls) place(buildStall(st.colour, Math.round(st.x * 7 + st.z)), st.x, st.z, -st.rot);
     for (const st of L.stations) {
+      propKey = st.id === 'fire' ? 'cookfire' : st.id === 'vent' ? 'ventforge' : st.id;
       if (st.id === 'furnace') { const f = buildFurnace(); f.group.traverse((o) => { if ((o as THREE.Mesh).material === f.glow) o.userData.glow = true; }); place(f.group, st.x, st.z, 0); }
       else if (st.id === 'anvil') place(buildAnvil(), st.x, st.z, 0.3);
       else if (st.id === 'bench') place(buildBench(), st.x, st.z, 0);
@@ -300,6 +319,8 @@ export class GameRenderer {
       else { const f = buildCookfire(); f.flames.forEach((m) => (m.userData.flame = true)); place(f.group, st.x, st.z, 0); }
     }
     for (const p of L.props) {
+      propKey = p.kind === 'campfire' ? 'cookfire' : p.kind === 'crystal' && this.game.s.region === 'ember_deep' ? 'crystal_ember' : p.kind;
+      propS = p.kind === 'web' || p.kind === 'crystal' || p.kind === 'stalagmite' ? p.s : 1;
       switch (p.kind) {
         case 'pine': { const t = buildPine(p.seed, p.s); place(t, p.x, p.z, t.rotation.y, w.ground(p.x, p.z) - 0.05); break; }
         case 'broadleaf': { const t = buildBroadleaf(p.seed); place(t, p.x, p.z, t.rotation.y, w.ground(p.x, p.z) - 0.05); break; }
@@ -332,8 +353,11 @@ export class GameRenderer {
         case 'lava': place(buildLava(p.s, p.seed), p.x, p.z, 0); break;
       }
     }
-    for (const a of L.arenas) place(a.boss === 'guardian' ? buildPlinth() : buildGong(), a.altar.x, a.altar.z, 0);
+    propS = 1;
+    for (const a of L.arenas) { propKey = a.boss === 'guardian' ? 'plinth' : 'gong'; place(a.boss === 'guardian' ? buildPlinth() : buildGong(), a.altar.x, a.altar.z, 0); }
+    propKey = 'strongbox';
     for (const b of L.banks) if (!b.booth) place(buildStrongbox(), b.x, b.z, 0);
+    propKey = null;
     for (const r of L.reefs) {
       const m = buildRock(Math.round(r.x * 31 + r.z), r.r, 'stoneDark');
       m.position.set(r.x, 0.05, r.z);
@@ -370,6 +394,8 @@ export class GameRenderer {
       rig.root.scale.setScalar(HERO);
       bakeRig(rig.root, addSurfaceDetail(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: false, roughness: 0.9 }), CHAR_SURFACE));
       humanoidShadow(rig);
+      const art = artOverride('characters', wd.look);
+      if (art) spriteSwap(rig.root, art);
       this.region3d.add(rig.root);
       const cum = [0];
       for (let i = 1; i < wd.path.length; i++) cum.push(cum[i - 1] + Math.hypot(wd.path[i][0] - wd.path[i - 1][0], wd.path[i][1] - wd.path[i - 1][1]));
@@ -446,7 +472,7 @@ export class GameRenderer {
     const leapFish = new Map<string, THREE.Object3D>();
     this.buildScenery();
     for (const n of this.game.nodes) {
-      if (this.scenery.has(n.uid)) continue;
+      if (this.scenery.has(n.uid) || this.boards.has(n.uid)) continue;
       const def = NODES[n.def];
       let live: THREE.Object3D, dead: THREE.Object3D | undefined, ripples: THREE.Group | undefined;
       if (def.skill === 'woodcutting') {
@@ -500,6 +526,8 @@ export class GameRenderer {
       this.region3d.add(live);
       if (dead) { dead.position.set(n.x, y, n.z); dead.visible = false; this.region3d.add(dead); }
       if (live !== ripples) bakeRig(live, addSurfaceDetail(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: false, roughness: 0.92 }), PROP_SURFACE));
+      const art = live !== ripples ? artOverride('resources', n.def) : undefined;
+      if (art) spriteSwap(live, art);
       this.nodeViews.set(n.uid, { live, dead, ripples, leap: leapFish.get(n.uid) });
     }
   }
@@ -517,6 +545,13 @@ export class GameRenderer {
       const list = by.get(n.def) ?? [];
       list.push({ uid: n.uid, x: n.x, y, z: n.z, rot: n.rot ?? 0, s: n.s ?? 1, variant: n.seed });
       by.set(n.def, list);
+    }
+    // trees, rocks and bushes you've redrawn (art/resources) stand as billboards instead
+    for (const [def, list] of [...by]) {
+      const art = artOverride('resources', def);
+      if (!art) continue;
+      for (const it of list) this.boards.add(art, it.x, it.y, it.z, it.s, it.uid);
+      by.delete(def);
     }
     const geo = (o: THREE.Object3D) => mergeColoured(o);
     const V = [11, 23]; // two shape variants per kind (with per-instance rotation and scale) keep draw calls low
@@ -579,6 +614,8 @@ export class GameRenderer {
       v.root.add(ring);
       v.ring = ring;
     }
+    const art = artOverride('creatures', e.def.id);
+    if (art) spriteSwap(v.root, art);
     this.region3d.add(v.root);
     return v;
   }
@@ -958,6 +995,10 @@ export class GameRenderer {
     // nodes
     for (const n of g.nodes) {
       const depleted = n.depletedUntil > g.time;
+      if (this.boards.has(n.uid)) {
+        if (this.sceneryState.get(n.uid) !== depleted) { this.sceneryState.set(n.uid, depleted); this.boards.setVisible(n.uid, !depleted); }
+        continue;
+      }
       if (this.scenery.has(n.uid)) {
         if (this.sceneryState.get(n.uid) !== depleted) { this.sceneryState.set(n.uid, depleted); this.scenery.set(n.uid, depleted); }
         continue;
