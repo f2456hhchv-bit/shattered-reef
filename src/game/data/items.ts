@@ -249,6 +249,11 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(
     I({ id: 'fish_bell', name: 'Seared bellfish', desc: 'Heals 8.', icon: { shape: 'fish', color: '#b77a3e', accent: '#e3c25e' }, stackable: true, value: 26, heal: 8 }),
     I({ id: 'crab_meat_raw', name: 'Raw crab meat', desc: 'Needs cooking.', icon: { shape: 'meat', color: '#e7a58a' }, stackable: true, value: 4 }),
     I({ id: 'crab_meat', name: 'Cooked crab meat', desc: 'Heals 5.', icon: { shape: 'meat', color: '#d0703f' }, stackable: true, value: 10, heal: 5 }),
+    I({ id: 'boar_meat_raw', name: 'Raw boar meat', desc: 'A thick cut from a Greenheart boar. Needs cooking.', icon: { shape: 'meat', color: '#c9605a', accent: '#f2e0d0' }, stackable: true, value: 16 }),
+    I({ id: 'boar_meat', name: 'Roast boar', desc: 'Heals 11. Crackling and all.', icon: { shape: 'meat', color: '#9a5a2c', accent: '#e8c27a' }, stackable: true, value: 34, heal: 11 }),
+    I({ id: 'spider_silk', name: 'Spider silk', desc: 'A skein of cave-spider silk, strong as wire. Tamsin buys it for sailcloth.', icon: { shape: 'parcel', color: '#e8e6dc', accent: '#b8b4a8' }, stackable: true, value: 22 }),
+    I({ id: 'snake_skin', name: 'Snakeskin', desc: 'A shed jungle-snake skin, patterned gold and green.', icon: { shape: 'parcel', color: '#7a9a3a', accent: '#d8b84a' }, stackable: true, value: 18 }),
+    I({ id: 'sunscale', name: 'Sunscale', desc: 'A scale from the temple serpent, bright as hammered gold. Worth a fortune.', icon: { shape: 'shell', color: '#e8b83a', accent: '#a86a1a' }, stackable: true, value: 420 }),
     I({ id: 'burnt_food', name: 'Burnt food', desc: 'A lesson in patience.', icon: { shape: 'burnt', color: '#2c2622' }, stackable: true, value: 0 }),
     I({ id: 'bread', name: 'Ship\'s bread', desc: 'Heals 4. Hard as a hull plank.', icon: { shape: 'bread', color: '#c99b5c' }, stackable: true, value: 6, heal: 4 }),
     // ---- tools

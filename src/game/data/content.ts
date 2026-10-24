@@ -170,6 +170,7 @@ function buildRecipes(): Recipe[] {
   out.push({ id: 'cook_stew', station: 'fire', skill: 'cooking', level: 30, xp: 120, inputs: [{ id: 'fish_salmon_raw', qty: 1 }, { id: 'kelp', qty: 1 }, { id: 'sea_salt', qty: 1 }], output: { id: 'fish_stew', qty: 1 }, burn: { item: 'burnt_food', stopLevel: 58 } });
   out.push({ id: 'burn_kelp', station: 'fire', skill: 'cooking', level: 12, xp: 12, inputs: [{ id: 'kelp', qty: 2 }], output: { id: 'kelp_ash', qty: 1 } });
   out.push({ id: 'cook_crab', station: 'fire', skill: 'cooking', level: 4, xp: 35, inputs: [{ id: 'crab_meat_raw', qty: 1 }], output: { id: 'crab_meat', qty: 1 }, burn: { item: 'burnt_food', stopLevel: 26 } });
+  out.push({ id: 'cook_boar', station: 'fire', skill: 'cooking', level: 24, xp: 92, inputs: [{ id: 'boar_meat_raw', qty: 1 }], output: { id: 'boar_meat', qty: 1 }, burn: { item: 'burnt_food', stopLevel: 52 } });
   return out;
 }
 export const RECIPES: Recipe[] = buildRecipes();
@@ -241,13 +242,13 @@ SHOPS.sunreach = {
     { id: 'cutlass_steel', qty: 1 }, { id: 'pike_iron', qty: 1 }, { id: 'helm_steel', qty: 1 }, { id: 'harpoon', qty: 1 }, { id: 'lobster_pot', qty: 1 }, { id: 'charm_tide', qty: 50 }, { id: 'sea_salt', qty: 5 },
   ],
   buyMul: 1.15, sellMul: 0.55,
-  wants: [{ prefix: 'ore_', mul: 1.3, note: 'Tamsin pays well for ore.' }, { prefix: 'logs_', mul: 1.3, note: 'and for timber.' }],
+  wants: [{ prefix: 'ore_', mul: 1.3, note: 'Tamsin pays well for ore,' }, { prefix: 'logs_', mul: 1.3, note: 'timber' }, { prefix: 'spider_silk', mul: 1.5, note: 'and spider silk.' }],
 };
 SHOPS.anchor = {
   id: 'anchor', name: 'The Gilded Anchor', keeper: 'rell',
-  stock: [{ id: 'coconut', qty: 1 }, { id: 'ale', qty: 1 }, { id: 'crab_cakes', qty: 1 }, { id: 'fish_stew', qty: 1 }, { id: 'fish_pie', qty: 1 }],
+  stock: [{ id: 'coconut', qty: 1 }, { id: 'ale', qty: 1 }, { id: 'crab_cakes', qty: 1 }, { id: 'boar_meat', qty: 1 }, { id: 'fish_stew', qty: 1 }, { id: 'fish_pie', qty: 1 }],
   buyMul: 1.25, sellMul: 0.45,
-  wants: [{ prefix: 'fish_', mul: 1.4, note: 'Rell pays well for fish.' }],
+  wants: [{ prefix: 'fish_', mul: 1.4, note: 'Rell pays well for fish' }, { prefix: 'boar_meat', mul: 1.5, note: 'and boar.' }],
 };
 
 /** Marta's store: the shop the tutorial and older code mean by "the shop". */
@@ -291,9 +292,9 @@ export const PLAYER_BASE = {
 };
 
 // ---- enemies -------------------------------------------------------------------
-export type EnemyModel = 'crab' | 'brigand' | 'gunner' | 'guardian';
+export type EnemyModel = 'crab' | 'brigand' | 'gunner' | 'guardian' | 'boar' | 'spider' | 'snake';
 /** Visual variant: crab shell / humanoid outfit / stone tint, chosen by the renderer. */
-export type EnemyLook = 'reef' | 'mire' | 'ironshell' | 'brigand' | 'gunner' | 'smuggler' | 'poacher' | 'drowned' | 'captain' | 'sentinel';
+export type EnemyLook = 'reef' | 'mire' | 'ironshell' | 'brigand' | 'gunner' | 'smuggler' | 'poacher' | 'drowned' | 'captain' | 'sentinel' | 'cave' | 'giant' | 'jungle' | 'ember' | 'sunscale';
 
 export interface EnemyDef {
   id: string;
@@ -348,6 +349,19 @@ export const ENEMIES: Record<string, EnemyDef> = {
     speed: 3.2, radius: 0.6, aggro: 11, attack: { kind: 'melee', range: 2.0, windup: 0.55, cooldown: 2.6 }, loot: 'captain', respawn: 90, scale: 1.45 },
   stone_sentinel: { id: 'stone_sentinel', name: 'Stone sentinel', model: 'guardian', look: 'sentinel', level: 80, hp: 110, att: 75, def: 80, defBonus: { melee: 70, ranged: 60, magic: 10 }, weakness: 'magic', style: 'melee', accBonus: 70, maxHit: 14,
     speed: 1.9, radius: 1.2, aggro: 9, attack: { kind: 'melee', range: 2.8, windup: 0.8, cooldown: 3.0 }, loot: 'sentinel', respawn: 120, scale: 0.8 },
+  // ---- Sunreach and the caves (stage 2): beasts with their own bodies
+  cave_spider: { id: 'cave_spider', name: 'Cave spider', model: 'spider', look: 'cave', level: 16, hp: 18, att: 14, def: 10, defBonus: { melee: 5, ranged: 10, magic: -15 }, weakness: 'magic', style: 'melee', accBonus: 10, maxHit: 3,
+    speed: 3.6, radius: 0.6, aggro: 7, attack: { kind: 'melee', range: 1.5, windup: 0.35, cooldown: 2.0 }, loot: 'cave_spider', respawn: 25, scale: 1.0 },
+  boar: { id: 'boar', name: 'Greenheart boar', model: 'boar', level: 26, hp: 34, att: 24, def: 22, defBonus: { melee: 25, ranged: -10, magic: 10 }, weakness: 'ranged', style: 'melee', accBonus: 18, maxHit: 5,
+    speed: 4.0, radius: 0.7, aggro: 6, attack: { kind: 'melee', range: 1.7, windup: 0.5, cooldown: 2.6 }, loot: 'boar', respawn: 30, scale: 1.0 },
+  jungle_snake: { id: 'jungle_snake', name: 'Gold-banded snake', model: 'snake', look: 'jungle', level: 30, hp: 28, att: 32, def: 16, defBonus: { melee: -10, ranged: 25, magic: 15 }, weakness: 'melee', style: 'melee', accBonus: 26, maxHit: 5,
+    speed: 2.8, radius: 0.5, aggro: 6, attack: { kind: 'melee', range: 1.9, windup: 0.3, cooldown: 2.2 }, loot: 'snake', respawn: 30, scale: 1.4 },
+  giant_spider: { id: 'giant_spider', name: 'Giant weaver', model: 'spider', look: 'giant', level: 46, hp: 55, att: 44, def: 36, defBonus: { melee: 35, ranged: 40, magic: -10 }, weakness: 'magic', style: 'melee', accBonus: 36, maxHit: 8,
+    speed: 3.4, radius: 1.0, aggro: 9, attack: { kind: 'melee', range: 2.2, windup: 0.45, cooldown: 2.4 }, loot: 'spider', respawn: 45, scale: 1.7 },
+  ember_snake: { id: 'ember_snake', name: 'Ember asp', model: 'snake', look: 'ember', level: 54, hp: 60, att: 52, def: 40, defBonus: { melee: -5, ranged: 45, magic: 30 }, weakness: 'melee', style: 'ranged', accBonus: 46, maxHit: 9,
+    speed: 2.6, radius: 0.6, aggro: 11, attack: { kind: 'shot', range: 9, windup: 0.7, cooldown: 3.0, keepAway: 4 }, loot: 'ember', respawn: 50, scale: 1.7 },
+  temple_serpent: { id: 'temple_serpent', name: 'The Sunscale', model: 'snake', look: 'sunscale', boss: true, level: 60, hp: 170, att: 58, def: 42, defBonus: { melee: 40, ranged: 10, magic: 30 }, weakness: 'ranged', style: 'melee', accBonus: 50, maxHit: 9,
+    speed: 2.7, radius: 1.5, aggro: 20, attack: { kind: 'melee', range: 3.5, windup: 0.6, cooldown: 3 }, loot: 'serpent', respawn: 0, scale: 3.0 },
 };
 
 export interface EliteAffix { id: string; name: string; desc: string; colour: string }
@@ -385,6 +399,15 @@ export const LOOT: Record<string, LootTable> = {
     gear: { chance: 0.05, items: ['ring_brass', 'ring_gold'], weights: { common: 50, fine: 40, rare: 10 } } },
   treasure: { coins: [20, 120], drops: [{ item: 'charm_tide', chance: 0.5, qty: [5, 15] }, { item: 'geode', chance: 0.25 }, { item: 'bar_iron', chance: 0.15 }, { item: 'bar_steel', chance: 0.07 }, { item: 'ore_gold', chance: 0.15 }],
     gear: { chance: 0.08, items: ['ring_brass', 'ring_gold', 'cutlass_steel', 'pistol_steel', 'helm_steel'], weights: { common: 50, fine: 40, rare: 10 } } },
+  cave_spider: { coins: [3, 12], drops: [{ item: 'spider_silk', chance: 0.45 }, { item: 'charm_tide', chance: 0.3, qty: [3, 6] }], gear: { chance: 0.04, items: ['ring_brass', 'dagger_iron'], weights: { common: 55, fine: 38, rare: 7 } } },
+  boar: { coins: [6, 20], drops: [{ item: 'boar_meat_raw', chance: 0.9 }, { item: 'boar_meat_raw', chance: 0.25 }, { item: 'charm_tide', chance: 0.2, qty: [3, 8] }], gear: { chance: 0.04, items: ['cap_leather', 'coat_padded'], weights: { common: 55, fine: 38, rare: 7 } } },
+  snake: { coins: [8, 25], drops: [{ item: 'snake_skin', chance: 0.55 }, { item: 'charm_tide', chance: 0.35, qty: [4, 9] }], gear: { chance: 0.05, items: ['ring_gold', 'dagger_steel'], weights: { common: 50, fine: 40, rare: 10 } } },
+  spider: { coins: [30, 70], drops: [{ item: 'spider_silk', chance: 0.8, qty: [1, 3] }, { item: 'crystal_geode', chance: 0.06 }, { item: 'charm_tide', chance: 0.5, qty: [8, 16] }],
+    gear: { chance: 0.1, items: ['helm_abyss', 'dagger_abyss', 'ring_gold', 'crossbow_storm'], weights: { common: 48, fine: 38, rare: 14 } } },
+  ember: { coins: [45, 95], drops: [{ item: 'snake_skin', chance: 0.5 }, { item: 'ore_cinder', chance: 0.12 }, { item: 'ore_coal', chance: 0.5, qty: [2, 4] }],
+    gear: { chance: 0.1, items: ['cutlass_abyss', 'staff_tide', 'plate_abyss', 'longbow_amber'], weights: { common: 45, fine: 40, rare: 13, relic: 2 } } },
+  serpent: { coins: [300, 600], drops: [{ item: 'sunscale', chance: 1, qty: [1, 3] }, { item: 'snake_skin', chance: 1, qty: [3, 6] }, { item: 'bar_abyss', chance: 0.5, qty: [1, 3] }, { item: 'charm_tide', chance: 1, qty: [40, 80] }],
+    gear: { chance: 1, items: ['cutlass_tide', 'pistol_tide', 'staff_tide', 'helm_tide', 'plate_tide', 'longbow_amber'], weights: { rare: 65, relic: 35 } } },
   guardian: { coins: [80, 130], drops: [{ item: 'bar_iron', chance: 1, qty: [2, 4] }, { item: 'charm_tide', chance: 1, qty: [20, 40] }],
     gear: { chance: 1, items: ['lockplate', 'cutlass_iron', 'ring_brass', 'pistol_iron'], weights: { rare: 70, relic: 30 } } },
 };

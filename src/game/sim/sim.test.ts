@@ -10,7 +10,7 @@ import { LAYOUT } from '../world/island';
 
 // One shared island (building it is the slow part); fresh Game state per test via the save.
 const base = new Game({ seed: 7 });
-const fresh = (seed = 7) => new Game({ seed, save: defaultSave(base.layout.respawn, base.layout.mooring) });
+const fresh = (seed = 7) => new Game({ seed, save: defaultSave(base.layout.respawn, base.layout.mooring!) });
 
 function run(g: Game, seconds: number, until?: () => boolean) {
   for (let t = 0; t < seconds; t += 1 / 30) {
@@ -65,7 +65,7 @@ describe('save', () => {
     g.give('ore_tin', 4);
     g.p.xp.mining = 500;
     const json = JSON.stringify(g.serialize());
-    const fb = defaultSave(base.layout.respawn, base.layout.mooring);
+    const fb = defaultSave(base.layout.respawn, base.layout.mooring!);
     const back = parseSave(json, fb)!;
     expect(back.version).toBe(SAVE_VERSION);
     expect(back.player.xp.mining).toBe(500);
@@ -74,7 +74,7 @@ describe('save', () => {
     expect(parseSave(JSON.stringify({ version: 99 }), fb)).toBeNull();
   });
   it('strips unknown items, bad numbers and wrong-slot gear', () => {
-    const fb = defaultSave(base.layout.respawn, base.layout.mooring);
+    const fb = defaultSave(base.layout.respawn, base.layout.mooring!);
     const evil = { version: 1, player: { x: 'NaN', hp: -5, xp: { mining: 1e12, fishing: 'lots' }, inv: [{ id: 'dragon_scimitar', qty: 1 }, { id: 'coins', qty: 10 }], equip: { head: { id: 'cutlass_bronze', qty: 1 } } }, quests: { bell: 99 } };
     const d = parseSave(JSON.stringify(evil), fb)!;
     expect(d.player.inv[0]).toBeNull();
@@ -131,7 +131,7 @@ describe('wear and repair', () => {
     const g = fresh();
     g.give('helm_bronze', 1);
     const i = g.p.inv.findIndex((x) => x?.id === 'helm_bronze'); g.p.inv[i]!.cond = 33;
-    const back = parseSave(JSON.stringify(g.s), defaultSave(base.layout.respawn, base.layout.mooring))!;
+    const back = parseSave(JSON.stringify(g.s), defaultSave(base.layout.respawn, base.layout.mooring!))!;
     expect(back.player.inv[i]!.cond).toBe(33);
     const b = g.layout.banks[0]; goNear(g, b.x + 1.5, b.z + 1.5);
     g.give('helm_bronze', 1);
@@ -154,7 +154,7 @@ describe('strongbox (bank)', () => {
     const i = g.s.bank.findIndex((e) => e.id === 'helm_bronze');
     g.withdraw(i, 1);
     expect(count(g.p.inv, 'helm_bronze')).toBe(1);
-    const back = parseSave(JSON.stringify(g.s), defaultSave(base.layout.respawn, base.layout.mooring))!;
+    const back = parseSave(JSON.stringify(g.s), defaultSave(base.layout.respawn, base.layout.mooring!))!;
     expect(back.bank.find((e) => e.id === 'logs_pine')!.qty).toBe(12);
     expect(back.bank.find((e) => e.id === 'helm_bronze')!.qty).toBe(1);
   });
@@ -165,14 +165,14 @@ describe('strongbox (bank)', () => {
     expect(count(g.p.inv, 'logs_pine')).toBe(3);
     const v2 = { ...JSON.parse(JSON.stringify(g.s)), version: 2 };
     delete v2.bank;
-    const m = parseSave(JSON.stringify(v2), defaultSave(base.layout.respawn, base.layout.mooring))!;
+    const m = parseSave(JSON.stringify(v2), defaultSave(base.layout.respawn, base.layout.mooring!))!;
     expect(m.version).toBe(SAVE_VERSION);
     expect(m.bank).toEqual([]);
   });
   it('keeps far-out positions on reload (the world is wider than it used to be)', () => {
     const g = fresh();
     g.s.ship.z = -125;
-    const back = parseSave(JSON.stringify(g.s), defaultSave(base.layout.respawn, base.layout.mooring))!;
+    const back = parseSave(JSON.stringify(g.s), defaultSave(base.layout.respawn, base.layout.mooring!))!;
     expect(back.ship.z).toBe(-125);
   });
 });
@@ -191,7 +191,7 @@ describe('world', () => {
       const path = g.world.findPath(g.p.x, g.p.z, n.x + 1.2, n.z);
       expect(path, def).not.toBeNull();
     }
-    expect(g.world.findPath(g.p.x, g.p.z, L.ruin.x, L.ruin.z + 3)).not.toBeNull();
+    expect(g.world.findPath(g.p.x, g.p.z, L.arenas[0].x, L.arenas[0].z + 3)).not.toBeNull();
   });
   it('every zone of the starter island is reachable on foot from the quay', () => {
     const g = fresh();
@@ -205,7 +205,7 @@ describe('world', () => {
   });
   it('sea routes round the headlands without crossing land', () => {
     const g = fresh();
-    const M = g.layout.mooring;
+    const M = g.layout.mooring!;
     for (const n of g.layout.nodes.filter((x) => NODES[x.def].fromShip)) {
       const route = g.world.findSeaPath(n.x + 4, n.z, M.x, M.z);
       expect(route, n.uid).not.toBeNull();
@@ -272,7 +272,7 @@ describe('gameplay loop', () => {
 
   it('boards, sails to a bellfish shoal, fishes, sails back and disembarks', () => {
     const g = fresh(5);
-    goNear(g, g.ship.x - 0.5, g.layout.dock.headZ + 1);
+    goNear(g, g.ship.x - 0.5, g.layout.dock!.headZ + 1);
     g.interact('ship');
     expect(g.p.onShip).toBe(true);
     g.addXp('fishing', 1200); // level 8+
@@ -284,8 +284,8 @@ describe('gameplay loop', () => {
     g.interact(`node:${spot.uid}`);
     expect(run(g, 60, () => count(g.p.inv, 'fish_bell_raw') >= 1)).toBe(true);
     // sail home by clicking the mooring
-    g.moveTo(g.layout.mooring.x, g.layout.mooring.z);
-    run(g, 90, () => Math.hypot(g.ship.x - g.layout.mooring.x, g.ship.z - g.layout.mooring.z) < 3);
+    g.moveTo(g.layout.mooring!.x, g.layout.mooring!.z);
+    run(g, 90, () => Math.hypot(g.ship.x - g.layout.mooring!.x, g.ship.z - g.layout.mooring!.z) < 3);
     expect(g.landingPoint()).not.toBeNull();
     g.interact('disembark');
     expect(g.p.onShip).toBe(false);
@@ -325,8 +325,8 @@ describe('gameplay loop', () => {
     g.p.equip.weapon = { id: 'cutlass_iron', qty: 1 };
     g.recalc();
     g.p.hp = g.stats.maxHp;
-    goNear(g, g.layout.plinth.x, g.layout.plinth.z + 1.6);
-    g.interact('ruin');
+    goNear(g, g.layout.arenas[0].altar.x, g.layout.arenas[0].altar.z + 1.6);
+    g.interact('arena:0');
     expect(g.boss).not.toBeNull();
     const won = run(g, 240, () => {
       if (g.p.hp < g.stats.maxHp * 0.5) { g.p.hp = g.stats.maxHp; }
@@ -345,7 +345,7 @@ describe('gameplay loop', () => {
     expect(g.questStage('bell')).toBe(4);
     expect(count(g.p.inv, 'keels_tooth')).toBe(0);
     // state survives a save/load cycle
-    const back = parseSave(JSON.stringify(g.serialize()), defaultSave(g.layout.respawn, g.layout.mooring))!;
+    const back = parseSave(JSON.stringify(g.serialize()), defaultSave(g.layout.respawn, g.layout.mooring!))!;
     expect(back.quests.bell).toBe(4);
     expect(back.flags.guardian_defeated).toBe(true);
   });
@@ -353,8 +353,8 @@ describe('gameplay loop', () => {
   it('player death respawns at the quay and resets the boss', () => {
     const g = fresh(17);
     g.give('tuning_bell', 1);
-    goNear(g, g.layout.plinth.x, g.layout.plinth.z + 1.6);
-    g.interact('ruin');
+    goNear(g, g.layout.arenas[0].altar.x, g.layout.arenas[0].altar.z + 1.6);
+    g.interact('arena:0');
     expect(g.boss).not.toBeNull();
     g.damagePlayer(9999);
     expect(g.boss).toBeNull();
@@ -566,7 +566,7 @@ describe('combat skills (RuneScape model)', () => {
   });
 
   it('migrates a v1 save: old Combat XP is shared out, Hitpoints at least 10', () => {
-    const fb = defaultSave(base.layout.respawn, base.layout.mooring);
+    const fb = defaultSave(base.layout.respawn, base.layout.mooring!);
     const v1 = { version: 1, player: { xp: { combat: 4000, mining: 300 }, inv: [], equip: {} }, quests: { bell: 2 } };
     const d = parseSave(JSON.stringify(v1), fb)!;
     expect(d.version).toBe(SAVE_VERSION); // migrates all the way up

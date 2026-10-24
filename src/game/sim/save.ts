@@ -3,11 +3,12 @@ import { QUESTS } from '../data/quests';
 import { INV_SIZE, emptyInventory, type Inventory, type Stack } from './inventory';
 import { MAX_XP, xpForLevel } from './xp';
 import type { Stance } from './gear';
-import { WORLD_HALF } from '../world/island';
+import { REGIONS, regionAt, type RegionId } from '../world/regions';
+import { SUN } from '../world/island';
 
 // Versioned, validated save. Anything invalid is dropped or defaulted, never trusted.
 
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 export const BANK_MAX = 400; // distinct entries in the strongbox
 export const SAVE_KEY = 'shattered-reef.save';
 
@@ -15,9 +16,11 @@ export interface SaveData {
   version: number;
   savedAt: number;
   playTime: number;
+  /** the region the player is in (only that one is loaded) */
+  region: RegionId;
   player: { x: number; z: number; hp: number; onShip: boolean; xp: Record<SkillId, number>; inv: Inventory; equip: Partial<Record<Slot, Stack>> };
   bank: Stack[]; // harbour strongbox: everything stacks unless it carries a rolled instance
-  ship: { x: number; z: number; heading: number };
+  ship: { x: number; z: number; heading: number; region: RegionId };
   quests: Record<string, number>;
   flags: Record<string, boolean>;
   discovered: string[];
@@ -63,13 +66,14 @@ export function defaultSave(spawn: { x: number; z: number }, ship: { x: number; 
     version: SAVE_VERSION,
     savedAt: 0,
     playTime: 0,
+    region: 'bellwether',
     player: {
       x: spawn.x, z: spawn.z, hp: 10, onShip: false,
       xp: Object.fromEntries(SKILL_IDS.map((k) => [k, k === 'hitpoints' ? HP_START_XP : 0])) as Record<SkillId, number>,
       inv,
       equip: { weapon: { id: 'cutlass_rusty', qty: 1 } },
     },
-    ship: { ...ship },
+    ship: { ...ship, region: 'bellwether' },
     quests: { bell: 0 },
     flags: {},
     discovered: [],
@@ -94,6 +98,16 @@ const MIGRATIONS: Record<number, (d: Record<string, unknown>) => Record<string, 
   },
   // v2 had no strongbox
   2: (d) => ({ ...d, version: 3, bank: [] }),
+  // v3 had one seamless world with Sunreach at x = 190; v4 loads one region at a time and moved Sunreach east
+  3: (d) => {
+    const OLD_SUN_X = 190, shift = SUN.x - OLD_SUN_X;
+    const onSun = (x: unknown, z: unknown) => typeof x === 'number' && typeof z === 'number' && Math.hypot(x - OLD_SUN_X, z - SUN.z) < 115 && x > 95;
+    const p = { ...((d.player ?? {}) as Record<string, unknown>) }, sh = { ...((d.ship ?? {}) as Record<string, unknown>) };
+    const pSun = onSun(p.x, p.z), sSun = onSun(sh.x, sh.z);
+    if (pSun) p.x = (p.x as number) + shift;
+    if (sSun) sh.x = (sh.x as number) + shift;
+    return { ...d, version: 4, player: p, ship: { ...sh, region: sSun ? 'sunreach' : 'bellwether' }, region: pSun ? 'sunreach' : 'bellwether' };
+  },
 };
 
 /** Parse + validate untrusted JSON. Returns null when unusable (caller starts fresh). */
@@ -116,8 +130,10 @@ export function parseSave(json: string | null, fallback: SaveData): SaveData | n
   }
   const d = structuredClone(fallback);
   const p = (raw.player ?? {}) as Record<string, unknown>;
-  d.player.x = num(p.x, d.player.x, -WORLD_HALF, WORLD_HALF);
-  d.player.z = num(p.z, d.player.z, -WORLD_HALF, WORLD_HALF);
+  const isRegion = (v: unknown): v is RegionId => typeof v === 'string' && v in REGIONS;
+  d.player.x = num(p.x, d.player.x, -5000, 5000);
+  d.player.z = num(p.z, d.player.z, -5000, 5000);
+  d.region = isRegion(raw.region) ? raw.region : regionAt(d.player.x, d.player.z);
   d.player.hp = num(p.hp, d.player.hp, 1, 10000);
   d.player.onShip = p.onShip === true;
   const xp = (p.xp ?? {}) as Record<string, unknown>;
@@ -135,7 +151,13 @@ export function parseSave(json: string | null, fallback: SaveData): SaveData | n
     if (s && ITEMS[s.id].equip?.slot === sl) d.player.equip[sl] = sl === 'ammo' ? s : { ...s, qty: 1 };
   }
   const sh = (raw.ship ?? {}) as Record<string, unknown>;
-  d.ship = { x: num(sh.x, d.ship.x, -WORLD_HALF, WORLD_HALF), z: num(sh.z, d.ship.z, -WORLD_HALF, WORLD_HALF), heading: num(sh.heading, d.ship.heading) };
+  d.ship = { x: num(sh.x, d.ship.x, -5000, 5000), z: num(sh.z, d.ship.z, -5000, 5000), heading: num(sh.heading, d.ship.heading), region: 'bellwether' };
+  d.ship.region = isRegion(sh.region) && REGIONS[sh.region].kind === 'island' ? sh.region : regionAt(d.ship.x, d.ship.z);
+  if (REGIONS[d.ship.region].kind !== 'island') d.ship.region = 'bellwether';
+  // a position outside its region's square is corrupt: the game puts you back at that region's start
+  const rb = REGIONS[d.region].bounds;
+  if (Math.abs(d.player.x - rb.cx) > rb.half || Math.abs(d.player.z - rb.cz) > rb.half) { d.player.x = rb.cx; d.player.z = rb.cz; d.player.onShip = false; }
+  if (REGIONS[d.region].kind === 'cave' || d.ship.region !== d.region) d.player.onShip = false;
   if (Array.isArray(raw.bank)) d.bank = raw.bank.map((b) => validStack(b, true)).filter((b): b is Stack => !!b).slice(0, BANK_MAX);
   const q = (raw.quests ?? {}) as Record<string, unknown>;
   for (const id of Object.keys(QUESTS)) d.quests[id] = Math.floor(num(q[id], 0, 0, QUESTS[id].stages.length - 1));

@@ -1,16 +1,27 @@
 import { describe, it, expect } from 'vitest';
 import { Game } from './game';
-import { defaultSave } from './save';
+import { defaultSave, parseSave } from './save';
 import { xpForLevel } from './xp';
 import { count } from './inventory';
 import { ITEMS } from '../data/items';
 import { levelForXp } from './xp';
 import { NODES, RECIPES, ENEMIES, LOOT, SHOPS, UNLOCKS, SKILLS } from '../data/content';
-import { LAYOUT, nearestPathDist, islandOf } from '../world/island';
+import { LAYOUT, nearestPathDist } from '../world/island';
 import { toWorld, toLocal, doorPoints, isInside } from '../world/buildings';
+import { regionLayout } from '../world/layout';
+import { REGIONS, type RegionId } from '../world/regions';
 
 const base = new Game({ seed: 3 });
-const fresh = () => new Game({ seed: 3, save: defaultSave(base.layout.respawn, base.layout.mooring) });
+const fresh = () => new Game({ seed: 3, save: defaultSave(base.layout.respawn, base.layout.mooring!) });
+const IDS = Object.keys(REGIONS) as RegionId[];
+const ISLANDS = IDS.filter((id) => REGIONS[id].kind === 'island');
+/** A fresh game standing at a region's start (town or cave mouth). */
+const inRegion = (id: RegionId, seed = 3) => {
+  const L = regionLayout(id), sv = defaultSave(L.respawn, base.layout.mooring!);
+  return new Game({ seed, save: { ...sv, region: id } });
+};
+/** Where you start out on foot in a region: its harbour, or beside the rope in a cave. */
+const startOf = (id: RegionId) => { const L = regionLayout(id); return L.port ? L.port.land : L.portals[0].out; };
 const run = (g: Game, secs: number, until?: () => boolean) => {
   for (let t = 0; t < secs; t += 1 / 30) { g.step(1 / 30); if (until?.()) return true; }
   return false;
@@ -40,7 +51,7 @@ describe('content data', () => {
   });
 
   it('every item has a use: an input, gear, food, a tool, a quest item, or a declared trade good', () => {
-    const TRADE = new Set(['coins', 'shell_fragment', 'burnt_food', 'charm_tide']); // charms are burnt by spells
+    const TRADE = new Set(['coins', 'shell_fragment', 'burnt_food', 'charm_tide', 'spider_silk', 'snake_skin', 'sunscale']); // charms are burnt by spells; silk, skins and scales are traders' goods
     const used = new Set([...RECIPES.flatMap((r) => r.inputs.map((i) => i.id)), ...Object.values(NODES).flatMap((n) => (n.tool ? [n.tool] : []))]);
     const idle = Object.values(ITEMS).filter((d) => !used.has(d.id) && !d.equip && !d.heal && !d.tool && !d.quest && !d.opens && !TRADE.has(d.id)).map((d) => d.id);
     expect(idle).toEqual([]);
@@ -56,7 +67,7 @@ describe('content data', () => {
 
   it('starter foes (below level 9) never roll as elites', () => {
     for (let seed = 1; seed < 12; seed++) {
-      const g = new Game({ seed, save: defaultSave(base.layout.respawn, base.layout.mooring) });
+      const g = new Game({ seed, save: defaultSave(base.layout.respawn, base.layout.mooring!) });
       expect(g.enemies.filter((e) => e.def.level < 9 && e.elite).map((e) => e.def.id)).toEqual([]);
     }
   }, 30_000);
@@ -92,19 +103,22 @@ describe('pacing (RuneScape-like: 99 is a few hundred hours)', () => {
 
 describe('content placement', () => {
   const g = fresh();
-  it('every node type and every non-boss enemy is placed on the island', () => {
-    const placed = new Set(g.layout.nodes.map((n) => n.def));
+  it('every node type and every non-boss enemy is placed somewhere, and every boss has an arena', () => {
+    const all = IDS.map(regionLayout);
+    const placed = new Set(all.flatMap((L) => L.nodes.map((n) => n.def)));
     expect(Object.keys(NODES).filter((id) => !placed.has(id))).toEqual([]);
-    const spawned = new Set(g.layout.spawns.map((s) => s.enemy));
+    const spawned = new Set(all.flatMap((L) => L.spawns.map((s) => s.enemy)));
     expect(Object.values(ENEMIES).filter((e) => !e.boss && !spawned.has(e.id)).map((e) => e.id)).toEqual([]);
+    const arenas = new Set(all.flatMap((L) => L.arenas.map((a) => a.boss)));
+    expect(Object.values(ENEMIES).filter((e) => e.boss && !arenas.has(e.id)).map((e) => e.id)).toEqual([]);
   });
 
   it('places report their danger and what can be gathered there', () => {
-    expect(g.placeInfo('ruin').foes).toEqual([22, 22]); // the Guardian, though it is not a regular spawn
-    const peak = g.placeInfo('peak');
+    expect(g.placeInfo('ruin')!.foes).toEqual([22, 22]); // the Guardian, though it is not a regular spawn
+    const peak = g.placeInfo('peak')!;
     expect(peak.foes![0]).toBeGreaterThanOrEqual(30);
     expect(peak.gather.map((n) => n.name)).toContain('Stormsilver vein');
-    expect(g.placeInfo('wood').foes).toBeNull();
+    expect(g.placeInfo('wood')!.foes).toBeNull();
   });
 
   it('a new player can walk from the quay to every starter zone without passing a foe above the Guardian\'s level', () => {
@@ -124,51 +138,163 @@ describe('content placement', () => {
     }
   });
 
-  it('land nodes can be used from walkable ground; ship nodes sit in open water', () => {
+  it('land nodes can be used from walkable ground; ship nodes sit in open water (every region)', () => {
     const bad: string[] = [];
-    for (const n of g.layout.nodes) {
-      const d = NODES[n.def];
-      if (d.fromShip) { if (!g.world.sailable(n.x, n.z)) bad.push(n.def); continue; }
-      const reach = g.nodeReach(d) - 0.3;
-      if (!g.world.nearestWalkable(n.x, n.z, reach)) bad.push(`${n.def}@${n.x.toFixed(0)},${n.z.toFixed(0)}`);
+    for (const id of IDS) {
+      const L = regionLayout(id);
+      for (const n of L.nodes) {
+        const d = NODES[n.def];
+        if (d.fromShip) { if (!L.world.sailable(n.x, n.z)) bad.push(`${id}:${n.def}`); continue; }
+        const reach = g.nodeReach(d) - 0.3;
+        if (!L.world.nearestWalkable(n.x, n.z, reach)) bad.push(`${id}:${n.def}@${n.x.toFixed(0)},${n.z.toFixed(0)}`);
+      }
     }
     expect(bad).toEqual([]);
   });
 
-  it('one of each node type and every enemy spawn is reachable on foot from its island\'s harbour', () => {
-    const seen = new Set<string>();
+  it('in every region, one of each node type, every spawn, arena and way out is reachable on foot from where you arrive', () => {
     const bad: string[] = [];
-    // Bellwether from the quay; Sunreach from Port Halyard's pier
-    const from = (x: number, z: number) => (islandOf(x, z) === 'sunreach' ? g.layout.ports[1].land : { x: g.p.x, z: g.p.z });
-    for (const n of g.layout.nodes) {
-      const key = `${n.def}@${islandOf(n.x, n.z)}`;
-      if (NODES[n.def].fromShip || NODES[n.def].islet || seen.has(key)) continue;
-      seen.add(key);
-      const f = from(n.x, n.z);
-      if (!g.world.findPath(f.x, f.z, n.x, n.z)) bad.push(key);
+    for (const id of IDS) {
+      const L = regionLayout(id), w = L.world, f = startOf(id), seen = new Set<string>();
+      for (const n of L.nodes) {
+        if (NODES[n.def].fromShip || NODES[n.def].islet || seen.has(n.def)) continue;
+        seen.add(n.def);
+        if (!w.findPath(f.x, f.z, n.x, n.z)) bad.push(`${id}:${n.def}`);
+      }
+      for (const s of L.spawns) if (!w.findPath(f.x, f.z, s.x, s.z)) bad.push(`${id}:${s.enemy}`);
+      for (const a of L.arenas) if (!w.findPath(f.x, f.z, a.altar.x, a.altar.z)) bad.push(`${id}:arena ${a.boss}`);
+      for (const p of L.portals) if (!w.findPath(f.x, f.z, p.out.x, p.out.z)) bad.push(`${id}:portal ${p.id}`);
+      for (const st of L.stations) if (!w.findPath(f.x, f.z, st.x, st.z)) bad.push(`${id}:station ${st.id}`);
     }
-    for (const s of g.layout.spawns) { const f = from(s.x, s.z); if (!g.world.findPath(f.x, f.z, s.x, s.z)) bad.push(s.enemy); }
     expect(bad).toEqual([]);
   });
 
-  it('Sunreach: sail there from Bellwether, take the ferry back and forth, find a bank and a forge in Port Halyard', () => {
-    const port = g.layout.ports[1];
-    expect(g.world.findSeaPath(g.layout.mooring.x, g.layout.mooring.z, port.ship.x, port.ship.z)).not.toBeNull();
+  it('one region at a time: sail off Bellwether\'s east edge to Sunreach and back, with only that island loaded', () => {
+    const f = fresh();
+    const events: string[] = [];
+    f.on((e) => { if (e.type === 'travel' || e.type === 'region') events.push(`${e.type}:${e.type === 'travel' ? e.to : e.region}`); });
+    const b = REGIONS.bellwether.bounds;
+    // the lane is open water: a route from the quay to the crossing line exists
+    expect(f.world.findSeaPath(f.layout.mooring!.x, f.layout.mooring!.z, b.cx + b.half - 20, 0)).not.toBeNull();
+    f.p.onShip = true;
+    f.ship.x = b.cx + b.half - 20; f.ship.z = 5; f.ship.heading = 0;
+    expect(f.hullFits(f.ship.x, f.ship.z, 0)).toBe(true);
+    f.setMoveDir(1, 0);
+    run(f, 12, () => f.s.region === 'sunreach');
+    expect(events).toEqual(['travel:sunreach', 'region:sunreach']);
+    expect(f.s.region).toBe('sunreach');
+    expect(f.p.onShip).toBe(true);
+    expect(f.shipHere).toBe(true);
+    expect(f.world.inside(f.ship.x, f.ship.z, 10)).toBe(true);
+    expect(f.layout.npcs.some((n) => n.id === 'sefa')).toBe(true);
+    expect(f.layout.npcs.some((n) => n.id === 'wynn')).toBe(false); // Bellwether isn't loaded
+    // from the arrival point the ship can sail into Port Halyard
+    f.setMoveDir(0, 0);
+    expect(f.world.findSeaPath(f.ship.x, f.ship.z, f.layout.mooring!.x, f.layout.mooring!.z)).not.toBeNull();
+    // and back west
+    const s = REGIONS.sunreach.bounds;
+    f.ship.x = s.cx - s.half + 20; f.ship.z = s.cz; f.ship.heading = Math.PI;
+    f.setMoveDir(-1, 0);
+    run(f, 12, () => f.s.region === 'bellwether');
+    expect(f.s.region).toBe('bellwether');
+    expect(f.world.findSeaPath(f.ship.x, f.ship.z, f.layout.mooring!.x, f.layout.mooring!.z)).not.toBeNull();
+  });
+
+  it('Sunreach: the ferry carries you and your ship both ways; Port Halyard has a bank and a forge', () => {
     const f = fresh();
     const near = (gg: Game, x: number, z: number) => { const q = gg.world.nearestWalkable(x, z, 3)!; gg.p.x = q[0]; gg.p.z = q[1]; };
     f.give('coins', 100);
     const wynn = f.layout.npcs.find((n) => n.id === 'wynn')!;
     near(f, wynn.x, wynn.z);
     f.takeFerry('wynn');
-    expect(islandOf(f.p.x, f.p.z)).toBe('sunreach');
+    expect(f.s.region).toBe('sunreach');
+    const port = f.layout.port!;
     expect(Math.hypot(f.ship.x - port.ship.x, f.ship.z - port.ship.z)).toBeLessThan(0.01);
-    expect(f.layout.banks.some((b) => b.booth && islandOf(b.x, b.z) === 'sunreach')).toBe(true);
-    for (const st of ['furnace', 'anvil', 'fire', 'bench'] as const) expect(f.layout.stations.some((s) => s.id === st && islandOf(s.x, s.z) === 'sunreach'), st).toBe(true);
+    expect(f.ship.region).toBe('sunreach');
+    expect(f.layout.banks.some((b) => b.booth)).toBe(true);
+    for (const st of ['furnace', 'anvil', 'fire', 'bench'] as const) expect(f.layout.stations.some((s) => s.id === st), st).toBe(true);
     const sefa = f.layout.npcs.find((n) => n.id === 'sefa')!;
     near(f, sefa.x, sefa.z);
     f.takeFerry('sefa');
-    expect(islandOf(f.p.x, f.p.z)).toBe('bellwether');
+    expect(f.s.region).toBe('bellwether');
     expect(count(f.p.inv, 'coins')).toBe(100 + 25 - 60); // started with 25
+  });
+
+  it('caves: walk in through the mouth, gather and fight inside, climb the rope back out where you came in', () => {
+    for (const [island, cave] of [['bellwether', 'smugglers_caves'], ['sunreach', 'ember_deep']] as const) {
+      const f = inRegion(island);
+      const mouth = f.layout.portals.find((p) => p.to === cave)!;
+      const q = f.world.nearestWalkable(mouth.out.x, mouth.out.z, 2)!; f.p.x = q[0]; f.p.z = q[1];
+      f.interact(`portal:${f.layout.portals.indexOf(mouth)}`);
+      run(f, 10, () => f.s.region === cave);
+      expect(f.s.region, cave).toBe(cave);
+      expect(f.world.walkable(f.p.x, f.p.z)).toBe(true);
+      expect(f.enemies.length).toBeGreaterThan(3);
+      expect(f.nodes.some((n) => NODES[n.def].skill === 'mining')).toBe(true);
+      // the cave's rock is solid: no walking over the top of it
+      expect(f.world.walkable(f.world.cx + f.world.half - 2, f.world.cz)).toBe(false);
+      const rope = f.layout.portals[0];
+      const r = f.world.nearestWalkable(rope.out.x, rope.out.z, 2)!; f.p.x = r[0]; f.p.z = r[1];
+      for (const e of f.enemies) e.alive = false;
+      f.interact('portal:0');
+      run(f, 10, () => f.s.region === island);
+      expect(f.s.region).toBe(island);
+      expect(Math.hypot(f.p.x - mouth.out.x, f.p.z - mouth.out.z)).toBeLessThan(2);
+    }
+  });
+
+  it('old one-world saves load into the right region (Sunreach moved east); a cave save reloads in the cave', () => {
+    const fb = defaultSave(base.layout.respawn, base.layout.mooring!);
+    const v3 = { ...structuredClone(fb), version: 3, player: { ...fb.player, x: 190, z: 14 }, ship: { x: 190.6, z: 40, heading: 0 } } as Record<string, unknown>;
+    delete v3.region;
+    const d = parseSave(JSON.stringify(v3), fb)!;
+    expect(d.region).toBe('sunreach');
+    expect(d.player.x).toBe(420);
+    expect(d.ship.region).toBe('sunreach');
+    const g1 = new Game({ seed: 1, save: d });
+    expect(g1.world.walkable(g1.p.x, g1.p.z)).toBe(true);
+    const c = inRegion('smugglers_caves');
+    const back = parseSave(JSON.stringify(c.serialize()), fb)!;
+    expect(back.region).toBe('smugglers_caves');
+    expect(back.ship.region).toBe('bellwether');
+    // a Bellwether save from before regions stays put
+    const old = { ...structuredClone(fb), version: 3 } as Record<string, unknown>;
+    delete old.region;
+    expect(parseSave(JSON.stringify(old), fb)!.region).toBe('bellwether');
+  });
+
+  it('a death underground wakes you in the island\'s town', () => {
+    const f = inRegion('ember_deep');
+    f.applyPlayerDamage(999);
+    run(f, 5, () => f.s.region !== 'ember_deep');
+    expect(f.s.region).toBe('sunreach');
+    expect(Math.hypot(f.p.x - f.layout.respawn.x, f.p.z - f.layout.respawn.z)).toBeLessThan(0.5);
+  });
+
+  it('the Sunken Temple: the gong wakes the Sunscale, which spits, lashes, summons and drops sunscales', () => {
+    const f = inRegion('sunreach');
+    for (const s of SKILLS) f.p.xp[s.id] = xpForLevel(75);
+    f.p.equip.weapon = { id: 'cutlass_tide', qty: 1 }; f.recalc(); f.p.hp = f.stats.maxHp;
+    const a = f.layout.arenas[0];
+    expect(a.boss).toBe('temple_serpent');
+    for (const e of f.enemies) if (Math.hypot(e.x - a.x, e.z - a.z) < 30) { e.alive = false; e.respawnAt = Infinity; }
+    const q = f.world.nearestWalkable(a.altar.x, a.altar.z + 1.5, 2)!; f.p.x = q[0]; f.p.z = q[1];
+    f.interact('arena:0');
+    expect(f.boss?.def.id).toBe('temple_serpent');
+    const kinds = new Set<string>();
+    let summoned = false;
+    for (let t = 0; t < 120 && f.boss; t += 1 / 30) {
+      f.step(1 / 30);
+      for (const tg of f.telegraphs) kinds.add(tg.kind);
+      if (f.enemies.some((e) => e.summoned)) summoned = true;
+      f.p.hp = f.stats.maxHp; // this test is about the fight's moves, not its balance
+      if (f.boss) f.target = f.boss.id;
+    }
+    expect(f.boss).toBeNull();
+    expect(kinds.has('line')).toBe(true); // venom spit
+    expect(summoned).toBe(true);
+    expect(f.s.flags.serpent_defeated).toBe(true);
+    expect(f.drops.some((d) => d.stack.id === 'sunscale') || count(f.p.inv, 'sunscale') > 0).toBe(true);
   });
 
   it('islet nodes can be reached from a beach the ship can sail up to', () => {
@@ -278,22 +404,25 @@ describe('the living island', () => {
     for (const n of base.layout.nodes.filter((x) => x.scenery)) expect(base.world.nearestWalkable(n.x, n.z, n.def === 'kelp_bed' ? 3.1 : 1.6), n.def).not.toBeNull();
   });
   it('every building and camp sits on level ground', () => {
-    const spots = [...base.layout.buildings.map((b) => ({ x: b.x, z: b.z, r: Math.max(b.w, b.d) / 2, id: b.kind })), ...base.layout.stations.map((s) => ({ x: s.x, z: s.z, r: 0.8, id: s.id })), ...base.layout.banks.map((b) => ({ x: b.x, z: b.z, r: 0.7, id: 'bank' }))];
-    for (const sp of spots) {
-      const hs: number[] = [];
-      for (let a = 0; a < 8; a++) hs.push(base.world.ground(sp.x + Math.cos(a) * sp.r, sp.z + Math.sin(a) * sp.r));
-      expect(Math.max(...hs) - Math.min(...hs), `${sp.id} at ${sp.x.toFixed(0)},${sp.z.toFixed(0)}`).toBeLessThan(0.45);
+    for (const id of IDS) {
+      const L = regionLayout(id), w = L.world;
+      const spots = [...L.buildings.map((b) => ({ x: b.x, z: b.z, r: Math.max(b.w, b.d) / 2, id: b.kind })), ...L.stations.map((s) => ({ x: s.x, z: s.z, r: 0.8, id: s.id })), ...L.banks.map((b) => ({ x: b.x, z: b.z, r: 0.7, id: 'bank' }))];
+      for (const sp of spots) {
+        const hs: number[] = [];
+        for (let a = 0; a < 8; a++) hs.push(w.ground(sp.x + Math.cos(a) * sp.r, sp.z + Math.sin(a) * sp.r));
+        expect(Math.max(...hs) - Math.min(...hs), `${id} ${sp.id} at ${sp.x.toFixed(0)},${sp.z.toFixed(0)}`).toBeLessThan(0.45);
+      }
     }
   });
 
   it('every town building stands on a level pad, and every door can be walked to and through', () => {
-    const w = base.world;
-    for (const b of base.layout.town) {
+    for (const id of ISLANDS) for (const b of regionLayout(id).town) {
+      const L = regionLayout(id), w = L.world;
       const hs: number[] = [];
       for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1], [0, 0]]) { const [x, z] = toWorld(b, sx * b.w / 2, sz * b.d / 2); hs.push(w.ground(x, z)); }
       expect(Math.max(...hs) - Math.min(...hs), `${b.id} floor`).toBeLessThan(0.15);
       const d = doorPoints(b);
-      const from = islandOf(b.x, b.z) === 'sunreach' ? base.layout.ports[1].land : base.layout.respawn;
+      const from = L.respawn;
       expect(w.findPath(from.x, from.z, d.out[0], d.out[1]), `${b.id} door`).not.toBeNull();
       const inn = w.findPath(d.out[0], d.out[1], d.in[0], d.in[1]);
       expect(inn, `${b.id} doorway`).not.toBeNull();
@@ -303,7 +432,7 @@ describe('the living island', () => {
     // walls hold: you can't walk straight through a back wall
     const inn = base.layout.town.find((b) => b.id === 'inn')!;
     const [bx, bz] = toWorld(inn, 0, -inn.d / 2 + 0.15);
-    expect(w.walkable(bx, bz)).toBe(false);
+    expect(base.world.walkable(bx, bz)).toBe(false);
   });
 
   it('fishing spots hold several fish, each caught only from its own level', () => {
@@ -324,10 +453,10 @@ describe('the living island', () => {
   });
 
   it('market stalls stand clear of every building and road', () => {
-    for (const st of base.layout.stalls) {
+    for (const id of ISLANDS) for (const st of regionLayout(id).stalls) {
       for (const [dx, dz] of [[-1.25, -0.8], [1.25, -0.8], [-1.25, 0.8], [1.25, 0.8], [0, 0]]) {
         const c = Math.cos(st.rot), s = Math.sin(st.rot), x = st.x + dx * c - dz * s, z = st.z + dx * s + dz * c;
-        for (const b of base.layout.town) {
+        for (const b of regionLayout(id).town) {
           const [lx, lz] = toLocal(b, x, z);
           expect(Math.max(Math.abs(lx) - b.w / 2, Math.abs(lz) - b.d / 2), `stall at ${st.x.toFixed(0)},${st.z.toFixed(0)} vs ${b.id}`).toBeGreaterThan(1);
         }
@@ -338,10 +467,11 @@ describe('the living island', () => {
   });
 
   it('every shopkeeper, the banker and the chapel do their jobs', () => {
-    const g = fresh();
     for (const sh of Object.values(SHOPS)) {
+      const id = ISLANDS.find((r) => regionLayout(r).npcs.some((x) => x.id === sh.keeper))!;
+      expect(id, sh.keeper).toBeTruthy();
+      const g = inRegion(id);
       const n = g.layout.npcs.find((x) => x.id === sh.keeper)!;
-      expect(n, sh.keeper).toBeTruthy();
       let opened = '';
       const off = g.on((e) => { if (e.type === 'openShop') opened = e.shop; });
       near(g, n.x, n.z); g.interact(`npc:${n.id}`);
@@ -351,6 +481,7 @@ describe('the living island', () => {
       expect(g.nearShop()).toBe(true);
     }
     // Silas pays more for fish than Marta does
+    const g = fresh();
     g.p.inv[20] = { id: 'fish_trout', qty: 1 };
     g.shopId = 'general'; const marta = g.sellPrice(g.p.inv[20]!);
     g.shopId = 'tackle'; expect(g.sellPrice(g.p.inv[20]!)).toBeGreaterThan(marta);

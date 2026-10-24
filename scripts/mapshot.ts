@@ -3,7 +3,9 @@
 // Colours: height bands, walk grid, paths, nodes by skill, enemy spawns, solids.
 import { writeFileSync } from 'node:fs';
 import { buildIsland } from '../src/game/world/layout';
-import { WORLD_HALF, LAYOUT, nearestPathDist } from '../src/game/world/island';
+import { LAYOUT, nearestPathDist } from '../src/game/world/island';
+import { REGIONS } from '../src/game/world/regions';
+const WORLD_HALF = REGIONS.bellwether.bounds.half; // Bellwether's region (centred on the origin)
 import { NODES } from '../src/game/data/content';
 
 const out = process.argv[2] ?? 'map.ppm';

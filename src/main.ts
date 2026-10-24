@@ -3,6 +3,7 @@ import { Game } from './game/sim/game';
 import { parseSave, defaultSave, SAVE_KEY } from './game/sim/save';
 import { buildIsland } from './game/world/layout';
 import { LAYOUT } from './game/world/island';
+import type { RegionId } from './game/world/regions';
 import { GameRenderer } from './render/renderer';
 import { UI } from './ui/ui';
 import { Input } from './input/input';
@@ -16,9 +17,10 @@ function readSave(): string | null {
 }
 
 const layoutForDefaults = buildIsland(1);
-const fallback = defaultSave(layoutForDefaults.respawn, layoutForDefaults.mooring);
+const fallback = defaultSave(layoutForDefaults.respawn, layoutForDefaults.mooring!);
 const existing = parseSave(readSave(), fallback);
 const game = new Game({ save: existing });
+game.deferTravel = true; // a loading screen goes up between regions (see below)
 const canvas = document.getElementById('world') as HTMLCanvasElement;
 const renderer = new GameRenderer(canvas, game);
 renderer.setQuality(game.s.settings.quality);
@@ -112,6 +114,20 @@ else {
   (document.getElementById('begin') as HTMLButtonElement).focus();
 }
 
+// ---- between regions: the loading screen is up first, then the region is built under it
+game.on((e) => {
+  if (e.type !== 'travel') return;
+  const t0 = performance.now();
+  // two frames so the loading screen has painted before the build blocks the page
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    game.finishTravel(); // the renderer and UI rebuild on the 'region' event
+    renderer.warm();
+    save();
+    // keep it up long enough to read the name, never a flicker
+    setTimeout(() => ui.hideLoading(), Math.max(0, 900 - (performance.now() - t0)));
+  }));
+});
+
 // ---- loop
 const STEP = 1 / 60;
 let acc = 0, last = performance.now(), saveT = 0;
@@ -141,4 +157,4 @@ document.addEventListener('visibilitychange', () => { if (document.hidden && sta
 window.addEventListener('pagehide', () => { if (started) save(); });
 
 // test / debug handle (read-only use in E2E tests)
-(window as unknown as { __reef: unknown }).__reef = { game, ui, renderer, input, audio, save, zones: LAYOUT, get started() { return started; }, start, credits };
+(window as unknown as { __reef: unknown }).__reef = { game, ui, renderer, input, audio, save, zones: LAYOUT, goRegion: (to: RegionId) => game.travel({ to, how: 'respawn', from: game.s.region }), get started() { return started; }, start, credits };

@@ -3,8 +3,9 @@ import { item, ammoKind, AMMO_NAME, type Slot, type SkillId, type CombatStyle } 
 import { perkTotal } from '../data/perks';
 import { NODES, RECIPES, ENEMIES, LOOT, ELITE_AFFIXES, SHOPS, PLAYER_BASE, UTILITY_SPELLS, COMBAT_SKILLS, XP_PER_DAMAGE, type EnemyDef, type Recipe, type Station } from '../data/content';
 import { NPCS, QUESTS, type DialogueNode, type Effect } from '../data/quests';
-import { PLACES } from '../world/island';
-import { buildIsland, type IslandLayout } from '../world/layout';
+import { PLACES, placeRegion } from '../world/places';
+import { regionLayout, cachedLayout, type IslandLayout, type Arena } from '../world/layout';
+import { REGIONS, edgeCrossed, arrival, type RegionId } from '../world/regions';
 import type { World } from '../world/world';
 import { add, canAdd, count, remove, displayName, stackValue, wears, condOf, WORN_OUT_EFFECT, type Stack } from './inventory';
 import { computeStats, makeInstance, rollRarity, hitChance, reqBlock, type PlayerStats, type Stance } from './gear';
@@ -45,7 +46,11 @@ export type GameEvent =
   | { type: 'board' }
   | { type: 'disembark' }
   | { type: 'discover'; id: string; name: string }
-  | { type: 'explode'; x: number; z: number; r: number };
+  | { type: 'explode'; x: number; z: number; r: number }
+  /** leaving for another region: the UI shows its loading screen, then calls finishTravel() */
+  | { type: 'travel'; to: RegionId; name: string; tip: string }
+  /** the new region is loaded and the player is in it */
+  | { type: 'region'; region: RegionId };
 
 export interface NodeRt { uid: string; def: string; x: number; z: number; seed: number; depletedUntil: number; scenery?: boolean }
 
@@ -82,7 +87,10 @@ type Action =
   | { type: 'craft'; recipe: string; remaining: number; next: number }
   | null;
 
-export interface Target { key: string; kind: 'node' | 'npc' | 'station' | 'bank' | 'ship' | 'ruin' | 'enemy' | 'drop' | 'mooring'; x: number; z: number; range: number; label: string; verb: string }
+/** How a trip to another region ends: where the player (and maybe the ship) comes out. */
+export type Travel = { to: RegionId; how: 'sail' | 'ferry' | 'portal' | 'home' | 'respawn'; along?: number; from: RegionId };
+
+export interface Target { key: string; kind: 'node' | 'npc' | 'station' | 'bank' | 'ship' | 'arena' | 'portal' | 'enemy' | 'drop' | 'mooring'; x: number; z: number; range: number; label: string; verb: string }
 
 // RuneScape's 4-tick rhythm for gathering; production a little quicker.
 const DT_GATHER = 2.4;
@@ -95,11 +103,13 @@ const FINDS: Partial<Record<SkillId, string>> = { woodcutting: 'bird_nest', mini
 
 export const STATION_NAMES: Record<Station, string> = { furnace: 'Furnace', anvil: 'Anvil', fire: 'Cookfire', bench: 'Workbench', vent: 'Vent forge' };
 
-let sharedLayout: IslandLayout | undefined;
-
 export class Game {
-  readonly layout: IslandLayout;
-  readonly world: World;
+  layout: IslandLayout;
+  world: World;
+  /** a trip under way (the loading screen is up); the world doesn't step until it's finished */
+  travelling: Travel | null = null;
+  /** true when a UI shows a loading screen between regions and calls finishTravel(); headless, trips finish at once */
+  deferTravel = false;
   s: SaveData;
   rnd: () => number;
   time = 0;
@@ -143,28 +153,95 @@ export class Game {
 
   // boss
   boss: Enemy | null = null;
+  bossArena: Arena | null = null;
   bossCast = 0;
   bossSummons = 0;
 
   constructor(opts: { seed?: number; save?: SaveData | null } = {}) {
-    // the layout is read-only after build, so every Game shares one (a build is ~0.8 s)
-    this.layout = sharedLayout ??= buildIsland(1);
-    this.world = this.layout.world;
     this.rnd = mulberry32(opts.seed ?? (Date.now() & 0xffffffff));
-    const fresh = defaultSave(this.layout.respawn, this.layout.mooring);
-    this.s = opts.save ?? fresh;
+    const home = regionLayout('bellwether');
+    this.s = opts.save ?? defaultSave(home.respawn, home.mooring!);
+    // layouts are read-only after their build, so every Game shares them (a build takes up to ~0.6 s)
+    this.layout = regionLayout(this.s.region);
+    this.world = this.layout.world;
+    this.nodes = [];
+    this.recalc();
+    this.enterRegion();
+    this.s.player.hp = Math.min(this.s.player.hp, this.stats.maxHp);
+  }
+
+  get region() { return REGIONS[this.s.region]; }
+  /** Your ship is moored or sailing in the region you're in. */
+  get shipHere() { return this.ship.region === this.s.region; }
+
+  /** Fresh runtime state for the region just loaded: its nodes and foes, a valid place to stand. */
+  private enterRegion() {
     this.nodes = this.layout.nodes.map((n) => ({ ...n, depletedUntil: 0 }));
     // only a few dig spots are disturbed at any time; the rest surface later
     for (const n of this.nodes) if (NODES[n.def].verb === 'Dig' && this.rnd() < 0.75) n.depletedUntil = this.rnd() * NODES[n.def].respawn;
+    this.enemies = []; this.drops = []; this.projectiles = []; this.telegraphs = [];
+    this.boss = null; this.bossArena = null;
     for (const sp of this.layout.spawns) this.spawnEnemy(ENEMIES[sp.enemy], sp.x, sp.z, false);
-    this.recalc();
-    if (!this.s.player.onShip && !this.world.walkable(this.s.player.x, this.s.player.z)) {
-      this.s.player.x = this.layout.respawn.x;
-      this.s.player.z = this.layout.respawn.z;
-    }
-    if (!this.world.sailable(this.s.ship.x, this.s.ship.z)) Object.assign(this.s.ship, this.layout.mooring);
+    this.path = []; this.pending = null; this.target = null; this.action = null; this.shipTarget = null; this.shipRoute = [];
+    if (this.shipHere && this.layout.mooring && !this.world.sailable(this.s.ship.x, this.s.ship.z)) Object.assign(this.s.ship, this.layout.mooring);
+    if (!this.shipHere || !this.layout.mooring) this.s.player.onShip = false;
     if (this.s.player.onShip) { this.s.player.x = this.s.ship.x; this.s.player.z = this.s.ship.z; }
-    this.s.player.hp = Math.min(this.s.player.hp, this.stats.maxHp);
+    else if (!this.world.walkable(this.s.player.x, this.s.player.z)) {
+      const q = this.world.nearestWalkable(this.s.player.x, this.s.player.z, 3);
+      [this.s.player.x, this.s.player.z] = q ?? [this.layout.respawn.x, this.layout.respawn.z];
+    }
+  }
+
+  /** Start a trip to another region. With a UI (deferTravel) the loading screen comes up first. */
+  travel(t: Travel) {
+    if (this.travelling) return;
+    this.stopAction();
+    this.path = []; this.pending = null; this.target = null; this.shipTarget = null; this.shipRoute = []; this.shipSpeed = 0;
+    this.travelling = t;
+    const r = REGIONS[t.to];
+    this.emit({ type: 'travel', to: t.to, name: r.name, tip: r.tip });
+    if (!this.deferTravel) this.finishTravel();
+  }
+
+  /** Load the destination and put the player (and ship) there. Slow (the region's first build): call it under a loading screen. */
+  finishTravel() {
+    const t = this.travelling;
+    if (!t) return;
+    const from = this.layout;
+    this.layout = regionLayout(t.to);
+    this.world = this.layout.world;
+    this.s.region = t.to;
+    const L = this.layout, p = this.p;
+    if (t.how === 'sail') {
+      const a = arrival(REGIONS[t.to], t.from, t.along ?? 0);
+      const q = this.nearestSea(a.x, a.z) ?? [a.x, a.z];
+      Object.assign(this.ship, { x: q[0], z: q[1], heading: a.heading, region: t.to });
+      p.onShip = true;
+    } else if (t.how === 'ferry' && L.port) {
+      Object.assign(this.ship, { ...L.port.ship, region: t.to });
+      p.onShip = false; p.x = L.port.land.x; p.z = L.port.land.z;
+    } else if (t.how === 'portal') {
+      // come out beside the way back to where you were
+      const back = L.portals.find((pt) => pt.to === from.region) ?? L.portals[0];
+      p.onShip = false;
+      [p.x, p.z] = back ? [back.out.x, back.out.z] : [L.respawn.x, L.respawn.z];
+    } else {
+      p.onShip = false; p.x = L.respawn.x; p.z = L.respawn.z;
+    }
+    this.travelling = null;
+    this.enterRegion();
+    this.emit({ type: 'region', region: t.to });
+    if (t.how !== 'respawn') this.msg(t.how === 'sail' ? `You sail into the waters of ${this.region.name}.` : `You arrive: ${this.region.name}.`, 'quest');
+    this.rev++;
+  }
+
+  private nearestSea(x: number, z: number): [number, number] | null {
+    for (let r = 0; r <= 30; r += 2) for (let k = 0; k < 16; k++) {
+      const a = (k / 16) * Math.PI * 2, px = x + Math.cos(a) * r, pz = z + Math.sin(a) * r;
+      if (this.world.seaClear(px, pz)) return [px, pz];
+      if (r === 0) break;
+    }
+    return null;
   }
 
   // ------------------------------------------------------------------ events
@@ -234,11 +311,11 @@ export class Game {
       for (const n of this.layout.npcs) out.push({ key: `npc:${n.id}`, kind: 'npc', x: n.x, z: n.z, range: 2.2, label: NPCS[n.id].name, verb: NPCS[n.id].shop ? 'Trade' : NPCS[n.id].bank ? 'Bank' : NPCS[n.id].ferry ? 'Travel' : 'Talk' });
       this.layout.stations.forEach((st, i) => out.push({ key: `station:${i}`, kind: 'station', x: st.x, z: st.z, range: 2.3, label: STATION_NAMES[st.id], verb: st.id === 'fire' ? 'Cook' : st.id === 'furnace' || st.id === 'vent' ? 'Smelt' : st.id === 'bench' ? 'Craft' : 'Forge' }));
       this.layout.banks.forEach((b, i) => out.push({ key: `bank:${i}`, kind: 'bank', x: b.x, z: b.z, range: 2.2, label: b.booth ? 'Bank counter' : 'Strongbox', verb: b.booth ? 'Bank' : 'Open' }));
-      out.push({ key: 'ship', kind: 'ship', x: this.ship.x, z: this.ship.z, range: 4.2, label: 'Your sloop', verb: 'Board' });
-      out.push({ key: 'ruin', kind: 'ruin', x: this.layout.plinth.x, z: this.layout.plinth.z, range: 2.2, label: 'Bell hollow', verb: 'Ring' });
-      const mo = this.layout.mooring;
-      if (Math.hypot(this.ship.x - mo.x, this.ship.z - mo.z) > 6) {
-        const d = this.layout.dock;
+      if (this.shipHere) out.push({ key: 'ship', kind: 'ship', x: this.ship.x, z: this.ship.z, range: 4.2, label: 'Your sloop', verb: 'Board' });
+      this.layout.arenas.forEach((a, i) => out.push({ key: `arena:${i}`, kind: 'arena', x: a.altar.x, z: a.altar.z, range: 2.2, label: a.label, verb: a.verb }));
+      this.layout.portals.forEach((pt, i) => out.push({ key: `portal:${i}`, kind: 'portal', x: pt.x, z: pt.z, range: 2.6, label: pt.label, verb: pt.verb }));
+      const mo = this.layout.mooring, d = this.layout.dock;
+      if (mo && d && (!this.shipHere || Math.hypot(this.ship.x - mo.x, this.ship.z - mo.z) > 6)) {
         out.push({ key: 'mooring', kind: 'mooring', x: d.x + 3, z: d.headZ + 1.6, range: 2.4, label: 'Mooring bell', verb: 'Call ship' });
       }
       for (const e of this.enemies) if (e.alive && e.state !== 'rise') out.push({ key: `enemy:${e.id}`, kind: 'enemy', x: e.x, z: e.z, range: 1.6 + e.def.radius, label: this.enemyName(e), verb: 'Attack' });
@@ -247,14 +324,17 @@ export class Game {
   }
 
   /** What a place offers: the level range of its foes and what can be gathered there (for banners and the Places list). */
-  placeInfo(id: string): { foes: [number, number] | null; gather: { name: string; level: number }[] } {
+  /** Null when the place's region hasn't been loaded this session (its layout isn't built yet). */
+  placeInfo(id: string): { foes: [number, number] | null; gather: { name: string; level: number }[] } | null {
     const pl = PLACES.find((p) => p.id === id);
-    if (!pl) return { foes: null, gather: [] };
+    if (!pl) return null;
     const near = (x: number, z: number) => Math.hypot(x - pl.x, z - pl.z) < pl.r + 8;
-    const lv = this.layout.spawns.filter((s) => near(s.x, s.z)).map((s) => ENEMIES[s.enemy].level);
-    if (near(this.layout.ruin.x, this.layout.ruin.z)) lv.push(...Object.values(ENEMIES).filter((e) => e.boss).map((e) => e.level)); // the ring's guardian
+    const L = cachedLayout(placeRegion(pl));
+    if (!L) return null;
+    const lv = L.spawns.filter((s) => near(s.x, s.z)).map((s) => ENEMIES[s.enemy].level);
+    for (const a of L.arenas) if (near(a.x, a.z)) lv.push(ENEMIES[a.boss].level); // the arena's guardian
     const seen = new Set<string>();
-    const gather = this.layout.nodes.filter((n) => near(n.x, n.z) && !seen.has(n.def) && seen.add(n.def)).map((n) => ({ name: NODES[n.def].name, level: NODES[n.def].level })).sort((a, b) => a.level - b.level);
+    const gather = L.nodes.filter((n) => near(n.x, n.z) && !seen.has(n.def) && seen.add(n.def)).map((n) => ({ name: NODES[n.def].name, level: NODES[n.def].level })).sort((a, b) => a.level - b.level);
     return { foes: lv.length ? [Math.min(...lv), Math.max(...lv)] : null, gather };
   }
 
@@ -363,7 +443,8 @@ export class Game {
       case 'station': this.emit({ type: 'openStation', station: this.layout.stations[Number(t.key.slice(8))].id }); return;
       case 'bank': this.emit({ type: 'openBank' }); return;
       case 'ship': return this.board();
-      case 'ruin': return this.ringBell();
+      case 'arena': return this.wakeGuardian(this.layout.arenas[Number(t.key.slice(6))]);
+      case 'portal': { const pt = this.layout.portals[Number(t.key.slice(7))]; this.travel({ to: pt.to, how: 'portal', from: this.s.region }); return; }
       case 'mooring': return this.callShip();
     }
   }
@@ -828,7 +909,7 @@ export class Game {
 
   // ------------------------------------------------------------------ ship
   board() {
-    if (this.p.onShip) return;
+    if (this.p.onShip || !this.shipHere) return;
     if (Math.hypot(this.ship.x - this.p.x, this.ship.z - this.p.z) > 4.6) return;
     this.p.onShip = true;
     this.path = [];
@@ -860,7 +941,7 @@ export class Game {
     const land = this.landingPoint();
     if (!land) { this.msg('No shore close enough. Sail nearer to land or the quay.', 'warn'); return; }
     const mo = this.layout.mooring;
-    if (Math.hypot(this.ship.x - mo.x, this.ship.z - mo.z) < 7) Object.assign(this.ship, mo);
+    if (mo && Math.hypot(this.ship.x - mo.x, this.ship.z - mo.z) < 7) Object.assign(this.ship, mo);
     this.p.onShip = false;
     this.shipSpeed = 0;
     this.shipTarget = null;
@@ -872,8 +953,11 @@ export class Game {
   }
 
   callShip() {
-    Object.assign(this.ship, this.layout.mooring);
-    this.msg('Harbour hands row your sloop back to the quay.');
+    const mo = this.layout.mooring;
+    if (!mo) return;
+    const far = !this.shipHere;
+    Object.assign(this.ship, mo, { region: this.s.region });
+    this.msg(far ? 'A harbour crew sails your sloop over from the other island. She\'s moored at the pier.' : 'Harbour hands row your sloop back to the quay.');
     this.rev++;
   }
 
@@ -924,7 +1008,20 @@ export class Game {
     this.p.x = sh.x;
     this.p.z = sh.z;
     this.facing = sh.heading;
+    // sailed off a charted edge: on to the next island
+    const lane = edgeCrossed(this.region, sh.x, sh.z);
+    if (lane) {
+      const b = this.region.bounds;
+      this.travel({ to: lane.to, how: 'sail', from: this.s.region, along: lane.side === 'e' || lane.side === 'w' ? sh.z - b.cz : sh.x - b.cx });
+    } else if (this.time - this.laneHinted > 60) {
+      const b = this.region.bounds;
+      for (const ex of this.region.exits) {
+        const near = ex.side === 'e' ? sh.x > b.cx + b.half - 45 : ex.side === 'w' ? sh.x < b.cx - b.half + 45 : ex.side === 's' ? sh.z > b.cz + b.half - 45 : sh.z < b.cz - b.half + 45;
+        if (near) { this.laneHinted = this.time; this.msg(`Open water. Hold your course ${({ e: 'east', w: 'west', n: 'north', s: 'south' })[ex.side]} to cross to ${REGIONS[ex.to].name}.`, 'info'); }
+      }
+    }
   }
+  private laneHinted = -999;
 
   hullFits(x: number, z: number, h: number) {
     const c = Math.cos(h), s = Math.sin(h);
@@ -1160,37 +1257,27 @@ export class Game {
     const block = this.utilityBlock('home');
     if (block) { this.msg(`${UTILITY_SPELLS.home.name}: ${block.toLowerCase()}.`, 'warn'); return; }
     const fromX = this.p.x, fromZ = this.p.z;
+    this.castUtility('home');
+    this.msg('The tide carries you home to Bellwether.', 'good');
+    if (this.s.region !== 'bellwether') { this.travel({ to: 'bellwether', how: 'home', from: this.s.region }); return; }
     this.stopAction();
     this.path = [];
     this.pending = null;
     this.target = null;
     this.p.x = this.layout.respawn.x;
     this.p.z = this.layout.respawn.z;
-    this.castUtility('home');
     this.emit({ type: 'teleport', fromX, fromZ, x: this.p.x, z: this.p.z });
-    this.msg('The tide carries you home to Bellwether.', 'good');
     this.rev++;
   }
 
   /** Pay a harbourmaster for passage: you and your ship arrive at the other harbour's pier. */
   takeFerry(npcId: string) {
     const f = NPCS[npcId]?.ferry, n = this.layout.npcs.find((x) => x.id === npcId);
-    const port = f && this.layout.ports.find((p) => p.id === f.to);
-    if (!f || !n || !port || this.dead || this.p.onShip || Math.hypot(n.x - this.p.x, n.z - this.p.z) > 4.5) return;
+    if (!f || !n || this.dead || this.p.onShip || Math.hypot(n.x - this.p.x, n.z - this.p.z) > 4.5) return;
     if (count(this.p.inv, 'coins') < f.price) { this.msg(`Passage costs ${f.price} coins.`, 'warn'); return; }
     remove(this.p.inv, 'coins', f.price);
-    const fromX = this.p.x, fromZ = this.p.z;
-    this.stopAction();
-    this.path = [];
-    this.pending = null;
-    this.target = null;
-    this.p.x = port.land.x;
-    this.p.z = port.land.z;
-    Object.assign(this.s.ship, port.ship);
-    this.shipSpeed = 0;
-    this.emit({ type: 'teleport', fromX, fromZ, x: this.p.x, z: this.p.z });
-    this.msg(`You step off the cutter at ${port.name}. Your ship is moored alongside.`, 'good');
-    this.rev++;
+    this.msg(`The cutter takes you across. Your sloop sails in her wake.`, 'good');
+    this.travel({ to: f.to as RegionId, how: 'ferry', from: this.s.region });
   }
 
   /** Dodge roll: short dash, no damage taken while rolling. */
@@ -1291,7 +1378,7 @@ export class Game {
       this.stopAction();
       this.target = null;
       this.emit({ type: 'playerDeath' });
-      this.msg('Oh dear, you are dead. You wake at the quay.', 'warn');
+      this.msg(`Oh dear, you are dead. You wake at ${this.region.home === 'sunreach' ? 'Port Halyard' : 'the quay'}.`, 'warn');
       if (this.boss) this.resetBoss();
     }
   }
@@ -1299,10 +1386,12 @@ export class Game {
   private respawnPlayer() {
     this.dead = 0;
     this.p.hp = this.stats.maxHp;
+    const lost = Math.floor(count(this.p.inv, 'coins') * 0.1);
+    if (lost > 0) { remove(this.p.inv, 'coins', lost); this.msg(`You wake in town, ${lost} coins lighter.`, 'warn'); }
+    // fall in a cave and you wake in its island's town
+    if (this.region.kind === 'cave') { this.travel({ to: this.region.home, how: 'respawn', from: this.s.region }); return; }
     this.p.x = this.layout.respawn.x;
     this.p.z = this.layout.respawn.z;
-    const lost = Math.floor(count(this.p.inv, 'coins') * 0.1);
-    if (lost > 0) { remove(this.p.inv, 'coins', lost); this.msg(`You wake at the quay, ${lost} coins lighter.`, 'warn'); }
     for (const e of this.enemies) if (e.alive && e.state !== 'idle') { e.state = 'return'; }
     this.rev++;
   }
@@ -1456,43 +1545,45 @@ export class Game {
     }
   }
 
-  // ------------------------------------------------------------------ boss: the Lockbound Guardian
-  private ringBell() {
-    if (count(this.p.inv, 'tuning_bell') < 1) {
+  // ------------------------------------------------------------------ bosses: the Lockbound Guardian, the Sunscale
+  /** Strike an arena's altar: its guardian wakes (the Broken Ring's bell needs Iven's tuning bell). */
+  private wakeGuardian(a: Arena) {
+    if (a.boss === 'guardian' && count(this.p.inv, 'tuning_bell') < 1) {
       this.msg(this.questStage('bell') >= 1 ? 'A bell-shaped hollow. Iven\'s bell would fit here.' : 'A smooth hollow in the stone, shaped like a bell. Odd.');
       return;
     }
     if (this.boss) return;
-    const R = this.layout.ruin;
-    const def = ENEMIES.guardian;
-    const e = this.spawnEnemy(def, R.x, R.z - 1.5, false);
+    const def = ENEMIES[a.boss];
+    const e = this.spawnEnemy(def, a.x, a.z - 1.5, false);
     e.state = 'rise';
     e.t = 2.2;
     this.boss = e;
+    this.bossArena = a;
     this.bossCast = 3.5;
     this.bossSummons = 0;
     this.emit({ type: 'boss', state: 'rise' });
-    this.msg('The bell sings. The stone answers. The Lockbound Guardian rises!', 'combat');
+    this.msg(a.boss === 'guardian' ? 'The bell sings. The stone answers. The Lockbound Guardian rises!' : 'The gong booms through the temple. Something vast uncoils beneath the flagstones: the Sunscale rises!', 'combat');
   }
 
   private stepBoss(e: Enemy, dt: number) {
-    const R = this.layout.ruin;
+    const R = this.bossArena ?? { x: e.spawnX, z: e.spawnZ };
     const px = this.p.x, pz = this.p.z;
     if (e.state === 'rise') { e.t -= dt; if (e.t <= 0) e.state = 'chase'; return; }
     if (this.dead || this.p.onShip || Math.hypot(px - R.x, pz - R.z) > 24) { this.resetBoss(); return; }
+    const serpent = e.def.id === 'temple_serpent';
     const frac = e.hp / e.maxHp;
     const enrage = frac < 0.25 ? 1.35 : 1;
-    // summons at 66% and 33%
+    // summons at 66% and 33%: crabs boil up round the Guardian, snakes drop from the temple's vines
     if ((this.bossSummons === 0 && frac < 0.66) || (this.bossSummons === 1 && frac < 0.33)) {
       this.bossSummons++;
       for (let k = 0; k < 2; k++) {
         const a = (k / 2) * Math.PI * 2 + this.rnd();
         const x = R.x + Math.cos(a) * 4.5, z = R.z + Math.sin(a) * 4.5;
-        const c = this.spawnEnemy(ENEMIES.reef_crab, x, z, true);
+        const c = this.spawnEnemy(serpent ? ENEMIES.jungle_snake : ENEMIES.reef_crab, x, z, true);
         c.state = 'chase';
       }
       this.emit({ type: 'boss', state: 'summon' });
-      this.msg('The Guardian strikes its chest-bell. Crabs boil up from the stones!', 'combat');
+      this.msg(serpent ? 'The Sunscale hisses. Snakes drop from the temple vines!' : 'The Guardian strikes its chest-bell. Crabs boil up from the stones!', 'combat');
     }
     e.cd = Math.max(0, e.cd - dt * enrage);
     this.bossCast -= dt * enrage;
@@ -1502,18 +1593,30 @@ export class Game {
     // one telegraph at a time: never stack two attacks to land together
     if (this.telegraphs.some((t) => t.source === e.id)) { if (dP > 3.2) this.enemyMove(e, px, pz, e.def.speed * enrage * 0.6, dt, 3.0); return; }
     if (this.bossCast <= 0) {
-      // Slam: telegraphed circle where the player stands
-      this.bossCast = 7;
-      this.telegraphs.push({ id: this.nextId++, kind: 'circle', x: px, z: pz, r: 3.0, angle: 0, width: 0, t: 0, dur: 1.4 / enrage, damage: 5, source: e.id });
+      if (serpent) {
+        // Venom spit: a long line toward where you stand, then a second, quicker cast soon after
+        this.bossCast = this.bossSummons % 2 ? 4.5 : 6;
+        this.telegraphs.push({ id: this.nextId++, kind: 'line', x: e.x, z: e.z, r: 13, angle: e.facing, width: 1.8, t: 0, dur: 1.1 / enrage, damage: 9, source: e.id });
+      } else {
+        // Slam: telegraphed circle where the player stands
+        this.bossCast = 7;
+        this.telegraphs.push({ id: this.nextId++, kind: 'circle', x: px, z: pz, r: 3.0, angle: 0, width: 0, t: 0, dur: 1.4 / enrage, damage: 5, source: e.id });
+      }
       e.state = 'windup'; e.t = 0.6;
       this.emit({ type: 'enemyAttack', id: e.id });
       return;
     }
     if (dP < 4.2 && e.cd <= 0) {
-      // Sweep: cone in front
-      e.cd = 4;
-      this.telegraphs.push({ id: this.nextId++, kind: 'cone', x: e.x, z: e.z, r: 4.8, angle: e.facing, width: 1.9, t: 0, dur: 0.9 / enrage, damage: 3, source: e.id });
-      e.state = 'windup'; e.t = 0.9 / enrage;
+      e.cd = serpent ? 3.4 : 4;
+      if (serpent && this.rnd() < 0.45) {
+        // Coil crush: the whole ground round the serpent, roll out or take it
+        this.telegraphs.push({ id: this.nextId++, kind: 'circle', x: e.x, z: e.z, r: 4.2, angle: 0, width: 0, t: 0, dur: 1.2 / enrage, damage: 11, source: e.id });
+        e.state = 'windup'; e.t = 1.2 / enrage;
+      } else {
+        // Sweep (Guardian) / tail lash (serpent): cone in front
+        this.telegraphs.push({ id: this.nextId++, kind: 'cone', x: e.x, z: e.z, r: serpent ? 5.2 : 4.8, angle: e.facing, width: serpent ? 2.3 : 1.9, t: 0, dur: 0.9 / enrage, damage: serpent ? 8 : 3, source: e.id });
+        e.state = 'windup'; e.t = 0.9 / enrage;
+      }
       this.emit({ type: 'enemyAttack', id: e.id });
       return;
     }
@@ -1527,17 +1630,24 @@ export class Game {
     this.enemies = this.enemies.filter((e) => e !== b && !(e.summoned && e.alive));
     this.telegraphs = this.telegraphs.filter((t) => t.source !== b.id);
     this.boss = null;
+    this.bossArena = null;
     this.emit({ type: 'boss', state: 'reset' });
-    this.msg('The Guardian sinks back into the stone. Ring the bell to try again.', 'combat');
+    this.msg(b.def.id === 'temple_serpent' ? 'The Sunscale slides back under the flagstones. Strike the gong to face it again.' : 'The Guardian sinks back into the stone. Ring the bell to try again.', 'combat');
   }
 
   private bossDefeated(e: Enemy) {
     this.boss = null;
+    this.bossArena = null;
     this.enemies = this.enemies.filter((x) => x !== e);
     for (const c of this.enemies) if (c.summoned && c.alive) { c.alive = false; this.emit({ type: 'enemyDeath', id: c.id, x: c.x, z: c.z, elite: false, boss: false }); }
     this.enemies = this.enemies.filter((x) => !x.summoned);
-    this.s.flags.guardian_defeated = true;
     this.emit({ type: 'boss', state: 'defeat' });
+    if (e.def.id === 'temple_serpent') {
+      if (!this.s.flags.serpent_defeated) this.msg('The Sunscale lies still. Its scales shine like hammered gold.', 'good');
+      this.s.flags.serpent_defeated = true;
+      return;
+    }
+    this.s.flags.guardian_defeated = true;
     this.msg('The Lockbound Guardian falls apart into brass and stone!', 'good');
     if (this.questStage('bell') === 2) {
       this.dropAt(e.x, e.z, { id: 'keels_tooth', qty: 1 });
@@ -1652,7 +1762,7 @@ export class Game {
 
   private stepDiscovery() {
     for (const pl of PLACES) {
-      if (this.s.discovered.includes(pl.id)) continue;
+      if (this.s.discovered.includes(pl.id) || placeRegion(pl) !== this.s.region) continue;
       if (!!pl.sea !== this.p.onShip && pl.sea) continue;
       if (Math.hypot(pl.x - this.p.x, pl.z - this.p.z) < pl.r) {
         this.s.discovered.push(pl.id);
@@ -1665,6 +1775,7 @@ export class Game {
 
   // ------------------------------------------------------------------ main step
   step(dt: number) {
+    if (this.travelling) return; // the loading screen is up
     dt = Math.min(dt, 0.1);
     this.time += dt;
     this.s.playTime += dt;

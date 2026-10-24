@@ -7,7 +7,9 @@ import { NPC_LOOKS, PLAYER_LOOK } from '../art/cast';
 import { NODES, SKILLS, UNLOCKS, RECIPES, UTILITY_SPELLS, ELITE_AFFIXES, PLAYER_BASE, SPELLS, type Station } from '../game/data/content';
 import type { Stance } from '../game/sim/gear';
 import { NPCS, QUESTS } from '../game/data/quests';
-import { PLACES, WORLD_HALF, coastDist, nearestPathDist, FLATS, SUN, islandOf } from '../game/world/island';
+import { coastDist, nearestPathDist, FLATS, SUN, coastR, sunCoastR, LAYOUT, SUN_LAYOUT } from '../game/world/island';
+import { PLACES, placeRegion } from '../game/world/places';
+import { REGIONS } from '../game/world/regions';
 import { count, displayName, stackValue, INV_SIZE, type Stack } from '../game/sim/inventory';
 import { levelForXp, levelProgress, xpForLevel, MAX_LEVEL } from '../game/sim/xp';
 import { earlyBoost, EARLY_BOOST_TO, type Game, type GameEvent, type MsgKind } from '../game/sim/game';
@@ -197,7 +199,7 @@ export class UI {
       case 'msg': this.log(e.text, e.kind); break;
       case 'xp': this.xpDrop(e.skill, e.amount); break;
       case 'level': this.banner(`${cap(e.skill)} level ${e.level}`, this.nextUnlockText(e.skill) ?? 'Keep going.', e.skill); break;
-      case 'discover': { const f = this.game.placeInfo(e.id).foes; this.banner(e.name, f ? `Discovered · Foes level ${f[0]}${f[1] > f[0] ? `–${f[1]}` : ''}` : 'Discovered · Peaceful'); break; }
+      case 'discover': { const f = this.game.placeInfo(e.id)?.foes; this.banner(e.name, f ? `Discovered · Foes level ${f[0]}${f[1] > f[0] ? `–${f[1]}` : ''}` : 'Discovered · Peaceful'); break; }
       case 'quest': {
         const q = QUESTS[e.id];
         const done = e.stage === q.stages.length - 1;
@@ -213,6 +215,15 @@ export class UI {
       case 'dodge': this.damageNumber(e.x, e.z, 'Dodged', false, true); break;
       case 'boss': if (e.state === 'defeat') this.banner('Guardian defeated', 'The Broken Ring falls silent'); break;
       case 'board': this.closeWindows(); break;
+      case 'travel': this.closeWindows(); this.showLoading(e.name, e.tip, REGIONS[e.to].kind === 'cave' ? 'Climbing down into' : this.game.region.kind === 'cave' ? 'Climbing back up to' : 'Setting a course for'); break;
+      case 'region': {
+        this.buildMinimapBase();
+        this.mapView = 'here';
+        this.renderTab();
+        const r = REGIONS[e.region];
+        this.banner(r.name, r.kind === 'cave' ? 'Underground' : r.id === 'bellwether' ? 'The starter isle' : 'Port Halyard and the Greenheart');
+        break;
+      }
     }
   }
 
@@ -483,9 +494,11 @@ export class UI {
       }
       case 'quests': morph(c, this.questsHtml()); break;
       case 'map': {
-        const v = this.mapFrame();
-        const tabs = (['bellwether', 'sunreach', 'world'] as const).map((id) => `<button data-mapview="${id}" class="${v.id === id ? 'on' : ''}">${id === 'bellwether' ? 'Bellwether' : id === 'sunreach' ? 'Sunreach' : 'Both'}</button>`).join('');
-        c.innerHTML = `<div class="row" style="justify-content:space-between;align-items:center;margin-bottom:6px"><h2 class="title" style="margin:0">${v.title}</h2><span class="seg maptabs">${tabs}</span></div><canvas id="mapbig" width="600" height="600" aria-label="Map. Tap to walk there."></canvas><p class="muted" style="font-size:12px;margin:8px 0 0">Gold star: quest objective. Tap the map to walk there.</p>` + this.utilityRow();
+        const chart = this.mapView === 'chart';
+        const tabs = (['here', 'chart'] as const).map((id) => `<button data-mapview="${id}" class="${this.mapView === id ? 'on' : ''}">${id === 'here' ? 'Here' : 'Sea chart'}</button>`).join('');
+        const title = chart ? 'The Shattered Reef' : this.game.region.name;
+        const note = chart ? 'Sail off the dashed lane at a chart\'s edge to cross between islands. Caves are entered on foot.' : 'Gold star: quest objective. Tap the map to walk there.';
+        c.innerHTML = `<div class="row" style="justify-content:space-between;align-items:center;margin-bottom:6px"><h2 class="title" style="margin:0">${title}</h2><span class="seg maptabs">${tabs}</span></div><canvas id="mapbig" width="600" height="600" aria-label="${chart ? 'Sea chart' : 'Map. Tap to walk there.'}"></canvas><p class="muted" style="font-size:12px;margin:8px 0 0">${note}</p>` + this.utilityRow();
         forget(c); this.bindBigMap(); this.drawBigMap(); break;
       }
       case 'settings': morph(c, this.settingsHtml()); break;
@@ -497,7 +510,7 @@ export class UI {
     const g = this.game;
     onTap(c, '[data-slot], [data-equip], [data-stance], [data-spell], [data-q], [data-dmg], [data-music], [data-sfx], [data-fps], [data-lv], [data-skill], [data-skillback], [data-home], [data-mapview], #saveNow, #resetSave', (t, pointer) => {
       if (t.dataset.home) { g.teleportHome(); return; }
-      if (t.dataset.mapview) { this.mapView = t.dataset.mapview as 'bellwether' | 'sunreach' | 'world'; this.renderTab(); return; }
+      if (t.dataset.mapview) { this.mapView = t.dataset.mapview as 'here' | 'chart'; this.renderTab(); return; }
       if (t.dataset.slot !== undefined) {
         const i = Number(t.dataset.slot);
         const st = g.p.inv[i];
@@ -607,6 +620,7 @@ export class UI {
 
   questObjective(): { x: number; z: number; text: string } | null {
     const g = this.game, L = g.layout;
+    if (g.s.region !== 'bellwether') return null; // the bell quest is all on Bellwether
     const stage = g.questStage('bell');
     const iven = L.npcs.find((n) => n.id === 'iven')!;
     if (stage === 0 || stage === 3) return { x: iven.x, z: iven.z, text: 'Iven Marr' };
@@ -616,7 +630,7 @@ export class UI {
       const rock = L.nodes.find((n) => n.def === (count(g.p.inv, 'ore_copper') ? 'rock_tin' : 'rock_copper'))!;
       return { x: rock.x, z: rock.z, text: 'Copperback Hills' };
     }
-    if (stage === 2) return { x: L.plinth.x, z: L.plinth.z, text: 'The Broken Ring' };
+    if (stage === 2) { const a = L.arenas.find((x) => x.boss === 'guardian')!; return { x: a.altar.x, z: a.altar.z, text: 'The Broken Ring' }; }
     return null;
   }
 
@@ -627,14 +641,22 @@ export class UI {
       const status = st === 0 ? '<span class="status todo">Not started</span>' : st >= last ? '<span class="status done">Complete</span>' : '<span class="status active">In progress</span>';
       return `<div class="quest"><b>${esc(q.name)}</b>${status}<p style="margin:6px 0">${esc(q.stages[st].text)}</p><small class="muted">Reward: ${esc(q.reward)}</small></div>`;
     }).join('');
-    const disc = PLACES.map((p) => {
-      if (!g.s.discovered.includes(p.id)) return '<li class="muted">Undiscovered</li>';
-      const info = g.placeInfo(p.id);
-      const foes = info.foes ? `<span class="miss">Foes ${info.foes[0]}${info.foes[1] > info.foes[0] ? `–${info.foes[1]}` : ''}</span>` : '<span class="muted">Peaceful</span>';
-      const gather = info.gather.map((n) => `${esc(n.name)} ${n.level}`).join(', ');
-      return `<li><b>${esc(p.name)}</b> · ${foes}${gather ? `<br><small class="muted">${gather}</small>` : ''}</li>`;
+    // grouped by region; foes and resources are listed for regions loaded this session (each is built on first visit)
+    const disc = Object.values(REGIONS).map((r) => {
+      const here = PLACES.filter((p) => placeRegion(p) === r.id);
+      const found = here.filter((p) => g.s.discovered.includes(p.id));
+      if (!found.length) return '';
+      const items = here.map((p) => {
+        if (!g.s.discovered.includes(p.id)) return '<li class="muted">Undiscovered</li>';
+        const info = g.placeInfo(p.id);
+        if (!info) return `<li><b>${esc(p.name)}</b></li>`;
+        const foes = info.foes ? `<span class="miss">Foes ${info.foes[0]}${info.foes[1] > info.foes[0] ? `–${info.foes[1]}` : ''}</span>` : '<span class="muted">Peaceful</span>';
+        const gather = info.gather.map((n) => `${esc(n.name)} ${n.level}`).join(', ');
+        return `<li><b>${esc(p.name)}</b> · ${foes}${gather ? `<br><small class="muted">${gather}</small>` : ''}</li>`;
+      }).join('');
+      return `<h3 class="title" style="font-size:14px;margin:10px 0 4px">${esc(r.name)} <small class="muted">${found.length}/${here.length}</small></h3><ul style="margin:0;padding-left:18px">${items}</ul>`;
     }).join('');
-    return `<h2 class="title">Quests</h2>${qs}<div class="brass-rule"></div><h2 class="title">Places (${g.s.discovered.length}/${PLACES.length})</h2><ul style="margin:0;padding-left:18px">${disc}</ul>`;
+    return `<h2 class="title">Quests</h2>${qs}<div class="brass-rule"></div><h2 class="title">Places (${g.s.discovered.length}/${PLACES.length})</h2>${disc}`;
   }
 
   private settingsHtml() {
@@ -963,20 +985,22 @@ export class UI {
   }
 
   // ------------------------------------------------------------------ maps
+  /** The region's map, drawn once per visit: ~1.7+ px per metre, so the minimap stays crisp. */
   private buildMinimapBase() {
-    const S = 1024, k = S / (WORLD_HALF * 2); // ~1.9 px per metre, so the minimap stays crisp
+    const w = this.game.world, cave = this.game.region.kind === 'cave';
+    const S = Math.min(1024, Math.ceil(w.half * 2 * 3.4)), k = S / (w.half * 2);
     const cv = document.createElement('canvas');
     cv.width = cv.height = S;
     const c = cv.getContext('2d')!;
     const img = c.createImageData(S, S);
-    const w = this.game.world;
     const village = FLATS[0];
     for (let j = 0; j < S; j++) {
       for (let i = 0; i < S; i++) {
-        const x = i / k - WORLD_HALF, z = j / k - WORLD_HALF;
+        const x = w.ox + i / k, z = w.oz + j / k;
         const y = w.standY(x, z);
         let col: [number, number, number];
-        if (w.deckAt(x, z)) col = [140, 104, 66];
+        if (cave) col = w.walkable(x, z) || y < 1.2 ? [112, 96, 78] : y < 2 ? [58, 52, 46] : [14, 13, 12];
+        else if (w.deckAt(x, z)) col = [140, 104, 66];
         else if (y < -2.5) col = [26, 86, 108];
         else if (y < -0.4) col = [44, 128, 146];
         else if (y < 0.14) col = [86, 170, 170];
@@ -994,15 +1018,20 @@ export class UI {
     }
     c.putImageData(img, 0, 0);
     c.fillStyle = '#3a2a1e';
-    for (const b of this.game.layout.buildings) { c.fillRect((b.x + WORLD_HALF) * k - 4, (b.z + WORLD_HALF) * k - 3, 8, 6); }
-    for (const b of this.game.layout.town) {
+    const L = this.game.layout, px = (x: number) => (x - w.ox) * k, pz = (z: number) => (z - w.oz) * k;
+    for (const b of L.buildings) { c.fillRect(px(b.x) - 4, pz(b.z) - 3, 8, 6); }
+    for (const b of L.town) {
       // rotated footprint (rot follows the world's rect convention: canvas y is world z)
-      c.save(); c.translate((b.x + WORLD_HALF) * k, (b.z + WORLD_HALF) * k); c.rotate(b.rot); c.fillRect((-b.w / 2) * k, (-b.d / 2) * k, b.w * k, b.d * k); c.restore();
+      c.save(); c.translate(px(b.x), pz(b.z)); c.rotate(b.rot); c.fillRect((-b.w / 2) * k, (-b.d / 2) * k, b.w * k, b.d * k); c.restore();
     }
     c.fillStyle = '#2a2a28';
-    for (const r of this.game.layout.reefs) { c.beginPath(); c.arc((r.x + WORLD_HALF) * k, (r.z + WORLD_HALF) * k, 2, 0, 7); c.fill(); }
+    for (const r of L.reefs) { c.beginPath(); c.arc(px(r.x), pz(r.z), 2, 0, 7); c.fill(); }
+    // cave mouths and ropes: a dark arch with a gold rim
+    for (const pt of L.portals) { c.beginPath(); c.arc(px(pt.x), pz(pt.z), 5, 0, 7); c.fillStyle = '#0a0806'; c.fill(); c.lineWidth = 2; c.strokeStyle = '#e8c27a'; c.stroke(); }
     this.mmBase = cv;
+    this.mmK = k;
   }
+  private mmK = 1;
 
   private drawMarkers(c: CanvasRenderingContext2D, toPx: (x: number, z: number) => [number, number], scale: number, big: boolean) {
     const g = this.game;
@@ -1011,11 +1040,13 @@ export class UI {
     for (const n of g.layout.npcs) dot(n.x, n.z, (big ? 4.5 : 3) * scale, '#ffe066');
     for (const e of g.enemies) if (e.alive) dot(e.x, e.z, (e.def.boss ? 6 : big ? 3 : 2.2) * scale, e.def.boss ? '#ff4a3a' : '#e05a44');
     for (const d of g.drops) dot(d.x, d.z, 2 * scale, '#f2cf5b');
-    const [sx, sz] = toPx(g.ship.x, g.ship.z);
-    c.save(); c.translate(sx, sz); c.rotate(g.ship.heading);
-    c.fillStyle = '#efe3c4'; c.strokeStyle = '#000'; c.lineWidth = 1;
-    c.beginPath(); c.moveTo(7 * scale, 0); c.lineTo(-5 * scale, 3.5 * scale); c.lineTo(-5 * scale, -3.5 * scale); c.closePath(); c.fill(); c.stroke();
-    c.restore();
+    if (g.shipHere) {
+      const [sx, sz] = toPx(g.ship.x, g.ship.z);
+      c.save(); c.translate(sx, sz); c.rotate(g.ship.heading);
+      c.fillStyle = '#efe3c4'; c.strokeStyle = '#000'; c.lineWidth = 1;
+      c.beginPath(); c.moveTo(7 * scale, 0); c.lineTo(-5 * scale, 3.5 * scale); c.lineTo(-5 * scale, -3.5 * scale); c.closePath(); c.fill(); c.stroke();
+      c.restore();
+    }
     const obj = this.questObjective();
     if (obj) {
       const [qx, qy] = toPx(obj.x, obj.z);
@@ -1034,22 +1065,23 @@ export class UI {
   }
 
   private readonly MM_RANGE = 34; // metres from centre to edge
-  /** Which part of the world the Map tab shows: the island you're on unless you pick one. */
-  private mapView: 'auto' | 'bellwether' | 'sunreach' | 'world' = 'auto';
-  private mapFrame(): { id: 'bellwether' | 'sunreach' | 'world'; title: string; cx: number; cz: number; span: number } {
-    const g = this.game, id = this.mapView === 'auto' ? islandOf(g.p.x, g.p.z) : this.mapView;
-    if (id === 'sunreach') return { id, title: 'Sunreach Isle', cx: SUN.x, cz: SUN.z, span: 170 };
-    if (id === 'world') return { id, title: 'The Shattered Reef', cx: SUN.x / 2, cz: -5, span: 430 };
-    return { id, title: 'Bellwether Isle', cx: 0, cz: 0, span: 216 };
+  /** The Map tab: the region you're in, or the sea chart of every island. */
+  private mapView: 'here' | 'chart' = 'here';
+  /** The part of the region the Map tab shows: the island and its near waters, or the whole cave. */
+  private mapFrame(): { cx: number; cz: number; span: number } {
+    const g = this.game, r = g.region;
+    if (r.id === 'sunreach') return { cx: SUN.x, cz: SUN.z, span: 170 };
+    if (r.id === 'bellwether') return { cx: 0, cz: 0, span: 216 };
+    return { cx: r.bounds.cx, cz: r.bounds.cz, span: r.bounds.half * 2 };
   }
   private drawMinimap() {
     const cv = this.mmCtx.canvas, c = this.mmCtx, W = cv.width;
-    const g = this.game;
-    const k = this.mmBase.width / (WORLD_HALF * 2);
+    const g = this.game, w = g.world;
+    const k = this.mmK;
     const cx = g.p.x, cz = g.p.z, R = this.MM_RANGE;
-    c.fillStyle = '#1a566b';
+    c.fillStyle = g.region.kind === 'cave' ? '#0e0d0c' : '#1a566b';
     c.fillRect(0, 0, W, W);
-    c.drawImage(this.mmBase, (cx - R + WORLD_HALF) * k, (cz - R + WORLD_HALF) * k, R * 2 * k, R * 2 * k, 0, 0, W, W);
+    c.drawImage(this.mmBase, (cx - R - w.ox) * k, (cz - R - w.oz) * k, R * 2 * k, R * 2 * k, 0, 0, W, W);
     const toPx = (x: number, z: number): [number, number] => [((x - cx) / (R * 2) + 0.5) * W, ((z - cz) / (R * 2) + 0.5) * W];
     this.drawMarkers(c, toPx, W / 140, false);
   }
@@ -1069,15 +1101,18 @@ export class UI {
     const cv = document.getElementById('mapbig') as HTMLCanvasElement | null;
     if (!cv) return;
     const c = cv.getContext('2d')!, W = cv.width;
-    // show the island region, not the whole sea
+    if (this.mapView === 'chart') { this.drawChart(c, W); return; }
+    // show the island and its near waters, not the whole region
+    const w = this.game.world, k = this.mmK;
     const fr = this.mapFrame(), span = fr.span, ox = fr.cx - span / 2, oz = fr.cz - span / 2;
-    const k = this.mmBase.width / (WORLD_HALF * 2);
-    c.drawImage(this.mmBase, (ox + WORLD_HALF) * k, (oz + WORLD_HALF) * k, span * k, span * k, 0, 0, W, W);
+    c.fillStyle = this.game.region.kind === 'cave' ? '#0e0d0c' : '#1a566b';
+    c.fillRect(0, 0, W, W);
+    c.drawImage(this.mmBase, (ox - w.ox) * k, (oz - w.oz) * k, span * k, span * k, 0, 0, W, W);
     const toPx = (x: number, z: number): [number, number] => [((x - ox) / span) * W, ((z - oz) / span) * W];
     c.font = '600 15px Georgia, serif';
     c.textAlign = 'center';
     for (const p of PLACES) {
-      if (!this.game.s.discovered.includes(p.id)) continue;
+      if (!this.game.s.discovered.includes(p.id) || placeRegion(p) !== this.game.s.region) continue;
       const [x, y] = toPx(p.x, p.z);
       c.lineWidth = 4; c.strokeStyle = '#1a120a'; c.strokeText(p.name, x, y - 12);
       c.fillStyle = p.sea ? '#bfefff' : '#ffe9b8'; c.fillText(p.name, x, y - 12);
@@ -1088,6 +1123,7 @@ export class UI {
   private bindBigMap() {
     const cv = document.getElementById('mapbig') as HTMLCanvasElement;
     cv.addEventListener('pointerdown', (e) => {
+      if (this.mapView === 'chart') return;
       const r = cv.getBoundingClientRect();
       const fr = this.mapFrame(), span = fr.span;
       const x = fr.cx - span / 2 + ((e.clientX - r.left) / r.width) * span, z = fr.cz - span / 2 + ((e.clientY - r.top) / r.height) * span;
@@ -1095,5 +1131,61 @@ export class UI {
       this.r.markClick(x, z);
       if (this.portrait) { this.sideOpen = false; this.layout(); }
     });
+  }
+
+  /** The sea chart: both islands drawn from their coastlines, the lane between them, the caves beneath. */
+  private drawChart(c: CanvasRenderingContext2D, W: number) {
+    const g = this.game;
+    c.fillStyle = '#d9c9a0'; c.fillRect(0, 0, W, W); // parchment
+    c.fillStyle = '#9cc4c4'; c.fillRect(14, 14, W - 28, W - 28);
+    const span = 540, cx = SUN.x / 2, cz = -10, ox = cx - span / 2, oz = cz - span / 2;
+    const toPx = (x: number, z: number): [number, number] => [((x - ox) / span) * W, ((z - oz) / span) * W];
+    const isle = (x0: number, z0: number, r: (t: number) => number, here: boolean) => {
+      c.beginPath();
+      for (let k = 0; k <= 96; k++) { const t = (k / 96) * Math.PI * 2 - Math.PI, rr = r(t); const [px, py] = toPx(x0 + Math.cos(t) * rr, z0 + Math.sin(t) * rr); if (k) c.lineTo(px, py); else c.moveTo(px, py); }
+      c.closePath(); c.fillStyle = '#e8d9a8'; c.fill(); c.lineWidth = 3; c.strokeStyle = '#8a6a3a'; c.stroke();
+      c.save(); c.clip(); c.fillStyle = here ? '#7fa65a' : '#93ab6c'; const [px, py] = toPx(x0, z0); c.beginPath(); c.arc(px, py, (r(0) - 10) / span * W, 0, 7); c.fill(); c.restore();
+    };
+    isle(0, 0, coastR, g.s.region === 'bellwether' || g.region.home === 'bellwether' && g.region.kind === 'cave');
+    isle(SUN.x, SUN.z, sunCoastR, g.s.region === 'sunreach' || g.region.home === 'sunreach' && g.region.kind === 'cave');
+    // the sea lane: the edge of each island's waters, dashed
+    c.setLineDash([10, 8]); c.lineWidth = 2.5; c.strokeStyle = '#2f5a6a';
+    const [ax, ay] = toPx(REGIONS.bellwether.bounds.cx + REGIONS.bellwether.bounds.half - 16, 0), [bx, by] = toPx(REGIONS.sunreach.bounds.cx - REGIONS.sunreach.bounds.half + 16, SUN.z);
+    c.beginPath(); c.moveTo(toPx(70, 40)[0], toPx(70, 40)[1]); c.lineTo(ax, ay); c.lineTo(bx, by); c.lineTo(toPx(SUN.x - 60, SUN.z + 30)[0], toPx(SUN.x - 60, SUN.z + 30)[1]); c.stroke();
+    c.setLineDash([]);
+    c.font = '600 20px Georgia, serif'; c.textAlign = 'center';
+    const label = (text: string, x: number, z: number, size = 20, colour = '#3a2a1e') => { const [px, py] = toPx(x, z); c.font = `600 ${size}px Georgia, serif`; c.lineWidth = 4; c.strokeStyle = '#f2e6c8'; c.strokeText(text, px, py); c.fillStyle = colour; c.fillText(text, px, py); };
+    label('Bellwether Isle', 0, 122, 30);
+    label('Sunreach Isle', SUN.x, SUN.z + 92, 30);
+    label('Halyard Channel', (ax + bx) / 2 / W * span + ox, -40, 22, '#2f5a6a');
+    // cave mouths, named once found
+    for (const [x, z, id, name] of [[LAYOUT.cove.x + 6.5, LAYOUT.cove.z - 7.5, 'smugglers_caves', 'Smugglers\' Caves'], [SUN_LAYOUT.ember.x - 9, SUN_LAYOUT.ember.z + 9, 'ember_deep', 'The Ember Deep']] as const) {
+      const [px, py] = toPx(x, z);
+      c.beginPath(); c.arc(px, py, 9, 0, 7); c.fillStyle = '#1a120a'; c.fill(); c.lineWidth = 2; c.strokeStyle = '#e8c27a'; c.stroke();
+      if (PLACES.some((p) => p.region === id && g.s.discovered.includes(p.id))) label(name, x, z - 14, 20);
+    }
+    // you are here
+    const at = g.region.kind === 'cave' ? (g.region.home === 'sunreach' ? SUN_LAYOUT.ember : LAYOUT.cove) : g.p;
+    const [px, py] = toPx(at.x, at.z);
+    c.beginPath(); c.arc(px, py, 10, 0, 7); c.fillStyle = '#ffffff'; c.fill(); c.lineWidth = 3; c.strokeStyle = '#000'; c.stroke();
+    if (g.shipHere && g.region.kind === 'island') { const [sx, sy] = toPx(g.ship.x, g.ship.z); c.fillStyle = '#efe3c4'; c.strokeStyle = '#000'; c.beginPath(); c.moveTo(sx + 7, sy); c.lineTo(sx - 5, sy + 4); c.lineTo(sx - 5, sy - 4); c.closePath(); c.fill(); c.stroke(); }
+  }
+
+  // ------------------------------------------------------------------ loading screen (between regions)
+  private loadingEl: HTMLElement | null = null;
+  showLoading(name: string, tip: string, sub = 'Setting a course for') {
+    this.loadingEl?.remove();
+    const el = document.createElement('div');
+    el.className = 'loading';
+    el.innerHTML = `<div class="ld-card"><div class="ld-rose" aria-hidden="true"></div><div class="ld-sub">${sub}</div><h1>${esc(name)}</h1><div class="ld-bar"><i></i></div><p>${esc(tip)}</p></div>`;
+    document.body.appendChild(el);
+    this.loadingEl = el;
+  }
+  hideLoading() {
+    const el = this.loadingEl;
+    this.loadingEl = null;
+    if (!el) return;
+    el.classList.add('out');
+    setTimeout(() => el.remove(), 450);
   }
 }

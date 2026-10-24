@@ -36,6 +36,7 @@ const frag = /* glsl */ `
   uniform float uFogNear, uFogFar;
   uniform sampler2D uHeight;
   uniform vec3 uGrid; // (world half-size, cell size, samples per side)
+  uniform vec2 uOrigin; // world position of the grid's first sample
   varying float vDepth;
   varying vec3 vWorld;
   varying vec3 vNormal2;
@@ -44,7 +45,7 @@ const frag = /* glsl */ `
   float vn(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
     return mix(mix(h21(i), h21(i + vec2(1, 0)), f.x), mix(h21(i + vec2(0, 1)), h21(i + vec2(1, 1)), f.x), f.y); }
   float depthAt(vec2 p) {
-    vec2 g = (p + uGrid.x) / uGrid.y;
+    vec2 g = (p - uOrigin) / uGrid.y;
     if (any(lessThan(g, vec2(0.0))) || any(greaterThan(g, vec2(uGrid.z - 1.0)))) return 6.0;
     return -texture2D(uHeight, (g + 0.5) / uGrid.z).r;
   }
@@ -79,11 +80,12 @@ const frag = /* glsl */ `
   }
 `;
 
-export interface HeightGrid { data: Float32Array; side: number; cell: number; half: number }
+export interface HeightGrid { data: Float32Array; side: number; cell: number; half: number; ox?: number; oz?: number }
 
-export function createWater(size: number, segments: number, depthAt: (x: number, z: number) => number, look: Look, grid?: HeightGrid) {
+export function createWater(size: number, segments: number, depthAt: (x: number, z: number) => number, look: Look, grid?: HeightGrid, centre = { x: 0, z: 0 }) {
   const geo = new THREE.PlaneGeometry(size, size, segments, segments);
   geo.rotateX(-Math.PI / 2);
+  geo.translate(centre.x, 0, centre.z);
   const pos = geo.getAttribute('position');
   const depth = new Float32Array(pos.count);
   for (let i = 0; i < pos.count; i++) depth[i] = depthAt(pos.getX(i), pos.getZ(i));
@@ -103,6 +105,7 @@ export function createWater(size: number, segments: number, depthAt: (x: number,
   const uniforms = {
     uHeight: { value: heightTex },
     uGrid: { value: new THREE.Vector3(grid.half, grid.cell, grid.side) },
+    uOrigin: { value: new THREE.Vector2(grid.ox ?? -grid.half, grid.oz ?? -grid.half) },
     uTime: { value: 0 },
     uShallow: { value: new THREE.Color(look.water.shallow) },
     uDeep: { value: new THREE.Color(look.water.deep) },

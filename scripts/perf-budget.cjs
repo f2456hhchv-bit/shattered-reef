@@ -4,7 +4,9 @@
 const path = require('path');
 const { chromium } = require(path.join(require('child_process').execSync('npm root -g').toString().trim(), 'playwright'));
 const BUDGET = { calls: Number(process.env.MAX_CALLS ?? 450), tris: Number(process.env.MAX_TRIS ?? 900000) };
-const PLACES = [['quay', 0, 60], ['market', 0, 38], ['inn (inside)', -13, 31], ['saltpine', -36, 20], ['heartwood', -46, -50], ['ironcrag', 2, -42], ['wreck', 0, 0, 'wreck'], ['port halyard', 190, 14], ['greenheart', 176, -28], ['palm cove', 145, 5]];
+const PLACES = [['quay', 0, 60], ['market', 0, 38], ['inn (inside)', -13, 31], ['saltpine', -36, 20], ['heartwood', -46, -50], ['ironcrag', 2, -42], ['wreck', 0, 0, 'wreck'],
+  ['port halyard', 420, 14, null, 'sunreach'], ['greenheart', 406, -28, null, 'sunreach'], ['palm cove', 375, 5, null, 'sunreach'], ['temple', 414, -60, null, 'sunreach'],
+  ['smugglers hall', 0, 1008, null, 'smugglers_caves'], ['grotto', 23, 996, null, 'smugglers_caves'], ['ember hall', 420, 1010, null, 'ember_deep'], ['weaver nest', 393, 997, null, 'ember_deep']];
 (async () => {
   const b = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
   const p = await b.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
@@ -12,7 +14,11 @@ const PLACES = [['quay', 0, 60], ['market', 0, 38], ['inn (inside)', -13, 31], [
   await p.goto(process.env.URL || 'http://localhost:5173/'); await p.waitForFunction(() => window.__reef, null, { timeout: 120000 });
   await p.evaluate(() => { const r = window.__reef; r.start(); document.body.classList.remove('intro'); r.game.s.settings.quality = 'max'; r.renderer.setQuality('max'); });
   let over = 0;
-  for (const [name, x, z, zone] of PLACES) {
+  for (const [name, x, z, zone, region = 'bellwether'] of PLACES) {
+    if (await p.evaluate((rg) => window.__reef.game.s.region !== rg, region)) {
+      await p.evaluate((rg) => window.__reef.goRegion(rg), region);
+      await p.waitForFunction((rg) => window.__reef.game.s.region === rg && !document.querySelector('.loading'), region, { timeout: 180000 });
+    }
     await p.evaluate(([x, z, zone]) => { const r = window.__reef, g = r.game; let px = x, pz = z; if (zone && r.zones?.[zone]) { px = r.zones[zone].x; pz = r.zones[zone].z; }
       const q = g.world.nearestWalkable(px, pz, 8); g.p.x = q[0]; g.p.z = q[1]; g.p.onShip = false; r.renderer.zoom = 1; r.renderer.snapCamera(); }, [x, z, zone]);
     const t0 = await p.evaluate(() => window.__reef.game.time); await p.waitForFunction((t0) => window.__reef.game.time > t0 + 0.6, t0, { timeout: 180000 });

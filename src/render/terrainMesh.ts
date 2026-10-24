@@ -2,8 +2,8 @@ import * as THREE from 'three';
 import { fbm, smooth } from '../art/noise';
 import type { Look } from '../art/looks';
 import { coastDist, nearestPathDist, FLATS, LAYOUT, BEACH, SUN_LAYOUT, SUN, SUN_RADIUS } from '../game/world/island';
-import { World, HCELL, HN } from '../game/world/world';
-import { WORLD_HALF } from '../game/world/island';
+import { World, HCELL } from '../game/world/world';
+import { CAVE_FLOOR } from '../game/world/caves';
 
 // Smooth terrain from the simulation's height grid: shared vertices, smooth normals,
 // colours blended per vertex (no triangle checkerboard), plus drifting cloud shadows.
@@ -12,7 +12,8 @@ export interface TerrainView { group: THREE.Group; uniforms: { uTime: { value: n
 
 const CHUNK = 32; // cells per chunk side (40 m): off-screen chunks are frustum-culled
 
-export function buildTerrainMesh(world: World, look: Look): TerrainView {
+export function buildTerrainMesh(world: World, look: Look, cave = false): TerrainView {
+  const HN = world.HN, OX = world.ox, OZ = world.oz;
   const g = look.ground;
   const C = (hex: number) => new THREE.Color(hex);
   const sand = C(g.sand), wet = C(g.wetSand), grass = C(g.grass), grassD = C(g.grassDark), dirt = C(g.dirt);
@@ -29,15 +30,25 @@ export function buildTerrainMesh(world: World, look: Look): TerrainView {
   // Sunreach is warmer: paler sand, lusher jungle green
   const jungle = C(0x3f7a34), jungleD = C(0x2c5a2c), palmSand = C(0xeedcab);
   const tmp = new THREE.Color();
+  // underground: packed earth and wet stone underfoot, the walls darkening into a black crown
+  const caveFloor = C(0x7a6a58), caveFloorD = C(0x5a4e42), caveWall = C(0x4a423a), caveTop = C(0x1c1916), ember = C(0x8a4228);
   const slopeAt = (i: number, j: number) => {
     const h = (a: number, b: number) => H[Math.max(0, Math.min(HN, b)) * R + Math.max(0, Math.min(HN, a))];
     return Math.hypot(h(i + 1, j) - h(i - 1, j), h(i, j + 1) - h(i, j - 1)) / (2 * HCELL);
   };
   for (let j = 0; j < R; j++) {
     for (let i = 0; i < R; i++) {
-      const x = i * HCELL - WORLD_HALF, z = j * HCELL - WORLD_HALF, y = H[j * R + i];
+      const x = OX + i * HCELL, z = OZ + j * HCELL, y = H[j * R + i];
       const k = (j * R + i) * 3;
       pos[k] = x; pos[k + 1] = y; pos[k + 2] = z;
+      if (cave) {
+        const n = fbm(x * 0.12, z * 0.12, 3, 5), n2 = fbm(x * 0.4 + 9, z * 0.4 + 9, 2, 6), up = y - CAVE_FLOOR;
+        tmp.copy(caveFloor).lerp(caveFloorD, smooth(n, 0.35, 0.75)).lerp(caveWall, smooth(up, 0.25, 0.9)).lerp(caveTop, smooth(up, 1.2, 2.2));
+        if (world.cz > 900 && world.cx > 200) tmp.lerp(ember, 0.25 * (1 - smooth(up, 0.2, 1.2)) * smooth(n2, 0.4, 0.8)); // the Ember Deep runs hot
+        tmp.multiplyScalar(0.92 + n2 * 0.16);
+        col[k] = tmp.r; col[k + 1] = tmp.g; col[k + 2] = tmp.b;
+        continue;
+      }
       if (y < -0.05) {
         // seabed: no land detail to work out (most of the world)
         tmp.copy(bed).lerp(bedD, smooth(-y, 0.3, 3.5));
@@ -76,7 +87,7 @@ export function buildTerrainMesh(world: World, look: Look): TerrainView {
   const DIRS = 8, STEPS = [1.25, 2.5, 4, 6.5, 10];
   for (let j = 0; j < R; j++)
     for (let i = 0; i < R; i++) {
-      const x = i * HCELL - WORLD_HALF, z = j * HCELL - WORLD_HALF, y = H[j * R + i];
+      const x = OX + i * HCELL, z = OZ + j * HCELL, y = H[j * R + i];
       if (y < -1) continue; // deep seabed is under water anyway
       let occ = 0;
       for (let k = 0; k < DIRS; k++) {
@@ -90,11 +101,11 @@ export function buildTerrainMesh(world: World, look: Look): TerrainView {
   for (const so of world.solids) {
     const r = 'r' in so ? so.r : Math.hypot(so.w, so.d) * 0.42;
     const ext = r + 1.4;
-    const i0 = Math.max(0, Math.floor((so.x - ext + WORLD_HALF) / HCELL)), i1 = Math.min(HN, Math.ceil((so.x + ext + WORLD_HALF) / HCELL));
-    const j0 = Math.max(0, Math.floor((so.z - ext + WORLD_HALF) / HCELL)), j1 = Math.min(HN, Math.ceil((so.z + ext + WORLD_HALF) / HCELL));
+    const i0 = Math.max(0, Math.floor((so.x - ext - OX) / HCELL)), i1 = Math.min(HN, Math.ceil((so.x + ext - OX) / HCELL));
+    const j0 = Math.max(0, Math.floor((so.z - ext - OZ) / HCELL)), j1 = Math.min(HN, Math.ceil((so.z + ext - OZ) / HCELL));
     for (let j = j0; j <= j1; j++)
       for (let i = i0; i <= i1; i++) {
-        const d = Math.hypot(i * HCELL - WORLD_HALF - so.x, j * HCELL - WORLD_HALF - so.z);
+        const d = Math.hypot(OX + i * HCELL - so.x, OZ + j * HCELL - so.z);
         ao[j * R + i] *= 1 - 0.32 * (1 - smooth(d, r * 0.5, ext));
       }
   }
@@ -137,7 +148,8 @@ export function buildTerrainMesh(world: World, look: Look): TerrainView {
     return geo;
   };
   const uniforms = { uTime: { value: 0 } };
-  const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, metalness: 0 });
+  const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: cave ? 0.8 : 0.95, metalness: 0 });
+  mat.customProgramCacheKey = () => (cave ? 'terrain-cave' : 'terrain');
   mat.onBeforeCompile = (shader) => {
     shader.uniforms.uTime = uniforms.uTime;
     shader.vertexShader = shader.vertexShader
@@ -169,9 +181,9 @@ if (vCobble > 0.01) {
   vec3 stone = (0.82 + sh.x * 0.24) * dome * mix(vec3(1.05, 1.0, 0.92), vec3(0.94, 0.98, 1.04), sh.y);
   gl_FragColor.rgb *= mix(vec3(1.0), mix(vec3(0.5, 0.48, 0.45), stone, edge), vCobble);
 }
-vec2 cuv = vCloudUv * 0.018 + vec2(uTime * 0.006, uTime * 0.004);
+${cave ? '' : `vec2 cuv = vCloudUv * 0.018 + vec2(uTime * 0.006, uTime * 0.004);
 float cloud = cNoise(cuv) * 0.65 + cNoise(cuv * 2.3) * 0.35;
-gl_FragColor.rgb *= 1.0 - smoothstep(0.55, 0.75, cloud) * 0.18;`);
+gl_FragColor.rgb *= 1.0 - smoothstep(0.55, 0.75, cloud) * 0.18;`}`);
   };
   const group = new THREE.Group();
   const nC = Math.ceil(HN / CHUNK);
