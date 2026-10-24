@@ -38,6 +38,7 @@ Reflects the actual repository, not the roadmap.
 - **Characters pass 2 (2026-10-23):** one sculpted head per character wearing a face painted in code (eyes with irises and catch-lights, lids, brows, nose shading, lips, stubble, per-character eye colour); knee and elbow joints with a real walk cycle; collar, buttons, pouch, boot tops. Dialogue and the Equipment tab show 3D-rendered portraits. Zooming in lowers the camera up to 20 degrees so faces are visible in play.
 - **Wear and repair (Tom asked, 2026-10-23):** weapons, head/body armour and tools wear (~1000 swings / ~1250 hits / ~2000 gathers). Worn out = 70% effect (tools act one tier lower); nothing breaks or vanishes. Repair at any anvil with one bar of the item's metal (+Smithing XP) or from Bram at the village smithy for ~30% of the lost value; affixes and rarity kept.
 - **Workflow:** work accumulates on one branch; a PR is opened only when Tom says to put it live (a merged PR cannot be reused).
+- **Characters: RuneScape-style low-poly** (Tom, 2026-10-24, from a reference image): realistic proportions, flat-shaded facets, ~1,800 triangles each (the vinyl toys were ~20,000), slightly oversized head and hands so faces read from above. `art/models/lowpoly.ts`; the vinyl toy style still exists (`style: 'toy'`) but nobody uses it.
 - **No more graphics passes for now** (Tom, 2026-10-24: "maintain this level"). New content matches the current style.
 - **Enterable buildings:** the simulation owns footprints, doors and furniture collision (`buildings.ts`, no Three.js); the renderer owns the cutaway. A building is "entered" when you're inside its walls (the doorway counts as outside, so the roof doesn't flicker).
 - **Encounter upgrades (Survivor.io level-up choices):** not built yet; deliberately deferred so permanent skills stay the focus of the first island.
@@ -106,7 +107,7 @@ Reflects the actual repository, not the roadmap.
 - Buildings and the Guardian are still blocky; next art target after characters/UI.
 - One island. Terrain (64 chunks of 40 m) and grass (40 m buckets) are frustum-culled; camera far plane follows the fog. Not streamed: the whole 300 m world is built at load (~0.4 s for the simulation in Node).
 - Performance measured only in software rendering; big-island frame rate on a real phone unmeasured.
-- Frame cost (phone 390×844@2x, Max quality, shadows on; `scripts/perf-budget.cjs`): 240-360 draw calls, 0.33-0.63M triangles everywhere (market square was 560 / 0.93M before the shadow stand-ins). Real-phone frame rate still unmeasured: turn on Settings > Show frame rate.
+- Frame cost (phone 390×844@2x, Max quality, shadows on; `scripts/perf-budget.cjs`): 200-345 draw calls, 0.27-0.54M triangles everywhere (market square was 560 / 0.93M before the shadow stand-ins and low-poly characters). Real-phone frame rate still unmeasured: turn on Settings > Show frame rate.
 - Gathering pace: 99 takes 200–250 h of pure gathering (RuneScape-like; brief target ~400 h incl. travel). Early levels are RuneScape-quick, faster than the brief's provisional 4 h to level 30.
 - Picking and digging give no XP yet (future Foraging/Archaeology only with real loops).
 - Items 60+ have no new gear tiers yet (combat gear tops out at level 50–60 crafted, relic drops above); new skills (Agility, Thieving, ...) not started.
