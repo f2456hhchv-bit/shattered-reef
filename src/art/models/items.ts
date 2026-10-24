@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { item, METALS, type IconShape } from '../../game/data/items';
 import { mulberry32 } from '../noise';
 import { m, nudge, shade, add } from './itemkit';
-import { buildHatchet, buildPickaxe, buildCutlass, buildHelm, buildPlate, buildPistol, buildStaff } from './gear';
+import { buildHatchet, buildPickaxe, buildCutlass, buildHelm, buildPlate, buildPistol, buildStaff, buildDagger, buildGreatsword, buildPike, buildBow, buildCrossbow, buildArrows, buildPistolBrace } from './gear';
 import { buildFish, buildSteak } from './fish';
 
 // Item models: one small, readable 3D object per item. Used for inventory icons (rendered on a
@@ -322,7 +322,7 @@ function tierOf(id: string): number {
 }
 
 /** Gear and fish have their own detailed builders; everything else uses the shape table below. */
-function special(id: string, shape: IconShape, col: string, acc: string | undefined): THREE.Group | null {
+function special(id: string, shape: IconShape, col: string, acc: string | undefined, qty = 1): THREE.Group | null {
   const tier = tierOf(id);
   switch (shape) {
     case 'hatchet': return buildHatchet(col, tier);
@@ -331,6 +331,14 @@ function special(id: string, shape: IconShape, col: string, acc: string | undefi
     case 'helm': return buildHelm(col, tier);
     case 'plate': return buildPlate(col, tier);
     case 'pistol': return buildPistol(col, acc ?? '#9aa0a4', Math.max(0, tier));
+    case 'dagger': return buildDagger(col, tier);
+    case 'greatsword': return buildGreatsword(col, tier);
+    case 'pike': return buildPike(col, tier);
+    case 'bow': return buildBow(col, acc ?? col, id.startsWith('longbow'));
+    case 'crossbow': return buildCrossbow(col, acc ?? '#9aa0a4', Math.max(0, tierOf(id)));
+    case 'arrow': return buildArrows(col, acc ?? '#e9e3d0', false, qty);
+    case 'bolt': return buildArrows(col, '#8a6440', true, qty);
+    case 'pistols': return buildPistolBrace(col, acc ?? '#9aa0a4', Math.max(0, tier));
     case 'staff': return buildStaff(col, acc ?? '#59d0c4', id === 'staff_driftwood' ? 0 : id === 'staff_coral' ? 1 : id === 'staff_storm' ? 2 : 3);
     case 'fish': {
       const sp = /^fish_([a-z]+?)(_raw)?$/.exec(id)?.[1] ?? 'sprat', cooked = !id.endsWith('_raw');
@@ -342,7 +350,7 @@ function special(id: string, shape: IconShape, col: string, acc: string | undefi
 
 export function buildItemModel(id: string, qty = 1): THREE.Group {
   const d = item(id);
-  const sp = special(id, d.icon.shape, d.icon.color, d.icon.accent);
+  const sp = special(id, d.icon.shape, d.icon.color, d.icon.accent, qty);
   // special builders lean their own model; wrap it so the icon camera's rotation doesn't overwrite that
   const g = sp ? new THREE.Group().add(sp) : builders(d.icon.shape, d.icon.color, d.icon.accent, id.length * 31 + id.charCodeAt(0), qty, !id.endsWith('_raw'));
   const box = new THREE.Box3().setFromObject(g);

@@ -1,4 +1,4 @@
-import { item, AFFIXES, RARITY, type Rarity, type Slot, type SkillId, type CombatStyle } from '../data/items';
+import { item, AFFIXES, RARITY, AMMO_FOR, weaponKind, ammoKind, type Rarity, type Slot, type SkillId, type CombatStyle, type WeaponKind, type AmmoKind } from '../data/items';
 import { SPELLS } from '../data/content';
 import { condOf, WORN_OUT_EFFECT, type Inst, type Stack } from './inventory';
 import { levelForXp } from './xp';
@@ -62,6 +62,8 @@ export interface PlayerStats {
   combatLevel: number;
   maxHp: number;
   style: CombatStyle;
+  kind: WeaponKind; // weapon family
+  needsAmmo: AmmoKind | null; // what the ammo slot must hold for this weapon
   speed: number; // seconds per attack
   range: number; // metres
   attRoll: number;
@@ -92,6 +94,7 @@ export function computeStats(xp: Record<SkillId, number>, equip: Partial<Record<
   const L = levelsOf(xp);
   const weapon = equip.weapon ? item(equip.weapon.id).equip : undefined;
   const style: CombatStyle = weapon?.style ?? 'melee';
+  const kind = weaponKind(equip.weapon ? item(equip.weapon.id) : undefined), needsAmmo = AMMO_FOR[kind] ?? null;
   let acc = 0, str = 0, rangedStr = 0, magicDmg = 0;
   const def: Record<CombatStyle, number> = { melee: 0, ranged: 0, magic: 0 };
   let dmgPct = 0, speedPct = 0, crit = 0, cleave = 0, eliteDmg = 0, leech = 0, regen = 0, gather = 0, xpBonus = 0, hpBonus = 0, accAffix = 0, seaDmg = 0;
@@ -101,7 +104,7 @@ export function computeStats(xp: Record<SkillId, number>, equip: Partial<Record<
     const b = e.bonus;
     const k = condOf(st) <= 0 ? WORN_OUT_EFFECT : 1; // worn out: still works, less well
     if (slot === 'weapon') { acc += sum(b.acc) * k; str += sum(b.str) * k; }
-    if (slot === 'ammo' && style === 'ranged') rangedStr += sum(b.rangedStr);
+    if (slot === 'ammo' && style === 'ranged' && ammoKind(item(st.id)) === needsAmmo) rangedStr += sum(b.rangedStr); // wrong ammo adds nothing
     magicDmg += sum(b.magicDmg) * k;
     def.melee += sum(b.defMelee) * k; def.ranged += sum(b.defRanged) * k; def.magic += sum(b.defMagic) * k;
     // the metal's signature trait counts like an affix (gathering traits only matter on tools, which aren't worn)
@@ -149,7 +152,7 @@ export function computeStats(xp: Record<SkillId, number>, equip: Partial<Record<
   attRoll = Math.round(attRoll * (1 + perkTotal(accSkill, L[accSkill], 'acc') / 100));
   dmgPct += perkTotal(dmgSkill, L[dmgSkill], 'dmg');
   crit += perkTotal(accSkill, L[accSkill], 'crit') / 100;
-  if (style === 'melee') cleave = Math.max(cleave, perkTotal('strength', L.strength, 'cleave') / 100);
+  if (style === 'melee') cleave = Math.max(cleave, perkTotal('strength', L.strength, 'cleave') / 100, kind === 'greatsword' ? 0.4 : 0);
   regen += perkTotal('hitpoints', L.hitpoints, 'regen');
   hpBonus += perkTotal('hitpoints', L.hitpoints, 'hp');
   maxHit = Math.max(1, Math.floor(maxHit * (1 + dmgPct / 100)));
@@ -158,7 +161,9 @@ export function computeStats(xp: Record<SkillId, number>, equip: Partial<Record<
     combatLevel: combatLevel(L),
     maxHp: L.hitpoints + hpBonus,
     style,
-    speed: (style === 'ranged' && stance === 'aggressive' ? baseSpeed - 0.6 : baseSpeed) / (1 + speedPct / 100), // "rapid"
+    kind,
+    needsAmmo,
+    speed: (style === 'ranged' && stance === 'aggressive' ? baseSpeed * 0.75 : baseSpeed) / (1 + speedPct / 100), // "rapid"
     range: weapon?.range ?? 1.6,
     attRoll,
     maxHit,

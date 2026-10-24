@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { PAL, type PalKey } from '../materials';
-import type { HumanoidLook, HumanoidRig } from './character';
+import type { HeldKind, HumanoidLook, HumanoidRig } from './character';
 
 // "Vinyl toy" characters: a big rounded-box head (about 40% of their height), glossy black eyes, a short
 // barrel body, stubby limbs, mitten hands and big boots, all in smooth soft-sheen vinyl. Same rig as the
@@ -52,7 +52,7 @@ function tricornBrim(r: number): THREE.BufferGeometry {
   return g;
 }
 
-export function buildToy(look: HumanoidLook, buildHeld: (held: THREE.Group, body: THREE.Group, kind: NonNullable<HumanoidLook['held']>) => void): HumanoidRig {
+export function buildToy(look: HumanoidLook, buildHeld: (held: THREE.Group, body: THREE.Group, kind: HeldKind) => void): HumanoidRig {
   const root = new THREE.Group(), body = new THREE.Group();
   root.add(body);
   const female = look.beard === false;

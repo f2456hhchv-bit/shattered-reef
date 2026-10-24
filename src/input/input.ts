@@ -114,7 +114,8 @@ export class Input {
   private tap(x: number, y: number, type: string) {
     const g = this.game;
     this.ui.closePop();
-    if (this.ui.dialogOpen) this.ui.advanceDialog();
+    if (this.ui.dialogOpen) { this.ui.advanceDialog(); return; } // a tap reads on, it doesn't also walk off
+    if (this.ui.anyWindowOpen()) this.ui.closeWindows(); // RuneScape: clicking the world closes the open window
     const t = this.pick(x, y, type === 'mouse' ? 34 : 46);
     if (t) {
       g.interact(t.key);
@@ -154,6 +155,8 @@ export class Input {
         break;
       }
       case ' ': e.preventDefault(); g.useRoll(); break;
+      case 'h': g.quickEat(); break;
+      case 'l': this.ui.toggleLoadout(); break;
       case 'r': case 'f': g.useSpecial(); break;
       case 'i': case 'b': this.ui.selectTab('pack', true); break;
       case 'g': this.ui.selectTab('gear', true); break;

@@ -9,13 +9,14 @@ export const SKILLS: { id: SkillId; name: string; colour: string; group: SkillGr
   { id: 'strength', name: 'Strength', colour: '#4f9a52', group: 'Combat', blurb: 'Melee max hit. Train with the Aggressive stance.' },
   { id: 'defence', name: 'Defence', colour: '#6b8fc9', group: 'Combat', blurb: 'Avoid hits and wear heavier armour. Train with the Defensive stance.' },
   { id: 'hitpoints', name: 'Hitpoints', colour: '#d8584a', group: 'Combat', blurb: 'Your health. Rises with all combat.' },
-  { id: 'ranged', name: 'Ranged', colour: '#7aa83e', group: 'Combat', blurb: 'Pistol accuracy and damage. Needs shot in your ammo slot.' },
-  { id: 'magic', name: 'Magic', colour: '#59d0c4', group: 'Combat', blurb: 'Tide spells. Needs a staff and tide charms.' },
+  { id: 'ranged', name: 'Ranged', colour: '#7aa83e', group: 'Combat', blurb: 'Pistols, bows and crossbows. Each needs its own ammo in your ammo slot: shot, arrows or bolts.' },
+  { id: 'magic', name: 'Magic', colour: '#59d0c4', group: 'Combat', blurb: 'Tide spells, cast with a staff. Brine Spray is free; stronger spells burn tide charms.' },
   { id: 'woodcutting', name: 'Woodcutting', colour: '#6f9a4a', group: 'Gathering', blurb: 'Chop trees for logs.' },
   { id: 'mining', name: 'Mining', colour: '#a07a5a', group: 'Gathering', blurb: 'Mine ore from rocks.' },
   { id: 'fishing', name: 'Fishing', colour: '#4fa7c2', group: 'Gathering', blurb: 'Fish from the quay, or better fish from your ship.' },
   { id: 'smithing', name: 'Smithing', colour: '#c9a050', group: 'Production', blurb: 'Smelt bars and forge tools, blades and armour.' },
-  { id: 'gunsmithing', name: 'Gunsmithing', colour: '#9a8a6a', group: 'Production', blurb: 'Make pistols and shot at the gunsmith\'s bench.' },
+  { id: 'gunsmithing', name: 'Gunsmithing', colour: '#9a8a6a', group: 'Production', blurb: 'Make pistols, pistol braces and shot at the workbench.' },
+  { id: 'fletching', name: 'Fletching', colour: '#8aa04a', group: 'Production', blurb: 'Carve bows from logs, fit crossbows, make arrows and bolts at the workbench.' },
   { id: 'cooking', name: 'Cooking', colour: '#d88a4a', group: 'Production', blurb: 'Cook food that heals you in a fight.' },
 ];
 export const COMBAT_SKILLS: SkillId[] = ['attack', 'strength', 'defence', 'hitpoints', 'ranged', 'magic'];
@@ -127,8 +128,22 @@ function buildRecipes(): Recipe[] {
     forge('cutlass', L + 2, 2);
     forge('helm', L + 4, 2);
     forge('plate', L + 7, 5);
+    forge('dagger', L, 1);
+    forge('pike', L + 3, 2, [{ id: `logs_${TOOL_LOG[m]}`, qty: 1 }]);
+    forge('greatsword', L + 6, 3);
+    out.push({ id: `gun_pistols_${mt.key}`, station: 'bench', skill: 'gunsmithing', level: Math.min(99, PISTOL_LVL[m] + 3), xp: xp * 4.8, inputs: [{ id: bar, qty: 2 }, { id: `logs_${PISTOL_LOG[m]}`, qty: 2 }], output: { id: `pistols_${mt.key}`, qty: 1 }, rarityRoll: true });
+    // fletching: crossbows (a metal prod on a wooden stock), arrows (metal heads on saltpine shafts), bolts
+    out.push({ id: `fletch_crossbow_${mt.key}`, station: 'bench', skill: 'fletching', level: Math.min(99, SHOT_LVL[m] + 8), xp: xp * 2, inputs: [{ id: bar, qty: 1 }, { id: `logs_${TOOL_LOG[m]}`, qty: 1 }], output: { id: `crossbow_${mt.key}`, qty: 1 }, rarityRoll: true });
+    out.push({ id: `fletch_arrow_${mt.key}`, station: 'bench', skill: 'fletching', level: SHOT_LVL[m], xp: xp * 0.8, inputs: [{ id: bar, qty: 1 }, { id: 'logs_pine', qty: 1 }], output: { id: `arrow_${mt.key}`, qty: 15 } });
+    out.push({ id: `fletch_bolt_${mt.key}`, station: 'bench', skill: 'fletching', level: Math.min(99, SHOT_LVL[m] + 3), xp: xp * 0.9, inputs: [{ id: bar, qty: 1 }], output: { id: `bolt_${mt.key}`, qty: 12 } });
     out.push({ id: `gun_shot_${mt.key}`, station: 'bench', skill: 'gunsmithing', level: SHOT_LVL[m], xp: xp, inputs: [{ id: bar, qty: 1 }], output: { id: `shot_${mt.key}`, qty: 15 } });
     out.push({ id: `gun_pistol_${mt.key}`, station: 'bench', skill: 'gunsmithing', level: PISTOL_LVL[m], xp: xp * 2.4, inputs: [{ id: bar, qty: 1 }, { id: `logs_${PISTOL_LOG[m]}`, qty: 1 }], output: { id: m === 0 ? 'pistol_flintlock' : `pistol_${mt.key}`, qty: 1 }, rarityRoll: true });
+  });
+  // bows: a shortbow then a longbow from every wood (RuneScape-like spacing)
+  const BOW_LVL: [number, number][] = [[1, 10], [20, 25], [35, 40], [50, 55], [65, 70], [80, 85], [90, 95]], BOW_XP = [10, 25, 42, 65, 90, 120, 160];
+  WOODS.forEach((w, t) => {
+    out.push({ id: `fletch_shortbow_${w.key}`, station: 'bench', skill: 'fletching', level: BOW_LVL[t][0], xp: BOW_XP[t], inputs: [{ id: `logs_${w.key}`, qty: 2 }], output: { id: `shortbow_${w.key}`, qty: 1 }, rarityRoll: true });
+    out.push({ id: `fletch_longbow_${w.key}`, station: 'bench', skill: 'fletching', level: BOW_LVL[t][1], xp: BOW_XP[t] * 1.5, inputs: [{ id: `logs_${w.key}`, qty: 3 }], output: { id: `longbow_${w.key}`, qty: 1 }, rarityRoll: true });
   });
   // cooking: RuneScape-like levels and XP; burning stops ~20 levels above the requirement
   const COOK: [number, number, number][] = [[1, 30, 20], [10, 60, 34], [15, 70, 40], [25, 90, 50], [40, 120, 64], [45, 140, 70], [55, 150, 80], [70, 210, 92], [84, 230, 99]];
@@ -183,7 +198,7 @@ export const SHOPS: Record<string, Shop> = {
     id: 'general', name: 'Gell\'s Harbour Goods', keeper: 'marta',
     stock: [
       { id: 'bread', qty: 1 }, { id: 'hatchet_chipped', qty: 1 }, { id: 'pickaxe_chipped', qty: 1 },
-      { id: 'pistol_flintlock', qty: 1 }, { id: 'shot_bronze', qty: 25 }, { id: 'staff_driftwood', qty: 1 }, { id: 'charm_tide', qty: 25 },
+      { id: 'pistol_flintlock', qty: 1 }, { id: 'shot_bronze', qty: 25 }, { id: 'shortbow_pine', qty: 1 }, { id: 'arrow_bronze', qty: 25 }, { id: 'dagger_bronze', qty: 1 }, { id: 'staff_driftwood', qty: 1 }, { id: 'charm_tide', qty: 25 },
       { id: 'cap_leather', qty: 1 }, { id: 'coat_padded', qty: 1 }, { id: 'spade', qty: 1 }, { id: 'staff_coral', qty: 1 },
     ],
     buyMul: 1.0, sellMul: 0.5,
@@ -208,7 +223,7 @@ export const SHOP = SHOPS.general;
 export interface Spell { id: string; name: string; level: number; maxHit: number; baseXp: number; charms: number }
 // RuneScape's Wind Strike: max 2, 5.5 base xp; Water Bolt-ish at 9.
 export const SPELLS: Spell[] = [
-  { id: 'spray', name: 'Brine Spray', level: 1, maxHit: 2, baseXp: 5.5, charms: 1 },
+  { id: 'spray', name: 'Brine Spray', level: 1, maxHit: 2, baseXp: 5.5, charms: 0 }, // free: magic is always usable
   { id: 'bolt', name: 'Tide Bolt', level: 9, maxHit: 5, baseXp: 11.5, charms: 2 },
   { id: 'undertow', name: 'Undertow', level: 20, maxHit: 8, baseXp: 17.5, charms: 2 },
   { id: 'blast', name: 'Brine Blast', level: 35, maxHit: 12, baseXp: 25, charms: 3 },
@@ -305,17 +320,17 @@ export interface LootTable {
 
 export const LOOT: Record<string, LootTable> = {
   crab: { coins: [1, 4], drops: [{ item: 'crab_meat_raw', chance: 0.6 }, { item: 'shell_fragment', chance: 0.2 }, { item: 'charm_tide', chance: 0.25, qty: [2, 5] }], gear: { chance: 0.03, items: ['ring_brass'], weights: { common: 60, fine: 35, rare: 5 } } },
-  brigand: { coins: [5, 15], drops: [{ item: 'bread', chance: 0.3 }, { item: 'shot_bronze', chance: 0.3, qty: [4, 10] }, { item: 'ore_iron', chance: 0.12 }],
-    gear: { chance: 0.15, items: ['cutlass_brigand', 'cap_leather', 'coat_padded', 'ring_brass', 'pistol_flintlock'], weights: { common: 50, fine: 38, rare: 12 } } },
+  brigand: { coins: [5, 15], drops: [{ item: 'bread', chance: 0.3 }, { item: 'shot_bronze', chance: 0.3, qty: [4, 10] }, { item: 'arrow_bronze', chance: 0.25, qty: [5, 12] }, { item: 'ore_iron', chance: 0.12 }],
+    gear: { chance: 0.15, items: ['cutlass_brigand', 'cap_leather', 'coat_padded', 'ring_brass', 'pistol_flintlock', 'dagger_bronze', 'shortbow_pine'], weights: { common: 50, fine: 38, rare: 12 } } },
   elite: { coins: [12, 30], drops: [], gear: { chance: 0.6, items: ['cutlass_brigand', 'cap_leather', 'coat_padded', 'ring_brass', 'cutlass_bronze', 'pistol_flintlock', 'staff_driftwood'], weights: { fine: 65, rare: 35 } } },
   mire: { coins: [4, 12], drops: [{ item: 'crab_meat_raw', chance: 0.6 }, { item: 'charm_tide', chance: 0.4, qty: [3, 8] }, { item: 'logs_willow', chance: 0.15, qty: [1, 3] }], gear: { chance: 0.05, items: ['ring_brass', 'helm_iron'], weights: { common: 55, fine: 38, rare: 7 } } },
   smuggler: { coins: [15, 40], drops: [{ item: 'fish_lobster', chance: 0.25 }, { item: 'shot_steel', chance: 0.3, qty: [5, 12] }, { item: 'bar_steel', chance: 0.12 }, { item: 'charm_tide', chance: 0.3, qty: [5, 12] }],
-    gear: { chance: 0.12, items: ['cutlass_steel', 'helm_steel', 'pistol_steel', 'staff_coral', 'ring_gold'], weights: { common: 50, fine: 38, rare: 12 } } },
+    gear: { chance: 0.12, items: ['cutlass_steel', 'helm_steel', 'pistol_steel', 'staff_coral', 'ring_gold', 'pistols_steel', 'pike_steel'], weights: { common: 50, fine: 38, rare: 12 } } },
   ironshell: { coins: [10, 30], drops: [{ item: 'ore_coal', chance: 0.5, qty: [2, 5] }, { item: 'ore_gold', chance: 0.2 }, { item: 'shell_fragment', chance: 0.5, qty: [1, 3] }], gear: { chance: 0.06, items: ['helm_steel', 'plate_steel'], weights: { common: 50, fine: 40, rare: 10 } } },
-  poacher: { coins: [25, 60], drops: [{ item: 'logs_amber', chance: 0.25, qty: [1, 3] }, { item: 'shot_storm', chance: 0.25, qty: [5, 12] }, { item: 'fish_salmon', chance: 0.3 }],
-    gear: { chance: 0.12, items: ['cutlass_storm', 'helm_storm', 'pistol_storm', 'staff_storm', 'ring_gold'], weights: { common: 48, fine: 38, rare: 14 } } },
+  poacher: { coins: [25, 60], drops: [{ item: 'logs_amber', chance: 0.25, qty: [1, 3] }, { item: 'arrow_storm', chance: 0.3, qty: [6, 15] }, { item: 'fish_salmon', chance: 0.3 }],
+    gear: { chance: 0.12, items: ['cutlass_storm', 'helm_storm', 'longbow_amber', 'shortbow_amber', 'crossbow_storm', 'ring_gold'], weights: { common: 48, fine: 38, rare: 14 } } },
   drowned: { coins: [40, 90], drops: [{ item: 'charm_tide', chance: 0.6, qty: [10, 25] }, { item: 'fish_gloom', chance: 0.3 }, { item: 'bar_abyss', chance: 0.08 }],
-    gear: { chance: 0.12, items: ['cutlass_abyss', 'helm_abyss', 'plate_abyss', 'pistol_abyss', 'staff_tide'], weights: { common: 45, fine: 38, rare: 15, relic: 2 } } },
+    gear: { chance: 0.12, items: ['cutlass_abyss', 'helm_abyss', 'plate_abyss', 'pistol_abyss', 'staff_tide', 'greatsword_abyss'], weights: { common: 45, fine: 38, rare: 15, relic: 2 } } },
   captain: { coins: [120, 260], drops: [{ item: 'bar_abyss', chance: 0.4, qty: [1, 2] }, { item: 'sea_salt', chance: 0.4, qty: [2, 5] }, { item: 'fish_shark', chance: 0.4, qty: [1, 2] }],
     gear: { chance: 0.4, items: ['cutlass_tide', 'pistol_tide', 'staff_tide', 'plate_abyss', 'ring_gold'], weights: { fine: 50, rare: 40, relic: 10 } } },
   sentinel: { coins: [150, 320], drops: [{ item: 'ore_tide', chance: 0.35 }, { item: 'ore_cinder', chance: 0.25 }, { item: 'crystal_geode', chance: 0.2 }, { item: 'ore_storm', chance: 0.5, qty: [1, 3] }, { item: 'charm_tide', chance: 1, qty: [20, 40] }],

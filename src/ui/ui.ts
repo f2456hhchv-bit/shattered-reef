@@ -1,4 +1,4 @@
-import { item, RARITY, AFFIXES, METALS, METAL_TRAITS, type Slot, type SkillId } from '../game/data/items';
+import { item, RARITY, AFFIXES, METALS, METAL_TRAITS, AMMO_NAME, ammoKind, type Slot, type SkillId, type WeaponKind } from '../game/data/items';
 import { morph, forget } from './morph';
 import { wears, condOf, WORN_OUT_EFFECT } from '../game/sim/inventory';
 import { onTap } from './tap';
@@ -10,7 +10,7 @@ import { NPCS, QUESTS } from '../game/data/quests';
 import { PLACES, WORLD_HALF, coastDist, nearestPathDist, FLATS } from '../game/world/island';
 import { count, displayName, type Stack } from '../game/sim/inventory';
 import { levelForXp, levelProgress, xpForLevel, MAX_LEVEL } from '../game/sim/xp';
-import type { Game, GameEvent, MsgKind } from '../game/sim/game';
+import { earlyBoost, EARLY_BOOST_TO, type Game, type GameEvent, type MsgKind } from '../game/sim/game';
 import type { GameRenderer } from '../render/renderer';
 import { itemIcon, rarityColour, TAB_ICONS, SKILL_ICONS, SLOT_ICONS } from './icons';
 import { LEVEL_GAIN } from '../game/data/perks';
@@ -27,6 +27,10 @@ const TABS: { id: Tab; name: string; key: string }[] = [
 const SLOT_ORDER: Slot[] = ['weapon', 'ammo', 'head', 'body', 'ring'];
 const signed = (n: number) => (n > 0 ? `+${n}` : String(n));
 const WHIRL = '<svg viewBox="0 0 32 32"><path d="M16 4a12 12 0 0 1 11 7l-5-1M28 16a12 12 0 0 1-7 11l1-5M16 28a12 12 0 0 1-11-7l5 1M4 16a12 12 0 0 1 7-11l-1 5" fill="none" stroke="#e9e5d5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="16" cy="16" r="4" fill="#c9a050" stroke="#1a120a" stroke-width="2"/></svg>';
+const KIND_TIPS: Record<WeaponKind, string> = {
+  cutlass: 'Balanced blade', dagger: 'Fast, accurate, light', pike: 'Long reach, runs through a line', greatsword: 'Slow and heavy, cleaves the crowd',
+  pistol: 'Fires shot', pistols: 'Two shots every volley', shortbow: 'Fast arrows', longbow: 'Longest reach of all', crossbow: 'Sure, heavy bolts', staff: 'Casts your chosen spell',
+};
 const ROLL = '<svg viewBox="0 0 32 32"><path d="M6 22c0-8 6-14 13-14 4 0 7 2 7 2" fill="none" stroke="#e9e5d5" stroke-width="3.2" stroke-linecap="round"/><path d="M22 4l5 6-7 2" fill="none" stroke="#e9e5d5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 27h12" stroke="#c9a050" stroke-width="3" stroke-linecap="round"/></svg>';
 const SQUALL = '<svg viewBox="0 0 32 32"><path d="M4 11c6-4 12 4 18 0M4 17c6-4 12 4 18 0M8 23c6-4 10 3 16 0" fill="none" stroke="#59d0c4" stroke-width="3" stroke-linecap="round"/><circle cx="26" cy="9" r="3" fill="#e9e5d5" stroke="#1a120a" stroke-width="1.5"/></svg>';
 const PISTOL = '<svg viewBox="0 0 32 32"><path d="M4 12h18l4-3h3v6h-3l-2 2h-6l-3 9H8l2-8H4z" fill="#9aa0a4" stroke="#1a120a" stroke-width="2" stroke-linejoin="round"/><path d="M12 17l-2 7" stroke="#8a6440" stroke-width="3"/></svg>';
@@ -54,6 +58,7 @@ export class UI {
   private mmT = 0;
   private station: Station | null = null;
   private shopOpen = false;
+  private shopTab: 'buy' | 'sell' = 'buy';
   private dialog: { npc: string; lines: string[]; i: number } | null = null;
   private pop: { slot?: number; equip?: Slot } | null = null;
   private dmgPool: { el: HTMLElement; x: number; y: number; z: number; t: number; live: boolean }[] = [];
@@ -74,6 +79,16 @@ export class UI {
     game.on((e) => this.onEvent(e));
     this.layout();
     window.addEventListener('resize', () => this.layout());
+    // a tap anywhere outside the item popup closes it (a slot tap opens the next one instead)
+    document.addEventListener('pointerdown', (e) => {
+      const t = e.target as HTMLElement | null;
+      if (this.pop && !t?.closest('#itempop, [data-slot], [data-equip]')) this.closePop();
+      if (this.loadoutOpen && !t?.closest('#loadout, #ab-load')) this.closeLoadout();
+    }, true);
+    // after a rotation some phones report the old size at first: lay out again once it has settled
+    const settle = () => { this.layout(); setTimeout(() => this.layout(), 150); setTimeout(() => this.layout(), 500); };
+    window.addEventListener('orientationchange', settle);
+    window.visualViewport?.addEventListener('resize', () => this.layout());
     this.buildMinimapBase();
   }
 
@@ -116,8 +131,11 @@ export class UI {
     const special = mk('ab-special', 'Special attack (R)', WHIRL, () => this.game.useSpecial());
     const ctx = h('button', { id: 'ctx', class: 'round', 'aria-label': 'Interact (E)' }, '<span></span><small></small>');
     onTap(ctx, 'button', () => { const t = this.game.contextTarget(); if (t) this.game.interact(t.key); });
+    const load = mk('ab-load', 'Weapon, ammo, spell and stance (L)', '<img alt="">', () => this.toggleLoadout());
+    const eat = mk('ab-eat', 'Eat the best food (H)', '<img alt="">', () => this.game.quickEat());
+    eat.insertAdjacentHTML('beforeend', '<b class="n"></b>');
     const abil = h('div', { id: 'abilities' });
-    abil.append(roll, special);
+    abil.append(load, eat, roll, special);
     actions.append(abil, ctx);
     this.el.abilities = abil;
     this.el.ctx = ctx;
@@ -136,6 +154,7 @@ export class UI {
     document.body.classList.toggle('portrait', this.portrait);
     document.body.classList.toggle('landscape', !this.portrait);
     document.body.classList.toggle('side-open', this.sideOpen);
+    if (!this.sideOpen) this.closePop(); // the popup belongs to the panel
     const mm = this.portrait ? Math.min(118, w * 0.3) : Math.min(150, hgt * 0.24);
     document.documentElement.style.setProperty('--mm', `${mm}px`);
     document.documentElement.style.setProperty('--side-w', `${Math.max(232, Math.min(300, w * 0.3))}px`);
@@ -228,6 +247,7 @@ export class UI {
 
   // ------------------------------------------------------------------ per-frame
   update(dt: number) {
+    if ((window.innerHeight > window.innerWidth) !== this.portrait) this.layout(); // rotated without a resize event
     const g = this.game;
     const p = g.p;
     // orbs
@@ -260,6 +280,22 @@ export class UI {
       b.classList.toggle('off', cd > 0 || blocked);
       (b.querySelector('.cd') as HTMLElement).style.setProperty('--cd', `${(cd / max) * 360}deg`);
     }
+    // loadout button: the weapon in hand (the dot shows when there's a choice to make: a spell or ammo)
+    const lb = this.el['ab-load'], wid = g.p.equip.weapon?.id ?? 'cutlass_rusty', limg = lb.querySelector('img') as HTMLImageElement, lsrc = itemIcon(wid);
+    if (limg.getAttribute('src') !== lsrc) limg.setAttribute('src', lsrc);
+    lb.classList.toggle('warn', !!g.ammoBlock());
+    // quick eat: shows the food it would pick right now (any food when you're at full health)
+    const eatBtn = this.el['ab-eat'], fi = g.bestFood() ?? g.foodSlot();
+    eatBtn.hidden = fi === null;
+    if (fi !== null) {
+      const st = g.p.inv[fi]!, img = eatBtn.querySelector('img') as HTMLImageElement, src = itemIcon(st.id);
+      if (img.getAttribute('src') !== src) img.setAttribute('src', src);
+      const n = String(g.p.inv.reduce((a, x) => a + (x && x.id === st.id ? x.qty : 0), 0));
+      const nb = eatBtn.querySelector('.n') as HTMLElement;
+      if (nb.textContent !== n) nb.textContent = n;
+      eatBtn.classList.toggle('off', g.bestFood() === null || g.eatCd > 0);
+      (eatBtn.querySelector('.cd') as HTMLElement).style.setProperty('--cd', `${(Math.max(0, g.eatCd) / 1.2) * 360}deg`);
+    }
     this.el.abilities.hidden = g.p.onShip || g.dead > 0;
     // boss bar
     const bb = this.el.bossbar;
@@ -281,6 +317,7 @@ export class UI {
       if (this.sideOpen && (this.tab !== 'map' || !document.getElementById('mapbig'))) this.renderTab();
       if (this.station) this.renderStation();
       if (this.shopOpen) this.renderShop();
+      if (this.loadoutOpen) this.renderLoadout();
       if (this.bankOpen) this.renderBank();
       if (this.pop) this.renderPop();
     }
@@ -483,16 +520,10 @@ export class UI {
   private gearHtml() {
     const g = this.game, st = g.stats;
     const slots = SLOT_ORDER.map((sl) => this.slotHtml(g.p.equip[sl] ?? null, `data-equip="${sl}"`, sl)).join('');
-    const stance = g.s.combat.stance;
-    const stanceLabel: Record<Stance, [string, string]> = st.style === 'melee'
-      ? { accurate: ['Accurate', 'Attack XP'], aggressive: ['Aggressive', 'Strength XP'], defensive: ['Defensive', 'Defence XP'] }
-      : st.style === 'ranged'
-        ? { accurate: ['Accurate', 'Ranged XP'], aggressive: ['Rapid', 'Ranged XP, faster'], defensive: ['Longrange', 'Ranged + Defence XP'] }
-        : { accurate: ['Accurate', 'Magic XP'], aggressive: ['Focused', 'Magic XP'], defensive: ['Defensive', 'Magic + Defence XP'] };
-    const stances = (['accurate', 'aggressive', 'defensive'] as Stance[]).map((k) => `<button data-stance="${k}" class="${stance === k ? 'on' : ''}"><b>${stanceLabel[k][0]}</b><small>${stanceLabel[k][1]}</small></button>`).join('');
-    const spells = st.style === 'magic' ? `<h2 class="title" style="font-size:13px">Spell</h2><div class="stances spells">${SPELLS.map((sp) => `<button data-spell="${sp.id}" class="${st.spell?.id === sp.id ? 'on' : ''}" ${g.level('magic') < sp.level ? 'disabled' : ''}><b>${esc(sp.name)}</b><small>Lv ${sp.level} · max ${sp.maxHit} · ${sp.charms} charm${sp.charms > 1 ? 's' : ''}</small></button>`).join('')}</div>` : '';
-    const ammo = st.style === 'ranged' ? (g.p.equip.ammo ? `${fmt(g.p.equip.ammo.qty)} × ${esc(item(g.p.equip.ammo.id).name)}` : '<span class="miss">No shot equipped</span>')
-      : st.style === 'magic' ? `${fmt(count(g.p.inv, 'charm_tide'))} tide charms (${st.spell?.charms ?? 1} per cast)` : '';
+    const stances = this.stanceButtons();
+    const spells = st.style === 'magic' ? `<h2 class="title" style="font-size:13px">Spell</h2><div class="stances spells">${this.spellButtons()}</div>` : '';
+    const ammo = st.style === 'ranged' ? (g.p.equip.ammo ? `${fmt(g.p.equip.ammo.qty)} × ${esc(item(g.p.equip.ammo.id).name)}` : `<span class="miss">No ${AMMO_NAME[st.needsAmmo ?? 'shot']} equipped</span>`)
+      : st.style === 'magic' ? `${fmt(count(g.p.inv, 'charm_tide'))} tide charms (${st.spell?.charms ? `${st.spell.charms} per cast` : 'this spell is free'})` : '';
     const sp = g.specialInfo();
     const rows: [string, string][] = [
       ['Combat level', String(st.combatLevel)], ['Style', cap(st.style)], ['Max hit', String(st.maxHit)], ['Attack speed', `${st.speed.toFixed(1)}s`],
@@ -525,7 +556,7 @@ export class UI {
       rows.push(`<div class="lvrow${L <= cur ? ' got' : ''}${L === cur ? ' cur' : ''}${at.length ? ' has' : ''}" data-lv="${L}"><span class="n">${L}</span><div>${body}</div></div>`);
     }
     return `<div class="row lvhead" style="gap:10px;margin-bottom:8px"><button class="btn small" data-skillback aria-label="Back to all skills">‹ Skills</button>
-      <span class="medal" style="--c:${sk.colour}">${SKILL_ICONS[id]}</span><div><h2 class="title" style="margin:0">${sk.name}</h2><span class="muted" style="font-size:12px">Level ${cur} · ${esc(sk.blurb)}</span></div></div>
+      <span class="medal" style="--c:${sk.colour}">${SKILL_ICONS[id]}</span><div><h2 class="title" style="margin:0">${sk.name}</h2><span class="muted" style="font-size:12px">Level ${cur} · ${esc(sk.blurb)}${cur < EARLY_BOOST_TO ? ` · <b style="color:var(--brass)">×${earlyBoost(cur).toFixed(1)} XP</b> while learning (to level ${EARLY_BOOST_TO})` : ''}</span></div></div>
       <div class="lvlist">${rows.join('')}</div>`;
   }
 
@@ -695,8 +726,10 @@ export class UI {
       el = h('div', { id, class: 'win panel', role: 'dialog', 'aria-label': title });
       document.body.appendChild(el);
       const g = this.game;
-      onTap(el, '.x, [data-r], [data-buy], [data-c], [data-wd], [data-dep], [data-rep]', (b) => {
+      onTap(el, '.x, [data-r], [data-buy], [data-c], [data-wd], [data-dep], [data-rep], [data-sell], [data-shoptab]', (b) => {
         if (b.classList.contains('x')) { this.closeWindows(); return; }
+        if (b.dataset.shoptab) { this.shopTab = b.dataset.shoptab as 'buy' | 'sell'; this.renderShop(); return; }
+        if (b.dataset.sell) { const [i, n] = b.dataset.sell.split(':'); g.sell(Number(i), n === 'all'); this.renderShop(); return; }
         if (b.dataset.rep) { const i = b.dataset.rep.lastIndexOf(':'); g.repair(b.dataset.rep.slice(0, i), b.dataset.rep.slice(i + 1) === 'self'); this.lastRev = -1; return; }
         if (b.dataset.wd) { const [idx, n] = b.dataset.wd.split(':').map(Number); g.withdraw(idx, n); return; }
         if (b.dataset.dep) { g.deposit('all'); return; }
@@ -764,6 +797,60 @@ export class UI {
     this.win('bankwin', 'Your bank', `<div class="row" style="justify-content:space-between;margin-bottom:8px"><span class="muted">${bank.length} stacks · tap an item in your pack to deposit it</span><button class="btn primary" data-dep="1">Deposit pack</button></div>${rows}`);
   }
 
+  // ------------------------------------------------------------------ loadout (HUD quick menu)
+  private loadoutOpen = false;
+  toggleLoadout() { if (this.loadoutOpen) this.closeLoadout(); else { this.closePop(); this.loadoutOpen = true; this.renderLoadout(); } }
+  closeLoadout() { this.loadoutOpen = false; document.getElementById('loadout')?.remove(); }
+
+  private stanceButtons(): string {
+    const g = this.game, st = g.stats, stance = g.s.combat.stance;
+    const stanceLabel: Record<Stance, [string, string]> = st.style === 'melee'
+      ? { accurate: ['Accurate', 'Attack XP'], aggressive: ['Aggressive', 'Strength XP'], defensive: ['Defensive', 'Defence XP'] }
+      : st.style === 'ranged'
+        ? { accurate: ['Accurate', 'Ranged XP'], aggressive: ['Rapid', 'Ranged XP, faster'], defensive: ['Longrange', 'Ranged + Defence XP'] }
+        : { accurate: ['Accurate', 'Magic XP'], aggressive: ['Focused', 'Magic XP'], defensive: ['Defensive', 'Magic + Defence XP'] };
+    return (['accurate', 'aggressive', 'defensive'] as Stance[]).map((k) => `<button data-stance="${k}" class="${stance === k ? 'on' : ''}"><b>${stanceLabel[k][0]}</b><small>${stanceLabel[k][1]}</small></button>`).join('');
+  }
+
+  private spellButtons(): string {
+    const g = this.game, st = g.stats;
+    return SPELLS.map((sp) => `<button data-spell="${sp.id}" class="${st.spell?.id === sp.id ? 'on' : ''}" ${g.level('magic') < sp.level ? 'disabled' : ''}><b>${esc(sp.name)}</b><small>Lv ${sp.level} · max ${sp.maxHit} · ${sp.charms ? `${sp.charms} charm${sp.charms > 1 ? 's' : ''}` : 'free'}</small></button>`).join('');
+  }
+
+  private renderLoadout() {
+    const g = this.game, st = g.stats;
+    let el = document.getElementById('loadout');
+    if (!el) {
+      el = h('div', { id: 'loadout', class: 'panel', role: 'dialog', 'aria-label': 'Loadout' });
+      document.body.appendChild(el);
+      onTap(el, '.x, [data-lw], [data-la], [data-spell], [data-stance]', (b) => {
+        if (b.classList.contains('x')) { this.closeLoadout(); return; }
+        if (b.dataset.lw || b.dataset.la) g.equip(Number(b.dataset.lw ?? b.dataset.la));
+        else if (b.dataset.spell) g.setSpell(b.dataset.spell);
+        else if (b.dataset.stance) g.setStance(b.dataset.stance as Stance);
+        this.renderLoadout();
+      });
+    }
+    const w = g.p.equip.weapon;
+    const weapons = g.p.inv.map((s, i) => (s && item(s.id).equip?.slot === 'weapon' ? this.slotHtml(s, `data-lw="${i}"`) : '')).join('');
+    let pick = '';
+    if (st.style === 'magic') pick = `<h3>Spell <small class="muted">${fmt(count(g.p.inv, 'charm_tide'))} tide charms</small></h3><div class="stances spells">${this.spellButtons()}</div>`;
+    else if (st.style === 'ranged') {
+      const need = st.needsAmmo ?? 'shot', eq = g.p.equip.ammo;
+      const ammo = g.p.inv.map((s, i) => (s && ammoKind(item(s.id)) === need ? this.slotHtml(s, `data-la="${i}"`) : '')).join('');
+      const cur = eq ? `${fmt(eq.qty)} × ${esc(item(eq.id).name)}${ammoKind(item(eq.id)) !== need ? ' <span class="miss">(wrong ammo)</span>' : ''}` : `<span class="miss">No ${AMMO_NAME[need]} loaded</span>`;
+      pick = `<h3>Ammo <small class="muted">${cur}</small></h3>${ammo ? `<div class="lorow">${ammo}</div>` : `<p class="muted" style="margin:0">No ${AMMO_NAME[need]} in your pack. ${need === 'arrow' ? 'Marta sells arrows; Fletching makes them.' : need === 'bolt' ? 'Fletching makes bolts.' : 'Marta sells shot; Gunsmithing makes it.'}</p>`}`;
+    }
+    morph(el, `<div class="lohead">${w ? this.slotHtml(w, 'data-equip="weapon"') : ''}<div><b>${w ? esc(displayName(w)) : 'Bare hands'}</b><small class="muted">${KIND_TIPS[st.kind]}</small></div><button class="x" aria-label="Close">×</button></div>
+      ${weapons ? `<h3>Swap weapon</h3><div class="lorow">${weapons}</div>` : ''}${pick}
+      <h3>Stance</h3><div class="stances">${this.stanceButtons()}</div>`);
+    // above the buttons, right-aligned (centred in portrait), kept on screen
+    const r = this.el['ab-load'].getBoundingClientRect(), wd = el.offsetWidth, ht = el.offsetHeight;
+    const x = this.portrait ? (window.innerWidth - wd) / 2 : Math.min(window.innerWidth - wd - 8, r.right - wd);
+    el.style.left = `${Math.max(8, x)}px`;
+    el.style.top = `${Math.max(8, r.top - ht - 10)}px`;
+  }
+
   private openShop() {
     this.closeWindows();
     this.shopOpen = true;
@@ -780,7 +867,15 @@ export class UI {
       return `<div class="recipe"><img src="${itemIcon(id)}" alt=""><div><b>${qty > 1 ? `${qty} × ` : ''}${esc(item(id).name)}</b><div class="need">${esc(item(id).desc)}</div></div><div class="btns"><button class="btn primary" data-buy="${id}" ${coins < price ? 'disabled' : ''}>Buy ${price}c</button></div></div>`;
     }).join('');
     const wants = (shop.wants ?? []).map((w) => w.note).join(' ');
-    this.win('shopwin', shop.name, `<p class="muted" style="margin-top:0">You have ${fmt(coins)} coins. To sell, tap an item in your pack.${wants ? ` ${esc(wants)}` : ''}</p>${rows}`);
+    // selling: everything in your pack the trader will take, with what they'd pay
+    const sell = g.p.inv.map((st, i) => {
+      if (!st || st.id === 'coins' || item(st.id).quest) return '';
+      const each = g.sellPrice({ ...st, qty: 1 });
+      return `<div class="recipe"><img src="${itemIcon(st.id, st.qty)}" alt=""><div><b>${st.qty > 1 ? `${st.qty} × ` : ''}${esc(displayName(st))}</b><div class="need">${each}c each</div></div><div class="btns"><button class="btn" data-sell="${i}:1">Sell 1</button>${st.qty > 1 ? `<button class="btn" data-sell="${i}:all">All ${each * st.qty}c</button>` : ''}</div></div>`;
+    }).join('');
+    const tab = this.shopTab;
+    this.win('shopwin', shop.name, `<div class="seg shoptabs" style="margin-bottom:8px"><button data-shoptab="buy" class="${tab === 'buy' ? 'on' : ''}">Buy</button><button data-shoptab="sell" class="${tab === 'sell' ? 'on' : ''}">Sell</button></div>
+      <p class="muted" style="margin-top:0">You have ${fmt(coins)} coins.${wants ? ` ${esc(wants)}` : ''}</p>${tab === 'buy' ? rows : sell || '<p class="muted">Nothing in your pack to sell.</p>'}`);
   }
 
   private openDialog(npc: string, lines: string[]) {

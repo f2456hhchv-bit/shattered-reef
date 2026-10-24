@@ -15,7 +15,10 @@ import { buildNetRack, buildRowboat, buildSignpost, buildFence, buildWell, build
 import { NPC_LOOKS, PLAYER_LOOK, BRIGAND_LOOK, HUMAN_LOOKS, TOWNS_LOOKS } from '../art/cast';
 import { buildEnterable, buildStall, type EnterableView } from '../art/models/buildings';
 import { isInside, toLocal, WALL_H, type BuildingDef } from '../game/world/buildings';
-import { buildHumanoid, animateIdle, animateWalk, animateSwing, animateWork, animateFish, type HumanoidRig } from '../art/models/character';
+import { buildHumanoid, addOffhand, animateIdle, animateWalk, animateSwing, animateWork, animateFish, type HeldKind, type HumanoidRig } from '../art/models/character';
+import type { WeaponKind } from '../game/data/items';
+
+const HELD_OF: Record<WeaponKind, HeldKind> = { cutlass: 'cutlass', dagger: 'dagger', pike: 'pike', greatsword: 'greatsword', pistol: 'pistol', pistols: 'pistol', shortbow: 'bow', longbow: 'longbow', crossbow: 'crossbow', staff: 'staff' };
 import { buildCrab, animateCrab, type CrabRig } from '../art/models/crab';
 import { buildPine, buildBroadleaf, buildRock, buildOreRock, buildCrate, buildLanternPost, buildDock, buildGrass, buildBush, buildKelp } from '../art/models/props';
 import { buildBench, buildFurnace, buildAnvil, buildCookfire, buildTent, buildSmithyShed, buildPillar, buildPlinth, buildStrongbox, buildDigSpot, buildGuardian, buildStump, buildRipples, type GuardianRig } from '../art/models/world';
@@ -74,7 +77,20 @@ export class GameRenderer {
   private quality: 'high' | 'low' = 'high';
 
   private player: HumanoidRig;
-  private playerRigs = {} as Record<'melee' | 'ranged' | 'magic', HumanoidRig>;
+  private playerRigs = new Map<WeaponKind, HumanoidRig>();
+  private playerRig(kind: WeaponKind): HumanoidRig {
+    let rig = this.playerRigs.get(kind);
+    if (rig) return rig;
+    const held: HeldKind = HELD_OF[kind];
+    rig = buildHumanoid({ ...PLAYER_LOOK, held });
+    if (kind === 'pistols') addOffhand(rig, 'pistol');
+    rig.root.scale.setScalar(HERO);
+    bakeRig(rig.root, addSurfaceDetail(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: false, roughness: 0.9 }), CHAR_SURFACE));
+    rig.root.visible = false;
+    this.scene.add(rig.root);
+    this.playerRigs.set(kind, rig);
+    return rig;
+  }
   private playerSwing = 0;
   private ship: ShipRig;
   private npcs = new Map<string, HumanoidRig>();
@@ -157,16 +173,8 @@ export class GameRenderer {
     this.buildStatic();
     this.buildNodes();
 
-    // one rig per weapon style so the right weapon is in hand
-    for (const [style, held] of [['melee', 'cutlass'], ['ranged', 'pistol'], ['magic', 'staff']] as const) {
-      const rig = buildHumanoid({ ...PLAYER_LOOK, held });
-      rig.root.scale.setScalar(HERO);
-      bakeRig(rig.root, addSurfaceDetail(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: false, roughness: 0.9 }), CHAR_SURFACE));
-      rig.root.visible = false;
-      this.scene.add(rig.root);
-      this.playerRigs[style] = rig;
-    }
-    this.player = this.playerRigs.melee;
+    // one rig per weapon family, built the first time it's wielded, so the right weapon is in hand
+    this.player = this.playerRig('cutlass');
 
     this.ship = buildSloop();
     this.scene.add(this.ship.root);
@@ -550,7 +558,16 @@ export class GameRenderer {
       live.add(p.id);
       let m = this.projViews.get(p.id);
       if (!m) {
-        m = new THREE.Mesh(new THREE.SphereGeometry(p.kind === 'magic' ? 0.22 : p.from === 'player' ? 0.12 : 0.12, 6, 4), new THREE.MeshBasicMaterial({ color: p.kind === 'magic' ? 0x7ff0e6 : p.from === 'player' ? 0xffe08a : 0xff6a4a }));
+        if (p.kind === 'arrow') {
+          // a shaft with a pale fletching, pointing where it flies
+          m = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.7, 5).rotateZ(Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0x8a6440 }));
+          const tip = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.14, 5).rotateZ(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0xd8dde0 }));
+          tip.position.x = 0.4;
+          const fl = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.1, 0.01), new THREE.MeshBasicMaterial({ color: 0xf0ead8 }));
+          fl.position.x = -0.3;
+          m.add(tip, fl);
+          m.rotation.y = -Math.atan2(p.vz, p.vx);
+        } else m = new THREE.Mesh(new THREE.SphereGeometry(p.kind === 'magic' ? 0.22 : p.from === 'player' ? 0.12 : 0.12, 6, 4), new THREE.MeshBasicMaterial({ color: p.kind === 'magic' ? 0x7ff0e6 : p.from === 'player' ? 0xffe08a : 0xff6a4a }));
         this.scene.add(m);
         this.projViews.set(p.id, m);
       }
@@ -688,8 +705,17 @@ export class GameRenderer {
     this.resize();
   }
 
+  private sized = '';
+  /** Phones change the canvas size after rotating (and when browser bars slide) without a reliable resize event:
+   * a stale buffer stretches the picture and puts taps in the wrong place. Checked every frame, costs nothing. */
+  private keepSized() {
+    const key = `${this.canvas.clientWidth}x${this.canvas.clientHeight}@${window.devicePixelRatio}`;
+    if (key !== this.sized) this.resize();
+  }
+
   resize() {
     const w = this.canvas.clientWidth || window.innerWidth, h = this.canvas.clientHeight || window.innerHeight;
+    this.sized = `${this.canvas.clientWidth}x${this.canvas.clientHeight}@${window.devicePixelRatio}`;
     this.renderer.setSize(w, h, false);
     this.composer.setPixelRatio(this.renderer.getPixelRatio());
     this.composer.setSize(w, h);
@@ -718,7 +744,7 @@ export class GameRenderer {
     }
 
     // player
-    const want = this.playerRigs[g.stats.style];
+    const want = this.playerRig(g.stats.kind);
     if (want !== this.player) { this.player.root.visible = false; this.player = want; }
     const pr = this.player;
     pr.root.visible = true;
@@ -828,6 +854,7 @@ export class GameRenderer {
     this.terrain.uniforms.uTime.value = t;
     for (const u of this.grassTime) u.value = t;
     this.updateCamera(dt);
+    this.keepSized();
     this.composer.render();
   }
 
