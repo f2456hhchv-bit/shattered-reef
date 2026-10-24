@@ -4,11 +4,11 @@ import { wears, condOf, WORN_OUT_EFFECT } from '../game/sim/inventory';
 import { onTap } from './tap';
 import { portrait } from './portrait';
 import { NPC_LOOKS, PLAYER_LOOK } from '../art/cast';
-import { NODES, SKILLS, UNLOCKS, RECIPES, ELITE_AFFIXES, PLAYER_BASE, SPELLS, type Station } from '../game/data/content';
+import { NODES, SKILLS, UNLOCKS, RECIPES, UTILITY_SPELLS, ELITE_AFFIXES, PLAYER_BASE, SPELLS, type Station } from '../game/data/content';
 import type { Stance } from '../game/sim/gear';
 import { NPCS, QUESTS } from '../game/data/quests';
 import { PLACES, WORLD_HALF, coastDist, nearestPathDist, FLATS } from '../game/world/island';
-import { count, displayName, type Stack } from '../game/sim/inventory';
+import { count, displayName, stackValue, INV_SIZE, type Stack } from '../game/sim/inventory';
 import { levelForXp, levelProgress, xpForLevel, MAX_LEVEL } from '../game/sim/xp';
 import { earlyBoost, EARLY_BOOST_TO, type Game, type GameEvent, type MsgKind } from '../game/sim/game';
 import type { GameRenderer } from '../render/renderer';
@@ -27,6 +27,7 @@ const TABS: { id: Tab; name: string; key: string }[] = [
 const SLOT_ORDER: Slot[] = ['weapon', 'ammo', 'head', 'body', 'ring'];
 const signed = (n: number) => (n > 0 ? `+${n}` : String(n));
 const WHIRL = '<svg viewBox="0 0 32 32"><path d="M16 4a12 12 0 0 1 11 7l-5-1M28 16a12 12 0 0 1-7 11l1-5M16 28a12 12 0 0 1-11-7l5 1M4 16a12 12 0 0 1 7-11l-1 5" fill="none" stroke="#e9e5d5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="16" cy="16" r="4" fill="#c9a050" stroke="#1a120a" stroke-width="2"/></svg>';
+const OPEN_VERB: Record<string, string> = { geode: 'Crack open', bird_nest: 'Search', casket: 'Prise open' };
 const KIND_TIPS: Record<WeaponKind, string> = {
   cutlass: 'Balanced blade', dagger: 'Fast, accurate, light', pike: 'Long reach, runs through a line', greatsword: 'Slow and heavy, cleaves the crowd',
   pistol: 'Fires shot', pistols: 'Two shots every volley', shortbow: 'Fast arrows', longbow: 'Longest reach of all', crossbow: 'Sure, heavy bolts', staff: 'Casts your chosen spell',
@@ -65,6 +66,7 @@ export class UI {
   private bars = new Map<number, HTMLElement>();
   private tags = new Map<number, HTMLElement>();
   private playerBar!: HTMLElement;
+  private gatherBar!: HTMLElement;
   private bannerT = 0;
   private portrait = false;
   private confirmOk: (() => void) | null = null;
@@ -145,6 +147,8 @@ export class UI {
     add('ko', h('div', {}, 'You were knocked out')).hidden = true;
     this.playerBar = h('div', { class: 'hpbar' }, '<i></i>');
     this.el.overlay.appendChild(this.playerBar);
+    this.gatherBar = h('div', { class: 'hpbar gatherbar' }, '<i></i>');
+    this.el.overlay.appendChild(this.gatherBar);
     mm.addEventListener('pointerdown', (e) => this.minimapTap(e));
     this.selectTab('pack', false);
   }
@@ -410,6 +414,14 @@ export class UI {
       this.playerBar.style.left = `${s.x}px`; this.playerBar.style.top = `${s.y}px`;
       (this.playerBar.firstElementChild as HTMLElement).style.width = `${(g.p.hp / g.stats.maxHp) * 100}%`;
     }
+    // gathering: a gold bar over your head fills toward the next log, ore or fish
+    const ga = g.action?.type === 'gather' ? g.action : null;
+    this.gatherBar.style.display = ga && !showPlayer ? '' : 'none';
+    if (ga && !showPlayer) {
+      const s = r.project(g.p.x, g.world.standY(g.p.x, g.p.z) + 2.6, g.p.z);
+      this.gatherBar.style.left = `${s.x}px`; this.gatherBar.style.top = `${s.y}px`;
+      (this.gatherBar.firstElementChild as HTMLElement).style.width = `${Math.min(1, ga.progress) * 100}%`;
+    }
   }
 
   /** Small badges over nearby skill spots: the skill and level needed, green if you have it, red if not. */
@@ -469,7 +481,7 @@ export class UI {
         break;
       }
       case 'quests': morph(c, this.questsHtml()); break;
-      case 'map': c.innerHTML = '<h2 class="title">Bellwether Isle</h2><canvas id="mapbig" width="600" height="600" aria-label="Island map. Tap to walk there."></canvas><p class="muted" style="font-size:12px;margin:8px 0 0">Gold star: quest objective. Tap the map to walk there.</p>'; forget(c); this.bindBigMap(); this.drawBigMap(); break;
+      case 'map': c.innerHTML = '<h2 class="title">Bellwether Isle</h2><canvas id="mapbig" width="600" height="600" aria-label="Island map. Tap to walk there."></canvas><p class="muted" style="font-size:12px;margin:8px 0 0">Gold star: quest objective. Tap the map to walk there.</p>' + this.utilityRow(); forget(c); this.bindBigMap(); this.drawBigMap(); break;
       case 'settings': morph(c, this.settingsHtml()); break;
     }
   }
@@ -477,7 +489,8 @@ export class UI {
   /** One set of handlers on the tab panel for its whole life (content is patched, never re-bound). */
   private bindContent(c: HTMLElement) {
     const g = this.game;
-    onTap(c, '[data-slot], [data-equip], [data-stance], [data-spell], [data-q], [data-dmg], [data-music], [data-sfx], [data-fps], [data-lv], [data-skill], [data-skillback], #saveNow, #resetSave', (t, pointer) => {
+    onTap(c, '[data-slot], [data-equip], [data-stance], [data-spell], [data-q], [data-dmg], [data-music], [data-sfx], [data-fps], [data-lv], [data-skill], [data-skillback], [data-home], #saveNow, #resetSave', (t, pointer) => {
+      if (t.dataset.home) { g.teleportHome(); return; }
       if (t.dataset.slot !== undefined) {
         const i = Number(t.dataset.slot);
         const st = g.p.inv[i];
@@ -485,7 +498,7 @@ export class UI {
         const d = item(st.id);
         // mouse: left-click eats/equips directly (RuneScape-style); touch opens the details panel
         if (pointer === 'mouse' && this.bankOpen) { g.deposit(i); return; } // RuneScape: click to deposit
-        if (pointer === 'mouse' && !this.shopOpen && (d.heal || d.equip)) { g.useSlot(i); return; }
+        if (pointer === 'mouse' && !this.shopOpen && (d.heal || d.equip || d.opens)) { g.useSlot(i); return; }
         this.openPop({ slot: i }, t);
       } else if (t.dataset.equip !== undefined) { const sl = t.dataset.equip as Slot; if (g.p.equip[sl]) this.openPop({ equip: sl }, t); }
       else if (t.dataset.stance) g.setStance(t.dataset.stance as Stance);
@@ -522,8 +535,8 @@ export class UI {
     const g = this.game;
     const coins = count(g.p.inv, 'coins');
     const used = g.p.inv.filter(Boolean).length;
-    return `<div class="row" style="justify-content:space-between;margin-bottom:8px"><h2 class="title" style="margin:0">Pack</h2><span class="muted" style="font-size:12px">${used}/28 · ${fmt(coins)} coins</span></div>
-      <div class="grid28">${g.p.inv.map((s, i) => this.slotHtml(s, `data-slot="${i}"`)).join('')}</div>
+    return `<div class="row" style="justify-content:space-between;margin-bottom:8px"><h2 class="title" style="margin:0">Pack</h2><span class="muted" style="font-size:12px">${used}/${INV_SIZE} · ${fmt(coins)} coins</span></div>
+      <div class="grid28 pack">${g.p.inv.map((s, i) => this.slotHtml(s, `data-slot="${i}"`)).join('')}</div>
       <p class="muted" style="font-size:12px;margin:10px 0 0">${matchMedia('(pointer: fine)').matches ? 'Click to use or equip. Right-click for details.' : 'Tap an item for details and actions.'}</p>`;
   }
 
@@ -566,26 +579,23 @@ export class UI {
       rows.push(`<div class="lvrow${L <= cur ? ' got' : ''}${L === cur ? ' cur' : ''}${at.length ? ' has' : ''}" data-lv="${L}"><span class="n">${L}</span><div>${body}</div></div>`);
     }
     return `<div class="row lvhead" style="gap:10px;margin-bottom:8px"><button class="btn small" data-skillback aria-label="Back to all skills">‹ Skills</button>
-      <span class="medal" style="--c:${sk.colour}">${SKILL_ICONS[id]}</span><div><h2 class="title" style="margin:0">${sk.name}</h2><span class="muted" style="font-size:12px">Level ${cur} · ${esc(sk.blurb)}${cur < EARLY_BOOST_TO ? ` · <b style="color:var(--brass)">×${earlyBoost(cur).toFixed(1)} XP</b> while learning (to level ${EARLY_BOOST_TO})` : ''}</span></div></div>
+      <span class="medal" style="--c:${sk.colour}">${SKILL_ICONS[id]}</span><div><h2 class="title" style="margin:0">${sk.name}</h2><span class="muted" style="font-size:12px">Level ${cur} · ${fmt(Math.floor(g.p.xp[id]))} XP${cur < MAX_LEVEL ? ` · ${fmt(Math.ceil(xpForLevel(cur + 1) - g.p.xp[id]))} to ${cur + 1}` : ''}<br>${esc(sk.blurb)}${cur < EARLY_BOOST_TO ? ` · <b style="color:var(--brass)">×${earlyBoost(cur).toFixed(1)} XP</b> while learning (to level ${EARLY_BOOST_TO})` : ''}</span></div></div>
       <div class="lvlist">${rows.join('')}</div>`;
   }
 
   private skillsHtml() {
     const g = this.game;
     if (this.skillView) return this.skillDetailHtml(this.skillView);
+    // RuneScape's skills panel: a tile per skill, icon and level, a thin XP bar; tap for every level's unlocks
     let total = 0;
-    const row = (sk: (typeof SKILLS)[number]) => {
+    const tiles = SKILLS.map((sk) => {
       const xp = g.p.xp[sk.id], lvl = levelForXp(xp);
       total += lvl;
-      const next = lvl >= MAX_LEVEL ? 'Maximum level' : `${fmt(Math.ceil(xpForLevel(lvl + 1) - xp))} XP to ${lvl + 1}`;
-      const unlock = UNLOCKS[sk.id].find((u) => u.level > lvl);
-      return `<div class="skill" data-skill="${sk.id}" role="button" tabindex="0" title="${esc(sk.blurb)} Tap for every level's unlocks." style="--c:${sk.colour}"><span class="medal">${SKILL_ICONS[sk.id]}</span><b>${sk.name}</b><span class="lv">${lvl}</span>
-        <div class="xpbar"><i style="width:${levelProgress(xp) * 100}%"></i></div>
-        <small>${fmt(Math.floor(xp))} XP · ${next}${unlock ? `<br><span class="nx">Lv ${unlock.level}</span> ${esc(unlock.text)}` : ''}</small></div>`;
-    };
-    const groups = (['Combat', 'Gathering', 'Production'] as const).map((grp) => `<h2 class="title" style="font-size:13px;margin:12px 0 0">${grp}</h2>${SKILLS.filter((s) => s.group === grp).map(row).join('')}`).join('');
-    return `<div class="row" style="justify-content:space-between"><h2 class="title" style="margin:0">Skills</h2><span class="muted">Total ${total} · Combat ${g.stats.combatLevel}</span></div>${groups}
-      <p class="muted" style="font-size:12px">RuneScape's XP curve: level 99 needs 13,034,431 XP, and levels continue to ${MAX_LEVEL} (200M XP).</p>`;
+      const next = lvl >= MAX_LEVEL ? 'maximum level' : `${fmt(Math.ceil(xpForLevel(lvl + 1) - xp))} XP to ${lvl + 1}`;
+      return `<button class="sktile" data-skill="${sk.id}" style="--c:${sk.colour}" title="${esc(sk.name)}: ${fmt(Math.floor(xp))} XP, ${next}" aria-label="${esc(sk.name)} level ${lvl}"><span class="ic">${SKILL_ICONS[sk.id]}</span><span class="lv">${lvl}<small>/${Math.max(99, lvl)}</small></span><i style="width:${levelProgress(xp) * 100}%"></i></button>`;
+    }).join('');
+    return `<h2 class="title" style="margin:0 0 8px">Skills</h2><div class="skgrid">${tiles}<div class="sktile total"><span>Total level</span><b>${total}</b></div><div class="sktile total"><span>Combat</span><b>${g.stats.combatLevel}</b></div></div>
+      <p class="muted" style="font-size:12px;margin-top:8px">Tap a skill to see what every level brings.</p>`;
   }
 
   questObjective(): { x: number; z: number; text: string } | null {
@@ -689,6 +699,11 @@ export class UI {
     if (this.pop.equip) acts.push('<button class="btn" data-a="unequip">Unequip</button>');
     else {
       if (d.heal) acts.push('<button class="btn primary" data-a="use">Eat</button>');
+      if (d.opens) acts.push(`<button class="btn primary" data-a="use">${OPEN_VERB[st.id] ?? 'Open'}</button>`);
+      if (!d.quest && st.id !== 'coins' && g.level('magic') >= UTILITY_SPELLS.alchemy.level && !this.shopOpen && !this.bankOpen) {
+        const coins = Math.max(1, Math.floor(stackValue({ ...st, qty: 1 }) * UTILITY_SPELLS.alchemy.rate)), blk = g.utilityBlock('alchemy');
+        acts.push(`<button class="btn" data-a="alch" ${blk ? `disabled title="${esc(blk)}"` : ''}>Alchemise ${coins}c</button>`);
+      }
       if (e) acts.push(`<button class="btn primary" data-a="use" ${g.equipBlock(st) ? 'disabled' : ''}>Equip</button>`);
       if (this.shopOpen && !d.quest && st.id !== 'coins') {
         const each = g.sellPrice({ ...st, qty: 1 });
@@ -719,6 +734,7 @@ export class UI {
       if (i === undefined) return;
       if (a === 'use') { g.useSlot(i); if (!g.p.inv[i] || item(g.p.inv[i]!.id).equip) this.closePop(); }
       if (a === 'drop') { g.dropSlot(i); this.closePop(); }
+      if (a === 'alch') { g.alchemy(i); if (!g.p.inv[i]) this.closePop(); else this.renderPop(); }
       if (a === 'deposit') { g.deposit(i); this.closePop(); }
       if (a === 'sell1') g.sell(i, false);
       if (a === 'sellall') { g.sell(i, true); this.closePop(); }
@@ -824,6 +840,14 @@ export class UI {
     return (['accurate', 'aggressive', 'defensive'] as Stance[]).map((k) => `<button data-stance="${k}" class="${stance === k ? 'on' : ''}"><b>${stanceLabel[k][0]}</b><small>${stanceLabel[k][1]}</small></button>`).join('');
   }
 
+  /** Tide-walk Home, once Magic allows it (shown in the loadout and the Map tab). */
+  private utilityRow(): string {
+    const g = this.game, u = UTILITY_SPELLS.home;
+    if (g.level('magic') < u.level) return '';
+    const blk = g.utilityBlock('home');
+    return `<h3>Magic</h3><button class="btn" data-home="1" ${blk ? 'disabled' : ''} style="width:100%">${esc(u.name)} · ${u.charms} charms${blk ? ` <small class="muted">(${esc(blk.toLowerCase())})</small>` : ''}</button>`;
+  }
+
   private spellButtons(): string {
     const g = this.game, st = g.stats;
     return SPELLS.map((sp) => `<button data-spell="${sp.id}" class="${st.spell?.id === sp.id ? 'on' : ''}" ${g.level('magic') < sp.level ? 'disabled' : ''}><b>${esc(sp.name)}</b><small>Lv ${sp.level} · max ${sp.maxHit} · ${sp.charms ? `${sp.charms} charm${sp.charms > 1 ? 's' : ''}` : 'free'}</small></button>`).join('');
@@ -835,8 +859,9 @@ export class UI {
     if (!el) {
       el = h('div', { id: 'loadout', class: 'panel', role: 'dialog', 'aria-label': 'Loadout' });
       document.body.appendChild(el);
-      onTap(el, '.x, [data-lw], [data-la], [data-spell], [data-stance]', (b) => {
+      onTap(el, '.x, [data-lw], [data-la], [data-spell], [data-stance], [data-home]', (b) => {
         if (b.classList.contains('x')) { this.closeLoadout(); return; }
+        if (b.dataset.home) { g.teleportHome(); this.closeLoadout(); return; }
         if (b.dataset.lw || b.dataset.la) g.equip(Number(b.dataset.lw ?? b.dataset.la));
         else if (b.dataset.spell) g.setSpell(b.dataset.spell);
         else if (b.dataset.stance) g.setStance(b.dataset.stance as Stance);
@@ -846,6 +871,7 @@ export class UI {
     const w = g.p.equip.weapon;
     const weapons = g.p.inv.map((s, i) => (s && item(s.id).equip?.slot === 'weapon' ? this.slotHtml(s, `data-lw="${i}"`) : '')).join('');
     let pick = '';
+    const util = this.utilityRow();
     if (st.style === 'magic') pick = `<h3>Spell <small class="muted">${fmt(count(g.p.inv, 'charm_tide'))} tide charms</small></h3><div class="stances spells">${this.spellButtons()}</div>`;
     else if (st.style === 'ranged') {
       const need = st.needsAmmo ?? 'shot', eq = g.p.equip.ammo;
@@ -855,7 +881,7 @@ export class UI {
     }
     morph(el, `<div class="lohead">${w ? this.slotHtml(w, 'data-equip="weapon"') : ''}<div><b>${w ? esc(displayName(w)) : 'Bare hands'}</b><small class="muted">${KIND_TIPS[st.kind]}</small></div><button class="x" aria-label="Close">×</button></div>
       ${weapons ? `<h3>Swap weapon</h3><div class="lorow">${weapons}</div>` : ''}${pick}
-      <h3>Stance</h3><div class="stances">${this.stanceButtons()}</div>`);
+      <h3>Stance</h3><div class="stances">${this.stanceButtons()}</div>${util}`);
     // above the buttons, right-aligned (centred in portrait), kept on screen
     const r = this.el['ab-load'].getBoundingClientRect(), wd = el.offsetWidth, ht = el.offsetHeight;
     const x = this.portrait ? (window.innerWidth - wd) / 2 : Math.min(window.innerWidth - wd - 8, r.right - wd);

@@ -88,7 +88,7 @@ const sizes = [
         out.shop = !!document.getElementById('shopwin');
         r.ui.closeWindows();
         // each tab must show its own content (the map tab once rendered nothing and this didn't notice)
-        const expect = { pack: '[data-slot]', gear: '[data-equip]', skills: '.skill', quests: '.title', map: '#mapbig', settings: '#saveNow' };
+        const expect = { pack: '[data-slot]', gear: '[data-equip]', skills: '.sktile[data-skill]', quests: '.title', map: '#mapbig', settings: '#saveNow' };
         out.tabs = Object.entries(expect).filter(([t, sel]) => { r.ui.selectTab(t, true); r.ui.update(0.016); return !document.querySelector('#content ' + sel); }).map(([t]) => t);
         out.tabs = out.tabs.length ? 'blank: ' + out.tabs.join(',') : true;
         near(iven.x, iven.z + 4);

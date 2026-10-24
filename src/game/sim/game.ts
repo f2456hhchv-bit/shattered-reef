@@ -1,7 +1,7 @@
 import { mulberry32 } from '../../art/noise';
 import { item, ammoKind, AMMO_NAME, type Slot, type SkillId, type CombatStyle } from '../data/items';
 import { perkTotal } from '../data/perks';
-import { NODES, RECIPES, ENEMIES, LOOT, ELITE_AFFIXES, SHOPS, PLAYER_BASE, COMBAT_SKILLS, XP_PER_DAMAGE, type EnemyDef, type Recipe, type Station } from '../data/content';
+import { NODES, RECIPES, ENEMIES, LOOT, ELITE_AFFIXES, SHOPS, PLAYER_BASE, UTILITY_SPELLS, COMBAT_SKILLS, XP_PER_DAMAGE, type EnemyDef, type Recipe, type Station } from '../data/content';
 import { NPCS, QUESTS, type DialogueNode, type Effect } from '../data/quests';
 import { PLACES } from '../world/island';
 import { buildIsland, type IslandLayout } from '../world/layout';
@@ -25,6 +25,8 @@ export type GameEvent =
   | { type: 'swing' }
   | { type: 'whirl' }
   | { type: 'squall' }
+  | { type: 'teleport'; fromX: number; fromZ: number; x: number; z: number }
+  | { type: 'alchemy' }
   | { type: 'roll' }
   | { type: 'dodge'; x: number; z: number }
   | { type: 'shoot'; x: number; z: number; tx: number; tz: number }
@@ -75,7 +77,7 @@ export interface Projectile { id: number; x: number; z: number; vx: number; vz: 
 export interface Telegraph { id: number; kind: 'circle' | 'cone' | 'line'; x: number; z: number; r: number; angle: number; width: number; t: number; dur: number; damage: number; source: number }
 
 type Action =
-  | { type: 'gather'; node: string; next: number }
+  | { type: 'gather'; node: string; next: number; progress: number } // progress: 0..1 toward the next item
   | { type: 'craft'; recipe: string; remaining: number; next: number }
   | null;
 
@@ -381,7 +383,7 @@ export class Game {
     const tool = this.gatherTool(d);
     if (!tool) { this.msg(`You need ${d.tool ? `a ${item(d.tool).name.toLowerCase()}${d.tool === 'spade' ? ' (Marta sells them)' : ''}` : d.skill === 'woodcutting' ? 'a hatchet' : 'a pickaxe'}.`, 'warn'); return; }
     if (!d.loot && !canAdd(this.p.inv, d.item)) { this.msg('Your pack is full.', 'warn'); return; }
-    this.action = { type: 'gather', node: uid, next: this.time + DT_GATHER * 0.6 };
+    this.action = { type: 'gather', node: uid, next: this.time + DT_GATHER * 0.6, progress: this.rnd() * 0.25 };
     this.msg(d.verb === 'Dig' ? 'You start digging...' : d.verb === 'Pick' || d.verb === 'Gather' ? `You reach into the ${d.name.toLowerCase()}...` : d.skill === 'fishing' ? 'You cast your line...' : `You swing at the ${d.name.toLowerCase()}...`);
   }
 
@@ -409,7 +411,12 @@ export class Game {
     const tool = this.gatherTool(d);
     if (!tool) { this.stopAction(); return; }
     a.next = this.time + (d.skill ? DT_GATHER : DT_GATHER * 0.6);
-    const ok = this.rnd() < this.gatherChance(d, tool.power);
+    // steady returns (Tom: one quick, then 30 s of nothing): each swing fills progress by the success chance, a
+    // little jittered, and an item lands when it's full. Same average rate as rolling the chance every swing, but
+    // the wait between items stays close to the average instead of swinging wildly.
+    a.progress += this.gatherChance(d, tool.power) * (0.75 + this.rnd() * 0.5);
+    const ok = a.progress >= 1;
+    if (ok) a.progress -= 1;
     const fx = d.skill === 'woodcutting' || d.verb === 'Pick' ? 'wood' : d.skill === 'mining' || d.verb === 'Dig' ? 'stone' : 'water';
     this.emit({ type: 'gatherFx', kind: fx, x: n.x, z: n.z, success: ok });
     if (!ok) return;
@@ -430,7 +437,8 @@ export class Game {
     }
     if (d.skill) this.addXp(d.skill, d.xp);
     if (tool.id !== 'hands') this.wear(this.p.inv.find((x) => x?.id === tool.id), WEAR.tool * (1 - (d.skill ? perkTotal(d.skill, this.level(d.skill), 'tool_care') / 100 : 0)));
-    if (d.depleteChance > 0 && this.rnd() < d.depleteChance) {
+    const lasting = d.skill ? perkTotal(d.skill, this.level(d.skill), 'last') / 100 : 0; // Lasting timber / veins / shoals
+    if (d.depleteChance > 0 && this.rnd() < d.depleteChance * (1 - lasting)) {
       // dig spots wander: they come back after a random while (the sand is disturbed somewhere else meanwhile)
       n.depletedUntil = this.time + d.respawn * (d.verb === 'Dig' ? 0.5 + this.rnd() : 1);
       this.rev++;
@@ -1062,7 +1070,7 @@ export class Game {
     this.combatTimer = 0;
     if (st.style === 'melee') {
       const sp = PLAYER_BASE.special.melee;
-      this.specialCd = sp.cooldown;
+      this.specialCd = sp.cooldown * (1 - st.specCut);
       this.emit({ type: 'whirl' });
       let hit = 0;
       for (const e of [...this.enemies]) {
@@ -1077,13 +1085,13 @@ export class Game {
       const sp = PLAYER_BASE.special.ranged;
       const t = this.nearestEnemy(st.range + 1);
       if (!t) { this.msg('No target in range.', 'warn'); return; }
-      this.specialCd = sp.cooldown;
+      this.specialCd = sp.cooldown * (1 - st.specCut);
       this.consumeAmmo(sp.shots);
       for (let k = 0; k < sp.shots; k++) this.fireAt(t, this.rollAgainst(t), 'ranged', 0, (k - (sp.shots - 1) / 2) * sp.spread, 0.6);
       this.emit({ type: 'whirl' });
     } else {
       const sp = PLAYER_BASE.special.magic;
-      this.specialCd = sp.cooldown;
+      this.specialCd = sp.cooldown * (1 - st.specCut);
       remove(this.p.inv, 'charm_tide', sp.charms);
       this.emit({ type: 'squall' });
       for (const e of [...this.enemies]) {
@@ -1094,6 +1102,57 @@ export class Game {
       }
       this.rev++;
     }
+  }
+
+  // ---- utility spells (Magic 21 and 25) ---------------------------------------------
+  utilityCd = 0;
+  /** Why a utility spell can't be cast right now, or null. */
+  utilityBlock(kind: keyof typeof UTILITY_SPELLS): string | null {
+    const u = UTILITY_SPELLS[kind];
+    if (this.level('magic') < u.level) return `Needs Magic level ${u.level}`;
+    if (count(this.p.inv, 'charm_tide') < u.charms) return `Needs ${u.charms} tide charms`;
+    if (this.dead || this.p.onShip) return 'Not now';
+    if (this.utilityCd > 0) return `Ready in ${Math.ceil(this.utilityCd)} s`;
+    if (kind === 'home' && this.combatTimer < 5) return 'Not while fighting';
+    return null;
+  }
+  private castUtility(kind: keyof typeof UTILITY_SPELLS) {
+    const u = UTILITY_SPELLS[kind];
+    if (this.rnd() >= this.stats.charmSave) remove(this.p.inv, 'charm_tide', u.charms);
+    this.utilityCd = u.cooldown;
+    this.addXp('magic', u.xp);
+  }
+  /** Brine Alchemy: one item from the pack becomes coins (60% of its value). */
+  alchemy(i: number) {
+    const st = this.p.inv[i];
+    if (!st || st.id === 'coins' || item(st.id).quest) return;
+    const block = this.utilityBlock('alchemy');
+    if (block) { this.msg(`${UTILITY_SPELLS.alchemy.name}: ${block.toLowerCase()}.`, 'warn'); return; }
+    const coins = Math.max(1, Math.floor(stackValue({ ...st, qty: 1 }) * UTILITY_SPELLS.alchemy.rate));
+    const name = displayName({ ...st, qty: 1 });
+    st.qty--;
+    if (st.qty <= 0) this.p.inv[i] = null;
+    add(this.p.inv, { id: 'coins', qty: coins });
+    this.castUtility('alchemy');
+    this.emit({ type: 'alchemy' });
+    this.msg(`The brine takes your ${name.toLowerCase()} and leaves ${coins} coins.`, 'good');
+    this.rev++;
+  }
+  /** Tide-walk Home: back to the quay at Bellwether. */
+  teleportHome() {
+    const block = this.utilityBlock('home');
+    if (block) { this.msg(`${UTILITY_SPELLS.home.name}: ${block.toLowerCase()}.`, 'warn'); return; }
+    const fromX = this.p.x, fromZ = this.p.z;
+    this.stopAction();
+    this.path = [];
+    this.pending = null;
+    this.target = null;
+    this.p.x = this.layout.respawn.x;
+    this.p.z = this.layout.respawn.z;
+    this.castUtility('home');
+    this.emit({ type: 'teleport', fromX, fromZ, x: this.p.x, z: this.p.z });
+    this.msg('The tide carries you home to Bellwether.', 'good');
+    this.rev++;
   }
 
   /** Dodge roll: short dash, no damage taken while rolling. */
@@ -1572,6 +1631,7 @@ export class Game {
     this.time += dt;
     this.s.playTime += dt;
     this.specialCd = Math.max(0, this.specialCd - dt);
+    this.utilityCd = Math.max(0, this.utilityCd - dt);
     this.rollCd = Math.max(0, this.rollCd - dt);
     this.eatCd = Math.max(0, this.eatCd - dt);
     this.combatTimer += dt;

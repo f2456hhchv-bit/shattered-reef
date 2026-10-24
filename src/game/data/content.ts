@@ -151,6 +151,12 @@ function buildRecipes(): Recipe[] {
   out.push({ id: 'cook_parcel_sprat', station: 'fire', skill: 'cooking', level: 5, xp: 40, inputs: [{ id: 'fish_sprat_raw', qty: 1 }, { id: 'kelp', qty: 1 }], output: { id: 'parcel_sprat', qty: 1 }, burn: { item: 'burnt_food', stopLevel: 25 } });
   out.push({ id: 'cook_parcel_trout', station: 'fire', skill: 'cooking', level: 22, xp: 85, inputs: [{ id: 'fish_trout_raw', qty: 1 }, { id: 'kelp', qty: 1 }], output: { id: 'parcel_trout', qty: 1 }, burn: { item: 'burnt_food', stopLevel: 46 } });
   // the inn's dishes, which you can learn to make yourself
+  // more dishes from what you already gather, so Cooking has something new every few levels
+  out.push({ id: 'cook_crabcake', station: 'fire', skill: 'cooking', level: 18, xp: 75, inputs: [{ id: 'crab_meat_raw', qty: 2 }, { id: 'bread', qty: 1 }], output: { id: 'crab_cakes', qty: 1 }, burn: { item: 'burnt_food', stopLevel: 42 } });
+  out.push({ id: 'cook_fishpie', station: 'fire', skill: 'cooking', level: 35, xp: 135, inputs: [{ id: 'fish_trout_raw', qty: 1 }, { id: 'fish_salmon_raw', qty: 1 }, { id: 'bread', qty: 1 }], output: { id: 'fish_pie', qty: 1 }, burn: { item: 'burnt_food', stopLevel: 62 } });
+  out.push({ id: 'cook_bisque', station: 'fire', skill: 'cooking', level: 62, xp: 210, inputs: [{ id: 'fish_lobster_raw', qty: 1 }, { id: 'kelp', qty: 1 }, { id: 'sea_salt', qty: 1 }], output: { id: 'lobster_bisque', qty: 1 }, burn: { item: 'burnt_food', stopLevel: 86 } });
+  out.push({ id: 'cook_kelpsword', station: 'fire', skill: 'cooking', level: 77, xp: 250, inputs: [{ id: 'fish_sword_raw', qty: 1 }, { id: 'kelp', qty: 2 }], output: { id: 'sword_kelp', qty: 1 }, burn: { item: 'burnt_food', stopLevel: 96 } });
+  out.push({ id: 'cook_feast', station: 'fire', skill: 'cooking', level: 92, xp: 320, inputs: [{ id: 'fish_shark_raw', qty: 1 }, { id: 'fish_angler_raw', qty: 1 }, { id: 'sea_salt', qty: 1 }], output: { id: 'captains_feast', qty: 1 }, burn: { item: 'burnt_food', stopLevel: 99 } });
   out.push({ id: 'cook_pie_berry', station: 'fire', skill: 'cooking', level: 10, xp: 50, inputs: [{ id: 'berries', qty: 3 }, { id: 'bread', qty: 1 }], output: { id: 'pie_berry', qty: 1 }, burn: { item: 'burnt_food', stopLevel: 34 } });
   out.push({ id: 'cook_stew', station: 'fire', skill: 'cooking', level: 30, xp: 120, inputs: [{ id: 'fish_salmon_raw', qty: 1 }, { id: 'kelp', qty: 1 }, { id: 'sea_salt', qty: 1 }], output: { id: 'fish_stew', qty: 1 }, burn: { item: 'burnt_food', stopLevel: 58 } });
   out.push({ id: 'burn_kelp', station: 'fire', skill: 'cooking', level: 12, xp: 12, inputs: [{ id: 'kelp', qty: 2 }], output: { id: 'kelp_ash', qty: 1 } });
@@ -171,6 +177,7 @@ function buildUnlocks(): Record<SkillId, { level: number; text: string }[]> {
     for (const [k, v] of Object.entries(it.equip.reqs)) if ((v ?? 0) > 1) put(k, v!, ITEMS[it.id].name);
   }
   for (const sp of SPELLS) put('magic', sp.level, sp.name);
+  for (const u of Object.values(UTILITY_SPELLS)) put('magic', u.level, `${u.name} (${u === UTILITY_SPELLS.alchemy ? 'turn an item into coins' : 'teleport to Bellwether'})`);
   for (const e of Object.values(ENEMIES)) if (!e.boss) put('attack', Math.max(1, Math.round(e.level * 0.8)), `Fight: ${e.name} (level ${e.level})`);
   put('hitpoints', 11, '+1 health every level');
   put('strength', 10, 'Max hit +1 roughly every 4 levels');
@@ -225,12 +232,23 @@ export interface Spell { id: string; name: string; level: number; maxHit: number
 export const SPELLS: Spell[] = [
   { id: 'spray', name: 'Brine Spray', level: 1, maxHit: 2, baseXp: 5.5, charms: 0 }, // free: magic is always usable
   { id: 'bolt', name: 'Tide Bolt', level: 9, maxHit: 5, baseXp: 11.5, charms: 2 },
+  { id: 'lash', name: 'Wave Lash', level: 14, maxHit: 6, baseXp: 14, charms: 2 },
   { id: 'undertow', name: 'Undertow', level: 20, maxHit: 8, baseXp: 17.5, charms: 2 },
+  { id: 'surge', name: 'Surge Bolt', level: 27, maxHit: 10, baseXp: 21, charms: 3 },
   { id: 'blast', name: 'Brine Blast', level: 35, maxHit: 12, baseXp: 25, charms: 3 },
+  { id: 'tidecall', name: 'Tidecall', level: 43, maxHit: 14, baseXp: 28.5, charms: 3 },
   { id: 'riptide', name: 'Riptide', level: 50, maxHit: 16, baseXp: 32.5, charms: 4 },
+  { id: 'lance', name: 'Abyssal Lance', level: 58, maxHit: 18, baseXp: 36, charms: 4 },
   { id: 'maelstrom', name: 'Maelstrom', level: 65, maxHit: 20, baseXp: 40, charms: 5 },
+  { id: 'tempest', name: 'Tempest', level: 72, maxHit: 22, baseXp: 44, charms: 5 },
   { id: 'wrath', name: 'Leviathan\'s Wrath', level: 80, maxHit: 24, baseXp: 47.5, charms: 6 },
+  { id: 'deluge', name: 'Deluge', level: 90, maxHit: 27, baseXp: 55, charms: 7 },
 ];
+/** Utility spells (RuneScape's High Alchemy and Home Teleport, in the island's terms). */
+export const UTILITY_SPELLS = {
+  alchemy: { name: 'Brine Alchemy', level: 21, charms: 2, xp: 31, rate: 0.6, cooldown: 1.8 },
+  home: { name: 'Tide-walk Home', level: 25, charms: 3, xp: 35, cooldown: 30 },
+};
 
 // ---- player tuning -------------------------------------------------------------
 export const PLAYER_BASE = {

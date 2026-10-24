@@ -84,6 +84,7 @@ export interface PlayerStats {
   healBonus: number; // food heals this much more (fraction)
   ammoSave: number; // chance a shot isn't used
   charmSave: number; // chance a spell's charms aren't used
+  specCut: number; // special attack cooldown cut (fraction)
   /** which skills receive the 4 xp/damage */
   trains: SkillId[];
 }
@@ -183,6 +184,7 @@ export function computeStats(xp: Record<SkillId, number>, equip: Partial<Record<
     healBonus: (perkTotal('hitpoints', L.hitpoints, 'heal') + perkTotal('cooking', L.cooking, 'heal')) / 100,
     ammoSave: perkTotal('ranged', L.ranged, 'ammo') / 100,
     charmSave: perkTotal('magic', L.magic, 'charms') / 100,
+    specCut: Math.min(0.5, (perkTotal(accSkill, L[accSkill], 'spec') + (dmgSkill !== accSkill ? perkTotal(dmgSkill, L[dmgSkill], 'spec') : 0)) / 100),
     trains,
   };
 }

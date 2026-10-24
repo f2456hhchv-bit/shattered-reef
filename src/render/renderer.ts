@@ -647,6 +647,13 @@ export class GameRenderer {
         break;
       }
       case 'swing': this.playerSwing = 0.35; this.slashT = 0.18; break;
+      case 'teleport': {
+        // a column of spray where you left and where you land, and the camera cuts to you
+        for (const [x, z] of [[e.fromX, e.fromZ], [e.x, e.z]]) this.particles.burst(x, g.world.standY(x, z) + 0.4, z, 36, 0x9fe8f0, { speed: 3, up: 7, size: 0.13, life: 0.8, grav: 4, spread: 0.6 });
+        this.snapCamera();
+        break;
+      }
+      case 'alchemy': { const p = g.p; this.particles.burst(p.x, g.world.standY(p.x, p.z) + 1.2, p.z, 16, 0xf2cf5b, { speed: 2, up: 3, size: 0.09, life: 0.6, grav: 3 }); break; }
       case 'squall': {
         this.whirlT = 0.45;
         this.whirlR = PLAYER_BASE.special.magic.radius;

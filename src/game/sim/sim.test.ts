@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { earlyBoost, Game } from './game';
+import { PERKS } from '../data/perks';
 import { levelForXp, xpForLevel, MAX_LEVEL, MAX_XP } from './xp';
-import { add, count, emptyInventory, remove } from './inventory';
+import { add, count, emptyInventory, remove, INV_SIZE } from './inventory';
 import { parseSave, defaultSave, SAVE_VERSION, HP_START_XP } from './save';
 import { hitChance, combatLevel, levelsOf } from './gear';
 import { NODES } from '../data/content';
@@ -54,7 +55,7 @@ describe('inventory', () => {
   });
   it('reports overflow when full', () => {
     const inv = emptyInventory();
-    expect(add(inv, { id: 'hatchet_chipped', qty: 30 })).toBe(2);
+    expect(add(inv, { id: 'hatchet_chipped', qty: INV_SIZE + 2 })).toBe(2);
   });
 });
 
@@ -465,6 +466,36 @@ describe('combat skills (RuneScape model)', () => {
     run(f, 90, () => !c3.alive);
     expect(c3.alive).toBe(false);
     expect(f.p.xp.magic).toBeGreaterThan(0);
+  });
+
+  it('utility spells: Brine Alchemy turns an item into coins, Tide-walk Home teleports to the quay', () => {
+    const g = fresh(40);
+    g.give('charm_tide', 20);
+    g.give('bar_iron', 2);
+    const i = g.p.inv.findIndex((s) => s?.id === 'bar_iron');
+    expect(g.utilityBlock('alchemy')).toMatch(/Magic level 21/);
+    g.p.xp.magic = xpForLevel(25);
+    g.recalc();
+    const coins = count(g.p.inv, 'coins');
+    g.alchemy(i);
+    expect(count(g.p.inv, 'bar_iron')).toBe(1);
+    expect(count(g.p.inv, 'coins')).toBe(coins + Math.floor(40 * 0.6));
+    expect(g.utilityBlock('alchemy')).toMatch(/Ready in/); // a short cooldown between casts
+    run(g, 3);
+    g.p.x += 40; g.p.z -= 30; g.combatTimer = 99;
+    g.teleportHome();
+    expect(Math.hypot(g.p.x - g.layout.respawn.x, g.p.z - g.layout.respawn.z)).toBeLessThan(0.01);
+  });
+
+  it('half-step perks: every skill earns something at 5, 15 ... 95', () => {
+    for (const [sk, list] of Object.entries(PERKS)) {
+      const lv = new Set(list.map((p) => p.level));
+      for (let L = 5; L <= 95; L += 10) expect(lv.has(L), `${sk} ${L}`).toBe(true);
+    }
+    const g = fresh(41);
+    g.p.xp.attack = xpForLevel(15);
+    g.recalc();
+    expect(g.stats.specCut).toBeCloseTo(0.05, 5);
   });
 
   it('every weapon family plays differently: bows need arrows, braces fire twice, pikes reach and pierce, greatswords cleave', () => {
