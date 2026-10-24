@@ -12,10 +12,12 @@ import { mulberry32 } from '../art/noise';
 import { buildSloop, buildBarrel, type ShipRig } from '../art/models/ship';
 import { buildCinderVent, buildFallenStar, buildBones, buildSpire, buildSaltPan, buildVentForge, buildLeviathan, buildCrater } from '../art/models/highnodes';
 import { buildNetRack, buildRowboat, buildSignpost, buildFence, buildWell, buildDriftwood, buildShells, buildPotStack, buildCannon, buildWreckRibs, buildWoodpile, buildFlowers } from '../art/models/decor';
-import { NPC_LOOKS, PLAYER_LOOK, BRIGAND_LOOK, HUMAN_LOOKS } from '../art/cast';
+import { NPC_LOOKS, PLAYER_LOOK, BRIGAND_LOOK, HUMAN_LOOKS, TOWNS_LOOKS } from '../art/cast';
+import { buildEnterable, buildStall, type EnterableView } from '../art/models/buildings';
+import { isInside, toLocal, WALL_H, type BuildingDef } from '../game/world/buildings';
 import { buildHumanoid, animateIdle, animateWalk, animateSwing, animateWork, animateFish, type HumanoidRig } from '../art/models/character';
 import { buildCrab, animateCrab, type CrabRig } from '../art/models/crab';
-import { buildPine, buildBroadleaf, buildRock, buildOreRock, buildCrate, buildLanternPost, buildShack, buildDock, buildGrass, buildBush, buildKelp } from '../art/models/props';
+import { buildPine, buildBroadleaf, buildRock, buildOreRock, buildCrate, buildLanternPost, buildDock, buildGrass, buildBush, buildKelp } from '../art/models/props';
 import { buildBench, buildFurnace, buildAnvil, buildCookfire, buildTent, buildSmithyShed, buildPillar, buildPlinth, buildStrongbox, buildDigSpot, buildGuardian, buildStump, buildRipples, type GuardianRig } from '../art/models/world';
 import { buildLootShard, buildItemModel, SHARD_TINT, type LootShard, type ShardKind } from '../art/models/items';
 import { item } from '../game/data/items';
@@ -24,7 +26,7 @@ import type { Game, GameEvent, Enemy, Telegraph } from '../game/sim/game';
 import { coastDist, nearestPathDist, WORLD_HALF, BEACH } from '../game/world/island';
 import { HN, HCELL } from '../game/world/world';
 import { buildTerrainMesh } from './terrainMesh';
-import { bakeRig, bakeStatic, mergeColoured } from './bake';
+import { bakeRig, bakeStatic, bakeFlat, mergeColoured } from './bake';
 import { InstancedField, type FieldItem } from './instanced';
 import { Particles } from './fx';
 
@@ -76,6 +78,8 @@ export class GameRenderer {
   private playerSwing = 0;
   private ship: ShipRig;
   private npcs = new Map<string, HumanoidRig>();
+  private houses: { b: BuildingDef; v: EnterableView; k: number }[] = [];
+  private walkers: { rig: HumanoidRig; path: [number, number][]; cum: number[]; speed: number; off: number }[] = [];
   private enemyViews = new Map<number, EnemyView>();
   private nodeViews = new Map<string, { live: THREE.Object3D; dead?: THREE.Object3D; ripples?: THREE.Group; leap?: THREE.Object3D }>();
   private dropViews = new Map<number, LootShard>();
@@ -213,19 +217,8 @@ export class GameRenderer {
       const y = w.ground(b.x, b.z);
       if (b.kind === 'tent') place(buildTent(b.seed), b.x, b.z, b.rot, y);
       else if (b.kind === 'smithy') place(buildSmithyShed(), b.x, b.z, b.rot, y);
-      else {
-        const s = buildShack(b.seed);
-        place(s.group, b.x, b.z, -b.rot, y - 0.1);
-        // signboards so the trader and the cartographer read from a distance
-        if (b.kind === 'store' || b.kind === 'chart') {
-          const sign = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.5, 0.08), mat(b.kind === 'store' ? 0x7a3b3b : 0x2f5a6a));
-          sign.position.set(b.x + 1.9, y + 2.4, b.z + 1.95);
-          const mark = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.18, 0.1), mat('brass'));
-          mark.position.copy(sign.position).add(new THREE.Vector3(0, 0, 0.03));
-          root.add(sign, mark);
-        }
-      }
     }
+    for (const st of L.stalls) place(buildStall(st.colour, Math.round(st.x * 7 + st.z)), st.x, st.z, -st.rot);
     for (const st of L.stations) {
       if (st.id === 'furnace') { const f = buildFurnace(); f.group.traverse((o) => { if ((o as THREE.Mesh).material === f.glow) o.userData.glow = true; }); place(f.group, st.x, st.z, 0); }
       else if (st.id === 'anvil') place(buildAnvil(), st.x, st.z, 0.3);
@@ -260,7 +253,7 @@ export class GameRenderer {
       }
     }
     place(buildPlinth(), L.plinth.x, L.plinth.z, 0);
-    for (const b of L.banks) place(buildStrongbox(), b.x, b.z, 0);
+    for (const b of L.banks) if (!b.booth) place(buildStrongbox(), b.x, b.z, 0);
     for (const r of L.reefs) {
       const m = buildRock(Math.round(r.x * 31 + r.z), r.r, 'stoneDark');
       m.position.set(r.x, 0.05, r.z);
@@ -273,7 +266,58 @@ export class GameRenderer {
       if (o.userData.glow) this.furnaceGlow = (o as THREE.Mesh).material as THREE.MeshStandardMaterial;
     });
     this.scene.add(baked);
+    this.buildTown();
     this.buildGrass();
+  }
+
+  /** Enterable buildings stay live (not baked into the static chunks) so the roof can lift off. */
+  private buildTown() {
+    const L = this.game.layout, w = this.game.world;
+    const material = addSurfaceDetail(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: false, roughness: 0.92, metalness: 0 }), { scale: 3, tone: 0.24, bump: 0.4 });
+    for (const b of L.town) {
+      const v = buildEnterable(b);
+      for (const part of [v.walls, v.trim, v.roof, v.interior]) bakeFlat(part, material);
+      v.group.position.set(b.x, w.ground(b.x, b.z), b.z);
+      v.group.rotation.y = -b.rot;
+      this.scene.add(v.group);
+      this.houses.push({ b, v, k: 0 });
+    }
+    for (const wd of L.wanderers) {
+      const rig = buildHumanoid(TOWNS_LOOKS[wd.look] ?? TOWNS_LOOKS.towns_a);
+      rig.root.scale.setScalar(HERO);
+      bakeRig(rig.root, addSurfaceDetail(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: false, roughness: 0.9 }), CHAR_SURFACE));
+      this.scene.add(rig.root);
+      const cum = [0];
+      for (let i = 1; i < wd.path.length; i++) cum.push(cum[i - 1] + Math.hypot(wd.path[i][0] - wd.path[i - 1][0], wd.path[i][1] - wd.path[i - 1][1]));
+      this.walkers.push({ rig, path: wd.path, cum, speed: 1.1 + (this.walkers.length % 3) * 0.15, off: this.walkers.length * 37 });
+    }
+  }
+
+  /** Walk in and the roof lifts away and the walls drop to waist height, so you can see the room. */
+  private syncTown(dt: number, t: number) {
+    const p = this.game.p, world = this.game.world;
+    for (const h of this.houses) {
+      const want = !p.onShip && isInside(h.b, p.x, p.z) ? 1 : 0;
+      h.k += (want - h.k) * Math.min(1, dt * 8);
+      if (Math.abs(want - h.k) < 0.01) h.k = want;
+      h.v.roof.visible = h.k < 0.5;
+      h.v.roof.position.y = h.k * 3;
+      h.v.walls.scale.y = 1 - h.k * (1 - 1.1 / (WALL_H * (h.b.storeys ?? 1))); // down to about waist height
+      h.v.trim.visible = h.k < 0.05;
+    }
+    for (const wk of this.walkers) {
+      const total = wk.cum[wk.cum.length - 1];
+      const s = (t * wk.speed + wk.off) % total;
+      let i = 1;
+      while (i < wk.cum.length - 1 && wk.cum[i] < s) i++;
+      const a = wk.path[i - 1], b = wk.path[i], seg = wk.cum[i] - wk.cum[i - 1] || 1, f = (s - wk.cum[i - 1]) / seg;
+      const x = a[0] + (b[0] - a[0]) * f, z = a[1] + (b[1] - a[1]) * f;
+      wk.rig.root.position.set(x, world.standY(x, z), z);
+      const want = Math.atan2(b[1] - a[1], b[0] - a[0]), cur = Math.PI / 2 - wk.rig.root.rotation.y;
+      const diff = Math.atan2(Math.sin(want - cur), Math.cos(want - cur));
+      wk.rig.root.rotation.y = Math.PI / 2 - (cur + diff * Math.min(1, dt * 6));
+      animateWalk(wk.rig, t * wk.speed * 0.9 + wk.off);
+    }
   }
 
   private buildGrass() {
@@ -291,6 +335,8 @@ export class GameRenderer {
       if (p.d < p.width + 0.5) continue;
       if (Math.hypot(x - this.game.layout.ruin.x, z - this.game.layout.ruin.z) < 8) continue;
       if (Math.hypot(x, z - this.game.layout.respawn.z) < 15) continue;
+      if (this.game.layout.town.some((b) => { const [lx, lz] = toLocal(b, x, z); return Math.abs(lx) < b.w / 2 + 0.4 && Math.abs(lz) < b.d / 2 + 0.4; })) continue; // not through the floors
+      if (this.game.layout.stalls.some((st) => Math.hypot(st.x - x, st.z - z) < 1.6)) continue;
       const key = `${Math.floor(x / CELL)},${Math.floor(z / CELL)}`;
       let b = buckets.get(key);
       if (!b) buckets.set(key, (b = []));
@@ -748,6 +794,7 @@ export class GameRenderer {
       }
     }
 
+    this.syncTown(dt, t);
     this.syncEnemies(t, dt);
     this.syncDrops(t);
     this.syncProjectiles();

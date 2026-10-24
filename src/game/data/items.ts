@@ -6,7 +6,7 @@ export type SkillId =
   | 'smithing' | 'gunsmithing' | 'cooking';
 export type CombatStyle = 'melee' | 'ranged' | 'magic';
 export type Slot = 'weapon' | 'ammo' | 'head' | 'body' | 'ring';
-export type IconShape = 'log' | 'ore' | 'bar' | 'fish' | 'meat' | 'coins' | 'bread' | 'hatchet' | 'pickaxe' | 'rod' | 'cutlass' | 'helm' | 'cap' | 'coat' | 'plate' | 'ring' | 'bell' | 'tooth' | 'shell' | 'burnt' | 'pistol' | 'shot' | 'staff' | 'charm' | 'harpoon' | 'pot' | 'lobster' | 'berries' | 'kelp' | 'geode' | 'spade' | 'parcel' | 'ash' | 'salt' | 'crystal' | 'nest' | 'casket';
+export type IconShape = 'log' | 'ore' | 'bar' | 'fish' | 'meat' | 'coins' | 'bread' | 'hatchet' | 'pickaxe' | 'rod' | 'cutlass' | 'helm' | 'cap' | 'coat' | 'plate' | 'ring' | 'bell' | 'tooth' | 'shell' | 'burnt' | 'pistol' | 'shot' | 'staff' | 'charm' | 'harpoon' | 'pot' | 'lobster' | 'berries' | 'kelp' | 'geode' | 'spade' | 'parcel' | 'ash' | 'salt' | 'crystal' | 'nest' | 'casket' | 'mug' | 'bowl' | 'pie';
 
 /** RuneScape-style equipment bonuses. Accuracy applies to the weapon's own style. */
 export interface Bonuses {
@@ -169,6 +169,9 @@ function tierItems(): ItemDef[] {
   out.push(I({ id: 'geode', name: 'Geode', desc: 'A plain stone that rattles. Use it to crack it open.', icon: { shape: 'geode', color: '#8a8478', accent: '#9fe8ff' }, stackable: true, value: 20, opens: 'geode' }));
   out.push(I({ id: 'spade', name: 'Spade', desc: 'For disturbed sand. Somebody always buries something.', icon: { shape: 'spade', color: '#9aa0a4' }, stackable: false, value: 12 }));
   out.push(I({ id: 'parcel_sprat', name: 'Kelp-wrapped sprat', desc: 'Heals 6.', icon: { shape: 'parcel', color: '#4a6a2a', accent: '#c9934f' }, stackable: true, value: 14, heal: 6 }));
+  out.push(I({ id: 'ale', name: 'Bellwether ale', desc: 'Heals 4. Brewed in the inn\'s cellar, from what, nobody says.', icon: { shape: 'mug', color: '#8a6a40', accent: '#d8a030' }, stackable: true, value: 5, heal: 4 }));
+  out.push(I({ id: 'pie_berry', name: 'Bramble pie', desc: 'Heals 9. Berries baked into a loaf: better than either.', icon: { shape: 'pie', color: '#c9934f', accent: '#7a2a5a' }, stackable: true, value: 18, heal: 9 }));
+  out.push(I({ id: 'fish_stew', name: 'Fisherman\'s stew', desc: 'Heals 18. Salmon, kelp and sea salt, slow-cooked.', icon: { shape: 'bowl', color: '#9a6a40', accent: '#d88a4a' }, stackable: true, value: 55, heal: 18 }));
   out.push(I({ id: 'parcel_trout', name: 'Kelp-wrapped trout', desc: 'Heals 11.', icon: { shape: 'parcel', color: '#3e5a26', accent: '#b8834a' }, stackable: true, value: 30, heal: 11 }));
   for (const [id, name, req, acc, dmg, col] of STAFFS) out.push(I({ id, name, desc: `Casts your chosen spell. +${dmg}% spell damage.`, icon: { shape: 'staff', color: '#6a4a30', accent: col }, stackable: false, value: req * 12,
     equip: { slot: 'weapon', reqs: { magic: req }, style: 'magic', speed: 2.4, range: 9 + Math.floor(req / 30), bonus: { acc, magicDmg: dmg, defMagic: 4 + req / 5 }, affixPool: ['dmg_pct', 'crit', 'elite_dmg', 'accuracy', 'leech'] } }));

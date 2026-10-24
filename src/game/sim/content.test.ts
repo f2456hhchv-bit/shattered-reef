@@ -5,8 +5,9 @@ import { xpForLevel } from './xp';
 import { count } from './inventory';
 import { ITEMS } from '../data/items';
 import { levelForXp } from './xp';
-import { NODES, RECIPES, ENEMIES, LOOT, SHOP, UNLOCKS, SKILLS } from '../data/content';
+import { NODES, RECIPES, ENEMIES, LOOT, SHOPS, UNLOCKS, SKILLS } from '../data/content';
 import { LAYOUT } from '../world/island';
+import { toWorld, doorPoints, isInside } from '../world/buildings';
 
 const base = new Game({ seed: 3 });
 const fresh = () => new Game({ seed: 3, save: defaultSave(base.layout.respawn, base.layout.mooring) });
@@ -22,7 +23,7 @@ describe('content data', () => {
     for (const r of RECIPES) { r.inputs.forEach((i) => need(i.id, r.id)); need(r.output.id, r.id); if (r.burn) need(r.burn.item, r.id); }
     for (const n of Object.values(NODES)) { need(n.item, n.id); if (n.tool) need(n.tool, n.id); }
     for (const [k, l] of Object.entries(LOOT)) { l.drops.forEach((d) => need(d.item, k)); l.gear?.items.forEach((i) => need(i, k)); }
-    for (const s of SHOP.stock) need(s.id, 'shop');
+    for (const sh of Object.values(SHOPS)) for (const s of sh.stock) need(s.id, sh.id);
     for (const e of Object.values(ENEMIES)) if (!LOOT[e.loot]) missing.push(`loot table ${e.loot}`);
     expect(missing).toEqual([]);
   });
@@ -47,7 +48,7 @@ describe('content data', () => {
 
   it('no gear is drop-only: every weapon and armour piece is craftable, sold, or a quest/boss trophy', () => {
     const made = new Set(RECIPES.map((r) => r.output.id));
-    const sold = new Set(SHOP.stock.map((s) => s.id));
+    const sold = new Set(Object.values(SHOPS).flatMap((sh) => sh.stock.map((s) => s.id)));
     const TROPHY = new Set(['lockplate', 'cutlass_rusty', 'cutlass_brigand', 'ring_brass']); // boss/starter/flavour pieces with crafted equivalents
     const dropOnly = Object.values(ITEMS).filter((d) => d.equip && !made.has(d.id) && !sold.has(d.id) && !TROPHY.has(d.id)).map((d) => d.id);
     expect(dropOnly).toEqual([]);
@@ -259,6 +260,52 @@ describe('the living island', () => {
       for (let a = 0; a < 8; a++) hs.push(base.world.ground(sp.x + Math.cos(a) * sp.r, sp.z + Math.sin(a) * sp.r));
       expect(Math.max(...hs) - Math.min(...hs), `${sp.id} at ${sp.x.toFixed(0)},${sp.z.toFixed(0)}`).toBeLessThan(0.45);
     }
+  });
+
+  it('every town building stands on a level pad, and every door can be walked to and through', () => {
+    const w = base.world;
+    for (const b of base.layout.town) {
+      const hs: number[] = [];
+      for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1], [0, 0]]) { const [x, z] = toWorld(b, sx * b.w / 2, sz * b.d / 2); hs.push(w.ground(x, z)); }
+      expect(Math.max(...hs) - Math.min(...hs), `${b.id} floor`).toBeLessThan(0.15);
+      const d = doorPoints(b);
+      const from = base.layout.respawn;
+      expect(w.findPath(from.x, from.z, d.out[0], d.out[1]), `${b.id} door`).not.toBeNull();
+      const inn = w.findPath(d.out[0], d.out[1], d.in[0], d.in[1]);
+      expect(inn, `${b.id} doorway`).not.toBeNull();
+      const end = inn![inn!.length - 1];
+      expect(isInside(b, end[0], end[1]), `${b.id} inside`).toBe(true);
+    }
+    // walls hold: you can't walk straight through a back wall
+    const inn = base.layout.town.find((b) => b.id === 'inn')!;
+    const [bx, bz] = toWorld(inn, 0, -inn.d / 2 + 0.15);
+    expect(w.walkable(bx, bz)).toBe(false);
+  });
+
+  it('every shopkeeper, the banker and the chapel do their jobs', () => {
+    const g = fresh();
+    for (const sh of Object.values(SHOPS)) {
+      const n = g.layout.npcs.find((x) => x.id === sh.keeper)!;
+      expect(n, sh.keeper).toBeTruthy();
+      let opened = '';
+      const off = g.on((e) => { if (e.type === 'openShop') opened = e.shop; });
+      near(g, n.x, n.z); g.interact(`npc:${n.id}`);
+      run(g, 60, () => opened !== '');
+      off?.();
+      expect(opened, sh.keeper).toBe(sh.id);
+      expect(g.nearShop()).toBe(true);
+    }
+    // Silas pays more for fish than Marta does
+    g.p.inv[20] = { id: 'fish_trout', qty: 1 };
+    g.shopId = 'general'; const marta = g.sellPrice(g.p.inv[20]!);
+    g.shopId = 'tackle'; expect(g.sellPrice(g.p.inv[20]!)).toBeGreaterThan(marta);
+    const ada = g.layout.npcs.find((x) => x.id === 'ada')!;
+    near(g, ada.x, ada.z); g.interact('npc:ada');
+    expect(run(g, 60, () => g.nearBank())).toBe(true);
+    const maren = g.layout.npcs.find((x) => x.id === 'maren')!;
+    g.p.hp = 2;
+    near(g, maren.x, maren.z); g.interact('npc:maren');
+    expect(run(g, 60, () => g.p.hp === g.stats.maxHp)).toBe(true);
   });
 
   it('fells an ordinary scenery pine and mines an ordinary boulder', () => {

@@ -1,10 +1,11 @@
 import { mulberry32 } from '../../art/noise';
-import { LAYOUT, LAGOON, SEA_SPOTS, PATHS, BEACH, coastPoint, coastDist, nearestPathDist, FLATS } from './island';
+import { TOWN, LAYOUT, LAGOON, SEA_SPOTS, PATHS, BEACH, coastPoint, coastDist, nearestPathDist, FLATS } from './island';
 import { World } from './world';
+import { buildingSolids, doorPoints, toLocal, toWorld, type BuildingDef } from './buildings';
 
 // Everything placed on Bellwether, derived deterministically. Shared by simulation and renderer.
 
-export type BuildingKind = 'store' | 'chart' | 'house' | 'tent' | 'smithy';
+export type BuildingKind = 'tent' | 'smithy';
 export interface Building { kind: BuildingKind; x: number; z: number; rot: number; w: number; d: number; seed: number }
 /** `scenery` nodes are the island's ordinary trees, boulders, bushes and kelp: drawn instanced, still usable. */
 export interface NodePlacement { uid: string; def: string; x: number; z: number; seed: number; scenery?: boolean; s?: number; rot?: number }
@@ -21,7 +22,10 @@ export interface IslandLayout {
   props: Prop[];
   reefs: { x: number; z: number; r: number }[];
   stations: { id: 'furnace' | 'anvil' | 'fire' | 'bench' | 'vent'; x: number; z: number }[];
-  banks: { x: number; z: number }[]; // harbour strongboxes
+  banks: { x: number; z: number; booth?: boolean }[]; // strongboxes (booth: the bank's counter, no chest drawn)
+  town: BuildingDef[]; // enterable buildings
+  stalls: { x: number; z: number; rot: number; colour: number }[];
+  wanderers: { look: string; path: [number, number][] }[]; // townsfolk walking their rounds (visual only)
   npcs: { id: string; x: number; z: number; facing: number }[];
   spawns: SpawnPoint[];
   ruin: { x: number; z: number; r: number };
@@ -47,10 +51,6 @@ export function buildIsland(seed = 1): IslandLayout {
 
   // ---- village
   const buildings: Building[] = [
-    { kind: 'store', x: LAYOUT.store.x, z: LAYOUT.store.z, rot: 0.08, w: 4.6, d: 3.8, seed: 11 },
-    { kind: 'chart', x: LAYOUT.chartHouse.x, z: LAYOUT.chartHouse.z, rot: -0.12, w: 4.2, d: 3.4, seed: 12 },
-    { kind: 'house', x: V.x - 19, z: V.z + 3, rot: 0.35, w: 4.0, d: 3.2, seed: 13 },
-    { kind: 'house', x: V.x + 21, z: V.z - 7, rot: -0.4, w: 4.0, d: 3.2, seed: 14 },
     { kind: 'smithy', x: LAYOUT.smithy.x, z: LAYOUT.smithy.z, rot: 0, w: 5, d: 3.6, seed: 15 },
   ];
   const C = LAYOUT.camp;
@@ -78,14 +78,22 @@ export function buildIsland(seed = 1): IslandLayout {
     { id: 'vent', x: LAYOUT.summit.x, z: LAYOUT.summit.z },
   ];
   // strongboxes: one at the quay, one at the Ironcrag mining camp
-  const banks = [{ x: V.x + 4.6, z: V.z + 2.2 }, { x: LAYOUT.peak.x + 2.5, z: LAYOUT.peak.z + 21 }];
-  for (const b of banks) world.solids.push({ x: b.x, z: b.z, w: 1.2, d: 0.8 });
+  const bankB = TOWN.buildings.find((x) => x.id === 'bank')!, [bkx, bkz] = toWorld(bankB, 0, 0.1);
+  const banks: IslandLayout['banks'] = [{ x: V.x + 4.6, z: V.z + 2.2 }, { x: LAYOUT.peak.x + 2.5, z: LAYOUT.peak.z + 21 }, { x: bkx, z: bkz, booth: true }];
+  for (const b of banks) if (!b.booth) world.solids.push({ x: b.x, z: b.z, w: 1.2, d: 0.8 });
   const solidOf = { furnace: 1.0, anvil: 0.45, fire: 0.7, vent: 1.2 } as const;
   for (const st of stations) world.solids.push(st.id === 'bench' ? { x: st.x, z: st.z, w: 1.8, d: 0.9 } : { x: st.x, z: st.z, r: solidOf[st.id] });
 
+  // the town: walls and furniture are solid; townsfolk stand at their posts inside
+  for (const tb of TOWN.buildings) world.solids.push(...buildingSolids(tb));
+  const inside = (id: string, lx: number, lz: number) => { const tb = TOWN.buildings.find((x) => x.id === id)!; const [x, z] = toWorld(tb, lx, lz); return { x, z, facing: Math.atan2(Math.cos(tb.rot), -Math.sin(tb.rot)) }; };
+  for (const s of TOWN.stalls) world.solids.push({ x: s.x, z: s.z, w: 2.4, d: 1.4, rot: s.rot });
+  const DB = LAYOUT.dockBase, X = LAYOUT.crossroads;
   const npcs = [
-    { id: 'iven', x: LAYOUT.chartHouse.x - 0.5, z: LAYOUT.chartHouse.z + 3.2, facing: Math.PI / 2 },
-    { id: 'marta', x: LAYOUT.store.x + 0.6, z: LAYOUT.store.z + 3.3, facing: Math.PI / 2 },
+    ...TOWN.npcs.map((n) => ({ id: n.id, ...inside(n.building, n.x, n.z) })),
+    { id: 'wynn', x: DB.x + 3.2, z: DB.z - 1.0, facing: Math.PI / 2 },
+    { id: 'watch_n', x: X.x + 0.6, z: X.z - 9.5, facing: Math.PI / 2 },
+    { id: 'watch_e', x: X.x + 11, z: X.z + 2.5, facing: Math.PI },
     { id: 'bram', x: S.x - 1.4, z: S.z + 1.9, facing: Math.PI / 2 },
   ];
   for (const n of npcs) world.solids.push({ x: n.x, z: n.z, r: 0.35 });
@@ -118,12 +126,24 @@ export function buildIsland(seed = 1): IslandLayout {
   const nodes: NodePlacement[] = [];
   let uid = 0;
   for (const r of rubble) nodes.push({ uid: `n${uid++}`, def: 'rock_boulder', x: r.x, z: r.z, seed: r.seed, scenery: true, s: r.s, rot: r.rot });
+  // inside (or within `m` of) a town building's walls, in front of its door, or on a market stall / the square
+  const nearTown = (x: number, z: number, m: number, square = true) => {
+    for (const tb of TOWN.buildings) {
+      const [lx, lz] = toLocal(tb, x, z);
+      if (Math.abs(lx) < tb.w / 2 + m && Math.abs(lz) < tb.d / 2 + m) return true;
+      const o = doorPoints(tb).out;
+      if (Math.hypot(x - o[0], z - o[1]) < m + 1.6) return true;
+    }
+    for (const st of TOWN.stalls) if (Math.hypot(x - st.x, z - st.z) < m + 1.6) return true;
+    return square && Math.hypot(x - TOWN.square.x, z - TOWN.square.z) < TOWN.square.r + m;
+  };
   const free = (x: number, z: number, minCoast = 4, clearance = 2.2) => {
     if (coastDist(x, z) < minCoast) return false;
     const p = nearestPathDist(x, z);
     if (p.d < p.width + 1.2) return false;
     for (const f of FLATS) if (Math.hypot(x - f.x, z - f.z) < f.r + 2) return false;
     for (const b of buildings) if (Math.hypot(x - b.x, z - b.z) < Math.max(b.w, b.d) + 1.5) return false;
+    if (nearTown(x, z, 2.5)) return false;
     for (const n of nodes) if (Math.hypot(x - n.x, z - n.z) < clearance) return false;
     for (const pr of props) if (Math.hypot(x - pr.x, z - pr.z) < clearance) return false;
     for (const st of [...stations, ...banks]) if (Math.hypot(x - st.x, z - st.z) < 3.5) return false;
@@ -287,7 +307,6 @@ export function buildIsland(seed = 1): IslandLayout {
   const dress: [Prop['kind'], number, number][] = [
     ['crate', -2.6, LAYOUT.dockBase.z - 1.8], ['crate', -2.9, LAYOUT.dockBase.z - 2.7], ['barrel', 2.4, LAYOUT.dockBase.z - 2.6], ['barrel', 3.0, LAYOUT.dockBase.z - 2.0],
     ['lantern', 2.0, LAYOUT.dockBase.z - 1.0], ['lantern', -6, V.z + 2], ['lantern', 7, V.z - 1], ['lantern', S.x + 3.2, S.z + 2.4],
-    ['barrel', LAYOUT.store.x - 3, LAYOUT.store.z + 2.5], ['crate', LAYOUT.store.x + 3.2, LAYOUT.store.z + 2.2],
     ['campfire', C.x, C.z], ['crate', C.x + 1.8, C.z - 1.5], ['barrel', C.x - 2, C.z + 1.2],
   ];
   for (const [kind, x, z] of dress) {
@@ -301,6 +320,7 @@ export function buildIsland(seed = 1): IslandLayout {
     const p = nearestPathDist(x, z);
     if (p.d < p.width + r + 0.6) return false;
     for (const b of buildings) if (Math.hypot(x - b.x, z - b.z) < Math.max(b.w, b.d) * 0.75 + r + 1.2) return false;
+    if (nearTown(x, z, r + 0.8, false)) return false;
     for (const q of [...stations, ...banks, ...npcs]) if (Math.hypot(x - q.x, z - q.z) < r + 2.6) return false;
     for (const n of nodes) if (Math.hypot(x - n.x, z - n.z) < r + 1.6) return false;
     for (const pr of props) if (Math.hypot(x - pr.x, z - pr.z) < r + 1.0) return false;
@@ -317,21 +337,21 @@ export function buildIsland(seed = 1): IslandLayout {
     }
     return false;
   };
-  const DB = LAYOUT.dockBase;
   decor('netrack', DB.x - 6.5, DB.z - 1.5, 1.3, 0.15, true);
   decor('pots', DB.x + 5.5, DB.z - 1.2, 0.8, -0.3, true);
   decor('cannon', DB.x - 9, DB.z - 3.5, 0.7, -0.2, true); // muzzles out to sea (+z)
   decor('cannon', DB.x + 9, DB.z - 3.5, 0.7, 0.2, true);
   decor('well', V.x - 6, V.z - 7, 1.0, 0.3, true);
   decor('woodpile', S.x + 4.5, S.z - 2, 0.8, -0.4, true);
-  decor('woodpile', V.x - 19, V.z - 1.2, 0.8, 0.35, true);
-  for (const [cx, cz, rot] of [[V.x - 19, V.z + 3, 0.35], [V.x + 21, V.z - 7, -0.4]] as const) {
+  const cw = TOWN.buildings.find((x) => x.id === 'cottage_w')!, ce = TOWN.buildings.find((x) => x.id === 'cottage_e')!;
+  decor('woodpile', ...toWorld(cw, 2.0, -3.4), 0.8, cw.rot, true);
+  for (const [cx, cz, rot] of [[...toWorld(cw, 0, -6), cw.rot], [...toWorld(ce, 0, -6), ce.rot]] as const) {
     // a garden fence behind each cottage, with flowers inside it
     const bx = cx + Math.sin(rot) * 4.2, bz = cz - Math.cos(rot) * 4.2;
     decor('fence', bx, bz, 0.3, -rot, false, [4.8]);
     decor('flowers', bx + Math.cos(rot) * 1.2, bz + Math.sin(rot) * 1.2 + 1, 0.4, 0, false);
   }
-  const X = LAYOUT.crossroads, toward = (t: { x: number; z: number }) => Math.atan2(t.z - X.z, t.x - X.x);
+  const toward = (t: { x: number; z: number }) => Math.atan2(t.z - X.z, t.x - X.x);
   decor('signpost', X.x + 2.8, X.z + 2.2, 0.25, 0, true, [toward(LAYOUT.village), toward(LAYOUT.camp), toward(LAGOON), toward(LAYOUT.ruin)]);
   const CV = LAYOUT.cove;
   decor('cannon', CV.x + 3.5, CV.z + 2.5, 0.7, Math.atan2(CV.x, CV.z), true);
@@ -397,6 +417,26 @@ export function buildIsland(seed = 1): IslandLayout {
   spawn('wreck_captain', W.x - 5, W.z + 5);
   spawn('stone_sentinel', M.x - 5, M.z - 1); spawn('stone_sentinel', M.x + 7, M.z + 1);
 
+  // townsfolk walking their rounds between the squares and front doors (paths found once, on the baked grid)
+  const door = (id: string) => doorPoints(TOWN.buildings.find((b) => b.id === id)!).out;
+  const rounds: { look: string; stops: [number, number][] }[] = [
+    { look: 'towns_a', stops: [[X.x - 4, X.z + 2], door('inn'), [X.x - 22, X.z + 1], door('house_2'), [X.x - 6, X.z + 8]] },
+    { look: 'towns_b', stops: [[X.x + 4, X.z - 2], door('bank'), door('chapel'), [X.x + 25, X.z + 1], door('house_3')] },
+    { look: 'towns_c', stops: [[V.x + 2, V.z + 1], door('chart'), [V.x + 2, V.z - 10], [X.x + 1.5, X.z + 6], door('store')] },
+    { look: 'towns_d', stops: [[V.x - 3, V.z + 9], door('tackle'), door('warehouse'), [V.x - 14, V.z + 1.6], [DB.x - 2, DB.z - 2]] },
+    { look: 'towns_e', stops: [door('hall'), door('house_4'), [X.x + 3, X.z - 12], door('house_1'), door('house_5')] },
+  ];
+  const wanderers: IslandLayout['wanderers'] = [];
+  for (const rd of rounds) {
+    const path: [number, number][] = [];
+    for (let i = 0; i < rd.stops.length; i++) {
+      const a = rd.stops[i], b = rd.stops[(i + 1) % rd.stops.length];
+      const leg = world.findPath(a[0], a[1], b[0], b[1]);
+      if (leg) path.push(...leg);
+    }
+    if (path.length > 4) wanderers.push({ look: rd.look, path });
+  }
+
   const respawnPt = world.nearestWalkable(0, V.z + 6, 6) ?? [0, V.z + 6];
   return {
     world,
@@ -408,6 +448,9 @@ export function buildIsland(seed = 1): IslandLayout {
     reefs,
     stations,
     banks,
+    town: TOWN.buildings,
+    stalls: TOWN.stalls,
+    wanderers,
     npcs,
     spawns,
     ruin: { x: R.x, z: R.z, r: 7 },

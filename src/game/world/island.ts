@@ -1,4 +1,5 @@
 import { fbm, lerp, smooth } from '../../art/noise';
+import { townPlan } from './town';
 
 // Bellwether Isle: terrain shape + named layout. Pure data/maths, no rendering.
 // Coordinates: metres. +x east, +z south (camera looks north). Sea level y = 0.
@@ -11,7 +12,8 @@ export const ISLAND_RADIUS = 80;
 /** Width of the sand belt around the island, in metres (the beach climbs gently to grass beyond it). */
 export const BEACH = 10;
 
-export interface Flat { x: number; z: number; r: number; h: number | 'auto' } // 'auto': level at the natural height there
+// 'auto': level at the natural height there; 'pad': level at the height the earlier flats left there (a building's pad)
+export interface Flat { x: number; z: number; r: number; h: number | 'auto' | 'pad'; soft?: number } // soft: blend width (m, default 4)
 export interface Hill { x: number; z: number; r: number; h: number }
 export interface Dip { x: number; z: number; r: number; floor: number }
 export interface PathDef { pts: [number, number][]; width: number }
@@ -74,6 +76,8 @@ export const LAYOUT = {
 };
 
 const L = LAYOUT;
+/** Bellwether town: every building, its furniture and who works there. */
+export const TOWN = townPlan(L.village, L.crossroads);
 /** Offshore islets: land you reach by ship. */
 export const ISLETS = [{ x: L.islet.x, z: L.islet.z, r: 13 }];
 export const LAGOON = { x: -34, z: -22, r: 9 };
@@ -84,14 +88,14 @@ export const FLATS: Flat[] = [
   { x: L.ruin.x, z: L.ruin.z, r: 9, h: 3.0 },
   { x: L.camp.x, z: L.camp.z, r: 6, h: 1.6 },
   { x: L.cove.x, z: L.cove.z, r: 6, h: 1.2 },
-  { x: L.crossroads.x, z: L.crossroads.z, r: 4, h: 1.5 },
+  { x: L.crossroads.x, z: L.crossroads.z, r: 11, h: 'auto' }, // the market square
   // the smithy and its gunsmith's bench sit at the village's edge: same level as the square
   { x: L.smithy.x + 1.5, z: L.smithy.z + 0.5, r: 5.5, h: 1.1 },
-  // pads under the outlying cottages and the Ironcrag camp (forge, anvil, strongbox) so nothing sits in a slope
-  { x: L.village.x - 19, z: L.village.z + 3, r: 3.6, h: 'auto' },
-  { x: L.village.x + 21, z: L.village.z - 7, r: 3.6, h: 'auto' },
+  // a pad under the Ironcrag camp (forge, anvil, strongbox) so nothing sits in a slope
   { x: L.peak.x + 6, z: L.peak.z + 20, r: 5.5, h: 'auto' },
   { x: L.summit.x, z: L.summit.z, r: 4.5, h: 'auto' }, // the vent forge stands on a levelled summit
+  // a level pad under every town building, at the height of the ground already there (so the quay's stay on the quay)
+  ...TOWN.buildings.map((b) => ({ x: b.x, z: b.z, r: Math.hypot(b.w, b.d) / 2 + 0.6, h: 'pad' as const, soft: 2.5 })),
 ];
 
 export const HILLS: Hill[] = [
@@ -113,7 +117,7 @@ export const PATHS: PathDef[] = [
   // quay road: dock -> village -> crossroads
   { width: 1.5, pts: [[0, L.dockBase.z], [0, V.z + 3], [0, X.z]] },
   // west road: Saltpine -> lagoon shore -> Heartwood
-  { width: 1.3, pts: [[0, X.z], [-14, X.z - 2], [F.x + 9, F.z + 3], [F.x, F.z], [F.x - 4, F.z - 14], [LAGOON.x + LAGOON.r + 4, LAGOON.z + 6], [HW.x + 12, HW.z + 14], [HW.x, HW.z]] },
+  { width: 1.3, pts: [[0, X.z], [-24, X.z], [F.x + 9, F.z + 3], [F.x, F.z], [F.x - 4, F.z - 14], [LAGOON.x + LAGOON.r + 4, LAGOON.z + 6], [HW.x + 12, HW.z + 14], [HW.x, HW.z]] },
   // north road: Copperback Hills -> foot of Ironcrag
   { width: 1.3, pts: [[0, X.z], [5, X.z - 14], [CH.x - 7, CH.z + 7], [CH.x - 5, CH.z - 6], [M.x + 6, M.z + 22], [M.x + 3, M.z + 13]] },
   // a switchback trail from the Ironcrag camp up to the summit
@@ -122,10 +126,10 @@ export const PATHS: PathDef[] = [
   { width: 1.1, pts: [[CH.x - 5, CH.z - 6], [R.x - 10, R.z + 12], [R.x, R.z + 7]] },
   { width: 1.1, pts: [[R.x + 7, R.z], [W.x - 8, W.z + 8], [W.x, W.z]] },
   // east road: Brigand Camp -> Smugglers' Cove
-  { width: 1.2, pts: [[0, X.z], [16, X.z - 3], [C.x - 9, C.z + 5], [C.x, C.z]] },
+  { width: 1.2, pts: [[0, X.z], [28, X.z], [C.x - 9, C.z + 5], [C.x, C.z]] },
   { width: 1.1, pts: [[C.x + 2, C.z + 6], [SC.x - 5, SC.z - 9], [SC.x, SC.z]] },
   // village -> Crab Strand
-  { width: 1.1, pts: [[-8, V.z + 3], [ST.x + 9, ST.z - 6], [ST.x, ST.z]] },
+  { width: 1.1, pts: [[-6, V.z + 3], [-16, V.z + 1.4], [ST.x + 9, ST.z - 6], [ST.x, ST.z]] },
 ];
 
 function pathDist(p: PathDef, x: number, z: number): number {
@@ -158,7 +162,7 @@ export function rawHeight(x: number, z: number): number {
 }
 
 /** Natural ground height, optionally levelled by the flats (auto flats take the natural height at their centre). */
-function shapedHeight(x: number, z: number, levelled: boolean): number {
+function shapedHeight(x: number, z: number, levelled: boolean, upto = FLATS.length): number {
   const d = coastDist(x, z);
   const n = fbm(x * 0.06 + 40, z * 0.06 + 40, 4, 3);
   let h: number;
@@ -176,9 +180,10 @@ function shapedHeight(x: number, z: number, levelled: boolean): number {
     h = 0.05 + d * 0.35 * (0.8 + n * 0.5);
     h = Math.max(h, -6 + n);
   }
-  if (levelled) for (const f of FLATS) {
-    const k = 1 - smooth(Math.hypot(x - f.x, z - f.z), f.r, f.r + 4);
-    if (k > 0) h = lerp(h, f.h === 'auto' ? (f.h = Math.max(0.6, shapedHeight(f.x, f.z, false))) : f.h, k);
+  if (levelled) for (let i = 0; i < upto; i++) {
+    const f = FLATS[i];
+    const k = 1 - smooth(Math.hypot(x - f.x, z - f.z), f.r, f.r + (f.soft ?? 4));
+    if (k > 0) h = lerp(h, f.h === 'auto' ? (f.h = Math.max(0.6, shapedHeight(f.x, f.z, false))) : f.h === 'pad' ? (f.h = Math.max(0.6, shapedHeight(f.x, f.z, true, i))) : f.h, k);
   }
   for (const dp of DIPS) {
     const k = 1 - smooth(Math.hypot(x - dp.x, z - dp.z), dp.r * 0.45, dp.r + 2.5);

@@ -199,6 +199,29 @@ function builders(shape: IconShape, col: string, acc: string | undefined, seed: 
       add(g, new THREE.ConeGeometry(0.06, 0.1, 6), m(acc ?? '#c9934f'), [-0.25, 0, 0], [0, 0, Math.PI / 2], [1, 1, 0.3]);
       break;
     }
+    case 'mug': {
+      add(g, new THREE.CylinderGeometry(0.13, 0.12, 0.3, 14, 1, true), m(col), [0, 0, 0]);
+      add(g, new THREE.CylinderGeometry(0.12, 0.12, 0.02, 14), m(shade(col, 0.6).getHex()), [0, -0.14, 0]);
+      for (const y of [-0.09, 0.09]) add(g, new THREE.TorusGeometry(0.132, 0.014, 6, 18), m('#6a6a70', 'metal'), [0, y, 0], [Math.PI / 2, 0, 0]);
+      add(g, new THREE.TorusGeometry(0.07, 0.022, 6, 12, Math.PI), m(col), [0.14, 0, 0], [0, 0, -Math.PI / 2]);
+      add(g, nudge(new THREE.SphereGeometry(0.125, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2), 0.015, seed), m('#f4efe0'), [0, 0.13, 0], [0, 0, 0], [1, 0.5, 1]);
+      add(g, new THREE.CylinderGeometry(0.115, 0.115, 0.02, 14), m(acc ?? '#d8a030', 'gloss'), [0, 0.12, 0]);
+      break;
+    }
+    case 'bowl': {
+      add(g, new THREE.SphereGeometry(0.22, 16, 8, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), m(col), [0, 0.06, 0], [0, 0, 0], [1, 0.7, 1]);
+      add(g, new THREE.CylinderGeometry(0.2, 0.2, 0.02, 16), m(acc ?? '#d88a4a', 'gloss'), [0, 0.04, 0]);
+      for (let k = 0; k < 5; k++) { const a = k * 1.3; add(g, nudge(new THREE.SphereGeometry(0.04, 7, 5), 0.01, seed + k), m(k % 2 ? '#e8d8b8' : '#4a6a2a'), [Math.cos(a) * 0.1, 0.06, Math.sin(a) * 0.1]); }
+      add(g, new THREE.CylinderGeometry(0.012, 0.016, 0.3, 6), m('#b89a6a'), [0.12, 0.14, 0], [0, 0, -0.7]);
+      break;
+    }
+    case 'pie': {
+      add(g, new THREE.CylinderGeometry(0.22, 0.18, 0.1, 18), m(shade(col, 0.85).getHex()), [0, 0, 0]);
+      add(g, nudge(new THREE.SphereGeometry(0.21, 16, 6, 0, Math.PI * 2, 0, Math.PI / 2), 0.01, seed), m(col), [0, 0.04, 0], [0, 0, 0], [1, 0.35, 1]);
+      add(g, new THREE.TorusGeometry(0.21, 0.025, 6, 22), m(shade(col, 1.1).getHex()), [0, 0.05, 0], [Math.PI / 2, 0, 0]);
+      for (let k = 0; k < 3; k++) add(g, new THREE.BoxGeometry(0.1, 0.012, 0.025), m(acc ?? '#7a2a5a'), [0, 0.115, 0], [0, (k / 3) * Math.PI, 0]);
+      break;
+    }
     case 'ring': {
       // nearly face-on to the icon camera (which looks down ~30 degrees), set stone on top
       add(g, new THREE.TorusGeometry(0.14, 0.035, 12, 28), m(col, 'metal'), [0, 0, 0], [-0.25, 0, 0]);
