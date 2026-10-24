@@ -367,3 +367,45 @@ export function buildKelp(seed: number): THREE.Group {
   }
   return g;
 }
+
+/** A coconut palm: a curved, ringed trunk, drooping fronds and (until picked) a cluster of coconuts. */
+export function buildPalm(seed: number, nuts: boolean): THREE.Group {
+  const rnd = mulberry32(seed);
+  const g = new THREE.Group();
+  const lean = 0.35 + rnd() * 0.35, H = 4.2 + rnd() * 1.2, segs = 7;
+  const at = (t: number) => new THREE.Vector3(Math.sin(t * 1.2) * lean * t * 1.6, t * H, 0);
+  for (let k = 0; k < segs; k++) {
+    const a = at(k / segs), b = at((k + 1) / segs), mid = a.clone().add(b).multiplyScalar(0.5), len = a.distanceTo(b);
+    const seg = mesh(new THREE.CylinderGeometry(0.15 - k * 0.008, 0.18 - k * 0.008, len * 1.04, 8), mat(k % 2 ? 'trunk' : 0x8a6a48));
+    seg.position.copy(mid);
+    seg.rotation.z = -Math.atan2(b.x - a.x, b.y - a.y);
+    g.add(seg);
+  }
+  const top = at(1);
+  const leaf = mat(0x4f8a3a), leafD = mat(0x3a6e2e);
+  for (let f = 0; f < 8; f++) {
+    // a frond: a long, flattened, drooping leaf made of a few tapering segments
+    const frond = new THREE.Group();
+    frond.position.copy(top);
+    frond.rotation.y = (f / 8) * Math.PI * 2 + rnd() * 0.3;
+    let y = 0, x = 0, droop = 0.15 + rnd() * 0.1;
+    for (let s = 0; s < 4; s++) {
+      const w = 0.42 - s * 0.08, l = 0.65;
+      const blade = mesh(new THREE.BoxGeometry(l, 0.03, w), f % 2 ? leaf : leafD);
+      const ang = droop + s * 0.28;
+      blade.position.set(x + Math.cos(ang) * l / 2, y - Math.sin(ang) * l / 2, 0);
+      blade.rotation.z = -ang;
+      frond.add(blade);
+      x += Math.cos(ang) * l; y -= Math.sin(ang) * l;
+    }
+    g.add(frond);
+  }
+  if (nuts) for (let k = 0; k < 4; k++) {
+    const a = (k / 4) * Math.PI * 2 + rnd();
+    const nut = mesh(new THREE.SphereGeometry(0.13, 8, 6), mat(0x6a4a2a));
+    nut.position.set(top.x + Math.cos(a) * 0.17, top.y - 0.22, Math.sin(a) * 0.17);
+    g.add(nut);
+  }
+  g.rotation.y = rnd() * Math.PI * 2;
+  return g;
+}

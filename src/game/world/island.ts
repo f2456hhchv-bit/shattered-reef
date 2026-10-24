@@ -1,13 +1,14 @@
 import { fbm, lerp, smooth } from '../../art/noise';
-import { townPlan } from './town';
+import { townPlan, portPlan, mergePlans } from './town';
 
-// Bellwether Isle: terrain shape + named layout. Pure data/maths, no rendering.
+// The islands: terrain shape + named layout. Pure data/maths, no rendering. Bellwether (the starter island) sits at
+// the origin; Sunreach Isle lies east across a sailable channel. One world, sailed seamlessly between them.
 // Coordinates: metres. +x east, +z south (camera looks north). Sea level y = 0.
 //
 // The starter island holds a zone for every level band of every skill, so it grows outward
 // from the quay: easy content near the village, harder content toward the far coasts and peak.
 
-export const WORLD_HALF = 150; // world spans [-150, 150] on both axes
+export const WORLD_HALF = 275; // world spans [-275, 275] on both axes (Bellwether at the origin, Sunreach to the east)
 export const ISLAND_RADIUS = 80;
 /** Width of the sand belt around the island, in metres (the beach climbs gently to grass beyond it). */
 export const BEACH = 10;
@@ -37,6 +38,29 @@ export function coastR(theta: number): number {
     + lobe(theta, 226, 16, 10) // Heartwood shoulder
     - lobe(theta, 178, 7, 11) // west cove
     - lobe(theta, 282, 8, 6); // north bight under the peak
+}
+
+// ---- Sunreach Isle: a warm jungle island east of Bellwether, its harbour in a bay on the south shore ----------
+export const SUN = { x: 190, z: -20 };
+export const SUN_RADIUS = 54;
+export function sunCoastR(theta: number): number {
+  const c = Math.cos(theta), s = Math.sin(theta);
+  return SUN_RADIUS + (fbm(c * 2.3 + 31, s * 2.3 + 31, 4, 23) - 0.5) * 22
+    - lobe(theta, 90, 9, 8) // Port Halyard's bay
+    + lobe(theta, 120, 10, 9) // the harbour's western arm
+    + lobe(theta, 330, 12, 10) // Ember Head, north-east
+    - lobe(theta, 210, 8, 7) // Palm Cove, west
+    + lobe(theta, 25, 9, 7); // the east reef shore
+}
+/** Point on Sunreach at angle `thetaDeg` round its centre, `inset` metres inside its coast. */
+export function sunPoint(thetaDeg: number, inset: number): [number, number] {
+  const t = deg(thetaDeg), r = sunCoastR(t) - inset;
+  return [SUN.x + Math.cos(t) * r, SUN.z + Math.sin(t) * r];
+}
+const sunAt = (thetaDeg: number, inset: number) => { const [x, z] = sunPoint(thetaDeg, inset); return { x, z }; };
+/** Which island a point belongs to (the nearer coast). */
+export function islandOf(x: number, z: number): 'bellwether' | 'sunreach' {
+  return Math.hypot(x - SUN.x, z - SUN.z) - SUN_RADIUS < Math.hypot(x, z) - ISLAND_RADIUS ? 'sunreach' : 'bellwether';
 }
 
 /** Point at angle theta, `inset` metres inside the coastline (negative = out at sea). */
@@ -74,10 +98,22 @@ export const LAYOUT = {
   islet: at(215, -42), // Leviathan's Rest, an islet off the north-west coast
   spire: at(240, -34), // the Drowned Spire, mined from the deck
 };
+const sunQuay = sunAt(90, 0);
+export const SUN_LAYOUT = {
+  dockBase: { x: SUN.x, z: sunQuay.z - 2.5 },
+  port: { x: SUN.x, z: sunQuay.z - 13 }, // Port Halyard's quay square
+  plaza: { x: SUN.x, z: sunQuay.z - 27 },
+  jungle: { x: SUN.x - 14, z: SUN.z - 8 }, // the Greenheart: amber and ghost yew under the canopy
+  ember: { x: SUN.x + 18, z: SUN.z - 22 }, // Ember Hill: coal, gold and stormsilver
+  palms: sunAt(205, 6), // Palm Cove
+  reefshore: sunAt(20, 5), // the east reef shore: lobster pots and ironshells
+  temple: { x: SUN.x - 6, z: SUN.z - 38 }, // the Sunken Temple (its guardian comes with the next stage)
+};
 
 const L = LAYOUT;
 /** Bellwether town: every building, its furniture and who works there. */
-export const TOWN = townPlan(L.village, L.crossroads);
+export const TOWN = mergePlans(townPlan(L.village, L.crossroads), portPlan(SUN_LAYOUT.port));
+const SL = SUN_LAYOUT;
 /** Offshore islets: land you reach by ship. */
 export const ISLETS = [{ x: L.islet.x, z: L.islet.z, r: 13 }];
 export const LAGOON = { x: -34, z: -22, r: 9 };
@@ -94,6 +130,11 @@ export const FLATS: Flat[] = [
   // a pad under the Ironcrag camp (forge, anvil, strongbox) so nothing sits in a slope
   { x: L.peak.x + 6, z: L.peak.z + 20, r: 5.5, h: 'auto' },
   { x: L.summit.x, z: L.summit.z, r: 4.5, h: 'auto' }, // the vent forge stands on a levelled summit
+  // Port Halyard: the quay square and the plaza, the dock's landing, the temple's floor
+  { x: SL.port.x, z: SL.port.z, r: 17, h: 1.1 },
+  { x: SL.plaza.x, z: SL.plaza.z, r: 9, h: 'pad', soft: 3 }, // levelled from the quay square's height, so the forge between them sits flat
+  { x: SL.dockBase.x, z: SL.dockBase.z - 1, r: 3, h: 1.0 },
+  { x: SL.temple.x, z: SL.temple.z, r: 8, h: 'auto' },
   // a level pad under every town building, at the height of the ground already there (so the quay's stay on the quay)
   ...TOWN.buildings.map((b) => ({ x: b.x, z: b.z, r: Math.hypot(b.w, b.d) / 2 + 0.6, h: 'pad' as const, soft: 2.5 })),
 ];
@@ -107,6 +148,9 @@ export const HILLS: Hill[] = [
   { x: L.heartwood.x - 6, z: L.heartwood.z - 6, r: 14, h: 3.5 },
   { x: L.forest.x - 8, z: L.forest.z - 6, r: 14, h: 2.5 },
   { x: L.cove.x + 5, z: L.cove.z - 6, r: 8, h: 3 },
+  { x: SL.ember.x, z: SL.ember.z, r: 15, h: 9 },
+  { x: SL.ember.x + 8, z: SL.ember.z + 10, r: 9, h: 4 },
+  { x: SL.jungle.x - 4, z: SL.jungle.z - 6, r: 16, h: 3 },
 ];
 
 export const DIPS: Dip[] = [{ x: LAGOON.x, z: LAGOON.z, r: LAGOON.r, floor: -1.8 }];
@@ -130,6 +174,12 @@ export const PATHS: PathDef[] = [
   { width: 1.1, pts: [[C.x + 2, C.z + 6], [SC.x - 5, SC.z - 9], [SC.x, SC.z]] },
   // village -> Crab Strand
   { width: 1.1, pts: [[-6, V.z + 3], [-16, V.z + 1.4], [ST.x + 9, ST.z - 6], [ST.x, ST.z]] },
+  // Sunreach: the high street from the dock through the quay square and plaza, on into the jungle
+  { width: 1.5, pts: [[SL.dockBase.x, SL.dockBase.z], [SL.port.x, SL.port.z], [SL.plaza.x, SL.plaza.z], [SL.jungle.x + 6, SL.jungle.z + 8], [SL.jungle.x, SL.jungle.z]] },
+  { width: 1.2, pts: [[SL.plaza.x, SL.plaza.z], [SL.ember.x - 6, SL.ember.z + 14], [SL.ember.x - 2, SL.ember.z + 6]] },
+  { width: 1.1, pts: [[SL.jungle.x, SL.jungle.z], [SL.temple.x - 2, SL.temple.z + 12], [SL.temple.x, SL.temple.z + 6]] },
+  { width: 1.1, pts: [[SL.port.x - 6, SL.port.z + 2], [SL.palms.x + 10, SL.palms.z + 2], [SL.palms.x, SL.palms.z]] },
+  { width: 1.1, pts: [[SL.ember.x - 2, SL.ember.z + 6], [SL.reefshore.x - 8, SL.reefshore.z], [SL.reefshore.x, SL.reefshore.z]] },
 ];
 
 function pathDist(p: PathDef, x: number, z: number): number {
@@ -152,9 +202,21 @@ export function nearestPathDist(x: number, z: number): { d: number; width: numbe
   return { d, width };
 }
 
-/** Signed distance inside the coastline (positive on land). */
+// The coastlines depend only on the angle, so they're tabulated once (the world build asks ~10^6 times)
+const COAST_STEPS = 2048;
+const tabulate = (f: (t: number) => number) => Float32Array.from({ length: COAST_STEPS + 1 }, (_, i) => f((i / COAST_STEPS) * Math.PI * 2 - Math.PI));
+let bellTable: Float32Array | null = null, sunTable: Float32Array | null = null;
+function fromTable(t: Float32Array, theta: number): number {
+  const f = ((theta + Math.PI) / (Math.PI * 2)) * COAST_STEPS, i = Math.max(0, Math.min(COAST_STEPS - 1, Math.floor(f)));
+  return t[i] + (t[i + 1] - t[i]) * (f - i);
+}
+/** Signed distance inside the nearest coastline (positive on land), over both islands. */
 export function coastDist(x: number, z: number): number {
-  return coastR(Math.atan2(z, x)) - Math.hypot(x, z);
+  bellTable ??= tabulate(coastR);
+  sunTable ??= tabulate(sunCoastR);
+  const b = fromTable(bellTable, Math.atan2(z, x)) - Math.hypot(x, z);
+  const dx = x - SUN.x, dz = z - SUN.z;
+  return Math.max(b, fromTable(sunTable, Math.atan2(dz, dx)) - Math.hypot(dx, dz));
 }
 
 export function rawHeight(x: number, z: number): number {
@@ -165,6 +227,8 @@ export function rawHeight(x: number, z: number): number {
 function shapedHeight(x: number, z: number, levelled: boolean, upto = FLATS.length): number {
   const d = coastDist(x, z);
   const n = fbm(x * 0.06 + 40, z * 0.06 + 40, 4, 3);
+  // open sea (most of the world): nothing but seabed out here, so skip the flats, roads and hills
+  if (d < -10 && !ISLETS.some((is) => Math.hypot(x - is.x, z - is.z) < is.r + 14)) return Math.max(0.05 + d * 0.35 * (0.8 + n * 0.5), -6 + n);
   let h: number;
   if (d > 0) {
     const broad = fbm(x * 0.022 + 3, z * 0.022 + 3, 3, 9);
@@ -205,6 +269,11 @@ function shapedHeight(x: number, z: number, levelled: boolean, upto = FLATS.leng
 }
 
 // Offshore fishing grounds (ship only), as [angle in degrees, metres out from the coast].
+/** Ship-only fishing grounds off Sunreach (world x, z). */
+export const SUN_SEA_SPOTS: Record<string, [number, number][]> = {
+  spot_sword: [sunPoint(150, -18), sunPoint(60, -20)],
+  spot_shark: [sunPoint(300, -24)],
+};
 export const SEA_SPOTS: Record<string, [number, number][]> = {
   spot_bell: [[20, -16], [200, -16], [295, -17]],
   spot_sword: [[52, -22], [70, -24]],
@@ -214,7 +283,7 @@ export const SEA_SPOTS: Record<string, [number, number][]> = {
 
 // ---- named places (discovery) ------------------------------------------------
 // A place is only listed once it has something to do; new zones join as their content lands.
-export interface Place { id: string; name: string; x: number; z: number; r: number; sea?: boolean }
+export interface Place { id: string; name: string; x: number; z: number; r: number; sea?: boolean; island?: 'sunreach' }
 
 export const PLACES: Place[] = [
   { id: 'quay', name: 'Bellwether Quay', x: V.x, z: V.z + 6, r: 18 },
@@ -235,4 +304,11 @@ export const PLACES: Place[] = [
   { id: 'spire', name: 'The Drowned Spire', x: L.spire.x, z: L.spire.z, r: 14, sea: true },
   ...([['shallows', 'Bellfish Shallows', 20, -16], ['swordrun', 'Swordfish Run', 60, -23], ['deeps', 'Shark Deeps', 255, -26], ['trench', 'Angler\'s Trench', 165, -28]] as const)
     .map(([id, name, a, i]) => { const [x, z] = coastPoint(a, i); return { id, name, x, z, r: 16, sea: true }; }),
+  // Sunreach Isle
+  { id: 'halyard', name: 'Port Halyard', x: SL.port.x, z: SL.port.z - 6, r: 18, island: 'sunreach' },
+  { id: 'greenheart', name: 'The Greenheart', x: SL.jungle.x, z: SL.jungle.z, r: 16, island: 'sunreach' },
+  { id: 'ember', name: 'Ember Hill', x: SL.ember.x, z: SL.ember.z + 4, r: 15, island: 'sunreach' },
+  { id: 'palmcove', name: 'Palm Cove', x: SL.palms.x, z: SL.palms.z, r: 13, island: 'sunreach' },
+  { id: 'reefshore', name: 'The Reef Shore', x: SL.reefshore.x, z: SL.reefshore.z, r: 13, island: 'sunreach' },
+  { id: 'channel', name: 'Halyard Channel', x: 120, z: 10, r: 18, sea: true },
 ];

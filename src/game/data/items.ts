@@ -11,7 +11,7 @@ export type WeaponKind = 'cutlass' | 'dagger' | 'pike' | 'greatsword' | 'pistol'
 export type AmmoKind = 'shot' | 'arrow' | 'bolt';
 export const AMMO_FOR: Partial<Record<WeaponKind, AmmoKind>> = { pistol: 'shot', pistols: 'shot', shortbow: 'arrow', longbow: 'arrow', crossbow: 'bolt' };
 export const AMMO_NAME: Record<AmmoKind, string> = { shot: 'shot', arrow: 'arrows', bolt: 'bolts' };
-export type IconShape = 'log' | 'ore' | 'bar' | 'fish' | 'meat' | 'coins' | 'bread' | 'hatchet' | 'pickaxe' | 'rod' | 'cutlass' | 'helm' | 'cap' | 'coat' | 'plate' | 'ring' | 'bell' | 'tooth' | 'shell' | 'burnt' | 'pistol' | 'shot' | 'staff' | 'charm' | 'harpoon' | 'pot' | 'lobster' | 'berries' | 'kelp' | 'geode' | 'spade' | 'parcel' | 'ash' | 'salt' | 'crystal' | 'nest' | 'casket' | 'mug' | 'bowl' | 'pie' | 'dagger' | 'pike' | 'greatsword' | 'pistols' | 'bow' | 'crossbow' | 'arrow' | 'bolt';
+export type IconShape = 'log' | 'ore' | 'bar' | 'fish' | 'meat' | 'coins' | 'bread' | 'hatchet' | 'pickaxe' | 'rod' | 'cutlass' | 'helm' | 'cap' | 'coat' | 'plate' | 'ring' | 'bell' | 'tooth' | 'shell' | 'burnt' | 'pistol' | 'shot' | 'staff' | 'charm' | 'harpoon' | 'pot' | 'lobster' | 'berries' | 'kelp' | 'geode' | 'spade' | 'parcel' | 'ash' | 'salt' | 'crystal' | 'nest' | 'casket' | 'mug' | 'bowl' | 'pie' | 'dagger' | 'pike' | 'greatsword' | 'pistols' | 'bow' | 'crossbow' | 'arrow' | 'bolt' | 'coconut';
 
 /** RuneScape-style equipment bonuses. Accuracy applies to the weapon's own style. */
 export interface Bonuses {
@@ -210,6 +210,7 @@ function tierItems(): ItemDef[] {
   ];
   // the living island: foraging, treasure
   out.push(I({ id: 'berries', name: 'Bramble berries', desc: 'Heals 2. Sharp, sweet, slightly squashed.', icon: { shape: 'berries', color: '#7a2a5a', accent: '#3e7a3a' }, stackable: true, value: 2, heal: 2 }));
+  out.push(I({ id: 'coconut', name: 'Coconut', desc: 'Heals 5. Crack it on a rock; drink, then eat.', icon: { shape: 'coconut', color: '#6a4a2a', accent: '#f2ece0' }, stackable: true, value: 4, heal: 5 }));
   out.push(I({ id: 'kelp', name: 'Sea kelp', desc: 'Wrap fish in it before cooking: it keeps them moist and doubles the goodness.', icon: { shape: 'kelp', color: '#4a6a2a', accent: '#8a9a3a' }, stackable: true, value: 3 }));
   out.push(I({ id: 'geode', name: 'Geode', desc: 'A plain stone that rattles. Tap it and Crack open.', icon: { shape: 'geode', color: '#8a8478', accent: '#9fe8ff' }, stackable: true, value: 20, opens: 'geode' }));
   out.push(I({ id: 'spade', name: 'Spade', desc: 'For disturbed sand. Somebody always buries something.', icon: { shape: 'spade', color: '#9aa0a4' }, stackable: false, value: 12 }));

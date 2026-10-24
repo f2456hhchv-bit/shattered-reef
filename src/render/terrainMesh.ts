@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { fbm, smooth } from '../art/noise';
 import type { Look } from '../art/looks';
-import { coastDist, nearestPathDist, FLATS, LAYOUT, BEACH } from '../game/world/island';
+import { coastDist, nearestPathDist, FLATS, LAYOUT, BEACH, SUN_LAYOUT, SUN, SUN_RADIUS } from '../game/world/island';
 import { World, HCELL, HN } from '../game/world/world';
 import { WORLD_HALF } from '../game/world/island';
 
@@ -23,8 +23,11 @@ export function buildTerrainMesh(world: World, look: Look): TerrainView {
   const pos = new Float32Array(R * R * 3);
   const col = new Float32Array(R * R * 3);
   const cob = new Float32Array(R * R); // cobblestone mask for the village square
-  const village = FLATS[0];
-  const ruin = LAYOUT.ruin;
+  // cobbled squares (Bellwether's quay, Port Halyard's) and paved ruins (the Broken Ring, the Sunken Temple)
+  const squares = [FLATS[0], FLATS.find((f) => f.x === SUN_LAYOUT.port.x && f.z === SUN_LAYOUT.port.z)!];
+  const paved = [LAYOUT.ruin, SUN_LAYOUT.temple];
+  // Sunreach is warmer: paler sand, lusher jungle green
+  const jungle = C(0x3f7a34), jungleD = C(0x2c5a2c), palmSand = C(0xeedcab);
   const tmp = new THREE.Color();
   const slopeAt = (i: number, j: number) => {
     const h = (a: number, b: number) => H[Math.max(0, Math.min(HN, b)) * R + Math.max(0, Math.min(HN, a))];
@@ -35,22 +38,29 @@ export function buildTerrainMesh(world: World, look: Look): TerrainView {
       const x = i * HCELL - WORLD_HALF, z = j * HCELL - WORLD_HALF, y = H[j * R + i];
       const k = (j * R + i) * 3;
       pos[k] = x; pos[k + 1] = y; pos[k + 2] = z;
+      if (y < -0.05) {
+        // seabed: no land detail to work out (most of the world)
+        tmp.copy(bed).lerp(bedD, smooth(-y, 0.3, 3.5));
+        col[k] = tmp.r; col[k + 1] = tmp.g; col[k + 2] = tmp.b;
+        continue;
+      }
       const d = coastDist(x, z);
       const n = fbm(x * 0.05, z * 0.05, 3, 5); // large soft patches
       const n2 = fbm(x * 0.22 + 9, z * 0.22 + 9, 2, 6); // small variation
       const slope = slopeAt(i, j);
-      if (y < -0.05) tmp.copy(bed).lerp(bedD, smooth(-y, 0.3, 3.5));
-      else {
+      const sunny = 1 - smooth(Math.hypot(x - SUN.x, z - SUN.z), SUN_RADIUS + 10, SUN_RADIUS + 30);
+      {
         // grass with meadow / moss patches, easing into sand near the shore
         tmp.copy(grass).lerp(meadow, smooth(n, 0.45, 0.7) * 0.7).lerp(grassD, smooth(n2, 0.45, 0.8) * 0.45).lerp(moss, smooth(1 - n, 0.55, 0.8) * 0.35);
+        if (sunny > 0) tmp.lerp(jungle.clone().lerp(jungleD, smooth(n2, 0.4, 0.8) * 0.6), sunny * 0.7);
         const shore = 1 - smooth(d, BEACH - 2.5 + n * 3, BEACH + 1.5 + n * 3); // the beach belt, edge wandering
-        tmp.lerp(sand, shore);
+        tmp.lerp(sunny > 0 ? sand.clone().lerp(palmSand, sunny) : sand, shore);
         tmp.lerp(wet, 1 - smooth(y, 0.05, 0.35));
-        const vd = Math.hypot(x - village.x, z - village.z);
-        const cw = 1 - smooth(vd, village.r - 3, village.r + 0.5);
+        let cw = 0;
+        for (const sq of squares) cw = Math.max(cw, 1 - smooth(Math.hypot(x - sq.x, z - sq.z), sq.r - 3, sq.r + 0.5));
         cob[j * R + i] = cw;
         tmp.lerp(cobble.clone().lerp(cobbleD, n2), cw);
-        tmp.lerp(rock.clone().lerp(grassD, 0.3 + n2 * 0.3), 1 - smooth(Math.hypot(x - ruin.x, z - ruin.z), 6, 9));
+        for (const rp of paved) tmp.lerp(rock.clone().lerp(grassD, 0.3 + n2 * 0.3), 1 - smooth(Math.hypot(x - rp.x, z - rp.z), 6, 9));
         const pd = nearestPathDist(x, z);
         tmp.lerp(dirt.clone().lerp(sand, 0.2 * n2), (1 - smooth(pd.d, pd.width * 0.8, pd.width + 0.35)) * (y > 0.2 ? 1 : 0));
       }

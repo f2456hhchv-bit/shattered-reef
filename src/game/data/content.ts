@@ -78,6 +78,7 @@ export const NODES: Record<string, NodeDef> = Object.fromEntries(([
   { id: 'rock_boulder', name: 'Boulder', skill: 'mining', level: 1, xp: 10, item: 'ore_copper', drops: [{ item: 'ore_copper', w: 1 }, { item: 'ore_tin', w: 1 }], bonus: { item: 'geode', chance: 0.04 },
     difficulty: 0.45, tier: 0, rate: 0.3, depleteChance: 0.25, respawn: 45, verb: 'Mine' },
   { id: 'bush_berry', name: 'Bramble bush', level: 1, xp: 0, item: 'berries', difficulty: 0, tier: 0, rate: 0.9, depleteChance: 0.3, respawn: 60, verb: 'Pick' },
+  { id: 'palm', name: 'Coconut palm', level: 1, xp: 0, item: 'coconut', difficulty: 0, tier: 0, rate: 0.7, depleteChance: 0.35, respawn: 70, verb: 'Pick' },
   { id: 'kelp_bed', name: 'Kelp bed', level: 1, xp: 0, item: 'kelp', difficulty: 0, tier: 0, rate: 0.8, depleteChance: 0.3, respawn: 50, verb: 'Gather', reach: 3.4 },
   { id: 'salt_pan', name: 'Salt pan', level: 1, xp: 0, item: 'sea_salt', difficulty: 0, tier: 0, rate: 0.6, depleteChance: 0.3, respawn: 90, verb: 'Scrape' },
   { id: 'dig_spot', name: 'Disturbed sand', level: 1, xp: 0, item: 'coins', loot: 'treasure', tool: 'spade', difficulty: 0, tier: 0, rate: 0.45, depleteChance: 1, respawn: 420, verb: 'Dig' },
@@ -232,6 +233,23 @@ export const SHOPS: Record<string, Shop> = {
     wants: [{ prefix: 'berries', mul: 2, note: 'Hob pays double for berries.' }, { prefix: 'crab_meat', mul: 1.6, note: 'and well for crab.' }],
   },
 };
+// Sunreach's traders: mid-tier gear for a captain who's outgrown Bellwether, and the Gilded Anchor's kitchen
+SHOPS.sunreach = {
+  id: 'sunreach', name: 'Sunreach Trading Post', keeper: 'tamsin',
+  stock: [
+    { id: 'shortbow_oak', qty: 1 }, { id: 'longbow_willow', qty: 1 }, { id: 'crossbow_iron', qty: 1 }, { id: 'arrow_iron', qty: 25 }, { id: 'bolt_iron', qty: 20 }, { id: 'shot_steel', qty: 25 },
+    { id: 'cutlass_steel', qty: 1 }, { id: 'pike_iron', qty: 1 }, { id: 'helm_steel', qty: 1 }, { id: 'harpoon', qty: 1 }, { id: 'lobster_pot', qty: 1 }, { id: 'charm_tide', qty: 50 }, { id: 'sea_salt', qty: 5 },
+  ],
+  buyMul: 1.15, sellMul: 0.55,
+  wants: [{ prefix: 'ore_', mul: 1.3, note: 'Tamsin pays well for ore.' }, { prefix: 'logs_', mul: 1.3, note: 'and for timber.' }],
+};
+SHOPS.anchor = {
+  id: 'anchor', name: 'The Gilded Anchor', keeper: 'rell',
+  stock: [{ id: 'coconut', qty: 1 }, { id: 'ale', qty: 1 }, { id: 'crab_cakes', qty: 1 }, { id: 'fish_stew', qty: 1 }, { id: 'fish_pie', qty: 1 }],
+  buyMul: 1.25, sellMul: 0.45,
+  wants: [{ prefix: 'fish_', mul: 1.4, note: 'Rell pays well for fish.' }],
+};
+
 /** Marta's store: the shop the tutorial and older code mean by "the shop". */
 export const SHOP = SHOPS.general;
 

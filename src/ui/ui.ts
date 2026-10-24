@@ -7,7 +7,7 @@ import { NPC_LOOKS, PLAYER_LOOK } from '../art/cast';
 import { NODES, SKILLS, UNLOCKS, RECIPES, UTILITY_SPELLS, ELITE_AFFIXES, PLAYER_BASE, SPELLS, type Station } from '../game/data/content';
 import type { Stance } from '../game/sim/gear';
 import { NPCS, QUESTS } from '../game/data/quests';
-import { PLACES, WORLD_HALF, coastDist, nearestPathDist, FLATS } from '../game/world/island';
+import { PLACES, WORLD_HALF, coastDist, nearestPathDist, FLATS, SUN, islandOf } from '../game/world/island';
 import { count, displayName, stackValue, INV_SIZE, type Stack } from '../game/sim/inventory';
 import { levelForXp, levelProgress, xpForLevel, MAX_LEVEL } from '../game/sim/xp';
 import { earlyBoost, EARLY_BOOST_TO, type Game, type GameEvent, type MsgKind } from '../game/sim/game';
@@ -207,6 +207,7 @@ export class UI {
       case 'dialog': this.openDialog(e.npc, e.lines); break;
       case 'openStation': this.openStation(e.station); break;
       case 'openShop': this.openShop(); break;
+      case 'ferryOffer': { const n = NPCS[e.npc]; this.confirm(`${n.idle[0]}`, `Sail (${e.price} coins)`, () => this.game.takeFerry(e.npc)); break; }
       case 'openBank': this.openBank(); break;
       case 'hit': this.damageNumber(e.x, e.z, e.amount, e.target === 'player', e.crit); break;
       case 'dodge': this.damageNumber(e.x, e.z, 'Dodged', false, true); break;
@@ -481,7 +482,12 @@ export class UI {
         break;
       }
       case 'quests': morph(c, this.questsHtml()); break;
-      case 'map': c.innerHTML = '<h2 class="title">Bellwether Isle</h2><canvas id="mapbig" width="600" height="600" aria-label="Island map. Tap to walk there."></canvas><p class="muted" style="font-size:12px;margin:8px 0 0">Gold star: quest objective. Tap the map to walk there.</p>' + this.utilityRow(); forget(c); this.bindBigMap(); this.drawBigMap(); break;
+      case 'map': {
+        const v = this.mapFrame();
+        const tabs = (['bellwether', 'sunreach', 'world'] as const).map((id) => `<button data-mapview="${id}" class="${v.id === id ? 'on' : ''}">${id === 'bellwether' ? 'Bellwether' : id === 'sunreach' ? 'Sunreach' : 'Both'}</button>`).join('');
+        c.innerHTML = `<div class="row" style="justify-content:space-between;align-items:center;margin-bottom:6px"><h2 class="title" style="margin:0">${v.title}</h2><span class="seg maptabs">${tabs}</span></div><canvas id="mapbig" width="600" height="600" aria-label="Map. Tap to walk there."></canvas><p class="muted" style="font-size:12px;margin:8px 0 0">Gold star: quest objective. Tap the map to walk there.</p>` + this.utilityRow();
+        forget(c); this.bindBigMap(); this.drawBigMap(); break;
+      }
       case 'settings': morph(c, this.settingsHtml()); break;
     }
   }
@@ -489,8 +495,9 @@ export class UI {
   /** One set of handlers on the tab panel for its whole life (content is patched, never re-bound). */
   private bindContent(c: HTMLElement) {
     const g = this.game;
-    onTap(c, '[data-slot], [data-equip], [data-stance], [data-spell], [data-q], [data-dmg], [data-music], [data-sfx], [data-fps], [data-lv], [data-skill], [data-skillback], [data-home], #saveNow, #resetSave', (t, pointer) => {
+    onTap(c, '[data-slot], [data-equip], [data-stance], [data-spell], [data-q], [data-dmg], [data-music], [data-sfx], [data-fps], [data-lv], [data-skill], [data-skillback], [data-home], [data-mapview], #saveNow, #resetSave', (t, pointer) => {
       if (t.dataset.home) { g.teleportHome(); return; }
+      if (t.dataset.mapview) { this.mapView = t.dataset.mapview as 'bellwether' | 'sunreach' | 'world'; this.renderTab(); return; }
       if (t.dataset.slot !== undefined) {
         const i = Number(t.dataset.slot);
         const st = g.p.inv[i];
@@ -957,7 +964,7 @@ export class UI {
 
   // ------------------------------------------------------------------ maps
   private buildMinimapBase() {
-    const S = 640, k = S / (WORLD_HALF * 2);
+    const S = 1024, k = S / (WORLD_HALF * 2); // ~1.9 px per metre, so the minimap stays crisp
     const cv = document.createElement('canvas');
     cv.width = cv.height = S;
     const c = cv.getContext('2d')!;
@@ -1027,7 +1034,14 @@ export class UI {
   }
 
   private readonly MM_RANGE = 34; // metres from centre to edge
-  private readonly MAP_SPAN = 216; // metres shown edge to edge on the big map (the island plus a margin of sea)
+  /** Which part of the world the Map tab shows: the island you're on unless you pick one. */
+  private mapView: 'auto' | 'bellwether' | 'sunreach' | 'world' = 'auto';
+  private mapFrame(): { id: 'bellwether' | 'sunreach' | 'world'; title: string; cx: number; cz: number; span: number } {
+    const g = this.game, id = this.mapView === 'auto' ? islandOf(g.p.x, g.p.z) : this.mapView;
+    if (id === 'sunreach') return { id, title: 'Sunreach Isle', cx: SUN.x, cz: SUN.z, span: 170 };
+    if (id === 'world') return { id, title: 'The Shattered Reef', cx: SUN.x / 2, cz: -5, span: 430 };
+    return { id, title: 'Bellwether Isle', cx: 0, cz: 0, span: 216 };
+  }
   private drawMinimap() {
     const cv = this.mmCtx.canvas, c = this.mmCtx, W = cv.width;
     const g = this.game;
@@ -1056,7 +1070,7 @@ export class UI {
     if (!cv) return;
     const c = cv.getContext('2d')!, W = cv.width;
     // show the island region, not the whole sea
-    const span = this.MAP_SPAN, ox = -span / 2, oz = -span / 2;
+    const fr = this.mapFrame(), span = fr.span, ox = fr.cx - span / 2, oz = fr.cz - span / 2;
     const k = this.mmBase.width / (WORLD_HALF * 2);
     c.drawImage(this.mmBase, (ox + WORLD_HALF) * k, (oz + WORLD_HALF) * k, span * k, span * k, 0, 0, W, W);
     const toPx = (x: number, z: number): [number, number] => [((x - ox) / span) * W, ((z - oz) / span) * W];
@@ -1075,8 +1089,8 @@ export class UI {
     const cv = document.getElementById('mapbig') as HTMLCanvasElement;
     cv.addEventListener('pointerdown', (e) => {
       const r = cv.getBoundingClientRect();
-      const span = this.MAP_SPAN;
-      const x = -span / 2 + ((e.clientX - r.left) / r.width) * span, z = -span / 2 + ((e.clientY - r.top) / r.height) * span;
+      const fr = this.mapFrame(), span = fr.span;
+      const x = fr.cx - span / 2 + ((e.clientX - r.left) / r.width) * span, z = fr.cz - span / 2 + ((e.clientY - r.top) / r.height) * span;
       this.game.moveTo(x, z);
       this.r.markClick(x, z);
       if (this.portrait) { this.sideOpen = false; this.layout(); }

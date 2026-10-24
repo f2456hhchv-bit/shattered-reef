@@ -6,7 +6,7 @@ import { count } from './inventory';
 import { ITEMS } from '../data/items';
 import { levelForXp } from './xp';
 import { NODES, RECIPES, ENEMIES, LOOT, SHOPS, UNLOCKS, SKILLS } from '../data/content';
-import { LAYOUT, nearestPathDist } from '../world/island';
+import { LAYOUT, nearestPathDist, islandOf } from '../world/island';
 import { toWorld, toLocal, doorPoints, isInside } from '../world/buildings';
 
 const base = new Game({ seed: 3 });
@@ -135,16 +135,40 @@ describe('content placement', () => {
     expect(bad).toEqual([]);
   });
 
-  it('one of each node type and every enemy spawn is reachable on foot from the quay', () => {
+  it('one of each node type and every enemy spawn is reachable on foot from its island\'s harbour', () => {
     const seen = new Set<string>();
     const bad: string[] = [];
+    // Bellwether from the quay; Sunreach from Port Halyard's pier
+    const from = (x: number, z: number) => (islandOf(x, z) === 'sunreach' ? g.layout.ports[1].land : { x: g.p.x, z: g.p.z });
     for (const n of g.layout.nodes) {
-      if (NODES[n.def].fromShip || NODES[n.def].islet || seen.has(n.def)) continue;
-      seen.add(n.def);
-      if (!g.world.findPath(g.p.x, g.p.z, n.x, n.z)) bad.push(n.def);
+      const key = `${n.def}@${islandOf(n.x, n.z)}`;
+      if (NODES[n.def].fromShip || NODES[n.def].islet || seen.has(key)) continue;
+      seen.add(key);
+      const f = from(n.x, n.z);
+      if (!g.world.findPath(f.x, f.z, n.x, n.z)) bad.push(key);
     }
-    for (const s of g.layout.spawns) if (!g.world.findPath(g.p.x, g.p.z, s.x, s.z)) bad.push(s.enemy);
+    for (const s of g.layout.spawns) { const f = from(s.x, s.z); if (!g.world.findPath(f.x, f.z, s.x, s.z)) bad.push(s.enemy); }
     expect(bad).toEqual([]);
+  });
+
+  it('Sunreach: sail there from Bellwether, take the ferry back and forth, find a bank and a forge in Port Halyard', () => {
+    const port = g.layout.ports[1];
+    expect(g.world.findSeaPath(g.layout.mooring.x, g.layout.mooring.z, port.ship.x, port.ship.z)).not.toBeNull();
+    const f = fresh();
+    const near = (gg: Game, x: number, z: number) => { const q = gg.world.nearestWalkable(x, z, 3)!; gg.p.x = q[0]; gg.p.z = q[1]; };
+    f.give('coins', 100);
+    const wynn = f.layout.npcs.find((n) => n.id === 'wynn')!;
+    near(f, wynn.x, wynn.z);
+    f.takeFerry('wynn');
+    expect(islandOf(f.p.x, f.p.z)).toBe('sunreach');
+    expect(Math.hypot(f.ship.x - port.ship.x, f.ship.z - port.ship.z)).toBeLessThan(0.01);
+    expect(f.layout.banks.some((b) => b.booth && islandOf(b.x, b.z) === 'sunreach')).toBe(true);
+    for (const st of ['furnace', 'anvil', 'fire', 'bench'] as const) expect(f.layout.stations.some((s) => s.id === st && islandOf(s.x, s.z) === 'sunreach'), st).toBe(true);
+    const sefa = f.layout.npcs.find((n) => n.id === 'sefa')!;
+    near(f, sefa.x, sefa.z);
+    f.takeFerry('sefa');
+    expect(islandOf(f.p.x, f.p.z)).toBe('bellwether');
+    expect(count(f.p.inv, 'coins')).toBe(100 + 25 - 60); // started with 25
   });
 
   it('islet nodes can be reached from a beach the ship can sail up to', () => {
@@ -269,7 +293,7 @@ describe('the living island', () => {
       for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1], [0, 0]]) { const [x, z] = toWorld(b, sx * b.w / 2, sz * b.d / 2); hs.push(w.ground(x, z)); }
       expect(Math.max(...hs) - Math.min(...hs), `${b.id} floor`).toBeLessThan(0.15);
       const d = doorPoints(b);
-      const from = base.layout.respawn;
+      const from = islandOf(b.x, b.z) === 'sunreach' ? base.layout.ports[1].land : base.layout.respawn;
       expect(w.findPath(from.x, from.z, d.out[0], d.out[1]), `${b.id} door`).not.toBeNull();
       const inn = w.findPath(d.out[0], d.out[1], d.in[0], d.in[1]);
       expect(inn, `${b.id} doorway`).not.toBeNull();

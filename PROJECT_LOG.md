@@ -41,6 +41,7 @@ Reflects the actual repository, not the roadmap.
 - **Characters: RuneScape-style low-poly** (Tom, 2026-10-24, from a reference image): realistic proportions, flat-shaded facets, ~1,800 triangles each (the vinyl toys were ~20,000), slightly oversized head and hands so faces read from above. `art/models/lowpoly.ts`; the vinyl toy style still exists (`style: 'toy'`) but nobody uses it.
 - **No more graphics passes for now** (Tom, 2026-10-24: "maintain this level"). New content matches the current style.
 - **Enterable buildings:** the simulation owns footprints, doors and furniture collision (`buildings.ts`, no Three.js); the renderer owns the cutaway. A building is "entered" when you're inside its walls (the doorway counts as outside, so the roof doesn't flicker).
+- **One seamless world, not regions (2026-10-24, Sunreach):** the world grew to 550 m (WORLD_HALF 275) with Sunreach at (190, -20), so you can sail between islands with no loading screen. Building the world now takes ~0.85 s in Node (was 0.61 s), helped by coastline lookup tables and a deep-sea shortcut. All `Game`s share one built layout (the test suite went 74 s -> 16 s). Past ~3 islands, switch to loading by region.
 - **Encounter upgrades (Survivor.io level-up choices):** not built yet; deliberately deferred so permanent skills stay the focus of the first island.
 
 ## Systems in the build
@@ -63,6 +64,8 @@ Reflects the actual repository, not the roadmap.
 | Crafting | `content.ts` RECIPES | furnace, anvil, cookfire; burn chance; forged gear can roll Fine/Rare |
 | Shops | `content.ts` SHOPS, `ui.ts` renderShop | Buy / Sell tabs (Sell lists your pack with prices). | one per keeper: Marta (general), Silas (tackle; pays 1.5× for fish), Hob at the inn (ale, bread, bramble pie, fisherman's stew; pays 2× for berries, 1.6× for crab). Sell anything non-quest. Pie and stew are also Cooking recipes (10, 30) |
 | Bellwether town | `world/town.ts`, `world/buildings.ts`, `art/models/buildings.ts` | 15 enterable buildings in two quarters. Quay: store, chart house, tackle shop, warehouse, 2 cottages. Upper town round a market square (4 stalls): the Drowned Bell inn (2 storeys), bank (banker Ada + a bank counter), Chapel of the Tides (Sister Maren heals you to full), town hall (Reeve Corwin), 5 houses. Walls and furniture are real collision; walk in and the roof lifts off, walls drop to waist height, windows hide. 8 new NPCs (shop, bank, healer, harbourmaster, 2 watch), 5 townsfolk walking rounds. Roads were re-routed round the buildings; each building sits on a pad levelled at the ground already there |
+| Sunreach Isle (2nd island) | `island.ts` SUN/SUN_LAYOUT, `town.ts` portPlan, `layout.ts` | radius ~54 m, 190 m east across a deep channel. Port Halyard: own pier (the ship moors there), quay square with forge/anvil/bench/fire, 8 enterable buildings (harbour office, trading post, the Gilded Anchor inn, bank, warehouse, 3 houses), Sefa (harbourmaster), Tamsin (trader: mid-tier stock, pays 1.3× for ore/logs), Rell (inn: coconut, ale, crab cakes, stews/pies; pays 1.4× for fish), Ines (bank), a watchman. Greenheart jungle (amber + yew trees, 150 jungle trees), Ember Hill (coal, gold, stormsilver, abyssite), Palm Cove (25 palms, coconuts), Reef Shore, swordfish/shark sea spots, poachers + ironshell crabs. Sunken Temple site levelled for the stage-2 boss |
+| Ferry | `quests.ts` NpcDef.ferry, `game.ts` takeFerry | Wynn (Bellwether) and Sefa (Halyard) sail you and your ship across for 30 coins (confirm first); or sail yourself. Map tab: Here / Bellwether / Sunreach / Both |
 | Enemies | `content.ts` ENEMIES | reef crab, brigand (melee), gunner (telegraphed shot); 10% elites: Barnacled / Frenzied / Volatile |
 | Boss | `sim/game.ts` stepBoss | Lockbound Guardian: slam circle, sweep cone, crab summons at 66% / 33%, enrage < 25%, resets if you leave or die |
 | Quest | `data/quests.ts` | *The Bell at Low Water*: talk → bronze bar → bell → boss → Keel's Tooth → return |
@@ -112,7 +115,7 @@ Reflects the actual repository, not the roadmap.
 - Visual pass 1 (done): RuneScape-style outlined item icons (lathed items no longer vanish), skill medallions + XP bars, empty-slot silhouettes, hit splats, per-stone cobbles, cloth tents with ropes, smooth shoreline (beach toe slope + per-pixel water depth), less phone haze.
 - No naval combat; sea is for travel, fishing and discovery only.
 - Buildings and the Guardian are still blocky; next art target after characters/UI.
-- One island. Terrain (64 chunks of 40 m) and grass (40 m buckets) are frustum-culled; camera far plane follows the fog. Not streamed: the whole 300 m world is built at load (~0.4 s for the simulation in Node).
+- Two islands. Terrain chunks and grass (40 m buckets) are frustum-culled; camera far plane follows the fog. Not streamed: the whole 550 m world is built at load (~0.85 s for the simulation in Node; page load +5% in software rendering).
 - Performance measured only in software rendering; big-island frame rate on a real phone unmeasured.
 - Frame cost (phone 390×844@2x, Max quality, shadows on; `scripts/perf-budget.cjs`): 200-345 draw calls, 0.27-0.54M triangles everywhere (market square was 560 / 0.93M before the shadow stand-ins and low-poly characters). Real-phone frame rate still unmeasured: turn on Settings > Show frame rate.
 - Gathering pace: 99 takes 200–250 h of pure gathering (RuneScape-like; brief target ~400 h incl. travel). Early levels are RuneScape-quick, faster than the brief's provisional 4 h to level 30.
@@ -125,4 +128,5 @@ Reflects the actual repository, not the roadmap.
 3. New skills one at a time (docs/SKILLS.md), each with real content.
 4. Survivor.io-style encounter upgrades for the camp and boss fights.
 5. Naval combat (raider skiffs) and the Kraken.
-6. Second island (own region, port town, reached by ship), new creatures and monsters, deeper gathering/crafting (Tom, 2026-10-24: "expand the world... start filling out the world truly"). Town batch shipped first.
+6. Sunreach stage 2: boars (raw meat), giant spiders, snakes with their own models; the Sunken Temple guardian boss. Then deeper gathering/crafting. Stage 1 (island, port town, ferry) shipped 2026-10-24.
+7. Greenheart reads autumnal (amber trees) rather than tropical: needs a jungle tree model.
