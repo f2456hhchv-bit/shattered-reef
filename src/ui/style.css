@@ -390,3 +390,5 @@ body.landscape #side { padding-top: calc(var(--mm) + 80px + env(safe-area-inset-
 #loadout h3 small { font-weight: 400; margin-left: 6px; }
 #loadout .lorow { display: flex; flex-wrap: wrap; gap: 6px; }
 #loadout .lorow .slot, #loadout .lohead .slot { width: 52px; height: 52px; }
+#fps { position: fixed; left: calc(env(safe-area-inset-left) + 8px); top: calc(env(safe-area-inset-top) + 8px); z-index: 30; padding: 3px 8px; border-radius: 6px; background: #000a; color: #b8f0c0; font: 600 11px/1.4 ui-monospace, monospace; pointer-events: none; }
+body.portrait #fps { top: auto; bottom: calc(env(safe-area-inset-bottom) + 96px); }

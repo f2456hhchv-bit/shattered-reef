@@ -22,7 +22,7 @@ export interface SaveData {
   flags: Record<string, boolean>;
   discovered: string[];
   nextUid: number;
-  settings: { quality: 'high' | 'low'; showDamage: boolean; music: boolean; sfx: boolean; nodeLevels: boolean };
+  settings: { quality: 'auto' | 'max' | 'low'; showDamage: boolean; music: boolean; sfx: boolean; nodeLevels: boolean; showFps: boolean };
   combat: { stance: Stance; spell: string };
 }
 
@@ -75,7 +75,7 @@ export function defaultSave(spawn: { x: number; z: number }, ship: { x: number; 
     discovered: [],
     bank: [],
     nextUid: 1,
-    settings: { quality: 'high', showDamage: true, music: true, sfx: true, nodeLevels: true },
+    settings: { quality: 'auto', showDamage: true, music: true, sfx: true, nodeLevels: true, showFps: false },
     combat: { stance: 'accurate', spell: 'spray' },
   };
 }
@@ -146,7 +146,8 @@ export function parseSave(json: string | null, fallback: SaveData): SaveData | n
   d.playTime = num(raw.playTime, 0, 0);
   d.savedAt = num(raw.savedAt, 0, 0);
   const st = (raw.settings ?? {}) as Record<string, unknown>;
-  d.settings = { quality: st.quality === 'low' ? 'low' : 'high', showDamage: st.showDamage !== false, music: st.music !== false, sfx: st.sfx !== false, nodeLevels: st.nodeLevels !== false };
+  // the old 'high' was everyone's default before Auto existed, so it becomes Auto; 'max' is a deliberate choice
+  d.settings = { quality: st.quality === 'low' ? 'low' : st.quality === 'max' ? 'max' : 'auto', showDamage: st.showDamage !== false, music: st.music !== false, sfx: st.sfx !== false, nodeLevels: st.nodeLevels !== false, showFps: st.showFps === true };
   const cb = (raw.combat ?? {}) as Record<string, unknown>;
   d.combat = {
     stance: cb.stance === 'aggressive' || cb.stance === 'defensive' ? cb.stance : 'accurate',

@@ -20,7 +20,8 @@ Reflects the actual repository, not the roadmap.
 2. `npx tsc --noEmit && npx vitest run`: rules are pure TS, so whole play-throughs run headless in seconds.
 3. `node scripts/e2e.cjs <dir>` against `npx vite`: boots in Chromium at 1280×800 and 390×844, fails on any console error. Touch/UI changes also run `node scripts/touch-e2e.cjs` (real held touches with state churn).
 4. Screenshots only when visuals changed: `--shots` on e2e, or `node scripts/tour.cjs out.jpg` for a one-image contact sheet of every area (`SCENES=peak,fen` for a subset). Layout changes: `npx vite-node scripts/mapshot.ts out.ppm` draws the island top-down (walk grid, paths, nodes, spawns) in under a second, no browser.
-5. Commit when green. A stage is done only when its tests pass.
+5. Anything that adds things to the world: `node scripts/perf-budget.cjs` (phone screen, Max quality, 7 busiest places). Fails over 450 draw calls or 900k triangles per frame. Raise the budget only on purpose.
+6. Commit when green. A stage is done only when its tests pass.
 
 ## Decisions
 - **Art:** low-poly real-time 3D, fixed 3/4 camera (54°), look A "Bright" (see `docs/ART_DIRECTION.md`). All art built in code; no AI images.
@@ -71,6 +72,7 @@ Reflects the actual repository, not the roadmap.
 | Metal ladder | `items.ts` METALS/METAL_TRAITS, `content.ts` SMELT | 10 metals, gear at 1/10/.../90: Bronze, Iron, Steel, Stormsilver, Abyssite, Tidecore, Cinderite, Skyglass, Leviathite, Orichalcum. Fluxes from other skills (kelp ash, sea salt, geode crystals), Cinderite only melts at the summit vent forge. Each metal has a signature trait (weapons / armour; tools gather faster from Stormsilver) applied as innate affixes |
 | Skill perks | `data/perks.ts` | every skill: a real perk at 10,20,...,90,99 (double haul, rare finds, tool care, thrift, masterwork, faster work, burn less, heal more, accuracy, max hit, crit, cleave, damage reduction, regen, ammo/charm saving, XP). Every other level shows what it improves. Skills tab: tap a skill for its full 1-99 list |
 | High-level spots | `layout.ts`, `highnodes.ts` | Cinderite vents + vent forge on Ironcrag summit (75), Fallen stars at Starfall (82), Leviathan bones on Leviathan's Rest islet (88, sail there), the Drowned Spire mined from the deck (94), 7 salt pans on the beaches. Fishing spots show their fish leaping; level badges float over nearby spots (green/red), hover shows level, item, XP |
+| Mobile performance | `render/governor.ts`, `render/shadowProxy.ts`, `scripts/perf-budget.cjs` | Graphics: Auto (default) / Max / Saver. Auto watches real frame time: below ~48 fps for 2 s it steps down (resolution 2x -> 1.5x -> 1.25x, bloom off, shadow map 1024 redrawn every 2nd then 3rd frame, grass off) and steps back up with headroom. No step recompiles shaders (no hitch). Phones the OS caps at 30 fps are detected (two drops with no gain: undo and stop). Characters cast one shadow from a body+head stand-in drawn only in the shadow pass (was ~20 shadow draws each). Building interiors are drawn only while you're inside. Frame-rate readout in Settings |
 | Input | `src/input/input.ts` | invisible joystick, tap/click to walk or use, hover labels, WASD, hotkeys, pinch/wheel zoom |
 
 ## Controls
@@ -104,7 +106,7 @@ Reflects the actual repository, not the roadmap.
 - Buildings and the Guardian are still blocky; next art target after characters/UI.
 - One island. Terrain (64 chunks of 40 m) and grass (40 m buckets) are frustum-culled; camera far plane follows the fog. Not streamed: the whole 300 m world is built at load (~0.4 s for the simulation in Node).
 - Performance measured only in software rendering; big-island frame rate on a real phone unmeasured.
-- Frame cost (software renderer, shadows on): in the market square at 1100×680 ~600 draw calls, ~0.94M triangles (before the town: ~330). Town buildings merge to ~5 meshes each; vinyl characters merge per joint (58 → 22 meshes). Not yet measured on a real phone; battery saver drops shadows and grass.
+- Frame cost (phone 390×844@2x, Max quality, shadows on; `scripts/perf-budget.cjs`): 240-360 draw calls, 0.33-0.63M triangles everywhere (market square was 560 / 0.93M before the shadow stand-ins). Real-phone frame rate still unmeasured: turn on Settings > Show frame rate.
 - Gathering pace: 99 takes 200–250 h of pure gathering (RuneScape-like; brief target ~400 h incl. travel). Early levels are RuneScape-quick, faster than the brief's provisional 4 h to level 30.
 - Picking and digging give no XP yet (future Foraging/Archaeology only with real loops).
 - Items 60+ have no new gear tiers yet (combat gear tops out at level 50–60 crafted, relic drops above); new skills (Agility, Thieving, ...) not started.

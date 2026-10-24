@@ -30,6 +30,8 @@ import { coastDist, nearestPathDist, WORLD_HALF, BEACH } from '../game/world/isl
 import { HN, HCELL } from '../game/world/world';
 import { buildTerrainMesh } from './terrainMesh';
 import { bakeRig, bakeStatic, bakeFlat, mergeColoured } from './bake';
+import { humanoidShadow, blobShadow } from './shadowProxy';
+import { QualityGovernor } from './governor';
 import { InstancedField, type FieldItem } from './instanced';
 import { Particles } from './fx';
 
@@ -74,7 +76,7 @@ export class GameRenderer {
   private terrain!: ReturnType<typeof buildTerrainMesh>;
   private bloom!: UnrealBloomPass;
   readonly particles = new Particles(500);
-  private quality: 'high' | 'low' = 'high';
+  private quality: 'auto' | 'max' | 'low' = 'auto';
 
   private player: HumanoidRig;
   private playerRigs = new Map<WeaponKind, HumanoidRig>();
@@ -86,6 +88,7 @@ export class GameRenderer {
     if (kind === 'pistols') addOffhand(rig, 'pistol');
     rig.root.scale.setScalar(HERO);
     bakeRig(rig.root, addSurfaceDetail(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: false, roughness: 0.9 }), CHAR_SURFACE));
+    humanoidShadow(rig);
     rig.root.visible = false;
     this.scene.add(rig.root);
     this.playerRigs.set(kind, rig);
@@ -185,6 +188,7 @@ export class GameRenderer {
       rig.root.position.set(n.x, world.standY(n.x, n.z), n.z);
       rig.root.rotation.y = Math.PI / 2 - n.facing;
       bakeRig(rig.root, addSurfaceDetail(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: false, roughness: 0.9 }), CHAR_SURFACE));
+      humanoidShadow(rig);
       this.scene.add(rig.root);
       this.npcs.set(n.id, rig);
     }
@@ -285,6 +289,9 @@ export class GameRenderer {
     for (const b of L.town) {
       const v = buildEnterable(b);
       for (const part of [v.walls, v.trim, v.roof, v.interior]) bakeFlat(part, material);
+      // only the shell casts: the room is under the roof, and windows and signs are too small to matter
+      for (const part of [v.trim, v.interior]) part.traverse((o) => { o.castShadow = false; });
+      v.interior.visible = false; // shown only while you're inside
       v.group.position.set(b.x, w.ground(b.x, b.z), b.z);
       v.group.rotation.y = -b.rot;
       this.scene.add(v.group);
@@ -294,6 +301,7 @@ export class GameRenderer {
       const rig = buildHumanoid(TOWNS_LOOKS[wd.look] ?? TOWNS_LOOKS.towns_a);
       rig.root.scale.setScalar(HERO);
       bakeRig(rig.root, addSurfaceDetail(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: false, roughness: 0.9 }), CHAR_SURFACE));
+      humanoidShadow(rig);
       this.scene.add(rig.root);
       const cum = [0];
       for (let i = 1; i < wd.path.length; i++) cum.push(cum[i - 1] + Math.hypot(wd.path[i][0] - wd.path[i - 1][0], wd.path[i][1] - wd.path[i - 1][1]));
@@ -312,6 +320,7 @@ export class GameRenderer {
       h.v.roof.position.y = h.k * 3;
       h.v.walls.scale.y = 1 - h.k * (1 - 1.1 / (WALL_H * (h.b.storeys ?? 1))); // down to about waist height
       h.v.trim.visible = h.k < 0.05;
+      h.v.interior.visible = h.k > 0;
     }
     for (const wk of this.walkers) {
       const total = wk.cum[wk.cum.length - 1];
@@ -455,17 +464,19 @@ export class GameRenderer {
       if (e.def.look && CRAB_SHELLS[e.def.look]) recolour(rig.root, CRAB_SHELLS[e.def.look]!);
       rig.root.scale.setScalar(e.def.scale * (e.elite ? 1.2 : 1));
       bakeRig(rig.root, material);
+      blobShadow(rig.root, rig.body);
       v = { kind: 'crab', rig, mat: material, root: rig.root, swingT: 0, seen: true, baseScale: rig.root.scale.x };
     } else if (e.def.model === 'guardian') {
       const rig = buildGuardian();
       if (!e.def.boss) { recolour(rig.root, { stoneDark: 0x4e4c54, stone: 0x77737c }); rig.root.scale.setScalar(e.def.scale); }
-      bakeRig(rig.root, material);
+      bakeRig(rig.root, material); // one boss on screen: it keeps its full shadow
       v = { kind: 'guardian', rig, mat: material, root: rig.root, swingT: 0, seen: true, baseScale: rig.root.scale.x };
     } else {
       const look = HUMAN_LOOKS[e.def.look ?? e.def.model] ?? BRIGAND_LOOK;
       const rig = buildHumanoid(e.def.model === 'gunner' ? { ...look, held: 'musket' } : look);
       rig.root.scale.setScalar(e.def.scale * (e.elite ? 1.15 : 1));
       bakeRig(rig.root, material);
+      humanoidShadow(rig);
       v = { kind: 'human', rig, mat: material, root: rig.root, swingT: 0, seen: true, baseScale: rig.root.scale.x };
     }
     if (e.elite) {
@@ -693,15 +704,56 @@ export class GameRenderer {
   }
 
   // ------------------------------------------------------------------ frame
-  setQuality(q: 'high' | 'low') {
+  /** Auto graphics steps, best first: render resolution, then bloom and surface detail, then shadow detail and how
+   * often shadows are redrawn, then grass. None of these recompile shaders, so a step never hitches; only Battery
+   * saver (the last entry, never chosen by Auto) turns shadows off. */
+  static readonly TIERS = [
+    { pr: 2, bloom: true, detail: true, shadow: 2048, every: 1, msaa: 4, grass: true },
+    { pr: 1.5, bloom: true, detail: true, shadow: 2048, every: 1, msaa: 4, grass: true },
+    { pr: 1.25, bloom: false, detail: true, shadow: 2048, every: 1, msaa: 0, grass: true },
+    { pr: 1, bloom: false, detail: false, shadow: 1024, every: 2, msaa: 0, grass: true },
+    { pr: 1, bloom: false, detail: false, shadow: 1024, every: 3, msaa: 0, grass: false },
+    { pr: 1.25, bloom: false, detail: false, shadow: 0, every: 1, msaa: 0, grass: false }, // Battery saver
+  ];
+  readonly governor = new QualityGovernor(GameRenderer.TIERS.length - 2);
+  private shadowEvery = 1;
+  private frameNo = 0;
+  private tier = -1;
+  private msaa = 4;
+  private grassOn = true;
+  private lastT = 0;
+
+  setQuality(q: 'auto' | 'max' | 'low') {
     this.quality = q;
-    this.renderer.shadowMap.enabled = q === 'high';
-    this.bloom.enabled = q === 'high';
-    surfaceUniforms.uDetail.value = q === 'high' ? 1 : 0;
-    this.sun.castShadow = q === 'high';
-    if (this.grass) this.grass.visible = q === 'high';
-    this.renderer.setPixelRatio(q === 'high' ? Math.min(window.devicePixelRatio, 2) : Math.min(window.devicePixelRatio, 1.25));
-    this.scene.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh && m.material) (Array.isArray(m.material) ? m.material : [m.material]).forEach((x) => (x.needsUpdate = true)); });
+    this.applyTier(q === 'low' ? GameRenderer.TIERS.length - 1 : q === 'max' ? 0 : this.governor.tier);
+  }
+
+  /** The tier being drawn (0 = best) and the measured frame rate, for the settings readout. */
+  get perf() { return { tier: this.tier, fps: this.governor.fps, pr: this.renderer.getPixelRatio() }; }
+
+  private applyTier(t: number) {
+    if (t === this.tier) return;
+    const T = GameRenderer.TIERS[t];
+    this.tier = t;
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, T.pr));
+    this.bloom.enabled = T.bloom;
+    surfaceUniforms.uDetail.value = T.detail ? 1 : 0;
+    this.msaa = T.msaa;
+    this.shadowEvery = T.every;
+    this.renderer.shadowMap.autoUpdate = T.every === 1;
+    this.grassOn = T.grass;
+    if (this.grass) this.grass.visible = T.grass;
+    if (T.shadow && T.shadow !== this.sun.shadow.mapSize.x) {
+      this.sun.shadow.mapSize.set(T.shadow, T.shadow);
+      this.sun.shadow.map?.dispose();
+      (this.sun.shadow as { map: THREE.WebGLRenderTarget | null }).map = null;
+    }
+    const shadows = T.shadow > 0;
+    if (shadows !== this.renderer.shadowMap.enabled) {
+      this.renderer.shadowMap.enabled = shadows;
+      this.sun.castShadow = shadows;
+      this.scene.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh && m.material) (Array.isArray(m.material) ? m.material : [m.material]).forEach((x) => (x.needsUpdate = true)); });
+    }
     this.resize();
   }
 
@@ -719,13 +771,18 @@ export class GameRenderer {
     this.renderer.setSize(w, h, false);
     this.composer.setPixelRatio(this.renderer.getPixelRatio());
     this.composer.setSize(w, h);
-    this.rt.samples = this.quality === 'high' ? 4 : 0;
+    this.rt.samples = this.msaa;
     this.camera.aspect = w / h;
     this.appliedShift = -1;
     this.camera.updateProjectionMatrix();
   }
 
   frame(dt: number, t: number) {
+    // real frame spacing (the game's dt is capped for the simulation, which would hide a slow phone)
+    const real = this.lastT ? t - this.lastT : 0;
+    this.lastT = t;
+    if (this.quality === 'auto' && real > 0) this.applyTier(this.governor.sample(real));
+    if (this.shadowEvery > 1 && ++this.frameNo % this.shadowEvery === 0) this.renderer.shadowMap.needsUpdate = true;
     const g = this.game;
     const p = g.p;
     const world = g.world;
@@ -908,7 +965,7 @@ export class GameRenderer {
     // aerial shots: cap the view distance and drop the grass (sub-pixel from up there) to keep the frame cost near gameplay
     const aerial = !!this.cinematic || !!this.release;
     const dist = aerial ? Math.min(pos.distanceTo(look), 62) : pos.distanceTo(look);
-    if (this.grass) this.grass.visible = !aerial && this.quality === 'high';
+    if (this.grass) this.grass.visible = !aerial && this.grassOn;
     const fog = this.scene.fog as THREE.Fog;
     // a tall phone screen sees much further up the island at the top edge: push the haze back to match
     const tall = THREE.MathUtils.clamp((1 - this.camera.aspect) / 0.55, 0, 1);

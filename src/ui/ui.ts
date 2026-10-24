@@ -70,7 +70,7 @@ export class UI {
   private confirmOk: (() => void) | null = null;
   onSave: () => void = () => {};
   onReset: () => void = () => {};
-  onQuality: (q: 'high' | 'low') => void = () => {};
+  onQuality: (q: 'auto' | 'max' | 'low') => void = () => {};
   onAudio: () => void = () => {};
   lastSaved = 0;
 
@@ -139,6 +139,7 @@ export class UI {
     actions.append(abil, ctx);
     this.el.abilities = abil;
     this.el.ctx = ctx;
+    add('fps', h('div', { 'aria-hidden': 'true' })).hidden = true;
     add('hover', h('div')).hidden = true;
     add('stick', h('div', {}, '<i></i>')).hidden = true;
     add('ko', h('div', {}, 'You were knocked out')).hidden = true;
@@ -279,6 +280,14 @@ export class UI {
     for (const [b, cd, max, blocked] of abs) {
       b.classList.toggle('off', cd > 0 || blocked);
       (b.querySelector('.cd') as HTMLElement).style.setProperty('--cd', `${(cd / max) * 360}deg`);
+    }
+    // frame-rate readout (settings): what Auto is doing on this phone
+    this.fpsT -= dt;
+    if (this.fpsT <= 0) {
+      this.fpsT = 0.5;
+      const fe = this.el.fps;
+      fe.hidden = !g.s.settings.showFps;
+      if (!fe.hidden) { const pf = this.r.perf; fe.textContent = `${Math.round(pf.fps)} fps · detail ${['full', 'high', 'medium', 'low', 'lowest'][pf.tier] ?? '?'} · ${pf.pr.toFixed(2)}x`; }
     }
     // loadout button: the weapon in hand (the dot shows when there's a choice to make: a spell or ammo)
     const lb = this.el['ab-load'], wid = g.p.equip.weapon?.id ?? 'cutlass_rusty', limg = lb.querySelector('img') as HTMLImageElement, lsrc = itemIcon(wid);
@@ -468,7 +477,7 @@ export class UI {
   /** One set of handlers on the tab panel for its whole life (content is patched, never re-bound). */
   private bindContent(c: HTMLElement) {
     const g = this.game;
-    onTap(c, '[data-slot], [data-equip], [data-stance], [data-spell], [data-q], [data-dmg], [data-music], [data-sfx], [data-lv], [data-skill], [data-skillback], #saveNow, #resetSave', (t, pointer) => {
+    onTap(c, '[data-slot], [data-equip], [data-stance], [data-spell], [data-q], [data-dmg], [data-music], [data-sfx], [data-fps], [data-lv], [data-skill], [data-skillback], #saveNow, #resetSave', (t, pointer) => {
       if (t.dataset.slot !== undefined) {
         const i = Number(t.dataset.slot);
         const st = g.p.inv[i];
@@ -481,7 +490,8 @@ export class UI {
       } else if (t.dataset.equip !== undefined) { const sl = t.dataset.equip as Slot; if (g.p.equip[sl]) this.openPop({ equip: sl }, t); }
       else if (t.dataset.stance) g.setStance(t.dataset.stance as Stance);
       else if (t.dataset.spell) g.setSpell(t.dataset.spell);
-      else if (t.dataset.q) { g.s.settings.quality = t.dataset.q as 'high' | 'low'; this.onQuality(g.s.settings.quality); this.lastRev = -1; }
+      else if (t.dataset.q) { g.s.settings.quality = t.dataset.q as 'auto' | 'max' | 'low'; this.onQuality(g.s.settings.quality); this.lastRev = -1; }
+      else if (t.dataset.fps) { g.s.settings.showFps = t.dataset.fps === '1'; this.lastRev = -1; }
       else if (t.dataset.dmg) { g.s.settings.showDamage = t.dataset.dmg === '1'; this.lastRev = -1; }
       else if (t.dataset.music) { g.s.settings.music = t.dataset.music === '1'; this.onAudio(); this.lastRev = -1; }
       else if (t.dataset.sfx) { g.s.settings.sfx = t.dataset.sfx === '1'; this.onAudio(); this.lastRev = -1; }
@@ -615,7 +625,8 @@ export class UI {
     const ago = this.lastSaved ? `${Math.round((Date.now() - this.lastSaved) / 1000)}s ago` : 'not yet';
     const fine = matchMedia('(pointer: fine)').matches;
     return `<h2 class="title">Settings</h2>
-      <div class="toggle"><span>Graphics</span><span class="seg"><button data-q="high" class="${s.quality === 'high' ? 'on' : ''}">High</button><button data-q="low" class="${s.quality === 'low' ? 'on' : ''}">Battery saver</button></span></div>
+      <div class="toggle"><span>Graphics<br><small class="muted">${s.quality === 'auto' ? 'Lowers detail on its own if your phone struggles' : s.quality === 'max' ? 'Full detail always, even if frames drop' : '30 fps, no shadows: longest battery'}</small></span><span class="seg"><button data-q="auto" class="${s.quality === 'auto' ? 'on' : ''}">Auto</button><button data-q="max" class="${s.quality === 'max' ? 'on' : ''}">Max</button><button data-q="low" class="${s.quality === 'low' ? 'on' : ''}">Saver</button></span></div>
+      <div class="toggle"><span>Show frame rate</span><span class="seg"><button data-fps="1" class="${s.showFps ? 'on' : ''}">On</button><button data-fps="0" class="${!s.showFps ? 'on' : ''}">Off</button></span></div>
       <div class="toggle"><span>Damage numbers</span><span class="seg"><button data-dmg="1" class="${s.showDamage ? 'on' : ''}">On</button><button data-dmg="0" class="${!s.showDamage ? 'on' : ''}">Off</button></span></div>
       <div class="toggle"><span>Level badges on skill spots</span><span class="seg"><button data-lv="1" class="${s.nodeLevels ? 'on' : ''}">On</button><button data-lv="0" class="${!s.nodeLevels ? 'on' : ''}">Off</button></span></div>
       <div class="toggle"><span>Music</span><span class="seg"><button data-music="1" class="${s.music ? 'on' : ''}">On</button><button data-music="0" class="${!s.music ? 'on' : ''}">Off</button></span></div>
@@ -799,6 +810,7 @@ export class UI {
 
   // ------------------------------------------------------------------ loadout (HUD quick menu)
   private loadoutOpen = false;
+  private fpsT = 0;
   toggleLoadout() { if (this.loadoutOpen) this.closeLoadout(); else { this.closePop(); this.loadoutOpen = true; this.renderLoadout(); } }
   closeLoadout() { this.loadoutOpen = false; document.getElementById('loadout')?.remove(); }
 
