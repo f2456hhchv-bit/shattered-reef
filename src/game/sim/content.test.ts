@@ -6,8 +6,8 @@ import { count } from './inventory';
 import { ITEMS } from '../data/items';
 import { levelForXp } from './xp';
 import { NODES, RECIPES, ENEMIES, LOOT, SHOPS, UNLOCKS, SKILLS } from '../data/content';
-import { LAYOUT } from '../world/island';
-import { toWorld, doorPoints, isInside } from '../world/buildings';
+import { LAYOUT, nearestPathDist } from '../world/island';
+import { toWorld, toLocal, doorPoints, isInside } from '../world/buildings';
 
 const base = new Game({ seed: 3 });
 const fresh = () => new Game({ seed: 3, save: defaultSave(base.layout.respawn, base.layout.mooring) });
@@ -280,6 +280,20 @@ describe('the living island', () => {
     const inn = base.layout.town.find((b) => b.id === 'inn')!;
     const [bx, bz] = toWorld(inn, 0, -inn.d / 2 + 0.15);
     expect(w.walkable(bx, bz)).toBe(false);
+  });
+
+  it('market stalls stand clear of every building and road', () => {
+    for (const st of base.layout.stalls) {
+      for (const [dx, dz] of [[-1.25, -0.8], [1.25, -0.8], [-1.25, 0.8], [1.25, 0.8], [0, 0]]) {
+        const c = Math.cos(st.rot), s = Math.sin(st.rot), x = st.x + dx * c - dz * s, z = st.z + dx * s + dz * c;
+        for (const b of base.layout.town) {
+          const [lx, lz] = toLocal(b, x, z);
+          expect(Math.max(Math.abs(lx) - b.w / 2, Math.abs(lz) - b.d / 2), `stall at ${st.x.toFixed(0)},${st.z.toFixed(0)} vs ${b.id}`).toBeGreaterThan(1);
+        }
+      }
+      const p = nearestPathDist(st.x, st.z);
+      expect(p.d - p.width).toBeGreaterThan(1);
+    }
   });
 
   it('every shopkeeper, the banker and the chapel do their jobs', () => {

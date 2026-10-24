@@ -392,3 +392,28 @@ body.landscape #side { padding-top: calc(var(--mm) + 80px + env(safe-area-inset-
 #loadout .lorow .slot, #loadout .lohead .slot { width: 52px; height: 52px; }
 #fps { position: fixed; left: calc(env(safe-area-inset-left) + 8px); top: calc(env(safe-area-inset-top) + 8px); z-index: 30; padding: 3px 8px; border-radius: 6px; background: #000a; color: #b8f0c0; font: 600 11px/1.4 ui-monospace, monospace; pointer-events: none; }
 body.portrait #fps { top: auto; bottom: calc(env(safe-area-inset-bottom) + 96px); }
+.gatherbar { background: #2a1e0e; }
+.gatherbar i { background: #e3b84a; transition: width .35s ease-out; }
+/* the minimap's brass rings reach 10 px past its edge: keep them on screen (and clear of the notch) */
+#mm { top: calc(16px + env(safe-area-inset-top, 0px)); }
+body.portrait #mm, body.landscape:not(.side-open) #mm { right: max(16px, calc(env(safe-area-inset-right, 0px) + 12px)); }
+body.landscape #side { padding-top: calc(var(--mm) + 88px + env(safe-area-inset-top, 0px)); }
+body.landscape #orbs { top: calc(var(--mm) + 28px + env(safe-area-inset-top, 0px)); }
+body.portrait #xpdrops { top: calc(var(--mm) + 28px + env(safe-area-inset-top, 0px)); }
+body.portrait #bossbar { top: calc(var(--mm) + 30px + env(safe-area-inset-top, 0px)); }
+body.portrait #orbs { top: calc(14px + env(safe-area-inset-top, 0px)); }
+/* 40-slot pack: 5 across in the side panel, 8 across on a phone */
+.grid28.pack { grid-template-columns: repeat(5, 1fr); gap: 5px; }
+body.portrait .grid28.pack { grid-template-columns: repeat(8, 1fr); gap: 4px; }
+/* RuneScape-style skills panel */
+.skgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+body.portrait .skgrid { grid-template-columns: repeat(4, 1fr); }
+.sktile { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 4px; min-height: 48px; padding: 4px 8px 6px 6px; border-radius: 8px; border: 1px solid #120b06; background: linear-gradient(180deg, #3a2a1c, #2a1d13); overflow: hidden; text-align: left; }
+.sktile .ic { width: 30px; height: 30px; display: grid; place-items: center; }
+.sktile .ic svg { width: 28px; height: 28px; filter: drop-shadow(0 1px 0 #0008); }
+.sktile .lv { font: 700 19px var(--display); color: #f2d34a; text-shadow: 0 2px 0 #000; font-variant-numeric: tabular-nums; }
+.sktile .lv small { font-size: 11px; color: #b89a52; margin-left: 1px; }
+.sktile > i { position: absolute; left: 0; bottom: 0; height: 3px; background: var(--c); opacity: .9; }
+.sktile.total { flex-direction: column; justify-content: center; gap: 0; text-align: center; cursor: default; }
+.sktile.total span { font-size: 11px; color: var(--ink-dim); }
+.sktile.total b { font: 700 18px var(--display); color: #f2d34a; text-shadow: 0 2px 0 #000; }

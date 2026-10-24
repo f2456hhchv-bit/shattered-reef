@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { earlyBoost, Game } from './game';
 import { levelForXp, xpForLevel, MAX_LEVEL, MAX_XP } from './xp';
-import { add, count, emptyInventory, remove } from './inventory';
+import { add, count, emptyInventory, remove, INV_SIZE } from './inventory';
 import { parseSave, defaultSave, SAVE_VERSION, HP_START_XP } from './save';
 import { hitChance, combatLevel, levelsOf } from './gear';
 import { NODES } from '../data/content';
@@ -54,7 +54,7 @@ describe('inventory', () => {
   });
   it('reports overflow when full', () => {
     const inv = emptyInventory();
-    expect(add(inv, { id: 'hatchet_chipped', qty: 30 })).toBe(2);
+    expect(add(inv, { id: 'hatchet_chipped', qty: INV_SIZE + 2 })).toBe(2);
   });
 });
 

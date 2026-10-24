@@ -1,6 +1,6 @@
 import { item, ITEMS, RARITY, AFFIXES, type Rarity } from '../data/items';
 
-export const INV_SIZE = 28;
+export const INV_SIZE = 40;
 
 export interface Affix { id: string; v: number }
 export interface Inst { uid: number; rarity: Rarity; affixes: Affix[] }

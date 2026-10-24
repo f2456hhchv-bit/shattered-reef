@@ -144,8 +144,8 @@ function tierItems(): ItemDef[] {
   out.push(I({ id: 'sea_salt', name: 'Sea salt', desc: 'Scraped from the salt pans. Tidecore and Leviathite need it to smelt clean.', icon: { shape: 'salt', color: '#efeae0' }, stackable: true, value: 15 }));
   out.push(I({ id: 'crystal_geode', name: 'Geode crystal', desc: 'A clear crystal from a cracked geode. Skyglass and Orichalcum will not smelt without one.', icon: { shape: 'crystal', color: '#9fe8ff' }, stackable: true, value: 120 }));
   // rare finds from the gathering perks
-  out.push(I({ id: 'bird_nest', name: 'Bird\'s nest', desc: 'Knocked from the branches. Something glints inside. Use it to search it.', icon: { shape: 'nest', color: '#7a5a34', accent: '#e9e3d0' }, stackable: true, value: 30, opens: 'nest' }));
-  out.push(I({ id: 'casket', name: 'Sunken casket', desc: 'Barnacled and locked with rust. Use it to prise it open.', icon: { shape: 'casket', color: '#5a4030', accent: '#c9a050' }, stackable: true, value: 60, opens: 'treasure' }));
+  out.push(I({ id: 'bird_nest', name: 'Bird\'s nest', desc: 'Knocked from the branches. Something glints inside. Tap it and Search.', icon: { shape: 'nest', color: '#7a5a34', accent: '#e9e3d0' }, stackable: true, value: 30, opens: 'nest' }));
+  out.push(I({ id: 'casket', name: 'Sunken casket', desc: 'Barnacled and locked with rust. Tap it and Prise open.', icon: { shape: 'casket', color: '#5a4030', accent: '#c9a050' }, stackable: true, value: 60, opens: 'treasure' }));
   out.push(I({ id: 'bar_gold', name: 'Gold bar', desc: 'Too soft for blades. Perfect for rings.', icon: { shape: 'bar', color: '#e3c25e' }, stackable: true, value: 90 }));
   out.push(I({ id: 'ring_gold', name: 'Gold signet', desc: 'Smith-made. Gold takes enchantment well.', icon: { shape: 'ring', color: '#e3c25e', accent: '#d8442a' }, stackable: false, value: 160,
     equip: { slot: 'ring', reqs: { defence: 1 }, bonus: { acc: 2, defMelee: 1, defRanged: 1, defMagic: 2 }, affixPool: ['gather_speed', 'xp_bonus', 'crit', 'max_hp', 'dmg_pct', 'accuracy', 'regen'] } }));
@@ -206,7 +206,7 @@ function tierItems(): ItemDef[] {
   // the living island: foraging, treasure
   out.push(I({ id: 'berries', name: 'Bramble berries', desc: 'Heals 2. Sharp, sweet, slightly squashed.', icon: { shape: 'berries', color: '#7a2a5a', accent: '#3e7a3a' }, stackable: true, value: 2, heal: 2 }));
   out.push(I({ id: 'kelp', name: 'Sea kelp', desc: 'Wrap fish in it before cooking: it keeps them moist and doubles the goodness.', icon: { shape: 'kelp', color: '#4a6a2a', accent: '#8a9a3a' }, stackable: true, value: 3 }));
-  out.push(I({ id: 'geode', name: 'Geode', desc: 'A plain stone that rattles. Use it to crack it open.', icon: { shape: 'geode', color: '#8a8478', accent: '#9fe8ff' }, stackable: true, value: 20, opens: 'geode' }));
+  out.push(I({ id: 'geode', name: 'Geode', desc: 'A plain stone that rattles. Tap it and Crack open.', icon: { shape: 'geode', color: '#8a8478', accent: '#9fe8ff' }, stackable: true, value: 20, opens: 'geode' }));
   out.push(I({ id: 'spade', name: 'Spade', desc: 'For disturbed sand. Somebody always buries something.', icon: { shape: 'spade', color: '#9aa0a4' }, stackable: false, value: 12 }));
   out.push(I({ id: 'parcel_sprat', name: 'Kelp-wrapped sprat', desc: 'Heals 6.', icon: { shape: 'parcel', color: '#4a6a2a', accent: '#c9934f' }, stackable: true, value: 14, heal: 6 }));
   out.push(I({ id: 'ale', name: 'Bellwether ale', desc: 'Heals 4. Brewed in the inn\'s cellar, from what, nobody says.', icon: { shape: 'mug', color: '#8a6a40', accent: '#d8a030' }, stackable: true, value: 5, heal: 4 }));

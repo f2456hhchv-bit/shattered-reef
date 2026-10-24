@@ -60,10 +60,10 @@ export function townPlan(V: { x: number; z: number }, X: { x: number; z: number 
     { id: 'maren', building: 'chapel', x: 0, z: -3.2, facing: 0 },
     { id: 'corwin', building: 'hall', x: 0, z: -2.6, facing: 0 },
   ];
-  // market stalls round the square (the paths run through its middle)
+  // market stalls along the square's south side, facing in (the inn and bank fronts take the north side)
   const stalls = [
     { x: X.x - 6.5, z: X.z + 4.5, rot: 0.4, colour: 0xb8332a }, { x: X.x + 6.5, z: X.z + 4.5, rot: -0.4, colour: 0x2f6a8a },
-    { x: X.x - 7, z: X.z - 5.5, rot: Math.PI - 0.4, colour: 0xc9a050 }, { x: X.x + 7.5, z: X.z - 5, rot: Math.PI + 0.4, colour: 0x4f8a4a },
+    { x: X.x - 12, z: X.z + 5.5, rot: 0.25, colour: 0xc9a050 }, { x: X.x + 12, z: X.z + 5.5, rot: -0.25, colour: 0x4f8a4a },
   ];
   return { buildings: b, npcs, stalls, square: { x: X.x, z: X.z, r: 10 } };
 }

@@ -75,7 +75,7 @@ export interface Projectile { id: number; x: number; z: number; vx: number; vz: 
 export interface Telegraph { id: number; kind: 'circle' | 'cone' | 'line'; x: number; z: number; r: number; angle: number; width: number; t: number; dur: number; damage: number; source: number }
 
 type Action =
-  | { type: 'gather'; node: string; next: number }
+  | { type: 'gather'; node: string; next: number; progress: number } // progress: 0..1 toward the next item
   | { type: 'craft'; recipe: string; remaining: number; next: number }
   | null;
 
@@ -381,7 +381,7 @@ export class Game {
     const tool = this.gatherTool(d);
     if (!tool) { this.msg(`You need ${d.tool ? `a ${item(d.tool).name.toLowerCase()}${d.tool === 'spade' ? ' (Marta sells them)' : ''}` : d.skill === 'woodcutting' ? 'a hatchet' : 'a pickaxe'}.`, 'warn'); return; }
     if (!d.loot && !canAdd(this.p.inv, d.item)) { this.msg('Your pack is full.', 'warn'); return; }
-    this.action = { type: 'gather', node: uid, next: this.time + DT_GATHER * 0.6 };
+    this.action = { type: 'gather', node: uid, next: this.time + DT_GATHER * 0.6, progress: this.rnd() * 0.25 };
     this.msg(d.verb === 'Dig' ? 'You start digging...' : d.verb === 'Pick' || d.verb === 'Gather' ? `You reach into the ${d.name.toLowerCase()}...` : d.skill === 'fishing' ? 'You cast your line...' : `You swing at the ${d.name.toLowerCase()}...`);
   }
 
@@ -409,7 +409,12 @@ export class Game {
     const tool = this.gatherTool(d);
     if (!tool) { this.stopAction(); return; }
     a.next = this.time + (d.skill ? DT_GATHER : DT_GATHER * 0.6);
-    const ok = this.rnd() < this.gatherChance(d, tool.power);
+    // steady returns (Tom: one quick, then 30 s of nothing): each swing fills progress by the success chance, a
+    // little jittered, and an item lands when it's full. Same average rate as rolling the chance every swing, but
+    // the wait between items stays close to the average instead of swinging wildly.
+    a.progress += this.gatherChance(d, tool.power) * (0.75 + this.rnd() * 0.5);
+    const ok = a.progress >= 1;
+    if (ok) a.progress -= 1;
     const fx = d.skill === 'woodcutting' || d.verb === 'Pick' ? 'wood' : d.skill === 'mining' || d.verb === 'Dig' ? 'stone' : 'water';
     this.emit({ type: 'gatherFx', kind: fx, x: n.x, z: n.z, success: ok });
     if (!ok) return;
