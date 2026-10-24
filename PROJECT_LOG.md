@@ -98,6 +98,7 @@ Reflects the actual repository, not the roadmap.
 - **2026-10-23, Tom, iPhone (live Pages build):** smooth, no heat; joystick + tap-to-move liked; camera distance and zoom liked.
   - Bug: inventory taps did nothing. Cause [likely]: tap reported as a mouse click, so it tried to use the item and the message went to a hidden log. Fixed: pointer type taken from pointerdown, touch always opens the details panel, log stays visible above the open sheet.
   - Combat felt passive (one button). Added dodge roll, whirl, swing arc, knockback, hit squash.
+- **2026-10-24, Tom's hand-painted icons (first batch):** 75 item pictures painted. 36 match their item and are in `art/items/` (backdrop removed with the BiRefNet cut-out model, cropped, 256 px; where one picture covers several metal tiers, bronze/steel/stormsilver are tinted so the tiers read apart). 39 left on the 3D art because the picture shows the wrong thing (logs as planks, ores as bars or gems, pickaxes as axes, daggers/arrows/bolts as spear-heads, dual pistols as one pistol, all four fish identical, crab as shrimp, rod as a bowl, nest as a crate, casket as a map, roast boar as raw steak, shell fragment as coral).
   - Found while fixing: with the portrait sheet open the player was hidden behind it. Camera now shifts up.
 
 - **2026-10-23, Tom (live big island):** "inventory still doesn't work on phones when clicking; couldn't cut trees down".
