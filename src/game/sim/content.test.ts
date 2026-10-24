@@ -29,7 +29,7 @@ describe('content data', () => {
   });
 
   it('every gathering and production skill has something to do at every level, 1 to its top tier', () => {
-    const tops: Record<string, number> = { woodcutting: 90, mining: 85, fishing: 85, smithing: 99, gunsmithing: 90, cooking: 84, magic: 80 };
+    const tops: Record<string, number> = { woodcutting: 90, mining: 85, fishing: 85, smithing: 99, gunsmithing: 90, fletching: 95, cooking: 84, magic: 80 };
     for (const s of SKILLS) {
       const lv = [...new Set((UNLOCKS[s.id] ?? []).map((u) => u.level))].sort((a, b) => a - b);
       if (!(s.id in tops)) continue;

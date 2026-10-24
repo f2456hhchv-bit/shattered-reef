@@ -6,6 +6,8 @@ import { buildToy } from './toy';
 // Built from turned (lathe) profiles, capsules and spheres so every silhouette is rounded:
 // tapered limbs, a shaped torso, a flared coat, a sculpted head and a real folded tricorn.
 
+export type HeldKind = 'cutlass' | 'musket' | 'hammer' | 'pistol' | 'staff' | 'dagger' | 'pike' | 'greatsword' | 'bow' | 'longbow' | 'crossbow' | 'none';
+
 export interface HumanoidLook {
   skin: PalKey | number;
   coat: PalKey | number;
@@ -17,7 +19,7 @@ export interface HumanoidLook {
   hair: PalKey | number;
   hatStyle?: 'tricorn' | 'bandana' | 'cap' | 'none';
   hairStyle?: 'short' | 'queue' | 'bun';
-  held?: 'cutlass' | 'musket' | 'hammer' | 'pistol' | 'staff' | 'none';
+  held?: HeldKind;
   beard?: boolean;
   apron?: PalKey | number;
   spectacles?: boolean;
@@ -285,7 +287,7 @@ export function buildHumanoid(look: HumanoidLook): HumanoidRig {
 }
 
 /** Weapons and tools in hand (+z = pointing forward when the arm is lowered). */
-function buildHeld(held: THREE.Group, body: THREE.Group, kind: NonNullable<HumanoidLook['held']>) {
+export function buildHeld(held: THREE.Group, body: THREE.Group, kind: HeldKind) {
   const grip = () => mesh(cylr(0.022, 0.024, 0.13, 8), mat('leather'));
   if (kind === 'cutlass') {
     // curved single-edged blade swept from a basket guard
@@ -338,6 +340,52 @@ function buildHeld(held: THREE.Group, body: THREE.Group, kind: NonNullable<Human
       put(claw, Math.cos(a) * 0.06, 1.02, 0.06 + Math.sin(a) * 0.06, Math.sin(a) * 0.5, 0, -Math.cos(a) * 0.5);
       held.add(claw);
     }
+  } else if (kind === 'dagger') {
+    const blade = mesh(lathe([[0, 0.3], [0.03, 0.2], [0.035, 0.05], [0.02, 0], [0, 0]], 4), mat(0xd2d5d2));
+    blade.scale.z = 0.3;
+    put(blade, 0, 0, 0.06, Math.PI / 2);
+    const guard = mesh(cylr(0.012, 0.012, 0.13, 6), mat('brass'));
+    put(guard, 0, 0, 0.06, 0, 0, Math.PI / 2);
+    const g = grip();
+    put(g, 0, 0, 0, Math.PI / 2);
+    held.add(blade, guard, g);
+  } else if (kind === 'greatsword') {
+    const blade = mesh(lathe([[0, 1.0], [0.035, 0.9], [0.045, 0.1], [0.045, 0], [0, 0]], 4), mat(0xd2d5d2));
+    blade.scale.z = 0.28;
+    put(blade, 0, 0, 0.1, Math.PI / 2);
+    const guard = mesh(cylr(0.016, 0.016, 0.34, 6), mat('iron'));
+    put(guard, 0, 0, 0.1, 0, 0, Math.PI / 2);
+    const g = mesh(cylr(0.022, 0.024, 0.26, 8), mat('leather'));
+    put(g, 0, 0, -0.04, Math.PI / 2);
+    const pommel = mesh(sphere(0.03, 8, 6), mat('iron'));
+    put(pommel, 0, 0, -0.18);
+    held.add(blade, guard, g, pommel);
+  } else if (kind === 'pike') {
+    const pole = mesh(cylr(0.018, 0.022, 2.3, 8), mat('wood'));
+    put(pole, 0, 0, 0.55, Math.PI / 2);
+    const tip = mesh(lathe([[0, 0.3], [0.035, 0.1], [0.03, 0.0], [0, 0]], 4), mat(0xd2d5d2));
+    tip.scale.z = 0.35;
+    put(tip, 0, 0, 1.68, Math.PI / 2);
+    const socket = mesh(cylr(0.026, 0.022, 0.1, 8), mat('iron'));
+    put(socket, 0, 0, 1.66, Math.PI / 2);
+    held.add(pole, tip, socket);
+  } else if (kind === 'bow' || kind === 'longbow') {
+    // held upright in front of the hand: a curved stave with its string
+    const h = kind === 'longbow' ? 0.72 : 0.5, d = kind === 'longbow' ? 0.12 : 0.17;
+    const curve = new THREE.CatmullRomCurve3([-1, -0.5, 0, 0.5, 1].map((t) => new THREE.Vector3(0, t * h, d * (1 - t * t))));
+    const stave = mesh(new THREE.TubeGeometry(curve, 16, 0.02, 6), mat('wood'));
+    const string = mesh(cylr(0.004, 0.004, h * 2, 4), mat(0xefe7d2));
+    put(stave, 0, 0, -0.02);
+    put(string, 0, 0, -0.02);
+    held.add(stave, string);
+  } else if (kind === 'crossbow') {
+    const stock = mesh(new THREE.BoxGeometry(0.06, 0.07, 0.62), mat('wood'));
+    put(stock, 0, 0.03, 0.2);
+    const prod = mesh(new THREE.TorusGeometry(0.26, 0.016, 6, 18, Math.PI * 0.75), mat('iron'));
+    put(prod, 0, 0.06, 0.44, Math.PI / 2, 0, Math.PI * 0.625);
+    const bolt = mesh(cylr(0.01, 0.01, 0.34, 5), mat('wood'));
+    put(bolt, 0, 0.075, 0.33, Math.PI / 2);
+    held.add(stock, prod, bolt);
   } else if (kind === 'hammer') {
     const haft = mesh(cylr(0.02, 0.024, 0.46, 8), mat('wood'));
     put(haft, 0, 0, 0.15, Math.PI / 2);
@@ -494,4 +542,14 @@ function faceTexture(look: HumanoidLook): THREE.CanvasTexture {
   tex.anisotropy = 4;
   faceCache.set(key, tex);
   return tex;
+}
+
+/** A second weapon in the left hand (a brace of pistols), mirroring the right hand's grip. */
+export function addOffhand(rig: HumanoidRig, kind: HeldKind) {
+  const g = new THREE.Group();
+  g.position.copy(rig.held.position);
+  g.scale.copy(rig.held.scale);
+  rig.elbowL.add(g);
+  buildHeld(g, rig.body, kind);
+  return g;
 }

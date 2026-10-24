@@ -156,6 +156,7 @@ export class Input {
       }
       case ' ': e.preventDefault(); g.useRoll(); break;
       case 'h': g.quickEat(); break;
+      case 'l': this.ui.toggleLoadout(); break;
       case 'r': case 'f': g.useSpecial(); break;
       case 'i': case 'b': this.ui.selectTab('pack', true); break;
       case 'g': this.ui.selectTab('gear', true); break;

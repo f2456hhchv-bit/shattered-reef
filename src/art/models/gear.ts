@@ -243,3 +243,125 @@ export function buildStaff(wood: string, crystal: string, tier: number): THREE.G
   g.rotation.z = -0.4;
   return g;
 }
+
+/** A straight double-edged blade along +x from the hilt, with a raised central ridge and a bright edge. */
+function straightBlade(g: THREE.Group, col: string, len: number, w: number, x0: number) {
+  const s = new THREE.Shape();
+  s.moveTo(0, w / 2); s.lineTo(len * 0.82, w * 0.42); s.lineTo(len, 0); s.lineTo(len * 0.82, -w * 0.42); s.lineTo(0, -w / 2); s.lineTo(0, w / 2);
+  add(g, plate2d(s, 0.022, (_x, y) => 1 - smooth(w * 0.08, w / 2, Math.abs(y)) * 0.8, 0.004), m(col, 'metal'), [x0, 0, 0]);
+  add(g, new THREE.BoxGeometry(len * 0.75, w * 0.12, 0.026), m(shade(col, 1.45).getHex(), 'metal'), [x0 + len * 0.4, 0, 0]); // ridge
+}
+
+export function buildDagger(col: string, tier: number): THREE.Group {
+  // a broad leaf-bladed dirk: short, wide, with a knuckle ring instead of a crossguard
+  const g = new THREE.Group();
+  const s = new THREE.Shape();
+  s.moveTo(0, 0.034); s.quadraticCurveTo(0.12, 0.045, 0.3, 0); s.quadraticCurveTo(0.12, -0.045, 0, -0.034); s.lineTo(0, 0.034);
+  add(g, plate2d(s, 0.024, (_x, y) => 1 - smooth(0.005, 0.06, Math.abs(y)) * 0.8, 0.004), m(col, 'metal'), [0.02, 0, 0]);
+  add(g, new THREE.BoxGeometry(0.22, 0.01, 0.028), m(shade(col, 1.45).getHex(), 'metal'), [0.12, 0, 0]);
+  add(g, new THREE.BoxGeometry(0.025, 0.11, 0.04), m(tier >= 3 ? BRASS : shade(col, 0.75).getHex(), 'metal'), [0.0, 0, 0]);
+  add(g, new THREE.TorusGeometry(0.05, 0.011, 6, 16), m(tier >= 3 ? BRASS : shade(col, 0.75).getHex(), 'metal'), [-0.05, -0.045, 0]);
+  add(g, new THREE.CylinderGeometry(0.02, 0.023, 0.1, 10), m(GRIP), [-0.05, 0, 0], [0, 0, Math.PI / 2]);
+  add(g, new THREE.SphereGeometry(0.028, 10, 8), m(tier >= 3 ? BRASS : shade(col, 0.75).getHex(), 'metal'), [-0.11, 0, 0]);
+  if (tier >= 4) add(g, new THREE.OctahedronGeometry(0.02, 0), m(GEM, 'glow'), [-0.11, 0, 0.03]);
+  g.rotation.z = 0.7;
+  return g;
+}
+
+export function buildGreatsword(col: string, tier: number): THREE.Group {
+  // long and narrow, with wide down-swept quillons and a long two-hand grip
+  const g = new THREE.Group();
+  straightBlade(g, col, 0.86, 0.085, 0.03);
+  add(g, new THREE.BoxGeometry(0.1, 0.07, 0.03), m(shade(col, 0.8).getHex(), 'metal'), [0.08, 0, 0]); // ricasso
+  const q = tier >= 3 ? BRASS : shade(col, 0.75).getHex();
+  for (const sgn of [-1, 1]) {
+    const curve = new THREE.QuadraticBezierCurve3(new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, sgn * 0.13, 0), new THREE.Vector3(-0.07, sgn * 0.2, 0));
+    add(g, new THREE.TubeGeometry(curve, 10, 0.016, 6), m(q, 'metal'));
+    add(g, new THREE.SphereGeometry(0.024, 8, 6), m(q, 'metal'), [-0.07, sgn * 0.2, 0]);
+  }
+  add(g, new THREE.CylinderGeometry(0.022, 0.026, 0.3, 10), m(GRIP), [-0.15, 0, 0], [0, 0, Math.PI / 2]);
+  for (let k = 0; k < 5; k++) add(g, new THREE.TorusGeometry(0.026, 0.006, 4, 10), m(BRASS, 'metal'), [-0.03 - k * 0.06, 0, 0], [0, Math.PI / 2, 0]);
+  add(g, new THREE.SphereGeometry(0.04, 10, 8), m(q, 'metal'), [-0.32, 0, 0]);
+  if (tier >= 4) add(g, new THREE.OctahedronGeometry(0.024, 0), m(GEM, 'glow'), [0, 0, 0.03]);
+  g.rotation.z = 0.78;
+  g.position.set(-0.05, -0.05, 0);
+  return g;
+}
+
+export function buildPike(col: string, tier: number): THREE.Group {
+  const g = new THREE.Group();
+  add(g, new THREE.CylinderGeometry(0.016, 0.02, 0.92, 8), m(WOOD), [0, -0.04, 0]);
+  // a long leaf head with a socket and a little hook (for boarding)
+  const s = new THREE.Shape();
+  s.moveTo(-0.035, 0); s.quadraticCurveTo(-0.05, 0.1, 0, 0.24); s.quadraticCurveTo(0.05, 0.1, 0.035, 0); s.lineTo(-0.035, 0);
+  add(g, plate2d(s, 0.024, (x) => 1 - smooth(0.005, 0.045, Math.abs(x)) * 0.75, 0.004), m(col, 'metal'), [0, 0.44, 0]);
+  add(g, new THREE.CylinderGeometry(0.024, 0.02, 0.08, 10), m(shade(col, 0.75).getHex(), 'metal'), [0, 0.42, 0]);
+  add(g, new THREE.TorusGeometry(0.04, 0.01, 5, 10, Math.PI * 0.9), m(shade(col, 0.85).getHex(), 'metal'), [0.045, 0.47, 0], [0, 0, -0.4]);
+  if (tier >= 2) add(g, new THREE.BoxGeometry(0.06, 0.1, 0.008), m(tier >= 3 ? '#b8332a' : '#e9e5d5'), [-0.045, 0.36, 0]); // pennant
+  if (tier >= 4) add(g, new THREE.OctahedronGeometry(0.018, 0), m(GEM, 'glow'), [0, 0.47, 0.02]);
+  for (let k = 0; k < 3; k++) add(g, new THREE.TorusGeometry(0.022, 0.006, 4, 10), m(GRIP), [0, -0.1 - k * 0.035, 0], [Math.PI / 2, 0, 0]);
+  g.rotation.z = -0.62;
+  return g;
+}
+
+export function buildBow(wood: string, grain: string, long: boolean): THREE.Group {
+  const g = new THREE.Group();
+  const h = long ? 0.48 : 0.34, d = long ? 0.1 : 0.14;
+  // the stave: a curve thick at the grip and thin at the nocks, recurved at the tips on a shortbow
+  const pts = [-1, -0.75, -0.5, -0.25, 0, 0.25, 0.5, 0.75, 1].map((t) => new THREE.Vector3(-d * (1 - t * t) + (long ? 0 : Math.abs(t) > 0.85 ? 0.03 : 0), t * h, 0));
+  const curve = new THREE.CatmullRomCurve3(pts);
+  const tube = new THREE.TubeGeometry(curve, 40, 0.018, 8);
+  const p = tube.getAttribute('position') as THREE.BufferAttribute;
+  for (let i = 0; i < p.count; i++) { const k = 1 - 0.45 * Math.abs(p.getY(i) / h); p.setX(i, -d * (1 - (p.getY(i) / h) ** 2) + (p.getX(i) + d * (1 - (p.getY(i) / h) ** 2)) * k); p.setZ(i, p.getZ(i) * k); }
+  tube.computeVertexNormals();
+  add(g, tube, m(wood));
+  add(g, new THREE.CylinderGeometry(0.026, 0.026, 0.1, 10), m(GRIP), [-d, 0, 0]);
+  add(g, new THREE.CylinderGeometry(0.0035, 0.0035, h * 2, 4), m('#efe7d2'), [0.0, 0, 0]); // string
+  add(g, new THREE.BoxGeometry(0.012, h * 1.4, 0.026), m(grain), [-d - 0.016, 0, 0], [0, 0, 0], [1, 0.4, 1]); // grain stripe on the back
+  g.rotation.z = -0.75;
+  return g;
+}
+
+export function buildCrossbow(stock: string, metal: string, tier: number): THREE.Group {
+  const g = new THREE.Group();
+  add(g, new THREE.BoxGeometry(0.5, 0.05, 0.05), m(stock), [0.0, 0, 0]);
+  add(g, new THREE.BoxGeometry(0.16, 0.09, 0.05), m(stock), [-0.2, -0.04, 0], [0, 0, 0.25]); // butt
+  const prod = new THREE.TorusGeometry(0.2, 0.014, 6, 24, Math.PI * 0.8);
+  add(g, prod, m(metal, 'metal'), [0.19, 0, 0], [Math.PI / 2, 0, Math.PI * 0.6]);
+  add(g, new THREE.CylinderGeometry(0.0035, 0.0035, 0.36, 4), m('#efe7d2'), [0.06, 0, 0], [Math.PI / 2, 0, 0]); // string
+  add(g, new THREE.BoxGeometry(0.06, 0.02, 0.06), m(shade(metal, 0.8).getHex(), 'metal'), [0.24, 0.0, 0]);
+  add(g, new THREE.BoxGeometry(0.03, 0.06, 0.012), m(shade(metal, 0.8).getHex(), 'metal'), [-0.06, -0.05, 0], [0, 0, -0.3]); // trigger
+  add(g, new THREE.CylinderGeometry(0.01, 0.01, 0.26, 6), m(WOOD), [0.13, 0.035, 0], [0, 0, Math.PI / 2]); // loaded bolt
+  add(g, new THREE.ConeGeometry(0.018, 0.05, 6), m(metal, 'metal'), [0.27, 0.035, 0], [0, 0, -Math.PI / 2]);
+  if (tier >= 4) add(g, new THREE.OctahedronGeometry(0.02, 0), m(GEM, 'glow'), [-0.18, -0.02, 0.03]);
+  g.rotation.set(0.5, 0.4, 0.35);
+  return g;
+}
+
+/** A bundle of arrows (or stubby bolts) with metal heads and pale fletching. */
+export function buildArrows(col: string, fletch: string, bolts: boolean, qty: number): THREE.Group {
+  const g = new THREE.Group();
+  const n = qty >= 10 ? 4 : qty > 1 ? 3 : 1, len = bolts ? 0.34 : 0.55;
+  for (let k = 0; k < n; k++) {
+    const a = new THREE.Group();
+    add(a, new THREE.CylinderGeometry(0.009, 0.009, len, 6), m(WOOD), [0, 0, 0]);
+    add(a, new THREE.ConeGeometry(bolts ? 0.024 : 0.02, bolts ? 0.06 : 0.07, 6), m(col, 'metal'), [0, len / 2 + 0.03, 0]);
+    for (let f = 0; f < 3; f++) add(a, new THREE.BoxGeometry(0.004, bolts ? 0.05 : 0.09, 0.035), m(fletch), [0, -len / 2 + 0.06, 0], [0, (f / 3) * Math.PI, 0], [1, 1, 1]);
+    a.position.set((k - (n - 1) / 2) * 0.045, 0, (k % 2) * 0.02);
+    a.rotation.z = (k - (n - 1) / 2) * 0.07;
+    g.add(a);
+  }
+  g.rotation.z = -0.8;
+  return g;
+}
+
+/** A pair of pistols, crossed. */
+export function buildPistolBrace(stock: string, metal: string, tier: number): THREE.Group {
+  const g = new THREE.Group();
+  const a = buildPistol(stock, metal, tier), b = buildPistol(stock, metal, tier);
+  // a matched pair, one above the other, both side-on: two clear pistol silhouettes
+  a.position.set(-0.04, 0.12, 0.03); a.rotation.z = 0.05;
+  b.position.set(0.04, -0.12, -0.03); b.rotation.z = 0.05;
+  g.add(a, b);
+  return g;
+}

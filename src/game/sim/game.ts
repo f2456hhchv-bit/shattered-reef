@@ -1,5 +1,5 @@
 import { mulberry32 } from '../../art/noise';
-import { item, type Slot, type SkillId, type CombatStyle } from '../data/items';
+import { item, ammoKind, AMMO_NAME, type Slot, type SkillId, type CombatStyle } from '../data/items';
 import { perkTotal } from '../data/perks';
 import { NODES, RECIPES, ENEMIES, LOOT, ELITE_AFFIXES, SHOPS, PLAYER_BASE, COMBAT_SKILLS, XP_PER_DAMAGE, type EnemyDef, type Recipe, type Station } from '../data/content';
 import { NPCS, QUESTS, type DialogueNode, type Effect } from '../data/quests';
@@ -71,7 +71,7 @@ export const EARLY_BOOST_TO = 30;
 export function earlyBoost(level: number): number { return level >= EARLY_BOOST_TO ? 1 : 1 + (2 * (EARLY_BOOST_TO - level)) / (EARLY_BOOST_TO - 1); }
 
 export interface Drop { id: number; x: number; z: number; stack: Stack; t: number; home?: boolean } // home: loot from your kill, flies to you
-export interface Projectile { id: number; x: number; z: number; vx: number; vz: number; life: number; damage: number; from: 'player' | 'enemy'; kind?: 'shot' | 'magic'; crit?: boolean; style?: CombatStyle; spellBase?: number; knock?: number }
+export interface Projectile { id: number; x: number; z: number; vx: number; vz: number; life: number; damage: number; from: 'player' | 'enemy'; kind?: 'shot' | 'magic' | 'arrow'; crit?: boolean; style?: CombatStyle; spellBase?: number; knock?: number }
 export interface Telegraph { id: number; kind: 'circle' | 'cone' | 'line'; x: number; z: number; r: number; angle: number; width: number; t: number; dur: number; damage: number; source: number }
 
 type Action =
@@ -90,7 +90,7 @@ const WEAR = { weapon: 0.1, armour: 0.08, tool: 0.05 };
 /** Rare finds from the gathering perks. */
 const FINDS: Partial<Record<SkillId, string>> = { woodcutting: 'bird_nest', mining: 'geode', fishing: 'casket' };
 
-export const STATION_NAMES: Record<Station, string> = { furnace: 'Furnace', anvil: 'Anvil', fire: 'Cookfire', bench: 'Gunsmith\'s bench', vent: 'Vent forge' };
+export const STATION_NAMES: Record<Station, string> = { furnace: 'Furnace', anvil: 'Anvil', fire: 'Cookfire', bench: 'Workbench', vent: 'Vent forge' };
 
 export class Game {
   readonly layout: IslandLayout;
@@ -939,10 +939,12 @@ export class Game {
   ammoBlock(n = 1): string | null {
     const st = this.stats;
     if (st.style === 'ranged') {
-      const a = this.p.equip.ammo;
-      if (!a || a.qty < n) return 'You have no shot in your ammo slot.';
+      const a = this.p.equip.ammo, need = st.needsAmmo ?? 'shot';
+      const wname = item(this.p.equip.weapon!.id).name.toLowerCase();
+      if (!a || a.qty < n) return `Your ${wname} needs ${AMMO_NAME[need]} in your ammo slot.`;
+      if (ammoKind(item(a.id)) !== need) return `Your ${wname} can't fire ${item(a.id).name.toLowerCase()}: it needs ${AMMO_NAME[need]}.`;
     }
-    if (st.style === 'magic' && count(this.p.inv, 'charm_tide') < (st.spell?.charms ?? 1) * n) return 'You need more tide charms to cast.';
+    if (st.style === 'magic' && (st.spell?.charms ?? 0) > 0 && count(this.p.inv, 'charm_tide') < st.spell!.charms * n) return `${st.spell!.name} needs tide charms. Brine Spray is free.`;
     return null;
   }
 
@@ -950,9 +952,10 @@ export class Game {
     if (this.stats.style === 'ranged') {
       const a = this.p.equip.ammo!;
       for (let k = 0; k < n; k++) if (this.rnd() >= this.stats.ammoSave) a.qty--; // Thrifty powder perks
-      if (a.qty <= 0) { delete this.p.equip.ammo; this.recalc(); this.msg('You are out of shot.', 'warn'); }
+      if (a.qty <= 0) { delete this.p.equip.ammo; this.recalc(); this.msg(`You are out of ${AMMO_NAME[this.stats.needsAmmo ?? 'shot']}.`, 'warn'); }
     } else if (this.stats.style === 'magic') {
-      if (this.rnd() >= this.stats.charmSave) remove(this.p.inv, 'charm_tide', (this.stats.spell?.charms ?? 1) * n);
+      const c = (this.stats.spell?.charms ?? 0) * n;
+      if (c > 0 && this.rnd() >= this.stats.charmSave) remove(this.p.inv, 'charm_tide', c);
     }
     this.rev++;
   }
@@ -1007,16 +1010,27 @@ export class Game {
       this.emit({ type: 'swing' });
       const r = this.rollAgainst(t);
       const tx = t.x, tz = t.z;
-      this.damageEnemy(t, r.dmg, r.crit, 'melee', 0.35);
+      // a pike runs through whatever stands in line behind the target
+      const ux = (tx - this.p.x) / (Math.hypot(tx - this.p.x, tz - this.p.z) || 1), uz = (tz - this.p.z) / (Math.hypot(tx - this.p.x, tz - this.p.z) || 1);
+      const pierced = st.kind === 'pike' ? this.enemies.filter((e) => {
+        if (e === t || !e.alive) return false;
+        const ax = e.x - this.p.x, az = e.z - this.p.z, along = ax * ux + az * uz;
+        return along > 0.3 && along <= st.range + e.def.radius + 0.6 && Math.abs(ax * uz - az * ux) < 0.7 + e.def.radius;
+      }) : [];
+      this.damageEnemy(t, r.dmg, r.crit, 'melee', st.kind === 'greatsword' ? 0.6 : 0.35);
+      for (const e of pierced) { const rr = this.rollAgainst(e); this.damageEnemy(e, Math.round(rr.dmg * 0.6), false, 'melee', 0.3); }
       if (st.cleave > 0 && r.dmg > 0) {
-        for (const e of this.enemies) if (e !== t && e.alive && Math.hypot(e.x - tx, e.z - tz) < 2.2) this.damageEnemy(e, Math.max(1, Math.round(r.dmg * st.cleave)), false, 'melee', 0.2);
+        for (const e of this.enemies) if (e !== t && e.alive && !pierced.includes(e) && Math.hypot(e.x - tx, e.z - tz) < (st.kind === 'greatsword' ? 2.6 : 2.2)) this.damageEnemy(e, Math.max(1, Math.round(r.dmg * st.cleave)), false, 'melee', 0.2);
       }
       return true;
     }
-    const block = this.ammoBlock();
+    // a pistol brace fires both barrels: two shots, each a little weaker
+    const shots = st.kind === 'pistols' ? 2 : 1;
+    const block = this.ammoBlock(shots);
     if (block) { this.warnAmmo(block); return false; }
-    this.consumeAmmo();
-    this.fireAt(t, this.rollAgainst(t), st.style, st.spell?.baseXp ?? 0);
+    this.consumeAmmo(shots);
+    if (shots === 2) for (const off of [-0.05, 0.05]) this.fireAt(t, this.rollAgainst(t, Math.max(1, Math.round(st.maxHit * 0.7))), 'ranged', 0, off);
+    else this.fireAt(t, this.rollAgainst(t), st.style, st.spell?.baseXp ?? 0);
     return true;
   }
 
@@ -1025,7 +1039,8 @@ export class Game {
     this.facing = ang;
     const speed = style === 'magic' ? 18 : 30;
     const dist = Math.hypot(t.x - this.p.x, t.z - this.p.z) + 1.5;
-    this.projectiles.push({ id: this.nextId++, x: this.p.x, z: this.p.z, vx: Math.cos(ang) * speed, vz: Math.sin(ang) * speed, life: dist / speed, damage: r.dmg, from: 'player', kind: style === 'magic' ? 'magic' : 'shot', crit: r.crit, style, spellBase, knock });
+    const fletched = this.stats.needsAmmo === 'arrow' || this.stats.needsAmmo === 'bolt';
+    this.projectiles.push({ id: this.nextId++, x: this.p.x, z: this.p.z, vx: Math.cos(ang) * speed, vz: Math.sin(ang) * speed, life: dist / speed, damage: r.dmg, from: 'player', kind: style === 'magic' ? 'magic' : fletched ? 'arrow' : 'shot', crit: r.crit, style, spellBase, knock });
     this.emit({ type: 'shoot', x: this.p.x, z: this.p.z, tx: t.x, tz: t.z });
   }
 
@@ -1035,7 +1050,7 @@ export class Game {
     let block: string | null = null;
     if (this.level(sp.skill) < sp.level) block = `Needs ${sp.skill[0].toUpperCase() + sp.skill.slice(1)} level ${sp.level}`;
     else if (st.style === 'ranged') block = this.ammoBlock(PLAYER_BASE.special.ranged.shots);
-    else if (st.style === 'magic' && count(this.p.inv, 'charm_tide') < PLAYER_BASE.special.magic.charms) block = 'Needs 3 tide charms';
+    else if (st.style === 'magic' && count(this.p.inv, 'charm_tide') < PLAYER_BASE.special.magic.charms) block = `Needs ${PLAYER_BASE.special.magic.charms} tide charms`;
     return { name: sp.name, cooldown: sp.cooldown, block };
   }
 
@@ -1204,7 +1219,7 @@ export class Game {
       tgt = this.enemies.find((e) => e.id === this.target && e.alive) ?? null;
       if (!tgt) this.target = null;
     }
-    const reach = st.style === 'melee' ? PLAYER_BASE.meleeReach : st.range;
+    const reach = st.range; // melee reach depends on the weapon (dagger 1.4, cutlass 1.6, pike 2.8)
     if (tgt) {
       const d = Math.hypot(tgt.x - this.p.x, tgt.z - this.p.z);
       if (d > reach + tgt.def.radius && !this.path.length && Math.hypot(this.moveDir.x, this.moveDir.z) < 0.05) this.chase(tgt.x, tgt.z, dt);

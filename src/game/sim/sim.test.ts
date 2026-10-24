@@ -439,8 +439,11 @@ describe('combat skills (RuneScape model)', () => {
     expect(g.p.xp.ranged).toBeGreaterThan(0);
     expect(g.p.xp.attack).toBe(0);
 
+    // Tide Bolt burns charms...
     const m = fresh(34);
     m.p.equip.weapon = { id: 'staff_driftwood', qty: 1 };
+    m.p.xp.magic = xpForLevel(9);
+    m.setSpell('bolt');
     m.give('charm_tide', 40);
     m.recalc();
     const c2 = m.enemies.find((e) => e.def.id === 'reef_crab' && !e.elite)!;
@@ -449,7 +452,79 @@ describe('combat skills (RuneScape model)', () => {
     run(m, 60, () => !c2.alive);
     expect(c2.alive).toBe(false);
     expect(count(m.p.inv, 'charm_tide')).toBeLessThan(40);
-    expect(m.p.xp.magic).toBeGreaterThan(0);
+    expect(m.p.xp.magic).toBeGreaterThan(xpForLevel(9));
+    // ...but Brine Spray is free: magic works with no charms at all
+    const f = fresh(35);
+    f.p.equip.weapon = { id: 'staff_driftwood', qty: 1 };
+    f.recalc();
+    expect(count(f.p.inv, 'charm_tide')).toBe(0);
+    expect(f.ammoBlock()).toBeNull();
+    const c3 = f.enemies.find((e) => e.def.id === 'reef_crab' && !e.elite)!;
+    goNear(f, c3.x + 5, c3.z);
+    f.interact(`enemy:${c3.id}`);
+    run(f, 90, () => !c3.alive);
+    expect(c3.alive).toBe(false);
+    expect(f.p.xp.magic).toBeGreaterThan(0);
+  });
+
+  it('every weapon family plays differently: bows need arrows, braces fire twice, pikes reach and pierce, greatswords cleave', () => {
+    // a bow won't fire shot; with arrows it fires and burns them
+    const b = fresh(36);
+    b.p.equip.weapon = { id: 'shortbow_pine', qty: 1 };
+    b.p.equip.ammo = { id: 'shot_bronze', qty: 30 };
+    b.recalc();
+    expect(b.ammoBlock()).toMatch(/needs arrows/);
+    b.p.xp.ranged = xpForLevel(40);
+    b.recalc();
+    const wrongAmmoHit = b.stats.maxHit; // shot adds nothing to a bow
+    b.p.equip.ammo = { id: 'arrow_steel', qty: 30 };
+    b.recalc();
+    expect(b.ammoBlock()).toBeNull();
+    expect(b.stats.maxHit).toBeGreaterThan(wrongAmmoHit);
+    const c = b.enemies.find((e) => e.def.id === 'reef_crab' && !e.elite)!;
+    goNear(b, c.x + 6, c.z);
+    b.interact(`enemy:${c.id}`);
+    run(b, 60, () => !c.alive);
+    expect(c.alive).toBe(false);
+    expect(b.p.equip.ammo!.qty).toBeLessThan(30);
+
+    // a pistol brace fires two shots a volley
+    const p = fresh(37);
+    p.p.equip.weapon = { id: 'pistols_bronze', qty: 1 };
+    p.p.equip.ammo = { id: 'shot_bronze', qty: 30 };
+    p.p.xp.ranged = xpForLevel(10);
+    p.recalc();
+    const c2 = p.enemies.find((e) => e.def.id === 'reef_crab' && !e.elite)!;
+    goNear(p, c2.x + 5, c2.z);
+    p.interact(`enemy:${c2.id}`);
+    let shots = 0;
+    p.on((e) => { if (e.type === 'shoot') shots++; });
+    run(p, 10, () => shots >= 2);
+    expect(shots).toBe(2);
+    expect(p.p.equip.ammo!.qty).toBeLessThanOrEqual(28 + 1); // two used (a perk could save one)
+
+    // weapon families: reach, speed, cleave
+    const w = fresh(38);
+    const stat = (id: string) => { w.p.equip.weapon = { id, qty: 1 }; w.recalc(); return { ...w.stats }; };
+    const cut = stat('cutlass_bronze'), dag = stat('dagger_bronze'), pike = stat('pike_bronze'), gs = stat('greatsword_bronze');
+    expect(pike.range).toBeGreaterThan(cut.range + 1);
+    expect(dag.speed).toBeLessThan(cut.speed);
+    expect(gs.speed).toBeGreaterThan(cut.speed);
+    expect(gs.cleave).toBeGreaterThanOrEqual(0.4);
+    expect(gs.kind).toBe('greatsword');
+
+    // a pike thrust runs through a second crab standing in line behind the first
+    const k = fresh(39);
+    for (const e of k.enemies) { e.alive = false; e.respawnAt = Infinity; }
+    const [a1, a2] = k.enemies.filter((e) => e.def.id === 'reef_crab' && !e.elite);
+    k.p.equip.weapon = { id: 'pike_bronze', qty: 1 };
+    k.p.xp.attack = k.p.xp.strength = xpForLevel(40);
+    k.recalc();
+    goNear(k, a1.x, a1.z);
+    for (const [e, d] of [[a1, 1.6], [a2, 2.6]] as const) { e.alive = true; e.hp = 999; e.x = k.p.x + d; e.z = k.p.z; e.state = 'idle'; }
+    for (let t = 0; t < 20 && (a1.hp === 999 || a2.hp === 999); t++) { k.attackCd = 0; (k as unknown as { performAttack(e: unknown): boolean }).performAttack(a1); }
+    expect(a1.hp).toBeLessThan(999);
+    expect(a2.hp).toBeLessThan(999);
   });
 
   it('refuses to fire without ammo', () => {

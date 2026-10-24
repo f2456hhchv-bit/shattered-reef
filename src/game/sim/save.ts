@@ -26,7 +26,7 @@ export interface SaveData {
   combat: { stance: Stance; spell: string };
 }
 
-export const SKILL_IDS: SkillId[] = ['attack', 'strength', 'defence', 'hitpoints', 'ranged', 'magic', 'woodcutting', 'mining', 'fishing', 'smithing', 'gunsmithing', 'cooking'];
+export const SKILL_IDS: SkillId[] = ['attack', 'strength', 'defence', 'hitpoints', 'ranged', 'magic', 'woodcutting', 'mining', 'fishing', 'smithing', 'gunsmithing', 'fletching', 'cooking'];
 const SLOTS: Slot[] = ['weapon', 'ammo', 'head', 'body', 'ring'];
 export const HP_START_XP = xpForLevel(10); // Hitpoints starts at 10, like RuneScape
 

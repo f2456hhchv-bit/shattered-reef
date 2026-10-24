@@ -13,7 +13,7 @@ export type PerkKind =
   | 'save' // production: v% chance to keep the materials
   | 'fine' // production: +v% masterwork chance
   | 'quick' // production: work v% faster
-  | 'extra' // gunsmithing: +v shot per batch
+  | 'extra' // gunsmithing / fletching: +v ammunition per batch
   | 'burn' // cooking: v% less likely to burn
   | 'heal' // food heals +v%
   | 'acc' | 'dmg' | 'crit' | 'cleave' // combat, applied to the style the skill trains
@@ -41,6 +41,8 @@ export const PERKS: Record<SkillId, Perk[]> = {
     P(60, 'Rhythm', 'quick', 10), P(70, 'Frugal', 'save', 5), P(80, 'Artisan', 'fine', 4), P(90, 'Forge-born', 'xp', 5), P(99, 'Mastery', 'fine', 5)],
   gunsmithing: [P(10, 'Spare ball', 'extra', 2), P(20, 'Fine bore', 'fine', 2), P(30, 'Quick hands', 'quick', 10), P(40, 'Thrifty', 'save', 4), P(50, 'Spare balls', 'extra', 3),
     P(60, 'Rifling', 'fine', 3), P(70, 'Rhythm', 'quick', 10), P(80, 'Frugal', 'save', 5), P(90, 'Armourer', 'xp', 5), P(99, 'Mastery', 'extra', 5)],
+  fletching: [P(10, 'Spare shafts', 'extra', 2), P(20, 'True grain', 'fine', 2), P(30, 'Quick knife', 'quick', 10), P(40, 'Thrifty', 'save', 4), P(50, 'Spare heads', 'extra', 3),
+    P(60, 'Bowyer', 'fine', 3), P(70, 'Rhythm', 'quick', 10), P(80, 'Frugal', 'save', 5), P(90, 'Master bowyer', 'xp', 5), P(99, 'Mastery', 'extra', 5)],
   cooking: [P(10, 'Watchful', 'burn', 10), P(20, 'Hearty', 'heal', 5), P(30, 'Two pans', 'double', 3), P(40, 'Patience', 'burn', 10), P(50, 'Rich stock', 'heal', 5),
     P(60, 'Three pans', 'double', 4), P(70, 'Never burnt', 'burn', 15), P(80, 'Feast', 'heal', 5), P(90, 'Chef', 'xp', 5), P(99, 'Mastery', 'heal', 10)],
   attack: [P(10, 'Sure strike', 'acc', 2), P(20, 'Footwork', 'acc', 2), P(30, 'Feint', 'acc', 2), P(40, 'Read the blade', 'acc', 2), P(50, 'Clean cut', 'crit', 2),
@@ -76,7 +78,7 @@ export function perkText(p: Perk): string {
     case 'save': return `${v}% chance to keep your materials`;
     case 'fine': return `+${v}% masterwork chance`;
     case 'quick': return `Work ${v}% faster`;
-    case 'extra': return `+${v} shot per batch`;
+    case 'extra': return `+${v} ammunition per batch`;
     case 'burn': return `${v}% less likely to burn food`;
     case 'heal': return `Food heals ${v}% more`;
     case 'acc': return `+${v}% accuracy`;
@@ -94,7 +96,7 @@ export function perkText(p: Perk): string {
 /** What every single level-up improves, for the levels without a perk or an unlock. */
 export const LEVEL_GAIN: Record<SkillId, string> = {
   woodcutting: '+1% success on every tree', mining: '+1% success on every rock', fishing: '+1% success at every spot',
-  smithing: '+1% masterwork chance', gunsmithing: '+1% masterwork chance on pistols', cooking: 'You burn food less often',
+  smithing: '+1% masterwork chance', gunsmithing: '+1% masterwork chance on pistols', fletching: '+1% masterwork chance on bows and crossbows', cooking: 'You burn food less often',
   attack: 'Better accuracy', strength: 'Harder hits', defence: 'Harder to hit', hitpoints: '+1 max health',
   ranged: 'Better aim and stopping power', magic: 'Better accuracy and stronger spells',
 };

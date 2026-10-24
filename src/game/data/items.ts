@@ -3,10 +3,15 @@
 export type SkillId =
   | 'attack' | 'strength' | 'defence' | 'hitpoints' | 'ranged' | 'magic'
   | 'woodcutting' | 'mining' | 'fishing'
-  | 'smithing' | 'gunsmithing' | 'cooking';
+  | 'smithing' | 'gunsmithing' | 'fletching' | 'cooking';
 export type CombatStyle = 'melee' | 'ranged' | 'magic';
 export type Slot = 'weapon' | 'ammo' | 'head' | 'body' | 'ring';
-export type IconShape = 'log' | 'ore' | 'bar' | 'fish' | 'meat' | 'coins' | 'bread' | 'hatchet' | 'pickaxe' | 'rod' | 'cutlass' | 'helm' | 'cap' | 'coat' | 'plate' | 'ring' | 'bell' | 'tooth' | 'shell' | 'burnt' | 'pistol' | 'shot' | 'staff' | 'charm' | 'harpoon' | 'pot' | 'lobster' | 'berries' | 'kelp' | 'geode' | 'spade' | 'parcel' | 'ash' | 'salt' | 'crystal' | 'nest' | 'casket' | 'mug' | 'bowl' | 'pie';
+/** Weapon families: each plays differently (reach, speed, cleave, shots per attack, which ammo). */
+export type WeaponKind = 'cutlass' | 'dagger' | 'pike' | 'greatsword' | 'pistol' | 'pistols' | 'shortbow' | 'longbow' | 'crossbow' | 'staff';
+export type AmmoKind = 'shot' | 'arrow' | 'bolt';
+export const AMMO_FOR: Partial<Record<WeaponKind, AmmoKind>> = { pistol: 'shot', pistols: 'shot', shortbow: 'arrow', longbow: 'arrow', crossbow: 'bolt' };
+export const AMMO_NAME: Record<AmmoKind, string> = { shot: 'shot', arrow: 'arrows', bolt: 'bolts' };
+export type IconShape = 'log' | 'ore' | 'bar' | 'fish' | 'meat' | 'coins' | 'bread' | 'hatchet' | 'pickaxe' | 'rod' | 'cutlass' | 'helm' | 'cap' | 'coat' | 'plate' | 'ring' | 'bell' | 'tooth' | 'shell' | 'burnt' | 'pistol' | 'shot' | 'staff' | 'charm' | 'harpoon' | 'pot' | 'lobster' | 'berries' | 'kelp' | 'geode' | 'spade' | 'parcel' | 'ash' | 'salt' | 'crystal' | 'nest' | 'casket' | 'mug' | 'bowl' | 'pie' | 'dagger' | 'pike' | 'greatsword' | 'pistols' | 'bow' | 'crossbow' | 'arrow' | 'bolt';
 
 /** RuneScape-style equipment bonuses. Accuracy applies to the weapon's own style. */
 export interface Bonuses {
@@ -32,6 +37,8 @@ export interface ItemDef {
     slot: Slot;
     reqs: Partial<Record<SkillId, number>>;
     style?: CombatStyle; // weapons only
+    kind?: WeaponKind; // weapons: defaults from the style (cutlass / pistol / staff)
+    ammo?: AmmoKind; // ammunition: which weapons fire it
     speed?: number; // seconds between attacks
     range?: number; // metres (melee weapons use the default reach)
     bonus: Bonuses;
@@ -43,6 +50,16 @@ export interface ItemDef {
 }
 
 const I = (d: ItemDef) => d;
+/** A weapon's family (older items only say their style). */
+export function weaponKind(d: ItemDef | undefined): WeaponKind {
+  const e = d?.equip;
+  return e?.kind ?? (e?.style === 'ranged' ? 'pistol' : e?.style === 'magic' ? 'staff' : 'cutlass');
+}
+/** Which ammunition an ammo item is (older shot items only say rangedStr). */
+export function ammoKind(d: ItemDef | undefined): AmmoKind | null {
+  if (!d?.equip || d.equip.slot !== 'ammo') return null;
+  return d.equip.ammo ?? 'shot';
+}
 const MELEE_AFFIX = ['dmg_pct', 'atk_speed', 'crit', 'cleave', 'elite_dmg', 'accuracy'];
 const RANGED_AFFIX = ['dmg_pct', 'atk_speed', 'crit', 'elite_dmg', 'accuracy', 'leech'];
 const ARMOUR_AFFIX = ['max_hp', 'armour', 'regen'];
@@ -67,6 +84,7 @@ const HELM = [5, 8, 12, 17, 23, 30, 37, 45, 53, 62];
 const PLATE = [14, 21, 32, 46, 62, 80, 98, 118, 140, 164];
 const SHOT_STR = [7, 13, 20, 28, 37, 47, 57, 68, 80, 92];
 const PISTOL = { acc: [10, 22, 32, 44, 58, 72, 86, 100, 115, 130], req: [1, 15, 25, 35, 45, 55, 65, 75, 85, 92], range: [9, 10, 10, 11, 11, 12, 12, 13, 13, 14] };
+const BOW_REQ = [1, 10, 20, 30, 45, 60, 75], BOW_ACC = [8, 18, 28, 40, 56, 76, 98];
 const BAR_VALUE = [18, 40, 70, 140, 280, 560, 900, 1400, 2200, 3400];
 /**
  * Each metal has a signature trait, so a higher tier is a choice as well as an upgrade: weapons (and pistols)
@@ -145,10 +163,32 @@ function tierItems(): ItemDef[] {
       out.push(I({ id: `pistol_${mt.key}`, name: `${nm} pistol`, desc: 'Fires shot from your ammo slot.', icon: { shape: 'pistol', color: '#5a3e28', accent: col }, stackable: false, value: BAR_VALUE[m] * 3,
         equip: { slot: 'weapon', reqs: { ranged: PISTOL.req[m] }, style: 'ranged', speed: 2.4, range: PISTOL.range[m], bonus: { acc: PISTOL.acc[m] }, affixPool: RANGED_AFFIX }, innate: wTrait }));
     }
+    // the rest of the armoury, every metal: daggers, boarding pikes, greatswords, pistol braces, crossbows, arrows, bolts
+    const melee = (kind: WeaponKind, name: string, desc: string, speed: number, accMul: number, strMul: number, range: number | undefined, reqs: Partial<Record<SkillId, number>>, valueMul: number) =>
+      out.push(I({ id: `${kind}_${mt.key}`, name: `${nm} ${name}`, desc, icon: { shape: kind as IconShape, color: col }, stackable: false, value: BAR_VALUE[m] * valueMul,
+        equip: { slot: 'weapon', reqs, style: 'melee', kind, speed, range, bonus: { acc: Math.round(CUT.acc[m] * accMul), str: Math.round(CUT.str[m] * strMul) }, affixPool: [...MELEE_AFFIX, 'leech'] }, innate: wTrait }));
+    melee('dagger', 'dagger', 'Quick and sure: stabs land often, but light.', 1.8, 1.15, 0.65, 1.4, { attack: mt.req }, 1);
+    melee('pike', 'boarding pike', 'Long reach: strikes from further off and runs through whatever stands behind.', 3.0, 0.95, 1.1, 2.8, { attack: mt.req }, 2.5);
+    melee('greatsword', 'greatsword', 'Two hands, slow and brutal: every swing cleaves the crowd around your target.', 3.6, 0.9, 1.55, 1.9, { attack: mt.req, strength: mt.req }, 4);
+    out.push(I({ id: `pistols_${mt.key}`, name: `${nm} pistol brace`, desc: 'A pistol in each hand: two shots every volley, each a little wilder. Burns shot twice as fast.', icon: { shape: 'pistols', color: '#5a3e28', accent: col }, stackable: false, value: BAR_VALUE[m] * 6,
+      equip: { slot: 'weapon', reqs: { ranged: Math.min(99, PISTOL.req[m] + 5) }, style: 'ranged', kind: 'pistols', speed: 2.6, range: PISTOL.range[m] - 2, bonus: { acc: Math.round(PISTOL.acc[m] * 0.85) }, affixPool: RANGED_AFFIX }, innate: wTrait }));
+    out.push(I({ id: `crossbow_${mt.key}`, name: `${nm} crossbow`, desc: 'Slow to wind, rarely misses. Fires bolts.', icon: { shape: 'crossbow', color: '#6a4a30', accent: col }, stackable: false, value: BAR_VALUE[m] * 3,
+      equip: { slot: 'weapon', reqs: { ranged: mt.req }, style: 'ranged', kind: 'crossbow', speed: 3.0, range: 11 + Math.floor(m / 3), bonus: { acc: Math.round(PISTOL.acc[m] * 1.2) }, affixPool: RANGED_AFFIX }, innate: wTrait }));
+    out.push(I({ id: `arrow_${mt.key}`, name: `${nm} arrows`, desc: 'For shortbows and longbows. Equip in the ammo slot.', icon: { shape: 'arrow', color: col, accent: '#e9e3d0' }, stackable: true, value: Math.max(1, Math.ceil(BAR_VALUE[m] / 15)),
+      equip: { slot: 'ammo', ammo: 'arrow', reqs: { ranged: mt.req }, bonus: { rangedStr: Math.round(SHOT_STR[m] * 0.85) }, affixPool: [] } }));
+    out.push(I({ id: `bolt_${mt.key}`, name: `${nm} bolts`, desc: 'Short, heavy crossbow bolts. Equip in the ammo slot.', icon: { shape: 'bolt', color: col }, stackable: true, value: Math.max(1, Math.ceil(BAR_VALUE[m] / 11)),
+      equip: { slot: 'ammo', ammo: 'bolt', reqs: { ranged: mt.req }, bonus: { rangedStr: Math.round(SHOT_STR[m] * 1.15) }, affixPool: [] } }));
     if (m >= 1) out.push(I({ id: `helm_${mt.key}`, name: `${nm} helm`, desc: 'Good against blades, poor against spells.', icon: { shape: 'helm', color: col }, stackable: false, value: BAR_VALUE[m] * 2,
       equip: { slot: 'head', reqs: { defence: mt.req }, bonus: { defMelee: HELM[m], defRanged: Math.round(HELM[m] * 0.85), defMagic: -1 - m }, affixPool: ARMOUR_AFFIX }, innate: aTrait }));
     out.push(I({ id: `plate_${mt.key}`, name: `${nm} plate`, desc: 'Heavy chest armour. Spells find the gaps.', icon: { shape: 'plate', color: col }, stackable: false, value: BAR_VALUE[m] * 5,
       equip: { slot: 'body', reqs: { defence: mt.req }, bonus: { defMelee: PLATE[m], defRanged: Math.round(PLATE[m] * 0.85), defMagic: -3 - m * 2 }, affixPool: ARMOUR_AFFIX }, innate: aTrait }));
+  });
+  // bows: one shortbow and one longbow per wood (Fletching), firing arrows
+  WOODS.forEach((w, t) => {
+    out.push(I({ id: `shortbow_${w.key}`, name: `${w.name} shortbow`, desc: 'Quick to draw: arrows come fast. Fires arrows from your ammo slot.', icon: { shape: 'bow', color: w.color, accent: w.accent }, stackable: false, value: w.value * 6 + 10,
+      equip: { slot: 'weapon', reqs: { ranged: BOW_REQ[t] }, style: 'ranged', kind: 'shortbow', speed: 1.8, range: 9 + Math.floor(t / 2), bonus: { acc: BOW_ACC[t] }, affixPool: RANGED_AFFIX } }));
+    out.push(I({ id: `longbow_${w.key}`, name: `${w.name} longbow`, desc: 'Slow, sure and far: out-ranges anything that shoots back. Fires arrows.', icon: { shape: 'bow', color: w.color, accent: w.accent }, stackable: false, value: w.value * 9 + 15,
+      equip: { slot: 'weapon', reqs: { ranged: BOW_REQ[t] }, style: 'ranged', kind: 'longbow', speed: 3.0, range: 13 + Math.floor(t / 2), bonus: { acc: Math.round(BOW_ACC[t] * 1.3) }, affixPool: RANGED_AFFIX } }));
   });
   WOODS.forEach((w, t) => { if (t >= 2) out.push(I({ id: `logs_${w.key}`, name: `${w.name} logs`, desc: 'Prized by smiths for hafts and stocks.', icon: { shape: 'log', color: w.color, accent: w.accent }, stackable: true, value: w.value })); });
   FISH.forEach((f, t) => {
