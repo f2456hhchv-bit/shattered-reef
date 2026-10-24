@@ -282,6 +282,23 @@ describe('the living island', () => {
     expect(w.walkable(bx, bz)).toBe(false);
   });
 
+  it('fishing spots hold several fish, each caught only from its own level', () => {
+    const sp = NODES.spot_sprat;
+    expect(sp.catches?.map((c) => c.item)).toEqual(['fish_sprat_raw', 'fish_mackerel_raw']);
+    const catchAt = (level: number) => {
+      const g = fresh();
+      g.p.xp.fishing = xpForLevel(level);
+      const pick = (g as unknown as { pickCatch(l: unknown): { item: string } }).pickCatch.bind(g);
+      const got: Record<string, number> = {};
+      for (let k = 0; k < 400; k++) { const c = pick(sp.catches!).item; got[c] = (got[c] ?? 0) + 1; }
+      return got;
+    };
+    expect(catchAt(1)).toEqual({ fish_sprat_raw: 400 }); // mackerel needs 14
+    const at60 = catchAt(60);
+    expect(at60.fish_mackerel_raw).toBeGreaterThan(at60.fish_sprat_raw ?? 0); // the better fish, more often
+    for (const n of Object.values(NODES)) for (const c of n.catches ?? []) expect(ITEMS[c.item], c.item).toBeTruthy();
+  });
+
   it('market stalls stand clear of every building and road', () => {
     for (const st of base.layout.stalls) {
       for (const [dx, dz] of [[-1.25, -0.8], [1.25, -0.8], [-1.25, 0.8], [1.25, 0.8], [0, 0]]) {
