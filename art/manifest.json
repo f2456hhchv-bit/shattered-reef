@@ -1,0 +1,3985 @@
+{
+ "note": "sha1 = the hash of the file as exported. A file whose hash differs is your edit and replaces the game art.",
+ "assets": [
+  {
+   "kind": "items",
+   "id": "coins",
+   "name": "Coins",
+   "group": "Coins & charms",
+   "file": "items/coins.png",
+   "sha1": "cf6b6c686440dd063d82c40e40a724cf55de68ae",
+   "h": 0.051,
+   "w": 0.202
+  },
+  {
+   "kind": "items",
+   "id": "logs_pine",
+   "name": "Saltpine logs",
+   "group": "Logs",
+   "file": "items/logs_pine.png",
+   "sha1": "996eb548e0fa43eee91cf8bad6a9c552d64f2789",
+   "h": 0.37,
+   "w": 0.641
+  },
+  {
+   "kind": "items",
+   "id": "logs_oak",
+   "name": "Sea-oak logs",
+   "group": "Logs",
+   "file": "items/logs_oak.png",
+   "sha1": "0892b91bd6b8d4fb881c55756eb7fabfabcb7829",
+   "h": 0.367,
+   "w": 0.643
+  },
+  {
+   "kind": "items",
+   "id": "ore_copper",
+   "name": "Copper ore",
+   "group": "Ores & bars",
+   "file": "items/ore_copper.png",
+   "sha1": "5274f4f37a08c563c3ae0205efb964b791beed84",
+   "h": 0.48,
+   "w": 0.598
+  },
+  {
+   "kind": "items",
+   "id": "ore_tin",
+   "name": "Tin ore",
+   "group": "Ores & bars",
+   "file": "items/ore_tin.png",
+   "sha1": "2941258a1c92ce2852b2dd2f69671ed86f209e4e",
+   "h": 0.437,
+   "w": 0.539
+  },
+  {
+   "kind": "items",
+   "id": "ore_iron",
+   "name": "Iron ore",
+   "group": "Ores & bars",
+   "file": "items/ore_iron.png",
+   "sha1": "08365f98d4ec5c9a0b0bebf8344a29b73b3947b5",
+   "h": 0.458,
+   "w": 0.598
+  },
+  {
+   "kind": "items",
+   "id": "bar_bronze",
+   "name": "Bronze bar",
+   "group": "Ores & bars",
+   "file": "items/bar_bronze.png",
+   "sha1": "6e4a3936be0aaab9a382b2857fd2290b467e05ea",
+   "h": 0.147,
+   "w": 0.5
+  },
+  {
+   "kind": "items",
+   "id": "bar_iron",
+   "name": "Iron bar",
+   "group": "Ores & bars",
+   "file": "items/bar_iron.png",
+   "sha1": "1ec6459cdd6aee084136f218b16edb7ef05f0bb7",
+   "h": 0.147,
+   "w": 0.5
+  },
+  {
+   "kind": "items",
+   "id": "shell_fragment",
+   "name": "Reef shell",
+   "group": "Materials",
+   "file": "items/shell_fragment.png",
+   "sha1": "c230347cdf89a0a0830e7e06b31a06fdded084eb",
+   "h": 0.207,
+   "w": 0.467
+  },
+  {
+   "kind": "items",
+   "id": "charm_tide",
+   "name": "Tide charm",
+   "group": "Coins & charms",
+   "file": "items/charm_tide.png",
+   "sha1": "8ee60ff883a5604c81487604e9065fab6daaffae",
+   "h": 0.345,
+   "w": 0.239
+  },
+  {
+   "kind": "items",
+   "id": "fish_sprat_raw",
+   "name": "Raw reef sprat",
+   "group": "Food & fish",
+   "file": "items/fish_sprat_raw.png",
+   "sha1": "3c982ebb6ce92bfcf0cca4f5e789e2d3ef98939f",
+   "h": 0.184,
+   "w": 0.609
+  },
+  {
+   "kind": "items",
+   "id": "fish_sprat",
+   "name": "Grilled sprat",
+   "group": "Food & fish",
+   "file": "items/fish_sprat.png",
+   "sha1": "cffd917946256ea7e72213dba63157083ba020e1",
+   "h": 0.184,
+   "w": 0.609
+  },
+  {
+   "kind": "items",
+   "id": "fish_bell_raw",
+   "name": "Raw bellfish",
+   "group": "Food & fish",
+   "file": "items/fish_bell_raw.png",
+   "sha1": "6dcb8c152dd87ab3a12a51bb61316c287c59fea8",
+   "h": 0.463,
+   "w": 0.493
+  },
+  {
+   "kind": "items",
+   "id": "fish_bell",
+   "name": "Seared bellfish",
+   "group": "Food & fish",
+   "file": "items/fish_bell.png",
+   "sha1": "7689520d796c61ee58670d86e7319fe70829aa7e",
+   "h": 0.463,
+   "w": 0.493
+  },
+  {
+   "kind": "items",
+   "id": "crab_meat_raw",
+   "name": "Raw crab meat",
+   "group": "Food & fish",
+   "file": "items/crab_meat_raw.png",
+   "sha1": "cd73a5bf7a346327f40dbf157a13e2435e769052",
+   "h": 0.435,
+   "w": 0.618
+  },
+  {
+   "kind": "items",
+   "id": "crab_meat",
+   "name": "Cooked crab meat",
+   "group": "Food & fish",
+   "file": "items/crab_meat.png",
+   "sha1": "756c3e22edf9a625d00e8ec1af561308296a53c6",
+   "h": 0.439,
+   "w": 0.615
+  },
+  {
+   "kind": "items",
+   "id": "boar_meat_raw",
+   "name": "Raw boar meat",
+   "group": "Food & fish",
+   "file": "items/boar_meat_raw.png",
+   "sha1": "1e8d6526b83a0d5dbcf840dbfa3e2c25ea60fa67",
+   "h": 0.426,
+   "w": 0.615
+  },
+  {
+   "kind": "items",
+   "id": "boar_meat",
+   "name": "Roast boar",
+   "group": "Food & fish",
+   "file": "items/boar_meat.png",
+   "sha1": "b9c2a9d55a5c2ac97b02549848e72e5dc4ad5742",
+   "h": 0.436,
+   "w": 0.62
+  },
+  {
+   "kind": "items",
+   "id": "spider_silk",
+   "name": "Spider silk",
+   "group": "Materials",
+   "file": "items/spider_silk.png",
+   "sha1": "1c417194ae44a740730414f23deb044e254cb08b",
+   "h": 0.199,
+   "w": 0.523
+  },
+  {
+   "kind": "items",
+   "id": "snake_skin",
+   "name": "Snakeskin",
+   "group": "Materials",
+   "file": "items/snake_skin.png",
+   "sha1": "349e953bede4bfe678ed14935e6923e94c8c3040",
+   "h": 0.199,
+   "w": 0.52
+  },
+  {
+   "kind": "items",
+   "id": "sunscale",
+   "name": "Sunscale",
+   "group": "Materials",
+   "file": "items/sunscale.png",
+   "sha1": "149568e9a59b6c223f7e9c8d989e7f5999e61bb6",
+   "h": 0.207,
+   "w": 0.467
+  },
+  {
+   "kind": "items",
+   "id": "burnt_food",
+   "name": "Burnt food",
+   "group": "Materials",
+   "file": "items/burnt_food.png",
+   "sha1": "a25d8bcfc4bb56d4ddfa1671bb6e6969d0ea93d9",
+   "h": 0.272,
+   "w": 0.488
+  },
+  {
+   "kind": "items",
+   "id": "bread",
+   "name": "Ship's bread",
+   "group": "Food & fish",
+   "file": "items/bread.png",
+   "sha1": "c281cc39cc74233215fbcba72c4c4269766fdc4b",
+   "h": 0.28,
+   "w": 0.553
+  },
+  {
+   "kind": "items",
+   "id": "hatchet_chipped",
+   "name": "Chipped hatchet",
+   "group": "Tools",
+   "file": "items/hatchet_chipped.png",
+   "sha1": "9cee7a5618abf9e546bc10ec66c60ef0e1f829f6",
+   "h": 0.744,
+   "w": 0.655
+  },
+  {
+   "kind": "items",
+   "id": "hatchet_bronze",
+   "name": "Bronze hatchet",
+   "group": "Tools",
+   "file": "items/hatchet_bronze.png",
+   "sha1": "4339903fa19cc93fbcaf541decf1f8fc66b3cc5f",
+   "h": 0.744,
+   "w": 0.655
+  },
+  {
+   "kind": "items",
+   "id": "hatchet_iron",
+   "name": "Iron hatchet",
+   "group": "Tools",
+   "file": "items/hatchet_iron.png",
+   "sha1": "158a359bc9bde92fdf0855837066d77123cf293e",
+   "h": 0.744,
+   "w": 0.655
+  },
+  {
+   "kind": "items",
+   "id": "pickaxe_chipped",
+   "name": "Chipped pickaxe",
+   "group": "Tools",
+   "file": "items/pickaxe_chipped.png",
+   "sha1": "7968941ed0008b37ebe25d457a029956442b6c19",
+   "h": 0.826,
+   "w": 0.66
+  },
+  {
+   "kind": "items",
+   "id": "pickaxe_bronze",
+   "name": "Bronze pickaxe",
+   "group": "Tools",
+   "file": "items/pickaxe_bronze.png",
+   "sha1": "76dcf968838f1612087f13c3c90e3884fa7fcc1a",
+   "h": 0.826,
+   "w": 0.66
+  },
+  {
+   "kind": "items",
+   "id": "pickaxe_iron",
+   "name": "Iron pickaxe",
+   "group": "Tools",
+   "file": "items/pickaxe_iron.png",
+   "sha1": "251ffeeb910761e4f76c1989ba0c48fa9cfe0584",
+   "h": 0.826,
+   "w": 0.66
+  },
+  {
+   "kind": "items",
+   "id": "fishing_rod",
+   "name": "Fishing rod",
+   "group": "Tools",
+   "file": "items/fishing_rod.png",
+   "sha1": "447da810784fbe8039e07eafcfc25a21360238be",
+   "h": 0.541,
+   "w": 0.618
+  },
+  {
+   "kind": "items",
+   "id": "cutlass_rusty",
+   "name": "Rusty cutlass",
+   "group": "Melee weapons",
+   "file": "items/cutlass_rusty.png",
+   "sha1": "5fd37529e8102beca6f8dc5b0935ac52f27eb5c8",
+   "h": 0.592,
+   "w": 0.654
+  },
+  {
+   "kind": "items",
+   "id": "cutlass_bronze",
+   "name": "Bronze cutlass",
+   "group": "Melee weapons",
+   "file": "items/cutlass_bronze.png",
+   "sha1": "b7b462101ef4dd33c0fa6b4d0d1b8671226b7481",
+   "h": 0.592,
+   "w": 0.654
+  },
+  {
+   "kind": "items",
+   "id": "cutlass_brigand",
+   "name": "Brigand's hanger",
+   "group": "Melee weapons",
+   "file": "items/cutlass_brigand.png",
+   "sha1": "856b3451cd0b424ee7af4fc75f566383953b0c05",
+   "h": 0.61,
+   "w": 0.654
+  },
+  {
+   "kind": "items",
+   "id": "cutlass_iron",
+   "name": "Iron cutlass",
+   "group": "Melee weapons",
+   "file": "items/cutlass_iron.png",
+   "sha1": "9b79a371be98e1b7651ed023f664fa86c6caac68",
+   "h": 0.592,
+   "w": 0.654
+  },
+  {
+   "kind": "items",
+   "id": "pistol_flintlock",
+   "name": "Flintlock pistol",
+   "group": "Ranged weapons",
+   "file": "items/pistol_flintlock.png",
+   "sha1": "72f6c7bef272ec4028b3420931d6dece5139fe6a",
+   "h": 0.44,
+   "w": 0.644
+  },
+  {
+   "kind": "items",
+   "id": "pistol_iron",
+   "name": "Iron-banded pistol",
+   "group": "Ranged weapons",
+   "file": "items/pistol_iron.png",
+   "sha1": "a1df1db757cc841ae7850023aa6e7e70129d4f17",
+   "h": 0.44,
+   "w": 0.644
+  },
+  {
+   "kind": "items",
+   "id": "shot_bronze",
+   "name": "Bronze shot",
+   "group": "Ammunition",
+   "file": "items/shot_bronze.png",
+   "sha1": "d34d5ec192b9f9bdb834dc88154077b073c28dcd",
+   "h": 0.25,
+   "w": 0.33
+  },
+  {
+   "kind": "items",
+   "id": "shot_iron",
+   "name": "Iron shot",
+   "group": "Ammunition",
+   "file": "items/shot_iron.png",
+   "sha1": "ad687f3c5fb11ad71329e3eabd35fea5ca1e53d2",
+   "h": 0.25,
+   "w": 0.33
+  },
+  {
+   "kind": "items",
+   "id": "staff_driftwood",
+   "name": "Driftwood staff",
+   "group": "Staffs",
+   "file": "items/staff_driftwood.png",
+   "sha1": "c7e603323a359e9342dea145c9c2a89c35e6a845",
+   "h": 0.932,
+   "w": 0.467
+  },
+  {
+   "kind": "items",
+   "id": "helm_bronze",
+   "name": "Bronze helm",
+   "group": "Armour",
+   "file": "items/helm_bronze.png",
+   "sha1": "694e5ec0bafc0404fb38f170bde8547a8c5dfd7e",
+   "h": 0.389,
+   "w": 0.62
+  },
+  {
+   "kind": "items",
+   "id": "cap_leather",
+   "name": "Leather cap",
+   "group": "Armour",
+   "file": "items/cap_leather.png",
+   "sha1": "0662020355ab8bbebfe218a4b1d09284f5fffda7",
+   "h": 0.203,
+   "w": 0.427
+  },
+  {
+   "kind": "items",
+   "id": "coat_padded",
+   "name": "Padded coat",
+   "group": "Armour",
+   "file": "items/coat_padded.png",
+   "sha1": "e22207af990767c5aa384fd334422af32f32a30c",
+   "h": 0.53,
+   "w": 0.52
+  },
+  {
+   "kind": "items",
+   "id": "lockplate",
+   "name": "Lockbound plate",
+   "group": "Armour",
+   "file": "items/lockplate.png",
+   "sha1": "6cf52339f595f40ffab7cd854349fc4b8b3ceee6",
+   "h": 0.53,
+   "w": 0.52
+  },
+  {
+   "kind": "items",
+   "id": "ring_brass",
+   "name": "Brass ring",
+   "group": "Rings",
+   "file": "items/ring_brass.png",
+   "sha1": "bfa86eca494a251b3ca263a2f2aa978967998afe",
+   "h": 0.418,
+   "w": 0.35
+  },
+  {
+   "kind": "items",
+   "id": "tuning_bell",
+   "name": "Tuning bell",
+   "group": "Quest items",
+   "file": "items/tuning_bell.png",
+   "sha1": "df6bbb25466606b8b0fc6bb9bcac2a2285d1080a",
+   "h": 0.417,
+   "w": 0.644
+  },
+  {
+   "kind": "items",
+   "id": "keels_tooth",
+   "name": "Keel's Tooth",
+   "group": "Quest items",
+   "file": "items/keels_tooth.png",
+   "sha1": "bbb7ad3fc5e33038c9491035a1e99c1c70721dcf",
+   "h": 0.56,
+   "w": 0.339
+  },
+  {
+   "kind": "items",
+   "id": "ore_coal",
+   "name": "Coal",
+   "group": "Ores & bars",
+   "file": "items/ore_coal.png",
+   "sha1": "ecc1733c5c88129b556c8dcb4422cfa5873eb4e0",
+   "h": 0.458,
+   "w": 0.598
+  },
+  {
+   "kind": "items",
+   "id": "ore_gold",
+   "name": "Gold ore",
+   "group": "Ores & bars",
+   "file": "items/ore_gold.png",
+   "sha1": "ffc5a06c5d052bff592db58003724763b28bac31",
+   "h": 0.458,
+   "w": 0.598
+  },
+  {
+   "kind": "items",
+   "id": "ore_storm",
+   "name": "Stormsilver ore",
+   "group": "Ores & bars",
+   "file": "items/ore_storm.png",
+   "sha1": "ebd1fb44a564af738939680ca7be3470dd307e57",
+   "h": 0.473,
+   "w": 0.579
+  },
+  {
+   "kind": "items",
+   "id": "ore_abyss",
+   "name": "Abyssite ore",
+   "group": "Ores & bars",
+   "file": "items/ore_abyss.png",
+   "sha1": "c3a6fd1847ee7eddef0177a6ee928cb6ef63b07e",
+   "h": 0.473,
+   "w": 0.579
+  },
+  {
+   "kind": "items",
+   "id": "ore_tide",
+   "name": "Tidecore ore",
+   "group": "Ores & bars",
+   "file": "items/ore_tide.png",
+   "sha1": "86428892acb2a0c12795ebadcc4f3a1dac6d62da",
+   "h": 0.458,
+   "w": 0.598
+  },
+  {
+   "kind": "items",
+   "id": "ore_cinder",
+   "name": "Cinderite ore",
+   "group": "Ores & bars",
+   "file": "items/ore_cinder.png",
+   "sha1": "ea98e51352c0bf73351dde9264e6399d09be0513",
+   "h": 0.48,
+   "w": 0.598
+  },
+  {
+   "kind": "items",
+   "id": "ore_sky",
+   "name": "Skyglass ore",
+   "group": "Ores & bars",
+   "file": "items/ore_sky.png",
+   "sha1": "aab5b1f8a0c74c55bedcecd58289d3537126e5d1",
+   "h": 0.437,
+   "w": 0.539
+  },
+  {
+   "kind": "items",
+   "id": "ore_levi",
+   "name": "Leviathite",
+   "group": "Ores & bars",
+   "file": "items/ore_levi.png",
+   "sha1": "ad1335c1a7ad2c3c01e8bcd90265dfd7aa372dfd",
+   "h": 0.458,
+   "w": 0.598
+  },
+  {
+   "kind": "items",
+   "id": "ore_ori",
+   "name": "Orichalcum ore",
+   "group": "Ores & bars",
+   "file": "items/ore_ori.png",
+   "sha1": "ef28aae2df48d783957b8e9580b9334411845798",
+   "h": 0.437,
+   "w": 0.539
+  },
+  {
+   "kind": "items",
+   "id": "kelp_ash",
+   "name": "Kelp ash",
+   "group": "Materials",
+   "file": "items/kelp_ash.png",
+   "sha1": "52c2aa404def62e31d975988f4ceb48fd26555e5",
+   "h": 0.178,
+   "w": 0.514
+  },
+  {
+   "kind": "items",
+   "id": "sea_salt",
+   "name": "Sea salt",
+   "group": "Materials",
+   "file": "items/sea_salt.png",
+   "sha1": "29a9e5068fbf8bb6cda8fe7c13743050190e1429",
+   "h": 0.245,
+   "w": 0.4
+  },
+  {
+   "kind": "items",
+   "id": "crystal_geode",
+   "name": "Geode crystal",
+   "group": "Materials",
+   "file": "items/crystal_geode.png",
+   "sha1": "d2ff2181fc75e7a8d52361a6f44b819cb50749d6",
+   "h": 0.563,
+   "w": 0.535
+  },
+  {
+   "kind": "items",
+   "id": "bird_nest",
+   "name": "Bird's nest",
+   "group": "Finds",
+   "file": "items/bird_nest.png",
+   "sha1": "315785f4cc1a80ccade816315be44c59cc1d6630",
+   "h": 0.198,
+   "w": 0.592
+  },
+  {
+   "kind": "items",
+   "id": "casket",
+   "name": "Sunken casket",
+   "group": "Finds",
+   "file": "items/casket.png",
+   "sha1": "d3e4f016e455ae05d3d5df32827a20e3b5ae1390",
+   "h": 0.37,
+   "w": 0.428
+  },
+  {
+   "kind": "items",
+   "id": "bar_gold",
+   "name": "Gold bar",
+   "group": "Ores & bars",
+   "file": "items/bar_gold.png",
+   "sha1": "c3584a15584ce2d9f9dab2e3df65a8c3c7f777fe",
+   "h": 0.147,
+   "w": 0.5
+  },
+  {
+   "kind": "items",
+   "id": "ring_gold",
+   "name": "Gold signet",
+   "group": "Rings",
+   "file": "items/ring_gold.png",
+   "sha1": "4e8ac837ebcd58dd9101f0790d4bc3c4dc6ef75f",
+   "h": 0.418,
+   "w": 0.35
+  },
+  {
+   "kind": "items",
+   "id": "dagger_bronze",
+   "name": "Bronze dagger",
+   "group": "Melee weapons",
+   "file": "items/dagger_bronze.png",
+   "sha1": "550d6b693b54ee329b86bf4de7597e49953081be",
+   "h": 0.393,
+   "w": 0.399
+  },
+  {
+   "kind": "items",
+   "id": "pike_bronze",
+   "name": "Bronze boarding pike",
+   "group": "Melee weapons",
+   "file": "items/pike_bronze.png",
+   "sha1": "06187e6093f0f254a541a056e8fa23cb70042638",
+   "h": 1.001,
+   "w": 0.74
+  },
+  {
+   "kind": "items",
+   "id": "greatsword_bronze",
+   "name": "Bronze greatsword",
+   "group": "Melee weapons",
+   "file": "items/greatsword_bronze.png",
+   "sha1": "0566ac65457d50cbc7fe0632b7ec2420d49bd5f0",
+   "h": 0.945,
+   "w": 0.954
+  },
+  {
+   "kind": "items",
+   "id": "pistols_bronze",
+   "name": "Bronze pistol brace",
+   "group": "Ranged weapons",
+   "file": "items/pistols_bronze.png",
+   "sha1": "61c5fd10de4ac3671c3f7e6aecd1f1ddc0576368",
+   "h": 0.63,
+   "w": 0.737
+  },
+  {
+   "kind": "items",
+   "id": "crossbow_bronze",
+   "name": "Bronze crossbow",
+   "group": "Ranged weapons",
+   "file": "items/crossbow_bronze.png",
+   "sha1": "20f67cd49bb7296801d1c52f943e018793737751",
+   "h": 0.414,
+   "w": 0.51
+  },
+  {
+   "kind": "items",
+   "id": "arrow_bronze",
+   "name": "Bronze arrows",
+   "group": "Ammunition",
+   "file": "items/arrow_bronze.png",
+   "sha1": "58bd15f8d51adeabd8295e1b530507d5a497cca0",
+   "h": 0.446,
+   "w": 0.459
+  },
+  {
+   "kind": "items",
+   "id": "bolt_bronze",
+   "name": "Bronze bolts",
+   "group": "Ammunition",
+   "file": "items/bolt_bronze.png",
+   "sha1": "86ab1b762dd12ffffcf2f82a5f6018ba053b27a7",
+   "h": 0.299,
+   "w": 0.307
+  },
+  {
+   "kind": "items",
+   "id": "plate_bronze",
+   "name": "Bronze plate",
+   "group": "Armour",
+   "file": "items/plate_bronze.png",
+   "sha1": "076a33679fc8ab1e0c3b6271bb6a41cb471dd3b4",
+   "h": 0.576,
+   "w": 0.671
+  },
+  {
+   "kind": "items",
+   "id": "dagger_iron",
+   "name": "Iron dagger",
+   "group": "Melee weapons",
+   "file": "items/dagger_iron.png",
+   "sha1": "4c937d85141c9e3dee50821ab4484a85509d9322",
+   "h": 0.393,
+   "w": 0.399
+  },
+  {
+   "kind": "items",
+   "id": "pike_iron",
+   "name": "Iron boarding pike",
+   "group": "Melee weapons",
+   "file": "items/pike_iron.png",
+   "sha1": "d998660ce6f5c946e43942496f6685782bb3d085",
+   "h": 1.001,
+   "w": 0.74
+  },
+  {
+   "kind": "items",
+   "id": "greatsword_iron",
+   "name": "Iron greatsword",
+   "group": "Melee weapons",
+   "file": "items/greatsword_iron.png",
+   "sha1": "c97ad4882e2f5f3e9a20395fd4bfbb68605d07f8",
+   "h": 0.945,
+   "w": 0.954
+  },
+  {
+   "kind": "items",
+   "id": "pistols_iron",
+   "name": "Iron pistol brace",
+   "group": "Ranged weapons",
+   "file": "items/pistols_iron.png",
+   "sha1": "daba000f2c3080894c17b12f4f93b5462e07a067",
+   "h": 0.63,
+   "w": 0.737
+  },
+  {
+   "kind": "items",
+   "id": "crossbow_iron",
+   "name": "Iron crossbow",
+   "group": "Ranged weapons",
+   "file": "items/crossbow_iron.png",
+   "sha1": "2ab211c5f9c24f3d5051d0057b2620a7d01c7cd4",
+   "h": 0.414,
+   "w": 0.51
+  },
+  {
+   "kind": "items",
+   "id": "arrow_iron",
+   "name": "Iron arrows",
+   "group": "Ammunition",
+   "file": "items/arrow_iron.png",
+   "sha1": "a8692a19db8d02fdb66f05de8dd52ae15efa9b1e",
+   "h": 0.446,
+   "w": 0.459
+  },
+  {
+   "kind": "items",
+   "id": "bolt_iron",
+   "name": "Iron bolts",
+   "group": "Ammunition",
+   "file": "items/bolt_iron.png",
+   "sha1": "ccb661f7df12234b044057ee4083673d6d9f203a",
+   "h": 0.299,
+   "w": 0.307
+  },
+  {
+   "kind": "items",
+   "id": "helm_iron",
+   "name": "Iron helm",
+   "group": "Armour",
+   "file": "items/helm_iron.png",
+   "sha1": "7c88fc5b49bcb51af7083116502d4fbd6c7b9c39",
+   "h": 0.389,
+   "w": 0.62
+  },
+  {
+   "kind": "items",
+   "id": "plate_iron",
+   "name": "Iron plate",
+   "group": "Armour",
+   "file": "items/plate_iron.png",
+   "sha1": "e26c7f737cec7b4a74b2b634c938815c67f8e3fb",
+   "h": 0.576,
+   "w": 0.671
+  },
+  {
+   "kind": "items",
+   "id": "bar_steel",
+   "name": "Steel bar",
+   "group": "Ores & bars",
+   "file": "items/bar_steel.png",
+   "sha1": "84cc3d6b3b87363cddf0ae4fc3cb923068415ab5",
+   "h": 0.147,
+   "w": 0.5
+  },
+  {
+   "kind": "items",
+   "id": "hatchet_steel",
+   "name": "Steel hatchet",
+   "group": "Tools",
+   "file": "items/hatchet_steel.png",
+   "sha1": "abbb5ec3aff1c4912462dded3c0a0542f32cf722",
+   "h": 0.744,
+   "w": 0.655
+  },
+  {
+   "kind": "items",
+   "id": "pickaxe_steel",
+   "name": "Steel pickaxe",
+   "group": "Tools",
+   "file": "items/pickaxe_steel.png",
+   "sha1": "17a2283c026c130de962fb295db13e3d554a9455",
+   "h": 0.826,
+   "w": 0.66
+  },
+  {
+   "kind": "items",
+   "id": "cutlass_steel",
+   "name": "Steel cutlass",
+   "group": "Melee weapons",
+   "file": "items/cutlass_steel.png",
+   "sha1": "17092b37aafc8fff74bbdac31711f75cd16666bd",
+   "h": 0.592,
+   "w": 0.654
+  },
+  {
+   "kind": "items",
+   "id": "shot_steel",
+   "name": "Steel shot",
+   "group": "Ammunition",
+   "file": "items/shot_steel.png",
+   "sha1": "192c8e672d825f58d72b585ce685cb4bcb6b56cb",
+   "h": 0.25,
+   "w": 0.33
+  },
+  {
+   "kind": "items",
+   "id": "pistol_steel",
+   "name": "Steel pistol",
+   "group": "Ranged weapons",
+   "file": "items/pistol_steel.png",
+   "sha1": "8ed96bd8c4e991514cc27ec7785ba653ac7872a8",
+   "h": 0.44,
+   "w": 0.644
+  },
+  {
+   "kind": "items",
+   "id": "dagger_steel",
+   "name": "Steel dagger",
+   "group": "Melee weapons",
+   "file": "items/dagger_steel.png",
+   "sha1": "4b0a1f0b431453a1bc66c744d9fc7ed086a903a4",
+   "h": 0.393,
+   "w": 0.399
+  },
+  {
+   "kind": "items",
+   "id": "pike_steel",
+   "name": "Steel boarding pike",
+   "group": "Melee weapons",
+   "file": "items/pike_steel.png",
+   "sha1": "da26dd7ad55a57da140a23968dcd584733e83ced",
+   "h": 1.001,
+   "w": 0.74
+  },
+  {
+   "kind": "items",
+   "id": "greatsword_steel",
+   "name": "Steel greatsword",
+   "group": "Melee weapons",
+   "file": "items/greatsword_steel.png",
+   "sha1": "4059881a8f7df92925fe3c1799aedb78aa696089",
+   "h": 0.945,
+   "w": 0.954
+  },
+  {
+   "kind": "items",
+   "id": "pistols_steel",
+   "name": "Steel pistol brace",
+   "group": "Ranged weapons",
+   "file": "items/pistols_steel.png",
+   "sha1": "5062652729f333931c7c116c56adf6ddf2475517",
+   "h": 0.63,
+   "w": 0.737
+  },
+  {
+   "kind": "items",
+   "id": "crossbow_steel",
+   "name": "Steel crossbow",
+   "group": "Ranged weapons",
+   "file": "items/crossbow_steel.png",
+   "sha1": "4525ae95af49d5ba4b04c8261483fb4c781668f4",
+   "h": 0.414,
+   "w": 0.51
+  },
+  {
+   "kind": "items",
+   "id": "arrow_steel",
+   "name": "Steel arrows",
+   "group": "Ammunition",
+   "file": "items/arrow_steel.png",
+   "sha1": "22667cf83bc556ba135bd9efaed62ea5402db143",
+   "h": 0.446,
+   "w": 0.459
+  },
+  {
+   "kind": "items",
+   "id": "bolt_steel",
+   "name": "Steel bolts",
+   "group": "Ammunition",
+   "file": "items/bolt_steel.png",
+   "sha1": "53cf1c382e9df00f9eef75e6bf59a38691e7e0a8",
+   "h": 0.299,
+   "w": 0.307
+  },
+  {
+   "kind": "items",
+   "id": "helm_steel",
+   "name": "Steel helm",
+   "group": "Armour",
+   "file": "items/helm_steel.png",
+   "sha1": "744585ef19d6f060fa393be63eacda89f5da48ec",
+   "h": 0.389,
+   "w": 0.62
+  },
+  {
+   "kind": "items",
+   "id": "plate_steel",
+   "name": "Steel plate",
+   "group": "Armour",
+   "file": "items/plate_steel.png",
+   "sha1": "252f2bf1bb488b682dd29f88a01ec4e0d94dd5ab",
+   "h": 0.576,
+   "w": 0.671
+  },
+  {
+   "kind": "items",
+   "id": "bar_storm",
+   "name": "Stormsilver bar",
+   "group": "Ores & bars",
+   "file": "items/bar_storm.png",
+   "sha1": "c54118247332f0eed63d784fcecc92db4fd57b55",
+   "h": 0.147,
+   "w": 0.5
+  },
+  {
+   "kind": "items",
+   "id": "hatchet_storm",
+   "name": "Stormsilver hatchet",
+   "group": "Tools",
+   "file": "items/hatchet_storm.png",
+   "sha1": "3f29fb36f2cf588b17c24604e65250c203d6b1b5",
+   "h": 0.744,
+   "w": 0.655
+  },
+  {
+   "kind": "items",
+   "id": "pickaxe_storm",
+   "name": "Stormsilver pickaxe",
+   "group": "Tools",
+   "file": "items/pickaxe_storm.png",
+   "sha1": "5405a447c529315e41df8fdd0ff724d50a3fca9d",
+   "h": 0.826,
+   "w": 0.66
+  },
+  {
+   "kind": "items",
+   "id": "cutlass_storm",
+   "name": "Stormsilver cutlass",
+   "group": "Melee weapons",
+   "file": "items/cutlass_storm.png",
+   "sha1": "f7b3bc340690287a02f8bc830411ccc789998c68",
+   "h": 0.592,
+   "w": 0.654
+  },
+  {
+   "kind": "items",
+   "id": "shot_storm",
+   "name": "Stormsilver shot",
+   "group": "Ammunition",
+   "file": "items/shot_storm.png",
+   "sha1": "0597fa3e9bcfafdcd21fe563ee47778375a6e5c4",
+   "h": 0.25,
+   "w": 0.33
+  },
+  {
+   "kind": "items",
+   "id": "pistol_storm",
+   "name": "Stormsilver pistol",
+   "group": "Ranged weapons",
+   "file": "items/pistol_storm.png",
+   "sha1": "c61a2f88bb50a52ae2a9cba3bd6552027caf8a68",
+   "h": 0.44,
+   "w": 0.644
+  },
+  {
+   "kind": "items",
+   "id": "dagger_storm",
+   "name": "Stormsilver dagger",
+   "group": "Melee weapons",
+   "file": "items/dagger_storm.png",
+   "sha1": "e2667c3b9e7d9113d13f3c21901a00e969d14a26",
+   "h": 0.393,
+   "w": 0.399
+  },
+  {
+   "kind": "items",
+   "id": "pike_storm",
+   "name": "Stormsilver boarding pike",
+   "group": "Melee weapons",
+   "file": "items/pike_storm.png",
+   "sha1": "7b97e752b9165269a35a02ca20b8dcabceb45ba5",
+   "h": 1.001,
+   "w": 0.74
+  },
+  {
+   "kind": "items",
+   "id": "greatsword_storm",
+   "name": "Stormsilver greatsword",
+   "group": "Melee weapons",
+   "file": "items/greatsword_storm.png",
+   "sha1": "58100d47b3de86bb6a21c2907403e5f0fddda7ce",
+   "h": 0.945,
+   "w": 0.954
+  },
+  {
+   "kind": "items",
+   "id": "pistols_storm",
+   "name": "Stormsilver pistol brace",
+   "group": "Ranged weapons",
+   "file": "items/pistols_storm.png",
+   "sha1": "f72e79c63a45ca7937dfc08bb71d054a92c2b4e7",
+   "h": 0.63,
+   "w": 0.737
+  },
+  {
+   "kind": "items",
+   "id": "crossbow_storm",
+   "name": "Stormsilver crossbow",
+   "group": "Ranged weapons",
+   "file": "items/crossbow_storm.png",
+   "sha1": "546f0f8941f5be79e381bbe62494a8c3e8894034",
+   "h": 0.414,
+   "w": 0.51
+  },
+  {
+   "kind": "items",
+   "id": "arrow_storm",
+   "name": "Stormsilver arrows",
+   "group": "Ammunition",
+   "file": "items/arrow_storm.png",
+   "sha1": "7e59ff12ed36e588dda2f4b798c323495ea25575",
+   "h": 0.446,
+   "w": 0.459
+  },
+  {
+   "kind": "items",
+   "id": "bolt_storm",
+   "name": "Stormsilver bolts",
+   "group": "Ammunition",
+   "file": "items/bolt_storm.png",
+   "sha1": "38667c16926657bc80b4f8365bcdc260e686a683",
+   "h": 0.299,
+   "w": 0.307
+  },
+  {
+   "kind": "items",
+   "id": "helm_storm",
+   "name": "Stormsilver helm",
+   "group": "Armour",
+   "file": "items/helm_storm.png",
+   "sha1": "2d24f6dc578c37d1fdce9cae2c850b60d02ff76d",
+   "h": 0.404,
+   "w": 0.679
+  },
+  {
+   "kind": "items",
+   "id": "plate_storm",
+   "name": "Stormsilver plate",
+   "group": "Armour",
+   "file": "items/plate_storm.png",
+   "sha1": "44e57301588540c0b1b77ea8061944f2c7cbf346",
+   "h": 0.576,
+   "w": 0.671
+  },
+  {
+   "kind": "items",
+   "id": "bar_abyss",
+   "name": "Abyssite bar",
+   "group": "Ores & bars",
+   "file": "items/bar_abyss.png",
+   "sha1": "b564d32bed6d520e783c82c39348d0e141858842",
+   "h": 0.147,
+   "w": 0.5
+  },
+  {
+   "kind": "items",
+   "id": "hatchet_abyss",
+   "name": "Abyssite hatchet",
+   "group": "Tools",
+   "file": "items/hatchet_abyss.png",
+   "sha1": "006d19100f1dbde49902dd5661424f0ed3953736",
+   "h": 0.744,
+   "w": 0.655
+  },
+  {
+   "kind": "items",
+   "id": "pickaxe_abyss",
+   "name": "Abyssite pickaxe",
+   "group": "Tools",
+   "file": "items/pickaxe_abyss.png",
+   "sha1": "3b59a00c61eec9d00dab35f00bcf5244bab70aa5",
+   "h": 0.826,
+   "w": 0.66
+  },
+  {
+   "kind": "items",
+   "id": "cutlass_abyss",
+   "name": "Abyssite cutlass",
+   "group": "Melee weapons",
+   "file": "items/cutlass_abyss.png",
+   "sha1": "89fe828df89f345c3c3d6a84ad0a1875f7159ce9",
+   "h": 0.592,
+   "w": 0.654
+  },
+  {
+   "kind": "items",
+   "id": "shot_abyss",
+   "name": "Abyssite shot",
+   "group": "Ammunition",
+   "file": "items/shot_abyss.png",
+   "sha1": "6f40a849775dc5740e392460f52c2dda17ed7c69",
+   "h": 0.25,
+   "w": 0.33
+  },
+  {
+   "kind": "items",
+   "id": "pistol_abyss",
+   "name": "Abyssite pistol",
+   "group": "Ranged weapons",
+   "file": "items/pistol_abyss.png",
+   "sha1": "682d382f228dce5131fc7f552713f284ab92db01",
+   "h": 0.44,
+   "w": 0.644
+  },
+  {
+   "kind": "items",
+   "id": "dagger_abyss",
+   "name": "Abyssite dagger",
+   "group": "Melee weapons",
+   "file": "items/dagger_abyss.png",
+   "sha1": "53d337679d9ce7aaf296859e74c30ce5db17df5c",
+   "h": 0.393,
+   "w": 0.399
+  },
+  {
+   "kind": "items",
+   "id": "pike_abyss",
+   "name": "Abyssite boarding pike",
+   "group": "Melee weapons",
+   "file": "items/pike_abyss.png",
+   "sha1": "0c86efadd6a97b310fe88d9e52a61753e30be52b",
+   "h": 1.001,
+   "w": 0.74
+  },
+  {
+   "kind": "items",
+   "id": "greatsword_abyss",
+   "name": "Abyssite greatsword",
+   "group": "Melee weapons",
+   "file": "items/greatsword_abyss.png",
+   "sha1": "822a3a9b647f399f606546af7f28b765138b7c90",
+   "h": 0.945,
+   "w": 0.954
+  },
+  {
+   "kind": "items",
+   "id": "pistols_abyss",
+   "name": "Abyssite pistol brace",
+   "group": "Ranged weapons",
+   "file": "items/pistols_abyss.png",
+   "sha1": "701891ad56f18867a1f0577702dce2ea00f98b99",
+   "h": 0.63,
+   "w": 0.737
+  },
+  {
+   "kind": "items",
+   "id": "crossbow_abyss",
+   "name": "Abyssite crossbow",
+   "group": "Ranged weapons",
+   "file": "items/crossbow_abyss.png",
+   "sha1": "9d026dc8ce6d597471023eb92e071e630111599e",
+   "h": 0.414,
+   "w": 0.51
+  },
+  {
+   "kind": "items",
+   "id": "arrow_abyss",
+   "name": "Abyssite arrows",
+   "group": "Ammunition",
+   "file": "items/arrow_abyss.png",
+   "sha1": "e39bf2633a9f0edd0bfe03a85cac75255622a047",
+   "h": 0.446,
+   "w": 0.459
+  },
+  {
+   "kind": "items",
+   "id": "bolt_abyss",
+   "name": "Abyssite bolts",
+   "group": "Ammunition",
+   "file": "items/bolt_abyss.png",
+   "sha1": "a62a93d325373ed05740b28833371cd5acb4e81d",
+   "h": 0.299,
+   "w": 0.307
+  },
+  {
+   "kind": "items",
+   "id": "helm_abyss",
+   "name": "Abyssite helm",
+   "group": "Armour",
+   "file": "items/helm_abyss.png",
+   "sha1": "88037db278de5276d56de877797b7c38c7ba2970",
+   "h": 0.404,
+   "w": 0.679
+  },
+  {
+   "kind": "items",
+   "id": "plate_abyss",
+   "name": "Abyssite plate",
+   "group": "Armour",
+   "file": "items/plate_abyss.png",
+   "sha1": "d659aad94e9fb8cb700b1629dda909ca14d7e036",
+   "h": 0.576,
+   "w": 0.671
+  },
+  {
+   "kind": "items",
+   "id": "bar_tide",
+   "name": "Tidecore bar",
+   "group": "Ores & bars",
+   "file": "items/bar_tide.png",
+   "sha1": "5e8eccc11018de72f8c30aa87a99782ec95fa65b",
+   "h": 0.147,
+   "w": 0.5
+  },
+  {
+   "kind": "items",
+   "id": "hatchet_tide",
+   "name": "Tidecore hatchet",
+   "group": "Tools",
+   "file": "items/hatchet_tide.png",
+   "sha1": "42285c39f7a62ccc323f0c43c660f1610c935f97",
+   "h": 0.744,
+   "w": 0.655
+  },
+  {
+   "kind": "items",
+   "id": "pickaxe_tide",
+   "name": "Tidecore pickaxe",
+   "group": "Tools",
+   "file": "items/pickaxe_tide.png",
+   "sha1": "b6ec4a9132a0a15b573c41b017cd76a5a0acf6b8",
+   "h": 0.826,
+   "w": 0.66
+  },
+  {
+   "kind": "items",
+   "id": "cutlass_tide",
+   "name": "Tidecore cutlass",
+   "group": "Melee weapons",
+   "file": "items/cutlass_tide.png",
+   "sha1": "152a31d6584bc5c4682c729b860833163c225a05",
+   "h": 0.592,
+   "w": 0.654
+  },
+  {
+   "kind": "items",
+   "id": "shot_tide",
+   "name": "Tidecore shot",
+   "group": "Ammunition",
+   "file": "items/shot_tide.png",
+   "sha1": "e5efe51028ae86a1a0e2a3f89bc6d550cabccfef",
+   "h": 0.25,
+   "w": 0.33
+  },
+  {
+   "kind": "items",
+   "id": "pistol_tide",
+   "name": "Tidecore pistol",
+   "group": "Ranged weapons",
+   "file": "items/pistol_tide.png",
+   "sha1": "fe1a909d3cfd789fb8eee36ccce371d49a6e9496",
+   "h": 0.44,
+   "w": 0.644
+  },
+  {
+   "kind": "items",
+   "id": "dagger_tide",
+   "name": "Tidecore dagger",
+   "group": "Melee weapons",
+   "file": "items/dagger_tide.png",
+   "sha1": "df968aa4d37f107feac983fdf5c544114ee6c1c5",
+   "h": 0.393,
+   "w": 0.399
+  },
+  {
+   "kind": "items",
+   "id": "pike_tide",
+   "name": "Tidecore boarding pike",
+   "group": "Melee weapons",
+   "file": "items/pike_tide.png",
+   "sha1": "e20574dcd20f84d43ddd284a50076441d7a5e01d",
+   "h": 1.001,
+   "w": 0.74
+  },
+  {
+   "kind": "items",
+   "id": "greatsword_tide",
+   "name": "Tidecore greatsword",
+   "group": "Melee weapons",
+   "file": "items/greatsword_tide.png",
+   "sha1": "952e3a54bf888d7e43f50faa7f753ac3d8d649cb",
+   "h": 0.945,
+   "w": 0.954
+  },
+  {
+   "kind": "items",
+   "id": "pistols_tide",
+   "name": "Tidecore pistol brace",
+   "group": "Ranged weapons",
+   "file": "items/pistols_tide.png",
+   "sha1": "243a596f7d8d9f05e34249982006c92019146da6",
+   "h": 0.63,
+   "w": 0.737
+  },
+  {
+   "kind": "items",
+   "id": "crossbow_tide",
+   "name": "Tidecore crossbow",
+   "group": "Ranged weapons",
+   "file": "items/crossbow_tide.png",
+   "sha1": "a5b4463c4af6d81a915d7e242a203a6a65442148",
+   "h": 0.414,
+   "w": 0.51
+  },
+  {
+   "kind": "items",
+   "id": "arrow_tide",
+   "name": "Tidecore arrows",
+   "group": "Ammunition",
+   "file": "items/arrow_tide.png",
+   "sha1": "ff3cf73ff2e50708a9f21057ec67615727a3a09c",
+   "h": 0.446,
+   "w": 0.459
+  },
+  {
+   "kind": "items",
+   "id": "bolt_tide",
+   "name": "Tidecore bolts",
+   "group": "Ammunition",
+   "file": "items/bolt_tide.png",
+   "sha1": "fb3c000deab84f3902230119e98491688d5ebf56",
+   "h": 0.299,
+   "w": 0.307
+  },
+  {
+   "kind": "items",
+   "id": "helm_tide",
+   "name": "Tidecore helm",
+   "group": "Armour",
+   "file": "items/helm_tide.png",
+   "sha1": "1548db3a8696d0218377c8d7b674d8c1eb7e82cb",
+   "h": 0.404,
+   "w": 0.679
+  },
+  {
+   "kind": "items",
+   "id": "plate_tide",
+   "name": "Tidecore plate",
+   "group": "Armour",
+   "file": "items/plate_tide.png",
+   "sha1": "625d81f55356cd340744279ae9852c662c160f7d",
+   "h": 0.576,
+   "w": 0.671
+  },
+  {
+   "kind": "items",
+   "id": "bar_cinder",
+   "name": "Cinderite bar",
+   "group": "Ores & bars",
+   "file": "items/bar_cinder.png",
+   "sha1": "26ade22faaed616a9f2fd5890763df785868dbdb",
+   "h": 0.147,
+   "w": 0.5
+  },
+  {
+   "kind": "items",
+   "id": "hatchet_cinder",
+   "name": "Cinderite hatchet",
+   "group": "Tools",
+   "file": "items/hatchet_cinder.png",
+   "sha1": "1b7fdf350cf8069f3b8d53717c7da767d2f4a57f",
+   "h": 0.744,
+   "w": 0.655
+  },
+  {
+   "kind": "items",
+   "id": "pickaxe_cinder",
+   "name": "Cinderite pickaxe",
+   "group": "Tools",
+   "file": "items/pickaxe_cinder.png",
+   "sha1": "c5976386711bde5303e85bf4f7c66fe22afa86eb",
+   "h": 0.826,
+   "w": 0.66
+  },
+  {
+   "kind": "items",
+   "id": "cutlass_cinder",
+   "name": "Cinderite cutlass",
+   "group": "Melee weapons",
+   "file": "items/cutlass_cinder.png",
+   "sha1": "e84a03d4e92b50db64cc49f07f09a87ea7bb335a",
+   "h": 0.592,
+   "w": 0.654
+  },
+  {
+   "kind": "items",
+   "id": "shot_cinder",
+   "name": "Cinderite shot",
+   "group": "Ammunition",
+   "file": "items/shot_cinder.png",
+   "sha1": "955b6736ad4ad3053bb8dd10452b574f48f2126c",
+   "h": 0.25,
+   "w": 0.33
+  },
+  {
+   "kind": "items",
+   "id": "pistol_cinder",
+   "name": "Cinderite pistol",
+   "group": "Ranged weapons",
+   "file": "items/pistol_cinder.png",
+   "sha1": "0fd1a94fd79814450a1fb8c58714f6b4fd1717fc",
+   "h": 0.44,
+   "w": 0.644
+  },
+  {
+   "kind": "items",
+   "id": "dagger_cinder",
+   "name": "Cinderite dagger",
+   "group": "Melee weapons",
+   "file": "items/dagger_cinder.png",
+   "sha1": "205af2fdb81097be0ce3877a8ae91900bcd7046a",
+   "h": 0.393,
+   "w": 0.399
+  },
+  {
+   "kind": "items",
+   "id": "pike_cinder",
+   "name": "Cinderite boarding pike",
+   "group": "Melee weapons",
+   "file": "items/pike_cinder.png",
+   "sha1": "5abd5cf07ca84301e69f67f03122ae26f0ed5f4e",
+   "h": 1.001,
+   "w": 0.74
+  },
+  {
+   "kind": "items",
+   "id": "greatsword_cinder",
+   "name": "Cinderite greatsword",
+   "group": "Melee weapons",
+   "file": "items/greatsword_cinder.png",
+   "sha1": "f19caf7e831a2f88508b4f0cde42586175e08128",
+   "h": 0.945,
+   "w": 0.954
+  },
+  {
+   "kind": "items",
+   "id": "pistols_cinder",
+   "name": "Cinderite pistol brace",
+   "group": "Ranged weapons",
+   "file": "items/pistols_cinder.png",
+   "sha1": "ef22078ccec389639204f833e355f5ba8aba6605",
+   "h": 0.63,
+   "w": 0.737
+  },
+  {
+   "kind": "items",
+   "id": "crossbow_cinder",
+   "name": "Cinderite crossbow",
+   "group": "Ranged weapons",
+   "file": "items/crossbow_cinder.png",
+   "sha1": "a706604d2ee528d35eb276a92636680912b9b6d9",
+   "h": 0.414,
+   "w": 0.51
+  },
+  {
+   "kind": "items",
+   "id": "arrow_cinder",
+   "name": "Cinderite arrows",
+   "group": "Ammunition",
+   "file": "items/arrow_cinder.png",
+   "sha1": "842ad7cc145d4ee2804e6130b2b5b3a9748aff68",
+   "h": 0.446,
+   "w": 0.459
+  },
+  {
+   "kind": "items",
+   "id": "bolt_cinder",
+   "name": "Cinderite bolts",
+   "group": "Ammunition",
+   "file": "items/bolt_cinder.png",
+   "sha1": "319341987dca0ff9b8c221f3eff8f7d1ddb77893",
+   "h": 0.299,
+   "w": 0.307
+  },
+  {
+   "kind": "items",
+   "id": "helm_cinder",
+   "name": "Cinderite helm",
+   "group": "Armour",
+   "file": "items/helm_cinder.png",
+   "sha1": "890ae12a5dcd428a31b195766abdb9db08d6787b",
+   "h": 0.404,
+   "w": 0.679
+  },
+  {
+   "kind": "items",
+   "id": "plate_cinder",
+   "name": "Cinderite plate",
+   "group": "Armour",
+   "file": "items/plate_cinder.png",
+   "sha1": "67a4ce85c24804900a448a6ab736389f0a34a5e0",
+   "h": 0.576,
+   "w": 0.671
+  },
+  {
+   "kind": "items",
+   "id": "bar_sky",
+   "name": "Skyglass bar",
+   "group": "Ores & bars",
+   "file": "items/bar_sky.png",
+   "sha1": "e15a3adfec57c382dde1cbbd76ad76b5d53b0db9",
+   "h": 0.147,
+   "w": 0.5
+  },
+  {
+   "kind": "items",
+   "id": "hatchet_sky",
+   "name": "Skyglass hatchet",
+   "group": "Tools",
+   "file": "items/hatchet_sky.png",
+   "sha1": "31a8ace7ab0b311784cc37ed8bef63b4510c2291",
+   "h": 0.744,
+   "w": 0.655
+  },
+  {
+   "kind": "items",
+   "id": "pickaxe_sky",
+   "name": "Skyglass pickaxe",
+   "group": "Tools",
+   "file": "items/pickaxe_sky.png",
+   "sha1": "b40eda30174b9bd99f80c8f41266f214d9592518",
+   "h": 0.826,
+   "w": 0.66
+  },
+  {
+   "kind": "items",
+   "id": "cutlass_sky",
+   "name": "Skyglass cutlass",
+   "group": "Melee weapons",
+   "file": "items/cutlass_sky.png",
+   "sha1": "efb525f5120e341b4abb5b59293661833bbfb741",
+   "h": 0.592,
+   "w": 0.654
+  },
+  {
+   "kind": "items",
+   "id": "shot_sky",
+   "name": "Skyglass shot",
+   "group": "Ammunition",
+   "file": "items/shot_sky.png",
+   "sha1": "df32404e1f58328233d27f5927dd2f38e1f0fd4a",
+   "h": 0.25,
+   "w": 0.33
+  },
+  {
+   "kind": "items",
+   "id": "pistol_sky",
+   "name": "Skyglass pistol",
+   "group": "Ranged weapons",
+   "file": "items/pistol_sky.png",
+   "sha1": "8f91190fc7e9251ff9681cd8055f7b58a2be8c5f",
+   "h": 0.44,
+   "w": 0.644
+  },
+  {
+   "kind": "items",
+   "id": "dagger_sky",
+   "name": "Skyglass dagger",
+   "group": "Melee weapons",
+   "file": "items/dagger_sky.png",
+   "sha1": "d85ea8d256c637cc44efe082d26150d5f5e3993f",
+   "h": 0.393,
+   "w": 0.399
+  },
+  {
+   "kind": "items",
+   "id": "pike_sky",
+   "name": "Skyglass boarding pike",
+   "group": "Melee weapons",
+   "file": "items/pike_sky.png",
+   "sha1": "64a35a8f23408e2391c8f2fa2674ea5ea10510a6",
+   "h": 1.001,
+   "w": 0.74
+  },
+  {
+   "kind": "items",
+   "id": "greatsword_sky",
+   "name": "Skyglass greatsword",
+   "group": "Melee weapons",
+   "file": "items/greatsword_sky.png",
+   "sha1": "20f31dc49d437b472acedb49f949e8521507e126",
+   "h": 0.945,
+   "w": 0.954
+  },
+  {
+   "kind": "items",
+   "id": "pistols_sky",
+   "name": "Skyglass pistol brace",
+   "group": "Ranged weapons",
+   "file": "items/pistols_sky.png",
+   "sha1": "891c4e9fbcaa2051a1ccbc11199677fb83616d31",
+   "h": 0.63,
+   "w": 0.737
+  },
+  {
+   "kind": "items",
+   "id": "crossbow_sky",
+   "name": "Skyglass crossbow",
+   "group": "Ranged weapons",
+   "file": "items/crossbow_sky.png",
+   "sha1": "54f8989bb3f729983068ca295d3a9f505024534d",
+   "h": 0.414,
+   "w": 0.51
+  },
+  {
+   "kind": "items",
+   "id": "arrow_sky",
+   "name": "Skyglass arrows",
+   "group": "Ammunition",
+   "file": "items/arrow_sky.png",
+   "sha1": "66fa16d144417a6e0a247102164533a83bd8e358",
+   "h": 0.446,
+   "w": 0.459
+  },
+  {
+   "kind": "items",
+   "id": "bolt_sky",
+   "name": "Skyglass bolts",
+   "group": "Ammunition",
+   "file": "items/bolt_sky.png",
+   "sha1": "e1b16659d8b5cd0a391ec5c1916e1b5eee82f8fa",
+   "h": 0.299,
+   "w": 0.307
+  },
+  {
+   "kind": "items",
+   "id": "helm_sky",
+   "name": "Skyglass helm",
+   "group": "Armour",
+   "file": "items/helm_sky.png",
+   "sha1": "061581db44a5020ab57c90313d12b286d31d5d6b",
+   "h": 0.404,
+   "w": 0.679
+  },
+  {
+   "kind": "items",
+   "id": "plate_sky",
+   "name": "Skyglass plate",
+   "group": "Armour",
+   "file": "items/plate_sky.png",
+   "sha1": "8d2896f449c691728c8d3b58fb49bc5c39ec816e",
+   "h": 0.576,
+   "w": 0.671
+  },
+  {
+   "kind": "items",
+   "id": "bar_levi",
+   "name": "Leviathite bar",
+   "group": "Ores & bars",
+   "file": "items/bar_levi.png",
+   "sha1": "4e460997568037684f2db2bccf9147a128ca2324",
+   "h": 0.147,
+   "w": 0.5
+  },
+  {
+   "kind": "items",
+   "id": "hatchet_levi",
+   "name": "Leviathite hatchet",
+   "group": "Tools",
+   "file": "items/hatchet_levi.png",
+   "sha1": "61336d9aaebe88b48bb5440cbd031858043784b7",
+   "h": 0.744,
+   "w": 0.655
+  },
+  {
+   "kind": "items",
+   "id": "pickaxe_levi",
+   "name": "Leviathite pickaxe",
+   "group": "Tools",
+   "file": "items/pickaxe_levi.png",
+   "sha1": "c60df0bbd440cdb8b9f51856eb465ec185c345ef",
+   "h": 0.826,
+   "w": 0.66
+  },
+  {
+   "kind": "items",
+   "id": "cutlass_levi",
+   "name": "Leviathite cutlass",
+   "group": "Melee weapons",
+   "file": "items/cutlass_levi.png",
+   "sha1": "9aea21f0e73176138ef345257825e00d9f243d13",
+   "h": 0.592,
+   "w": 0.654
+  },
+  {
+   "kind": "items",
+   "id": "shot_levi",
+   "name": "Leviathite shot",
+   "group": "Ammunition",
+   "file": "items/shot_levi.png",
+   "sha1": "2434b75883dfa10604af442443b092cf575bde97",
+   "h": 0.25,
+   "w": 0.33
+  },
+  {
+   "kind": "items",
+   "id": "pistol_levi",
+   "name": "Leviathite pistol",
+   "group": "Ranged weapons",
+   "file": "items/pistol_levi.png",
+   "sha1": "854aeff45ea0f86fb5da2ca20cc1fd0006cea876",
+   "h": 0.44,
+   "w": 0.644
+  },
+  {
+   "kind": "items",
+   "id": "dagger_levi",
+   "name": "Leviathite dagger",
+   "group": "Melee weapons",
+   "file": "items/dagger_levi.png",
+   "sha1": "549778d2b98557183aec3e675ce6f932798cd8d5",
+   "h": 0.393,
+   "w": 0.399
+  },
+  {
+   "kind": "items",
+   "id": "pike_levi",
+   "name": "Leviathite boarding pike",
+   "group": "Melee weapons",
+   "file": "items/pike_levi.png",
+   "sha1": "f78c450012e4dc20a2828cfc8ec4f213aa78627b",
+   "h": 1.001,
+   "w": 0.74
+  },
+  {
+   "kind": "items",
+   "id": "greatsword_levi",
+   "name": "Leviathite greatsword",
+   "group": "Melee weapons",
+   "file": "items/greatsword_levi.png",
+   "sha1": "da71fae8ae1daf57dd523960fd2ffa3f34728c55",
+   "h": 0.945,
+   "w": 0.954
+  },
+  {
+   "kind": "items",
+   "id": "pistols_levi",
+   "name": "Leviathite pistol brace",
+   "group": "Ranged weapons",
+   "file": "items/pistols_levi.png",
+   "sha1": "68c3c3c8859b5bebe1d1f6c7a1671277a80c0561",
+   "h": 0.63,
+   "w": 0.737
+  },
+  {
+   "kind": "items",
+   "id": "crossbow_levi",
+   "name": "Leviathite crossbow",
+   "group": "Ranged weapons",
+   "file": "items/crossbow_levi.png",
+   "sha1": "048bf3b926f2ec8c8e662103c426739408231018",
+   "h": 0.414,
+   "w": 0.51
+  },
+  {
+   "kind": "items",
+   "id": "arrow_levi",
+   "name": "Leviathite arrows",
+   "group": "Ammunition",
+   "file": "items/arrow_levi.png",
+   "sha1": "96fb59c8449bbe3d491abbe113249fc77a9d9b9b",
+   "h": 0.446,
+   "w": 0.459
+  },
+  {
+   "kind": "items",
+   "id": "bolt_levi",
+   "name": "Leviathite bolts",
+   "group": "Ammunition",
+   "file": "items/bolt_levi.png",
+   "sha1": "52136464114a8e97d091ba961274cfc85cdacb8f",
+   "h": 0.299,
+   "w": 0.307
+  },
+  {
+   "kind": "items",
+   "id": "helm_levi",
+   "name": "Leviathite helm",
+   "group": "Armour",
+   "file": "items/helm_levi.png",
+   "sha1": "ff7f4a2ff0adb80b15b9a5629ccc491f3c447069",
+   "h": 0.404,
+   "w": 0.679
+  },
+  {
+   "kind": "items",
+   "id": "plate_levi",
+   "name": "Leviathite plate",
+   "group": "Armour",
+   "file": "items/plate_levi.png",
+   "sha1": "267221a73b37cb7951bb243649d272c71b3fa028",
+   "h": 0.576,
+   "w": 0.671
+  },
+  {
+   "kind": "items",
+   "id": "bar_ori",
+   "name": "Orichalcum bar",
+   "group": "Ores & bars",
+   "file": "items/bar_ori.png",
+   "sha1": "93806cf635c772194183d462327ededcd49d9b01",
+   "h": 0.147,
+   "w": 0.5
+  },
+  {
+   "kind": "items",
+   "id": "hatchet_ori",
+   "name": "Orichalcum hatchet",
+   "group": "Tools",
+   "file": "items/hatchet_ori.png",
+   "sha1": "05f54a011aab5be48499538383335fd6e42cc6ba",
+   "h": 0.744,
+   "w": 0.655
+  },
+  {
+   "kind": "items",
+   "id": "pickaxe_ori",
+   "name": "Orichalcum pickaxe",
+   "group": "Tools",
+   "file": "items/pickaxe_ori.png",
+   "sha1": "1702cdbf5ea8fea532a1d65c368581975a2b9736",
+   "h": 0.826,
+   "w": 0.66
+  },
+  {
+   "kind": "items",
+   "id": "cutlass_ori",
+   "name": "Orichalcum cutlass",
+   "group": "Melee weapons",
+   "file": "items/cutlass_ori.png",
+   "sha1": "467b62d4f30b42effde69b8c019ef3bde2735305",
+   "h": 0.592,
+   "w": 0.654
+  },
+  {
+   "kind": "items",
+   "id": "shot_ori",
+   "name": "Orichalcum shot",
+   "group": "Ammunition",
+   "file": "items/shot_ori.png",
+   "sha1": "0a4cd8025d2bc2e6098b4c04b90bb8cf5c073c2e",
+   "h": 0.25,
+   "w": 0.33
+  },
+  {
+   "kind": "items",
+   "id": "pistol_ori",
+   "name": "Orichalcum pistol",
+   "group": "Ranged weapons",
+   "file": "items/pistol_ori.png",
+   "sha1": "4b8004505609b7d0b5a9ba043afa3201eb158305",
+   "h": 0.44,
+   "w": 0.644
+  },
+  {
+   "kind": "items",
+   "id": "dagger_ori",
+   "name": "Orichalcum dagger",
+   "group": "Melee weapons",
+   "file": "items/dagger_ori.png",
+   "sha1": "34d94c14bdca564c172fb307bbd99ffac8c125f4",
+   "h": 0.393,
+   "w": 0.399
+  },
+  {
+   "kind": "items",
+   "id": "pike_ori",
+   "name": "Orichalcum boarding pike",
+   "group": "Melee weapons",
+   "file": "items/pike_ori.png",
+   "sha1": "bf2b1b9fc0cc663c98c61b6d7073f1e7759c06cc",
+   "h": 1.001,
+   "w": 0.74
+  },
+  {
+   "kind": "items",
+   "id": "greatsword_ori",
+   "name": "Orichalcum greatsword",
+   "group": "Melee weapons",
+   "file": "items/greatsword_ori.png",
+   "sha1": "2cd3b864a1702d57a68d5e60a886ace027411ffc",
+   "h": 0.945,
+   "w": 0.954
+  },
+  {
+   "kind": "items",
+   "id": "pistols_ori",
+   "name": "Orichalcum pistol brace",
+   "group": "Ranged weapons",
+   "file": "items/pistols_ori.png",
+   "sha1": "a866bb1e6e1887d3c18c43364d49ca4bcbcb6374",
+   "h": 0.63,
+   "w": 0.737
+  },
+  {
+   "kind": "items",
+   "id": "crossbow_ori",
+   "name": "Orichalcum crossbow",
+   "group": "Ranged weapons",
+   "file": "items/crossbow_ori.png",
+   "sha1": "a0307743962f7be01c3ec968f454bac2cc990b2a",
+   "h": 0.414,
+   "w": 0.51
+  },
+  {
+   "kind": "items",
+   "id": "arrow_ori",
+   "name": "Orichalcum arrows",
+   "group": "Ammunition",
+   "file": "items/arrow_ori.png",
+   "sha1": "c0b60b8e7060464d72697d2431df18f72b40dfe4",
+   "h": 0.446,
+   "w": 0.459
+  },
+  {
+   "kind": "items",
+   "id": "bolt_ori",
+   "name": "Orichalcum bolts",
+   "group": "Ammunition",
+   "file": "items/bolt_ori.png",
+   "sha1": "1bd726aed42b8c66bc4f5916f60063d59a7b1bc8",
+   "h": 0.299,
+   "w": 0.307
+  },
+  {
+   "kind": "items",
+   "id": "helm_ori",
+   "name": "Orichalcum helm",
+   "group": "Armour",
+   "file": "items/helm_ori.png",
+   "sha1": "fc86b6dc602ce7f1a514aede5f46904dbc6de6bb",
+   "h": 0.404,
+   "w": 0.679
+  },
+  {
+   "kind": "items",
+   "id": "plate_ori",
+   "name": "Orichalcum plate",
+   "group": "Armour",
+   "file": "items/plate_ori.png",
+   "sha1": "0333c0c87c8f839d2640f640054ca4f0454936aa",
+   "h": 0.576,
+   "w": 0.671
+  },
+  {
+   "kind": "items",
+   "id": "shortbow_pine",
+   "name": "Saltpine shortbow",
+   "group": "Ranged weapons",
+   "file": "items/shortbow_pine.png",
+   "sha1": "8ac85e587ca69c2c9ff3354fab9207b68f7393ef",
+   "h": 0.638,
+   "w": 0.611
+  },
+  {
+   "kind": "items",
+   "id": "longbow_pine",
+   "name": "Saltpine longbow",
+   "group": "Ranged weapons",
+   "file": "items/longbow_pine.png",
+   "sha1": "a811078f7fc9173467bc14ef185333b4b2218e17",
+   "h": 0.798,
+   "w": 0.755
+  },
+  {
+   "kind": "items",
+   "id": "shortbow_oak",
+   "name": "Sea-oak shortbow",
+   "group": "Ranged weapons",
+   "file": "items/shortbow_oak.png",
+   "sha1": "a079b4dab0ee9831e0357fa3d9fbb213d0d5d012",
+   "h": 0.638,
+   "w": 0.611
+  },
+  {
+   "kind": "items",
+   "id": "longbow_oak",
+   "name": "Sea-oak longbow",
+   "group": "Ranged weapons",
+   "file": "items/longbow_oak.png",
+   "sha1": "3b6b2e7c70458fa398a9b27343e5f385cf00fd7a",
+   "h": 0.798,
+   "w": 0.755
+  },
+  {
+   "kind": "items",
+   "id": "shortbow_willow",
+   "name": "Mire willow shortbow",
+   "group": "Ranged weapons",
+   "file": "items/shortbow_willow.png",
+   "sha1": "49d13ceb312ede7127f53bdd2223f448ffe0845f",
+   "h": 0.638,
+   "w": 0.611
+  },
+  {
+   "kind": "items",
+   "id": "longbow_willow",
+   "name": "Mire willow longbow",
+   "group": "Ranged weapons",
+   "file": "items/longbow_willow.png",
+   "sha1": "0eee1796982dec0dfb43fe98ce70d1aca575ee10",
+   "h": 0.798,
+   "w": 0.755
+  },
+  {
+   "kind": "items",
+   "id": "shortbow_amber",
+   "name": "Amberwood shortbow",
+   "group": "Ranged weapons",
+   "file": "items/shortbow_amber.png",
+   "sha1": "f9b5da5fff853206b3d3ff89badeab0415662343",
+   "h": 0.638,
+   "w": 0.611
+  },
+  {
+   "kind": "items",
+   "id": "longbow_amber",
+   "name": "Amberwood longbow",
+   "group": "Ranged weapons",
+   "file": "items/longbow_amber.png",
+   "sha1": "1bccd7e06e2280e43384a5defff77e3c6eece074",
+   "h": 0.798,
+   "w": 0.755
+  },
+  {
+   "kind": "items",
+   "id": "shortbow_yew",
+   "name": "Ghost yew shortbow",
+   "group": "Ranged weapons",
+   "file": "items/shortbow_yew.png",
+   "sha1": "9173f29fb051d00d36e3f1f1a66e2639d43f289a",
+   "h": 0.638,
+   "w": 0.611
+  },
+  {
+   "kind": "items",
+   "id": "longbow_yew",
+   "name": "Ghost yew longbow",
+   "group": "Ranged weapons",
+   "file": "items/longbow_yew.png",
+   "sha1": "ec959765b30e1ba1f68438e3214f8be8ffa2fd11",
+   "h": 0.798,
+   "w": 0.755
+  },
+  {
+   "kind": "items",
+   "id": "shortbow_star",
+   "name": "Starbark shortbow",
+   "group": "Ranged weapons",
+   "file": "items/shortbow_star.png",
+   "sha1": "99f75d0e5b601b4b54a5e9d90d65d12a59d4078f",
+   "h": 0.638,
+   "w": 0.611
+  },
+  {
+   "kind": "items",
+   "id": "longbow_star",
+   "name": "Starbark longbow",
+   "group": "Ranged weapons",
+   "file": "items/longbow_star.png",
+   "sha1": "00d5513e5e8b978910b2aad24ccb257d1138bad3",
+   "h": 0.798,
+   "w": 0.755
+  },
+  {
+   "kind": "items",
+   "id": "shortbow_cedar",
+   "name": "Leviathan cedar shortbow",
+   "group": "Ranged weapons",
+   "file": "items/shortbow_cedar.png",
+   "sha1": "1112cf5522e3ab08fcca2280ae451b77955be321",
+   "h": 0.638,
+   "w": 0.611
+  },
+  {
+   "kind": "items",
+   "id": "longbow_cedar",
+   "name": "Leviathan cedar longbow",
+   "group": "Ranged weapons",
+   "file": "items/longbow_cedar.png",
+   "sha1": "793a1d59a62f61c7a6c50e2b9096274170af4fd5",
+   "h": 0.798,
+   "w": 0.755
+  },
+  {
+   "kind": "items",
+   "id": "logs_willow",
+   "name": "Mire willow logs",
+   "group": "Logs",
+   "file": "items/logs_willow.png",
+   "sha1": "d3a3a511e345eb5e3db26925931ea8d0f5a2828a",
+   "h": 0.373,
+   "w": 0.639
+  },
+  {
+   "kind": "items",
+   "id": "logs_amber",
+   "name": "Amberwood logs",
+   "group": "Logs",
+   "file": "items/logs_amber.png",
+   "sha1": "5c8d74046cdc9a3ecdfe8e03cda0ebcb2a68ca96",
+   "h": 0.359,
+   "w": 0.643
+  },
+  {
+   "kind": "items",
+   "id": "logs_yew",
+   "name": "Ghost yew logs",
+   "group": "Logs",
+   "file": "items/logs_yew.png",
+   "sha1": "ed329764e090dd63884af1bb5abad2417ce7f51a",
+   "h": 0.367,
+   "w": 0.643
+  },
+  {
+   "kind": "items",
+   "id": "logs_star",
+   "name": "Starbark logs",
+   "group": "Logs",
+   "file": "items/logs_star.png",
+   "sha1": "dfc3f01a9cba77ede105fa9fcccee2641c3ad6cc",
+   "h": 0.37,
+   "w": 0.641
+  },
+  {
+   "kind": "items",
+   "id": "logs_cedar",
+   "name": "Leviathan cedar logs",
+   "group": "Logs",
+   "file": "items/logs_cedar.png",
+   "sha1": "0b6b6c1adc7d985e5971df115e3bfe9a1941b030",
+   "h": 0.359,
+   "w": 0.643
+  },
+  {
+   "kind": "items",
+   "id": "fish_trout_raw",
+   "name": "Raw lagoon trout",
+   "group": "Food & fish",
+   "file": "items/fish_trout_raw.png",
+   "sha1": "7c5a9308b4d9355e0fdde49ec0bf533cf1dc638e",
+   "h": 0.235,
+   "w": 0.7
+  },
+  {
+   "kind": "items",
+   "id": "fish_trout",
+   "name": "Smoked trout",
+   "group": "Food & fish",
+   "file": "items/fish_trout.png",
+   "sha1": "18211d121022e25b7da7bb3cfd7fc54c93786b22",
+   "h": 0.235,
+   "w": 0.7
+  },
+  {
+   "kind": "items",
+   "id": "fish_salmon_raw",
+   "name": "Raw fen salmon",
+   "group": "Food & fish",
+   "file": "items/fish_salmon_raw.png",
+   "sha1": "7747da9ad8cb92d78918154208e986df33301449",
+   "h": 0.251,
+   "w": 0.774
+  },
+  {
+   "kind": "items",
+   "id": "fish_salmon",
+   "name": "Baked salmon",
+   "group": "Food & fish",
+   "file": "items/fish_salmon.png",
+   "sha1": "54632018510e5a0f833a6037af5b30e99642c5c3",
+   "h": 0.251,
+   "w": 0.774
+  },
+  {
+   "kind": "items",
+   "id": "fish_lobster_raw",
+   "name": "Raw cove lobster",
+   "group": "Food & fish",
+   "file": "items/fish_lobster_raw.png",
+   "sha1": "5d2fe4be24ad1225e1a821d46bb0399c22f483b9",
+   "h": 0.196,
+   "w": 0.706
+  },
+  {
+   "kind": "items",
+   "id": "fish_lobster",
+   "name": "Boiled lobster",
+   "group": "Food & fish",
+   "file": "items/fish_lobster.png",
+   "sha1": "b3a86f7ca11ddc72a116e279504acb4291b6a48c",
+   "h": 0.195,
+   "w": 0.706
+  },
+  {
+   "kind": "items",
+   "id": "fish_sword_raw",
+   "name": "Raw swordfish",
+   "group": "Food & fish",
+   "file": "items/fish_sword_raw.png",
+   "sha1": "dac0eced302ad5a304bfb27ec3d51cdeb5de955f",
+   "h": 0.41,
+   "w": 1.065
+  },
+  {
+   "kind": "items",
+   "id": "fish_sword",
+   "name": "Grilled swordfish",
+   "group": "Food & fish",
+   "file": "items/fish_sword.png",
+   "sha1": "1e43d229872b9e896bdff919189abe813a9d0ded",
+   "h": 0.41,
+   "w": 1.065
+  },
+  {
+   "kind": "items",
+   "id": "fish_gloom_raw",
+   "name": "Raw gloomfish",
+   "group": "Food & fish",
+   "file": "items/fish_gloom_raw.png",
+   "sha1": "cbc12ad9e3d129b2ffa5aec350a8d61a154b3e35",
+   "h": 0.288,
+   "w": 0.599
+  },
+  {
+   "kind": "items",
+   "id": "fish_gloom",
+   "name": "Charred gloomfish",
+   "group": "Food & fish",
+   "file": "items/fish_gloom.png",
+   "sha1": "411aa70d243fa44a3656a3ef98cd952ca874a456",
+   "h": 0.288,
+   "w": 0.599
+  },
+  {
+   "kind": "items",
+   "id": "fish_shark_raw",
+   "name": "Raw shark",
+   "group": "Food & fish",
+   "file": "items/fish_shark_raw.png",
+   "sha1": "0428dce89322bccc5efec070265c292a916dac54",
+   "h": 0.386,
+   "w": 0.939
+  },
+  {
+   "kind": "items",
+   "id": "fish_shark",
+   "name": "Shark steak",
+   "group": "Food & fish",
+   "file": "items/fish_shark.png",
+   "sha1": "a3326fd14550c36fa248ba1ed2aa3c348b6108c3",
+   "h": 0.128,
+   "w": 0.48
+  },
+  {
+   "kind": "items",
+   "id": "fish_angler_raw",
+   "name": "Raw abyssal angler",
+   "group": "Food & fish",
+   "file": "items/fish_angler_raw.png",
+   "sha1": "9efd1c170e35332813108fa271557e7dda9e7229",
+   "h": 0.401,
+   "w": 0.716
+  },
+  {
+   "kind": "items",
+   "id": "fish_angler",
+   "name": "Roast angler",
+   "group": "Food & fish",
+   "file": "items/fish_angler.png",
+   "sha1": "c48ed3844705175bb7396a29d9d2ac6bd11b435b",
+   "h": 0.401,
+   "w": 0.716
+  },
+  {
+   "kind": "items",
+   "id": "fish_mackerel_raw",
+   "name": "Raw mackerel",
+   "group": "Food & fish",
+   "file": "items/fish_mackerel_raw.png",
+   "sha1": "5f6f8c677885e5da849c39953ed34704281f1250",
+   "h": 0.188,
+   "w": 0.618
+  },
+  {
+   "kind": "items",
+   "id": "fish_mackerel",
+   "name": "Grilled mackerel",
+   "group": "Food & fish",
+   "file": "items/fish_mackerel.png",
+   "sha1": "aaa53ea8014dc1cd90a71f3a19791ae439298e60",
+   "h": 0.188,
+   "w": 0.618
+  },
+  {
+   "kind": "items",
+   "id": "fish_bass_raw",
+   "name": "Raw sea bass",
+   "group": "Food & fish",
+   "file": "items/fish_bass_raw.png",
+   "sha1": "4f60b897ec32cba67460a722ebe688d03cfa9243",
+   "h": 0.29,
+   "w": 0.666
+  },
+  {
+   "kind": "items",
+   "id": "fish_bass",
+   "name": "Pan-fried bass",
+   "group": "Food & fish",
+   "file": "items/fish_bass.png",
+   "sha1": "480af76a96a91149197ae0de0ff1fd383c3140e0",
+   "h": 0.29,
+   "w": 0.666
+  },
+  {
+   "kind": "items",
+   "id": "fish_tuna_raw",
+   "name": "Raw tuna",
+   "group": "Food & fish",
+   "file": "items/fish_tuna_raw.png",
+   "sha1": "66789da2e84d179e16b93be023ecc4b95b08ecb8",
+   "h": 0.407,
+   "w": 0.808
+  },
+  {
+   "kind": "items",
+   "id": "fish_tuna",
+   "name": "Seared tuna",
+   "group": "Food & fish",
+   "file": "items/fish_tuna.png",
+   "sha1": "6c4897fe93d83da878f232f326d26adfa7d6cbb3",
+   "h": 0.407,
+   "w": 0.808
+  },
+  {
+   "kind": "items",
+   "id": "fish_barracuda_raw",
+   "name": "Raw barracuda",
+   "group": "Food & fish",
+   "file": "items/fish_barracuda_raw.png",
+   "sha1": "5bff8d0a173b452266bd83550053a73ead6e5b44",
+   "h": 0.176,
+   "w": 0.935
+  },
+  {
+   "kind": "items",
+   "id": "fish_barracuda",
+   "name": "Smoked barracuda",
+   "group": "Food & fish",
+   "file": "items/fish_barracuda.png",
+   "sha1": "710b469420ce491f562a82a65ba7b346e7cbd29f",
+   "h": 0.176,
+   "w": 0.935
+  },
+  {
+   "kind": "items",
+   "id": "lobster_pot",
+   "name": "Lobster pot",
+   "group": "Tools",
+   "file": "items/lobster_pot.png",
+   "sha1": "ea223f1737f263a628777163b7cd224281e8decc",
+   "h": 0.364,
+   "w": 0.37
+  },
+  {
+   "kind": "items",
+   "id": "harpoon",
+   "name": "Harpoon",
+   "group": "Tools",
+   "file": "items/harpoon.png",
+   "sha1": "3f3a78031d004a6da8bec85490cbeccbb96cc28d",
+   "h": 0.588,
+   "w": 0.602
+  },
+  {
+   "kind": "items",
+   "id": "berries",
+   "name": "Bramble berries",
+   "group": "Food & fish",
+   "file": "items/berries.png",
+   "sha1": "95f65de930336986421e90588a364880b8affc9e",
+   "h": 0.279,
+   "w": 0.389
+  },
+  {
+   "kind": "items",
+   "id": "coconut",
+   "name": "Coconut",
+   "group": "Food & fish",
+   "file": "items/coconut.png",
+   "sha1": "89bbaffe06c71ecf658386aa5a1585ecf2991c66",
+   "h": 0.427,
+   "w": 0.422
+  },
+  {
+   "kind": "items",
+   "id": "kelp",
+   "name": "Sea kelp",
+   "group": "Materials",
+   "file": "items/kelp.png",
+   "sha1": "b533af3502149cf96782ea8e61fd0b553d1d6897",
+   "h": 0.281,
+   "w": 0.568
+  },
+  {
+   "kind": "items",
+   "id": "geode",
+   "name": "Geode",
+   "group": "Finds",
+   "file": "items/geode.png",
+   "sha1": "0721c77071cc60b3da3c41dc5593ca51e7054006",
+   "h": 0.495,
+   "w": 0.501
+  },
+  {
+   "kind": "items",
+   "id": "spade",
+   "name": "Spade",
+   "group": "Materials",
+   "file": "items/spade.png",
+   "sha1": "d5772d582153f83eda5f016f56d6c6ea2b81c7de",
+   "h": 0.687,
+   "w": 0.442
+  },
+  {
+   "kind": "items",
+   "id": "parcel_sprat",
+   "name": "Kelp-wrapped sprat",
+   "group": "Food & fish",
+   "file": "items/parcel_sprat.png",
+   "sha1": "18f57f4b2cef75c7b49f1dfb33934ec8dc462a07",
+   "h": 0.199,
+   "w": 0.517
+  },
+  {
+   "kind": "items",
+   "id": "ale",
+   "name": "Bellwether ale",
+   "group": "Food & fish",
+   "file": "items/ale.png",
+   "sha1": "67afc4a429c478b6af25a198961016213add36ce",
+   "h": 0.343,
+   "w": 0.378
+  },
+  {
+   "kind": "items",
+   "id": "pie_berry",
+   "name": "Bramble pie",
+   "group": "Food & fish",
+   "file": "items/pie_berry.png",
+   "sha1": "b49058c7b5a06e11e13d294c40507e0cc55e1100",
+   "h": 0.171,
+   "w": 0.47
+  },
+  {
+   "kind": "items",
+   "id": "crab_cakes",
+   "name": "Crab cakes",
+   "group": "Food & fish",
+   "file": "items/crab_cakes.png",
+   "sha1": "644e929ea8bde46fd04ee1c8114a03c59533ef2c",
+   "h": 0.285,
+   "w": 0.554
+  },
+  {
+   "kind": "items",
+   "id": "fish_pie",
+   "name": "Fisherman's pie",
+   "group": "Food & fish",
+   "file": "items/fish_pie.png",
+   "sha1": "5a5e3d9dd961f693e7f3a6c27098c0dd83c14de0",
+   "h": 0.171,
+   "w": 0.47
+  },
+  {
+   "kind": "items",
+   "id": "lobster_bisque",
+   "name": "Lobster bisque",
+   "group": "Food & fish",
+   "file": "items/lobster_bisque.png",
+   "sha1": "56f4ca5af7445f97997abc5d46a7d29cb9396960",
+   "h": 0.358,
+   "w": 0.447
+  },
+  {
+   "kind": "items",
+   "id": "sword_kelp",
+   "name": "Kelp-wrapped swordfish",
+   "group": "Food & fish",
+   "file": "items/sword_kelp.png",
+   "sha1": "104b6bcdddbcaa988c838b33aed019dee3212059",
+   "h": 0.199,
+   "w": 0.52
+  },
+  {
+   "kind": "items",
+   "id": "captains_feast",
+   "name": "Captain's feast",
+   "group": "Food & fish",
+   "file": "items/captains_feast.png",
+   "sha1": "dd3c7b8b8e65c3921e1aebd71189b468538d1a97",
+   "h": 0.171,
+   "w": 0.47
+  },
+  {
+   "kind": "items",
+   "id": "fish_stew",
+   "name": "Fisherman's stew",
+   "group": "Food & fish",
+   "file": "items/fish_stew.png",
+   "sha1": "926904ef4b25719ab414e10f5a6706e76ab5bd36",
+   "h": 0.358,
+   "w": 0.447
+  },
+  {
+   "kind": "items",
+   "id": "parcel_trout",
+   "name": "Kelp-wrapped trout",
+   "group": "Food & fish",
+   "file": "items/parcel_trout.png",
+   "sha1": "744439b6c51ce29d76a9ce0ccac68b64e502ff01",
+   "h": 0.199,
+   "w": 0.517
+  },
+  {
+   "kind": "items",
+   "id": "staff_coral",
+   "name": "Coral staff",
+   "group": "Staffs",
+   "file": "items/staff_coral.png",
+   "sha1": "2c4b1f7e702df23dd36017d35408c0fd023d018e",
+   "h": 0.932,
+   "w": 0.467
+  },
+  {
+   "kind": "items",
+   "id": "staff_storm",
+   "name": "Stormsilver staff",
+   "group": "Staffs",
+   "file": "items/staff_storm.png",
+   "sha1": "06f68ca5481b185f597c7ff3413ee74d1b7b1427",
+   "h": 0.932,
+   "w": 0.467
+  },
+  {
+   "kind": "items",
+   "id": "staff_tide",
+   "name": "Tidecore staff",
+   "group": "Staffs",
+   "file": "items/staff_tide.png",
+   "sha1": "3c5bb5941641bfb04bd2dedffb8951dd40d96e0b",
+   "h": 0.932,
+   "w": 0.467
+  },
+  {
+   "kind": "creatures",
+   "id": "reef_crab",
+   "name": "Reef crab",
+   "group": "Early game",
+   "file": "creatures/reef_crab.png",
+   "sha1": "fbb1064ac866c47b9f07d13164cbd5d3c587a4d9",
+   "h": 0.764,
+   "w": 2.197
+  },
+  {
+   "kind": "creatures",
+   "id": "brigand",
+   "name": "Brigand",
+   "group": "Early game",
+   "file": "creatures/brigand.png",
+   "sha1": "7418a2ad63e4324e82657c218ac1dec804326e4e",
+   "h": 2.008,
+   "w": 0.776
+  },
+  {
+   "kind": "creatures",
+   "id": "gunner",
+   "name": "Brigand gunner",
+   "group": "Early game",
+   "file": "creatures/gunner.png",
+   "sha1": "817366d7b6756907a05819a1a5a0a12e012fe1cf",
+   "h": 2.008,
+   "w": 1.295
+  },
+  {
+   "kind": "creatures",
+   "id": "guardian",
+   "name": "The Lockbound Guardian",
+   "group": "Boss",
+   "file": "creatures/guardian.png",
+   "sha1": "493c295e122bed94bf6a1a22624898e6ff39c43e",
+   "h": 3.451,
+   "w": 3.505
+  },
+  {
+   "kind": "creatures",
+   "id": "mire_crab",
+   "name": "Mire crab",
+   "group": "Early game",
+   "file": "creatures/mire_crab.png",
+   "sha1": "91c2b925623df2508334e91f168499d95293d322",
+   "h": 0.764,
+   "w": 2.197
+  },
+  {
+   "kind": "creatures",
+   "id": "smuggler",
+   "name": "Smuggler",
+   "group": "Mid game",
+   "file": "creatures/smuggler.png",
+   "sha1": "a35304e69d047b3c454fbf2071f4cd60e61b7e69",
+   "h": 2.135,
+   "w": 0.776
+  },
+  {
+   "kind": "creatures",
+   "id": "smuggler_gunner",
+   "name": "Smuggler gunner",
+   "group": "Mid game",
+   "file": "creatures/smuggler_gunner.png",
+   "sha1": "030f4d4e885ccd17a1c81b53a3d51408d9bc905b",
+   "h": 2.135,
+   "w": 1.31
+  },
+  {
+   "kind": "creatures",
+   "id": "ironshell_crab",
+   "name": "Ironshell crab",
+   "group": "Mid game",
+   "file": "creatures/ironshell_crab.png",
+   "sha1": "2062882ae1b3ac3fc2df17007a96d58d1e2b2b18",
+   "h": 0.764,
+   "w": 2.197
+  },
+  {
+   "kind": "creatures",
+   "id": "poacher",
+   "name": "Heartwood poacher",
+   "group": "Mid game",
+   "file": "creatures/poacher.png",
+   "sha1": "4ccadd304b75fe7ac82e64ec4170d200458faa49",
+   "h": 2.011,
+   "w": 0.776
+  },
+  {
+   "kind": "creatures",
+   "id": "poacher_gunner",
+   "name": "Poacher marksman",
+   "group": "Mid game",
+   "file": "creatures/poacher_gunner.png",
+   "sha1": "af46944f7303820764074d00c25b94251256cef7",
+   "h": 2.011,
+   "w": 1.295
+  },
+  {
+   "kind": "creatures",
+   "id": "drowned",
+   "name": "Drowned wrecker",
+   "group": "Late game",
+   "file": "creatures/drowned.png",
+   "sha1": "2365c0f0719e6862bcefc798f1649d4438dab053",
+   "h": 2.008,
+   "w": 0.776
+  },
+  {
+   "kind": "creatures",
+   "id": "wreck_captain",
+   "name": "Drowned captain",
+   "group": "Late game",
+   "file": "creatures/wreck_captain.png",
+   "sha1": "518ddcf983764c848a2fa651d80ae8391dcb9f47",
+   "h": 2.135,
+   "w": 0.776
+  },
+  {
+   "kind": "creatures",
+   "id": "stone_sentinel",
+   "name": "Stone sentinel",
+   "group": "Late game",
+   "file": "creatures/stone_sentinel.png",
+   "sha1": "fbb4db844aca381572154b262fa3edfd50002bb8",
+   "h": 3.451,
+   "w": 3.505
+  },
+  {
+   "kind": "creatures",
+   "id": "cave_spider",
+   "name": "Cave spider",
+   "group": "Early game",
+   "file": "creatures/cave_spider.png",
+   "sha1": "b99dc750a2597346c5450d2513e41502dde908e0",
+   "h": 0.931,
+   "w": 1.703
+  },
+  {
+   "kind": "creatures",
+   "id": "boar",
+   "name": "Greenheart boar",
+   "group": "Mid game",
+   "file": "creatures/boar.png",
+   "sha1": "fee37e566a8336e63f5c60c513119d6f9433e236",
+   "h": 1.14,
+   "w": 2.077
+  },
+  {
+   "kind": "creatures",
+   "id": "jungle_snake",
+   "name": "Gold-banded snake",
+   "group": "Mid game",
+   "file": "creatures/jungle_snake.png",
+   "sha1": "faa8abf5d5049bdafa7808d415d7e7073affb20d",
+   "h": 0.575,
+   "w": 2.697
+  },
+  {
+   "kind": "creatures",
+   "id": "giant_spider",
+   "name": "Giant weaver",
+   "group": "Mid game",
+   "file": "creatures/giant_spider.png",
+   "sha1": "ae6eaf2018f9aa52e4d3f4ae7a69a1ab6ce301bf",
+   "h": 0.931,
+   "w": 1.703
+  },
+  {
+   "kind": "creatures",
+   "id": "ember_snake",
+   "name": "Ember asp",
+   "group": "Late game",
+   "file": "creatures/ember_snake.png",
+   "sha1": "2930af080f8896f7d119c6a3927d40120a2be271",
+   "h": 0.575,
+   "w": 2.697
+  },
+  {
+   "kind": "creatures",
+   "id": "temple_serpent",
+   "name": "The Sunscale",
+   "group": "Boss",
+   "file": "creatures/temple_serpent.png",
+   "sha1": "66eee38600dc95df06d3a90653954760a33ff74b",
+   "h": 0.839,
+   "w": 2.697
+  },
+  {
+   "kind": "characters",
+   "id": "player",
+   "name": "You, the captain",
+   "group": "Player",
+   "file": "characters/player.png",
+   "sha1": "601050a459ebe3edc1d2f898e82108ea0e35de43",
+   "h": 2.135,
+   "w": 0.776
+  },
+  {
+   "kind": "characters",
+   "id": "iven",
+   "name": "Iven Marr",
+   "group": "Named NPCs",
+   "file": "characters/iven.png",
+   "sha1": "2216c10ec1236688ec0a6955546928be5b342aab",
+   "h": 2.011,
+   "w": 0.761
+  },
+  {
+   "kind": "characters",
+   "id": "marta",
+   "name": "Marta Gell",
+   "group": "Named NPCs",
+   "file": "characters/marta.png",
+   "sha1": "6c4bddcbc81cb23569084ffda78680b72a99f781",
+   "h": 2.005,
+   "w": 0.761
+  },
+  {
+   "kind": "characters",
+   "id": "bram",
+   "name": "Bram Tollis",
+   "group": "Named NPCs",
+   "file": "characters/bram.png",
+   "sha1": "ebda55c1bea5df6f35dd6969eb9d20376861d4ec",
+   "h": 2.005,
+   "w": 0.774
+  },
+  {
+   "kind": "characters",
+   "id": "silas",
+   "name": "Silas Reed",
+   "group": "Named NPCs",
+   "file": "characters/silas.png",
+   "sha1": "47748ff69ce3dfeebaac3ad9dca18dfcc4c0ef3d",
+   "h": 2.011,
+   "w": 0.761
+  },
+  {
+   "kind": "characters",
+   "id": "hob",
+   "name": "Hob Fenner",
+   "group": "Named NPCs",
+   "file": "characters/hob.png",
+   "sha1": "9196ceaaab874c04c56563349464d7519b4ef35a",
+   "h": 2.005,
+   "w": 0.761
+  },
+  {
+   "kind": "characters",
+   "id": "ada",
+   "name": "Ada Quill",
+   "group": "Named NPCs",
+   "file": "characters/ada.png",
+   "sha1": "8d6f7dceecb8fbeeab49ee8f662ddaf1f23e76fb",
+   "h": 2.005,
+   "w": 0.761
+  },
+  {
+   "kind": "characters",
+   "id": "maren",
+   "name": "Sister Maren",
+   "group": "Named NPCs",
+   "file": "characters/maren.png",
+   "sha1": "548c00f600d7ec66aa0e6a7418093e596259aee8",
+   "h": 2.008,
+   "w": 0.761
+  },
+  {
+   "kind": "characters",
+   "id": "corwin",
+   "name": "Corwin Ashe",
+   "group": "Named NPCs",
+   "file": "characters/corwin.png",
+   "sha1": "129f250e726a6c7ea7a640e28d60f8b9a8f1cb1f",
+   "h": 2.135,
+   "w": 0.761
+  },
+  {
+   "kind": "characters",
+   "id": "wynn",
+   "name": "Wynn Harrow",
+   "group": "Named NPCs",
+   "file": "characters/wynn.png",
+   "sha1": "471776754399a132157ec9c53a38100eadb9a944",
+   "h": 2.011,
+   "w": 0.761
+  },
+  {
+   "kind": "characters",
+   "id": "watch_n",
+   "name": "Watchman Pell",
+   "group": "Town watch",
+   "file": "characters/watch_n.png",
+   "sha1": "c350bec7c0724339286610d260040791fe7c8eec",
+   "h": 2.135,
+   "w": 1.31
+  },
+  {
+   "kind": "characters",
+   "id": "watch_e",
+   "name": "Watchwoman Dory",
+   "group": "Town watch",
+   "file": "characters/watch_e.png",
+   "sha1": "153c6d4f797f153b4596f714c29431c40be855d2",
+   "h": 2.135,
+   "w": 1.31
+  },
+  {
+   "kind": "characters",
+   "id": "sefa",
+   "name": "Sefa Odun",
+   "group": "Named NPCs",
+   "file": "characters/sefa.png",
+   "sha1": "3033bd0352becf4c20e1fc57bfc8fa2d998ecc40",
+   "h": 2.011,
+   "w": 0.761
+  },
+  {
+   "kind": "characters",
+   "id": "tamsin",
+   "name": "Tamsin Vey",
+   "group": "Named NPCs",
+   "file": "characters/tamsin.png",
+   "sha1": "1c8f4c758ad5e05b7de591b69c628e5cf3a57772",
+   "h": 2.008,
+   "w": 0.761
+  },
+  {
+   "kind": "characters",
+   "id": "rell",
+   "name": "Bosun Rell",
+   "group": "Named NPCs",
+   "file": "characters/rell.png",
+   "sha1": "6a78a92d31f7e9280260aa8f5df74a8052db2fa0",
+   "h": 2.005,
+   "w": 0.761
+  },
+  {
+   "kind": "characters",
+   "id": "ines",
+   "name": "Ines Carro",
+   "group": "Named NPCs",
+   "file": "characters/ines.png",
+   "sha1": "d90af735e4ade968103e234dd58c4fc3724c2402",
+   "h": 2.005,
+   "w": 0.761
+  },
+  {
+   "kind": "characters",
+   "id": "halyard_watch",
+   "name": "Watchman Okoro",
+   "group": "Town watch",
+   "file": "characters/halyard_watch.png",
+   "sha1": "7a50aeafc8ca91f416ce041ea43a2dee41d6fca1",
+   "h": 2.135,
+   "w": 1.31
+  },
+  {
+   "kind": "characters",
+   "id": "towns_a",
+   "name": "Townsfolk A",
+   "group": "Townsfolk",
+   "file": "characters/towns_a.png",
+   "sha1": "ba05bfb054160bb73431050bf089473509b12b59",
+   "h": 2.005,
+   "w": 0.761
+  },
+  {
+   "kind": "characters",
+   "id": "towns_b",
+   "name": "Townsfolk B",
+   "group": "Townsfolk",
+   "file": "characters/towns_b.png",
+   "sha1": "289226cc35d7b60677b1b757afa15a9470bb09c5",
+   "h": 2.011,
+   "w": 0.761
+  },
+  {
+   "kind": "characters",
+   "id": "towns_c",
+   "name": "Townsfolk C",
+   "group": "Townsfolk",
+   "file": "characters/towns_c.png",
+   "sha1": "01b5d6a68287d730baa7e10a5da30a865bdb905a",
+   "h": 2.005,
+   "w": 0.761
+  },
+  {
+   "kind": "characters",
+   "id": "towns_d",
+   "name": "Townsfolk D",
+   "group": "Townsfolk",
+   "file": "characters/towns_d.png",
+   "sha1": "83e68e44cd1b0613e60aa885e17a1245889d71cf",
+   "h": 2.008,
+   "w": 0.761
+  },
+  {
+   "kind": "characters",
+   "id": "towns_e",
+   "name": "Townsfolk E",
+   "group": "Townsfolk",
+   "file": "characters/towns_e.png",
+   "sha1": "dcfe869216e1bb1fbcc447ab7f753142d315cb4b",
+   "h": 2.005,
+   "w": 0.761
+  },
+  {
+   "kind": "resources",
+   "id": "tree_pine",
+   "name": "Saltpine",
+   "group": "Trees",
+   "file": "resources/tree_pine.png",
+   "sha1": "e0ea45d5415ac1ecf9a3e11c097cac20b809e76b",
+   "h": 3.954,
+   "w": 2.898
+  },
+  {
+   "kind": "resources",
+   "id": "tree_oak",
+   "name": "Sea-oak",
+   "group": "Trees",
+   "file": "resources/tree_oak.png",
+   "sha1": "746d6d5d5dcbcbb2c4600a0587fcc1ec604a3375",
+   "h": 4.862,
+   "w": 5.544
+  },
+  {
+   "kind": "resources",
+   "id": "tree_willow",
+   "name": "Mire willow",
+   "group": "Trees",
+   "file": "resources/tree_willow.png",
+   "sha1": "64dbd59358bcee65f348ebf72cab44df990e6bee",
+   "h": 4.045,
+   "w": 5.766
+  },
+  {
+   "kind": "resources",
+   "id": "tree_amber",
+   "name": "Amberwood",
+   "group": "Trees",
+   "file": "resources/tree_amber.png",
+   "sha1": "5a547d6a7f39f0986d4fba198aaff4b2a796e40e",
+   "h": 5.445,
+   "w": 6.209
+  },
+  {
+   "kind": "resources",
+   "id": "tree_yew",
+   "name": "Ghost yew",
+   "group": "Trees",
+   "file": "resources/tree_yew.png",
+   "sha1": "a2202e4da04edcaf9be28b532933a3177d23a0db",
+   "h": 5.649,
+   "w": 4.14
+  },
+  {
+   "kind": "resources",
+   "id": "tree_star",
+   "name": "Starbark",
+   "group": "Trees",
+   "file": "resources/tree_star.png",
+   "sha1": "abaeb9e9e25ffc68ae5a0bccb650f6847c5d66d9",
+   "h": 5.837,
+   "w": 4.278
+  },
+  {
+   "kind": "resources",
+   "id": "tree_cedar",
+   "name": "Leviathan cedar",
+   "group": "Trees",
+   "file": "resources/tree_cedar.png",
+   "sha1": "fd2a8401f9a5b42dd19c3a4f108c0693b9f2c5ba",
+   "h": 7.909,
+   "w": 5.796
+  },
+  {
+   "kind": "resources",
+   "id": "rock_copper",
+   "name": "Copper rock",
+   "group": "Rocks & veins",
+   "file": "resources/rock_copper.png",
+   "sha1": "527cefc786eb6ce1f7c278fdfe09c6c4511ef459",
+   "h": 1.294,
+   "w": 3.156
+  },
+  {
+   "kind": "resources",
+   "id": "rock_tin",
+   "name": "Tin rock",
+   "group": "Rocks & veins",
+   "file": "resources/rock_tin.png",
+   "sha1": "3f3f25171fb3a5fdcc6077e2823bbc24c3fab553",
+   "h": 1.294,
+   "w": 3.156
+  },
+  {
+   "kind": "resources",
+   "id": "rock_iron",
+   "name": "Iron rock",
+   "group": "Rocks & veins",
+   "file": "resources/rock_iron.png",
+   "sha1": "e12e1331a983ac1d88702bcf4c872296f02f5782",
+   "h": 1.294,
+   "w": 3.156
+  },
+  {
+   "kind": "resources",
+   "id": "rock_coal",
+   "name": "Coal seam",
+   "group": "Rocks & veins",
+   "file": "resources/rock_coal.png",
+   "sha1": "59596ecb36b98597e8559d4ee7f68f2b6ced749b",
+   "h": 1.294,
+   "w": 3.156
+  },
+  {
+   "kind": "resources",
+   "id": "rock_gold",
+   "name": "Gold vein",
+   "group": "Rocks & veins",
+   "file": "resources/rock_gold.png",
+   "sha1": "12c01ba921eec7ad724e45334f62dc95d3499dbc",
+   "h": 1.294,
+   "w": 3.156
+  },
+  {
+   "kind": "resources",
+   "id": "rock_storm",
+   "name": "Stormsilver vein",
+   "group": "Rocks & veins",
+   "file": "resources/rock_storm.png",
+   "sha1": "f533f31e75c0e9fbf9778ff0fb3615a7e0ee55a9",
+   "h": 1.294,
+   "w": 3.156
+  },
+  {
+   "kind": "resources",
+   "id": "rock_abyss",
+   "name": "Abyssite vein",
+   "group": "Rocks & veins",
+   "file": "resources/rock_abyss.png",
+   "sha1": "e721853459fdfc0a12351cb46f2c1a622f83d0c0",
+   "h": 1.294,
+   "w": 3.156
+  },
+  {
+   "kind": "resources",
+   "id": "rock_tide",
+   "name": "Tidecore vein",
+   "group": "Rocks & veins",
+   "file": "resources/rock_tide.png",
+   "sha1": "8aa23bf73cd6ec173b81ca95f2326e77bb10fe38",
+   "h": 1.294,
+   "w": 3.156
+  },
+  {
+   "kind": "resources",
+   "id": "rock_cinder",
+   "name": "Cinderite vent",
+   "group": "Rocks & veins",
+   "file": "resources/rock_cinder.png",
+   "sha1": "d310162d8debff92ef306e5f8025104f606a3cb0",
+   "h": 1.406,
+   "w": 2.144
+  },
+  {
+   "kind": "resources",
+   "id": "rock_sky",
+   "name": "Fallen star",
+   "group": "Rocks & veins",
+   "file": "resources/rock_sky.png",
+   "sha1": "3c3df2659c38b25f663beb014a1538cc9ba72467",
+   "h": 1.614,
+   "w": 1.809
+  },
+  {
+   "kind": "resources",
+   "id": "rock_levi",
+   "name": "Leviathan bones",
+   "group": "Rocks & veins",
+   "file": "resources/rock_levi.png",
+   "sha1": "4e7fc4b713dda1217681be999007f3707406eddf",
+   "h": 1.629,
+   "w": 2.229
+  },
+  {
+   "kind": "resources",
+   "id": "rock_ori",
+   "name": "Drowned spire",
+   "group": "Rocks & veins",
+   "file": "resources/rock_ori.png",
+   "sha1": "efa3a78396bb41e4b69cdb182c05ba6de265e3ed",
+   "h": 6.394,
+   "w": 2.566
+  },
+  {
+   "kind": "resources",
+   "id": "spot_sprat",
+   "name": "Reef sprat & mackerel shoal",
+   "group": "Fishing spots",
+   "file": "resources/spot_sprat.png",
+   "sha1": "2734e7450b239edb5400f612ffcc5f0c8c0a6ff9",
+   "h": 1.363,
+   "w": 3
+  },
+  {
+   "kind": "resources",
+   "id": "spot_bell",
+   "name": "Bellfish & sea bass shoal",
+   "group": "Fishing spots",
+   "file": "resources/spot_bell.png",
+   "sha1": "7d8a81024bd2800ec0f5f42ceda246e04cf477e6",
+   "h": 1.579,
+   "w": 3
+  },
+  {
+   "kind": "resources",
+   "id": "spot_trout",
+   "name": "Lagoon trout & fen salmon shoal",
+   "group": "Fishing spots",
+   "file": "resources/spot_trout.png",
+   "sha1": "5a33fb1e59b60be00f37920f776fdc18be925c9f",
+   "h": 1.746,
+   "w": 3
+  },
+  {
+   "kind": "resources",
+   "id": "spot_salmon",
+   "name": "Lagoon trout & fen salmon shoal",
+   "group": "Fishing spots",
+   "file": "resources/spot_salmon.png",
+   "sha1": "5a33fb1e59b60be00f37920f776fdc18be925c9f",
+   "h": 1.746,
+   "w": 3
+  },
+  {
+   "kind": "resources",
+   "id": "spot_lobster",
+   "name": "Cove lobster pots",
+   "group": "Fishing spots",
+   "file": "resources/spot_lobster.png",
+   "sha1": "fcbe5476088d4db7ebd655da0c1a26730cb0456d",
+   "h": 1.598,
+   "w": 3
+  },
+  {
+   "kind": "resources",
+   "id": "spot_sword",
+   "name": "Tuna & swordfish shoal",
+   "group": "Fishing spots",
+   "file": "resources/spot_sword.png",
+   "sha1": "201693b5dc22e009dbff604d66f45ff474418f5d",
+   "h": 2.148,
+   "w": 3.256
+  },
+  {
+   "kind": "resources",
+   "id": "spot_gloom",
+   "name": "Gloomfish & barracuda shoal",
+   "group": "Fishing spots",
+   "file": "resources/spot_gloom.png",
+   "sha1": "a322c7317a40381844a18849dcae5bd8322cb0f6",
+   "h": 1.735,
+   "w": 3
+  },
+  {
+   "kind": "resources",
+   "id": "spot_shark",
+   "name": "Shark shoal",
+   "group": "Fishing spots",
+   "file": "resources/spot_shark.png",
+   "sha1": "e5afcc1f921c5663a48a370cebaef1e86fcb8974",
+   "h": 1.917,
+   "w": 3.033
+  },
+  {
+   "kind": "resources",
+   "id": "spot_angler",
+   "name": "Shark & abyssal angler shoal",
+   "group": "Fishing spots",
+   "file": "resources/spot_angler.png",
+   "sha1": "8b42e3d6825328a56ed2fb0551ebd5506d18ff0d",
+   "h": 2.055,
+   "w": 3
+  },
+  {
+   "kind": "resources",
+   "id": "rock_boulder",
+   "name": "Boulder",
+   "group": "Rocks & veins",
+   "file": "resources/rock_boulder.png",
+   "sha1": "c48d7c8466d2aca3507c9c2e40fa90e49c952e48",
+   "h": 1.241,
+   "w": 3.434
+  },
+  {
+   "kind": "resources",
+   "id": "bush_berry",
+   "name": "Bramble bush",
+   "group": "Foraging",
+   "file": "resources/bush_berry.png",
+   "sha1": "7398c1b616af46581772a5ee48545aa72ba7e4e1",
+   "h": 0.75,
+   "w": 1.299
+  },
+  {
+   "kind": "resources",
+   "id": "palm",
+   "name": "Coconut palm",
+   "group": "Foraging",
+   "file": "resources/palm.png",
+   "sha1": "e3851580dde978c66b73fa66e8de0947acc7e252",
+   "h": 4.317,
+   "w": 3.978
+  },
+  {
+   "kind": "resources",
+   "id": "kelp_bed",
+   "name": "Kelp bed",
+   "group": "Foraging",
+   "file": "resources/kelp_bed.png",
+   "sha1": "c0b2c5d2b51a79eee4da6622d43983000ecfe651",
+   "h": 1.306,
+   "w": 0.89
+  },
+  {
+   "kind": "resources",
+   "id": "salt_pan",
+   "name": "Salt pan",
+   "group": "Foraging",
+   "file": "resources/salt_pan.png",
+   "sha1": "48d9c6914abe60e921f9e5cce4465501c7c58668",
+   "h": 0.628,
+   "w": 3.179
+  },
+  {
+   "kind": "resources",
+   "id": "dig_spot",
+   "name": "Disturbed sand",
+   "group": "Foraging",
+   "file": "resources/dig_spot.png",
+   "sha1": "98860a71babb4b0d1e2cffa04f9e797125524e95",
+   "h": 0.229,
+   "w": 1.108
+  },
+  {
+   "kind": "resources",
+   "id": "stump",
+   "name": "Felled stump",
+   "group": "Trees",
+   "file": "resources/stump.png",
+   "sha1": "33fbae494cd7f57c764d7873629d4f4f8bb6309d",
+   "h": 0.379,
+   "w": 0.624
+  },
+  {
+   "kind": "props",
+   "id": "sloop",
+   "name": "Your sloop",
+   "group": "Ship & harbour",
+   "file": "props/sloop.png",
+   "sha1": "e807dab5ea1e650fa6cb4383d7fb121114e28bf0",
+   "h": 9.307,
+   "w": 10.643
+  },
+  {
+   "kind": "props",
+   "id": "rowboat",
+   "name": "Rowboat",
+   "group": "Ship & harbour",
+   "file": "props/rowboat.png",
+   "sha1": "8bf9c26eede1cc23627eee0fec18eab2bbe11f97",
+   "h": 0.644,
+   "w": 3.536
+  },
+  {
+   "kind": "props",
+   "id": "netrack",
+   "name": "Net rack",
+   "group": "Ship & harbour",
+   "file": "props/netrack.png",
+   "sha1": "fc0d6efbd6fde364ac902d4aaa5fb35b7f9682a7",
+   "h": 1.913,
+   "w": 2.706
+  },
+  {
+   "kind": "props",
+   "id": "pots",
+   "name": "Lobster pots",
+   "group": "Ship & harbour",
+   "file": "props/pots.png",
+   "sha1": "3c51aaa40c58506b66ca822946356c7f4c01ecf4",
+   "h": 0.538,
+   "w": 1.976
+  },
+  {
+   "kind": "props",
+   "id": "cannon",
+   "name": "Cannon",
+   "group": "Ship & harbour",
+   "file": "props/cannon.png",
+   "sha1": "6da82db9a710dd49ded3a51d987df2f389c238ae",
+   "h": 0.898,
+   "w": 1.719
+  },
+  {
+   "kind": "props",
+   "id": "buoy",
+   "name": "Buoy",
+   "group": "Ship & harbour",
+   "file": "props/buoy.png",
+   "sha1": "de03b42a5f463fdcf333608f85337d6c92692562",
+   "h": 1.4,
+   "w": 1
+  },
+  {
+   "kind": "props",
+   "id": "wreck",
+   "name": "Wreck ribs",
+   "group": "Ship & harbour",
+   "file": "props/wreck.png",
+   "sha1": "b70473f16891a2505971d0ba89adba42f0f3d547",
+   "h": 2.785,
+   "w": 7.513
+  },
+  {
+   "kind": "props",
+   "id": "furnace",
+   "name": "Furnace",
+   "group": "Stations",
+   "file": "props/furnace.png",
+   "sha1": "b3309201053875a3273ac9f6655cd0a3d80b5211",
+   "h": 2.331,
+   "w": 2.293
+  },
+  {
+   "kind": "props",
+   "id": "anvil",
+   "name": "Anvil",
+   "group": "Stations",
+   "file": "props/anvil.png",
+   "sha1": "39bf03baed15eb5cff66aecc939ff5f703aa21bd",
+   "h": 0.823,
+   "w": 1.123
+  },
+  {
+   "kind": "props",
+   "id": "cookfire",
+   "name": "Cookfire",
+   "group": "Stations",
+   "file": "props/cookfire.png",
+   "sha1": "a76bee63371f701e45220116ed0455c2a61aaa49",
+   "h": 0.988,
+   "w": 1.445
+  },
+  {
+   "kind": "props",
+   "id": "bench",
+   "name": "Workbench",
+   "group": "Stations",
+   "file": "props/bench.png",
+   "sha1": "ef424d1f1b2bbe41c118bbc0ae7eb3d6418a1272",
+   "h": 1.175,
+   "w": 1.813
+  },
+  {
+   "kind": "props",
+   "id": "ventforge",
+   "name": "Vent forge",
+   "group": "Stations",
+   "file": "props/ventforge.png",
+   "sha1": "17a8c746c9086a90609bb5e33557e73c6e747ade",
+   "h": 1.824,
+   "w": 2.852
+  },
+  {
+   "kind": "props",
+   "id": "strongbox",
+   "name": "Strongbox",
+   "group": "Stations",
+   "file": "props/strongbox.png",
+   "sha1": "b15eec4b5f3972551fe0db6dcdbbdd14243ce7c3",
+   "h": 1.035,
+   "w": 1.16
+  },
+  {
+   "kind": "props",
+   "id": "plinth",
+   "name": "Bell hollow (the Broken Ring)",
+   "group": "Boss arenas",
+   "file": "props/plinth.png",
+   "sha1": "5f0ca24bf65c4501789ea358e481f435b5324620",
+   "h": 1.097,
+   "w": 1.56
+  },
+  {
+   "kind": "props",
+   "id": "gong",
+   "name": "Temple gong (the Sunken Temple)",
+   "group": "Boss arenas",
+   "file": "props/gong.png",
+   "sha1": "864cd52e6ab9401f8b8be5764d6628ec4c81ec40",
+   "h": 2.5,
+   "w": 2.9
+  },
+  {
+   "kind": "props",
+   "id": "pillar",
+   "name": "Broken pillar",
+   "group": "Boss arenas",
+   "file": "props/pillar.png",
+   "sha1": "0ff7cf3d46d9b6924e88ee203263e718ec0a5e88",
+   "h": 3.399,
+   "w": 1.806
+  },
+  {
+   "kind": "props",
+   "id": "tent",
+   "name": "Brigand tent",
+   "group": "Camps",
+   "file": "props/tent.png",
+   "sha1": "1e48584cd7d8df82e6f456d81a608ca27e8163de",
+   "h": 2.65,
+   "w": 5.699
+  },
+  {
+   "kind": "props",
+   "id": "smithy",
+   "name": "Smithy shed",
+   "group": "Camps",
+   "file": "props/smithy.png",
+   "sha1": "e6d5d4f95f6b90b0ccd5f7f655b587a97ae6a2f8",
+   "h": 3.002,
+   "w": 5.6
+  },
+  {
+   "kind": "props",
+   "id": "crate",
+   "name": "Crate",
+   "group": "Camps",
+   "file": "props/crate.png",
+   "sha1": "6a4e37a2fd66fcd20613edda6670815e2dc8d8b6",
+   "h": 0.709,
+   "w": 0.756
+  },
+  {
+   "kind": "props",
+   "id": "barrel",
+   "name": "Barrel",
+   "group": "Camps",
+   "file": "props/barrel.png",
+   "sha1": "eba4ade0d75219ab9e637daec4d60dbecb698850",
+   "h": 0.75,
+   "w": 0.635
+  },
+  {
+   "kind": "props",
+   "id": "lantern",
+   "name": "Lantern post",
+   "group": "Camps",
+   "file": "props/lantern.png",
+   "sha1": "121d251cdf75a9868bdcc8662e346b254194294e",
+   "h": 2.418,
+   "w": 0.691
+  },
+  {
+   "kind": "props",
+   "id": "well",
+   "name": "Well",
+   "group": "Village",
+   "file": "props/well.png",
+   "sha1": "562cbe77b9f0b2480c500fe583436b02f6b71e16",
+   "h": 2.63,
+   "w": 1.92
+  },
+  {
+   "kind": "props",
+   "id": "signpost",
+   "name": "Signpost",
+   "group": "Village",
+   "file": "props/signpost.png",
+   "sha1": "030f5c26e2b9c20a2bd01c9a6bbd000ab7f0d864",
+   "h": 2.324,
+   "w": 1.64
+  },
+  {
+   "kind": "props",
+   "id": "fence",
+   "name": "Garden fence",
+   "group": "Village",
+   "file": "props/fence.png",
+   "sha1": "d3a0b305ba3002c3bbf01db492081862aa01b98b",
+   "h": 1.012,
+   "w": 4.96
+  },
+  {
+   "kind": "props",
+   "id": "woodpile",
+   "name": "Woodpile",
+   "group": "Village",
+   "file": "props/woodpile.png",
+   "sha1": "3287c67c56c831c5711907bd2ebc86f96c2b3487",
+   "h": 0.796,
+   "w": 1.674
+  },
+  {
+   "kind": "props",
+   "id": "flowers",
+   "name": "Flowers",
+   "group": "Village",
+   "file": "props/flowers.png",
+   "sha1": "1e572d8bc8caea3f0ec35341a4eac360edcf81df",
+   "h": 0.419,
+   "w": 0.902
+  },
+  {
+   "kind": "props",
+   "id": "stall",
+   "name": "Market stall",
+   "group": "Village",
+   "file": "props/stall.png",
+   "sha1": "5c32b4a508e90e91062102be948340b832711d0e",
+   "h": 2.56,
+   "w": 2.52
+  },
+  {
+   "kind": "props",
+   "id": "driftwood",
+   "name": "Driftwood",
+   "group": "Shore",
+   "file": "props/driftwood.png",
+   "sha1": "f6d9796aaa614104b77f42730235c315b57ce53b",
+   "h": 0.392,
+   "w": 2.272
+  },
+  {
+   "kind": "props",
+   "id": "shells",
+   "name": "Shells and starfish",
+   "group": "Shore",
+   "file": "props/shells.png",
+   "sha1": "75ee47b704bcf21dc88a4f78b98eb806d8b7fc0e",
+   "h": 0.072,
+   "w": 1.56
+  },
+  {
+   "kind": "props",
+   "id": "leviathan",
+   "name": "Leviathan skeleton",
+   "group": "Landmarks",
+   "file": "props/leviathan.png",
+   "sha1": "b13a502d7c40a3f440a94676ac31b88a295541a1",
+   "h": 3.57,
+   "w": 21.062
+  },
+  {
+   "kind": "props",
+   "id": "crater",
+   "name": "Star crater",
+   "group": "Landmarks",
+   "file": "props/crater.png",
+   "sha1": "f3eebef85c0411fe78ff2aef79eb1e558bebbbe1",
+   "h": 1.25,
+   "w": 16
+  },
+  {
+   "kind": "props",
+   "id": "cavemouth",
+   "name": "Cave mouth",
+   "group": "Caves",
+   "file": "props/cavemouth.png",
+   "sha1": "60b30cd5779ee5d3662a313392b2cdb404ead68a",
+   "h": 5.056,
+   "w": 6.004
+  },
+  {
+   "kind": "props",
+   "id": "rope",
+   "name": "Rope to the surface",
+   "group": "Caves",
+   "file": "props/rope.png",
+   "sha1": "a68dbdbc05c81f9249c866d6c0439697d2d56acd",
+   "h": 7,
+   "w": 3.2
+  },
+  {
+   "kind": "props",
+   "id": "web",
+   "name": "Spider web",
+   "group": "Caves",
+   "file": "props/web.png",
+   "sha1": "e741e99fb1d5d1b4a09628d660a908aeaf6bca15",
+   "h": 0.892,
+   "w": 2.528
+  },
+  {
+   "kind": "props",
+   "id": "crystal",
+   "name": "Glow crystals (grotto)",
+   "group": "Caves",
+   "file": "props/crystal.png",
+   "sha1": "5d4854b5895049d997575dcb74ac6bd642931830",
+   "h": 1.121,
+   "w": 0.851
+  },
+  {
+   "kind": "props",
+   "id": "crystal_ember",
+   "name": "Glow crystals (Ember Deep)",
+   "group": "Caves",
+   "file": "props/crystal_ember.png",
+   "sha1": "743ff33d6e5ae0b76929678c5eba9c3ff4c21b6c",
+   "h": 1.008,
+   "w": 0.774
+  },
+  {
+   "kind": "props",
+   "id": "torch",
+   "name": "Cave torch",
+   "group": "Caves",
+   "file": "props/torch.png",
+   "sha1": "a928e8e16f1c6e72a99132c7f4e2ba06b8995e74",
+   "h": 1.99,
+   "w": 0.32
+  },
+  {
+   "kind": "props",
+   "id": "stalagmite",
+   "name": "Stalagmites",
+   "group": "Caves",
+   "file": "props/stalagmite.png",
+   "sha1": "e5baef470f943acf176dae53b0c71118188ff0b6",
+   "h": 1.513,
+   "w": 0.658
+  },
+  {
+   "kind": "props",
+   "id": "lava",
+   "name": "Magma pool",
+   "group": "Caves",
+   "file": "props/lava.png",
+   "sha1": "116b4d4f9349efe9777d6b70379b56e033057bee",
+   "h": 1.231,
+   "w": 6.014
+  },
+  {
+   "kind": "props",
+   "id": "store",
+   "name": "Gell's Harbour Goods",
+   "group": "Bellwether buildings",
+   "file": "props/store.png",
+   "sha1": "0aee01bb74ba67ce5810453b56d1ffc75e93642e",
+   "h": 5.52,
+   "w": 6.85
+  },
+  {
+   "kind": "props",
+   "id": "chart",
+   "name": "The Chart House",
+   "group": "Bellwether buildings",
+   "file": "props/chart.png",
+   "sha1": "14b5e2a0b3d213d5ac60da544b54d99dca118ed0",
+   "h": 5.517,
+   "w": 6.85
+  },
+  {
+   "kind": "props",
+   "id": "tackle",
+   "name": "Reed's Tackle & Fish",
+   "group": "Bellwether buildings",
+   "file": "props/tackle.png",
+   "sha1": "1c48c8b36a44fff04a2ab9e295b398ebb230c1ae",
+   "h": 4.981,
+   "w": 6.139
+  },
+  {
+   "kind": "props",
+   "id": "warehouse",
+   "name": "Harbour warehouse",
+   "group": "Bellwether buildings",
+   "file": "props/warehouse.png",
+   "sha1": "6baf542cc9b550acdf244308666a165527e4edc9",
+   "h": 5.565,
+   "w": 7.85
+  },
+  {
+   "kind": "props",
+   "id": "cottage_w",
+   "name": "A fisher's cottage",
+   "group": "Bellwether buildings",
+   "file": "props/cottage_w.png",
+   "sha1": "7c6b17f4112d9d32693dfa2fb678263978c38c7b",
+   "h": 5.45,
+   "w": 6.35
+  },
+  {
+   "kind": "props",
+   "id": "cottage_e",
+   "name": "A sailmaker's cottage",
+   "group": "Bellwether buildings",
+   "file": "props/cottage_e.png",
+   "sha1": "06f9623e9cc98de3d653583681d63d3c36233324",
+   "h": 5.449,
+   "w": 6.35
+  },
+  {
+   "kind": "props",
+   "id": "inn",
+   "name": "The Drowned Bell",
+   "group": "Bellwether buildings",
+   "file": "props/inn.png",
+   "sha1": "fcc58904d8b85501301367072b4e9a180b173889",
+   "h": 9.11,
+   "w": 11.85
+  },
+  {
+   "kind": "props",
+   "id": "bank",
+   "name": "The Bank of Bellwether",
+   "group": "Bellwether buildings",
+   "file": "props/bank.png",
+   "sha1": "1820b7da039e6c395000977cc4690b5ee8f2fe6f",
+   "h": 5.78,
+   "w": 9.85
+  },
+  {
+   "kind": "props",
+   "id": "chapel",
+   "name": "Chapel of the Tides",
+   "group": "Bellwether buildings",
+   "file": "props/chapel.png",
+   "sha1": "ab7dcfa16a71c7884c76a27edf813073b6bbee29",
+   "h": 7.67,
+   "w": 12.45
+  },
+  {
+   "kind": "props",
+   "id": "hall",
+   "name": "Bellwether Town Hall",
+   "group": "Bellwether buildings",
+   "file": "props/hall.png",
+   "sha1": "7d808674aaac68efbb042842c018b2a1a3b490a2",
+   "h": 8.688,
+   "w": 9.85
+  },
+  {
+   "kind": "props",
+   "id": "house_1",
+   "name": "A quiet house",
+   "group": "Bellwether buildings",
+   "file": "props/house_1.png",
+   "sha1": "0932768067ab01d42fb37840d0dfa0855f677ac6",
+   "h": 5.456,
+   "w": 6.35
+  },
+  {
+   "kind": "props",
+   "id": "house_2",
+   "name": "The weaver's house",
+   "group": "Bellwether buildings",
+   "file": "props/house_2.png",
+   "sha1": "f1f4a259c5a6f80624bda62c49a6e37b687175d8",
+   "h": 5.452,
+   "w": 6.35
+  },
+  {
+   "kind": "props",
+   "id": "house_3",
+   "name": "The cooper's house",
+   "group": "Bellwether buildings",
+   "file": "props/house_3.png",
+   "sha1": "9f9dd3d6eb12925f485abe803eafc33a8fc64029",
+   "h": 5.454,
+   "w": 6.35
+  },
+  {
+   "kind": "props",
+   "id": "house_4",
+   "name": "A fisherwife's house",
+   "group": "Bellwether buildings",
+   "file": "props/house_4.png",
+   "sha1": "5856709d79f821d62521d2533921ca55d345b9d7",
+   "h": 5.442,
+   "w": 6.35
+  },
+  {
+   "kind": "props",
+   "id": "house_5",
+   "name": "An old sailor's house",
+   "group": "Bellwether buildings",
+   "file": "props/house_5.png",
+   "sha1": "621cd45d03c7a5668c261b306dc4b41101caaa8d",
+   "h": 5.453,
+   "w": 6.35
+  },
+  {
+   "kind": "props",
+   "id": "p_harbour",
+   "name": "Harbourmaster's office",
+   "group": "Port Halyard buildings",
+   "file": "props/p_harbour.png",
+   "sha1": "baef67a625f7ee11efd2254a6c4bb527975aa4cd",
+   "h": 5.511,
+   "w": 6.85
+  },
+  {
+   "kind": "props",
+   "id": "p_trader",
+   "name": "Sunreach Trading Post",
+   "group": "Port Halyard buildings",
+   "file": "props/p_trader.png",
+   "sha1": "58416c214d17cee1da7f64aa22e234ba3b69fa1e",
+   "h": 5.606,
+   "w": 7.85
+  },
+  {
+   "kind": "props",
+   "id": "p_inn",
+   "name": "The Gilded Anchor",
+   "group": "Port Halyard buildings",
+   "file": "props/p_inn.png",
+   "sha1": "e5ea7cca221d388aa8b427ebc97f7642374abf80",
+   "h": 8.689,
+   "w": 10.85
+  },
+  {
+   "kind": "props",
+   "id": "p_bank",
+   "name": "Halyard Counting House",
+   "group": "Port Halyard buildings",
+   "file": "props/p_bank.png",
+   "sha1": "293d6e10684141fcb325f84c5c5b8b4f65016454",
+   "h": 5.683,
+   "w": 8.85
+  },
+  {
+   "kind": "props",
+   "id": "p_warehouse",
+   "name": "Spice warehouse",
+   "group": "Port Halyard buildings",
+   "file": "props/p_warehouse.png",
+   "sha1": "fc4e2132c32c0d714319d6ba44cd9569f045fa60",
+   "h": 5.569,
+   "w": 7.85
+  },
+  {
+   "kind": "props",
+   "id": "p_house_1",
+   "name": "A net-mender's house",
+   "group": "Port Halyard buildings",
+   "file": "props/p_house_1.png",
+   "sha1": "cd04efb1993e57dd250c71401b9dfdb8e702e96f",
+   "h": 5.452,
+   "w": 6.35
+  },
+  {
+   "kind": "props",
+   "id": "p_house_2",
+   "name": "A spice merchant's house",
+   "group": "Port Halyard buildings",
+   "file": "props/p_house_2.png",
+   "sha1": "de348c08154a815a1e633f66f9a71c99e909f0fa",
+   "h": 5.452,
+   "w": 6.35
+  },
+  {
+   "kind": "props",
+   "id": "p_house_3",
+   "name": "A pilot's house",
+   "group": "Port Halyard buildings",
+   "file": "props/p_house_3.png",
+   "sha1": "2f74057486630a640b0e7ba8daa6aecc4ad572da",
+   "h": 5.452,
+   "w": 6.35
+  }
+ ]
+}

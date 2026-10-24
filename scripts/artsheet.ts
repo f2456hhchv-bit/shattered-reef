@@ -21,7 +21,11 @@ import { buildItemModel } from '../src/art/models/items';
 import { CRAB_SHELLS, TREE_LOOK, ORE_TINT } from '../src/render/renderer';
 import { mat } from '../src/art/materials';
 
-const SIZE = 240;
+/** 'sheet': small webp renders for the catalogue page. 'files': 256 px PNG asset files to edit (art/), world assets
+ * seen nearly side-on and cropped to their silhouette, so an edited one can stand in the world as a billboard. */
+let MODE: 'sheet' | 'files' = 'sheet';
+let SIZE = 240;
+const sizes = new Map<string, { h: number; w: number }>();
 let R: { r: THREE.WebGLRenderer; scene: THREE.Scene; cam: THREE.PerspectiveCamera } | null = null;
 function rig() {
   if (R) return R;
@@ -41,23 +45,43 @@ function rig() {
 }
 
 /** One model, three-quarter view from the front-right and a little above, fitted to the frame. */
-function shot(o: THREE.Object3D, opts: { pitch?: number; yaw?: number; fill?: number } = {}): string {
+function shot(o: THREE.Object3D, opts: { pitch?: number; yaw?: number; fill?: number; item?: boolean } = {}): string {
   const { r, scene, cam } = rig();
   scene.add(o);
   o.updateMatrixWorld(true);
   const box = new THREE.Box3().setFromObject(o), sphere = box.getBoundingSphere(new THREE.Sphere());
+  const sprite = MODE === 'files' && !opts.item;
+  if (sprite) opts = { ...opts, pitch: 0.12 };
   const pitch = opts.pitch ?? 0.42, yaw = opts.yaw ?? 0.55, dist = (sphere.radius / Math.sin(THREE.MathUtils.degToRad(cam.fov / 2))) * (opts.fill ?? 1.02);
   cam.position.set(sphere.center.x + Math.sin(yaw) * Math.cos(pitch) * dist, sphere.center.y + Math.sin(pitch) * dist, sphere.center.z + Math.cos(yaw) * Math.cos(pitch) * dist);
   cam.near = dist / 50; cam.far = dist * 4; cam.updateProjectionMatrix();
   cam.lookAt(sphere.center);
   r.render(scene, cam);
-  const url = r.domElement.toDataURL('image/webp', 0.86);
+  const url = MODE === 'files' ? (sprite ? cropped(r.domElement) : r.domElement.toDataURL('image/png')) : r.domElement.toDataURL('image/webp', 0.86);
+  const sz = box.getSize(new THREE.Vector3());
+  sizes.set(url, { h: +sz.y.toFixed(3), w: +Math.max(sz.x, sz.z).toFixed(3) });
   scene.remove(o);
   o.traverse((x) => { const m = x as THREE.Mesh; if (m.isMesh) m.geometry.dispose(); });
   return url;
 }
 
-export interface Card { id: string; name: string; group: string; img: string; facts: [string, string][]; note?: string }
+/** Crop a render to its silhouette (2 px margin), so the PNG's bottom edge is where the thing meets the ground. */
+function cropped(src: HTMLCanvasElement): string {
+  const c = document.createElement('canvas');
+  c.width = src.width; c.height = src.height;
+  const g = c.getContext('2d')!;
+  g.drawImage(src, 0, 0);
+  const px = g.getImageData(0, 0, c.width, c.height).data;
+  let x0 = c.width, y0 = c.height, x1 = -1, y1 = -1;
+  for (let y = 0; y < c.height; y++) for (let x = 0; x < c.width; x++) if (px[(y * c.width + x) * 4 + 3] > 8) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+  if (x1 < 0) return src.toDataURL('image/png');
+  const m = 2, w = x1 - x0 + 1 + m * 2, h = y1 - y0 + 1 + m * 2, o = document.createElement('canvas');
+  o.width = w; o.height = h;
+  o.getContext('2d')!.drawImage(c, x0 - m, y0 - m, w, h, 0, 0, w, h);
+  return o.toDataURL('image/png');
+}
+
+export interface Card { id: string; name: string; group: string; img: string; facts: [string, string][]; note?: string; size?: { h: number; w: number } }
 
 function itemGroup(id: string): string {
   const d = ITEMS[id];
@@ -76,7 +100,8 @@ function itemGroup(id: string): string {
   return 'Materials';
 }
 
-export async function renderAll() {
+export async function renderAll(mode: 'sheet' | 'files' = 'sheet') {
+  MODE = mode; SIZE = mode === 'files' ? 256 : 240; R = null;
   const out: { items: Card[]; creatures: Card[]; characters: Card[]; resources: Card[]; props: Card[] } = { items: [], creatures: [], characters: [], resources: [], props: [] };
   const yieldUI = () => new Promise((res) => setTimeout(res, 0));
 
@@ -86,7 +111,7 @@ export async function renderAll() {
     if (d.heal) facts.push(['Heals', String(d.heal)]);
     if (d.tool) facts.push(['Tool', `${d.tool.skill} ${d.tool.level}`]);
     if (d.equip) for (const [k, v] of Object.entries(d.equip.reqs)) facts.push(['Needs', `${k} ${v}`]);
-    out.items.push({ id: d.id, name: d.name, group: itemGroup(d.id), img: shot(buildItemModel(d.id, 1), { pitch: 0.3, yaw: 0.35 }), facts, note: d.desc });
+    out.items.push({ id: d.id, name: d.name, group: itemGroup(d.id), img: shot(buildItemModel(d.id, 1), { pitch: 0.3, yaw: 0.35, item: true }), facts, note: d.desc });
   }
   await yieldUI();
 
@@ -181,5 +206,6 @@ export async function renderAll() {
     const v = buildEnterable({ ...b, x: 0, z: 0, rot: 0 });
     out.props.push({ id: b.id, name: b.name, group: b.id.startsWith('p_') ? 'Port Halyard buildings' : 'Bellwether buildings', img: shot(v.group, { pitch: 0.5, yaw: 0.7 }), facts: [['Size', `${b.w} × ${b.d} m${b.storeys === 2 ? ', 2 storeys' : ''}`], ['Style', b.style]] });
   }
+  for (const list of Object.values(out)) for (const c of list) c.size = sizes.get(c.img);
   return out;
 }

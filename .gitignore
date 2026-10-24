@@ -2,3 +2,4 @@ node_modules
 dist
 dist-artifact
 .playwright-mcp
+public/art-overrides
