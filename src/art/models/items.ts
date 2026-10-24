@@ -199,6 +199,14 @@ function builders(shape: IconShape, col: string, acc: string | undefined, seed: 
       add(g, new THREE.ConeGeometry(0.06, 0.1, 6), m(acc ?? '#c9934f'), [-0.25, 0, 0], [0, 0, Math.PI / 2], [1, 1, 0.3]);
       break;
     }
+    case 'coconut': {
+      // a cracked-open coconut: hairy brown shell, white flesh showing in the break
+      add(g, nudge(new THREE.SphereGeometry(0.2, 12, 9), 0.015, seed), m(col), [0, 0, 0], [0, 0, 0], [1, 0.92, 1]);
+      add(g, new THREE.CircleGeometry(0.15, 14), m(acc ?? '#f2ece0', 'gloss'), [0.06, 0.12, 0.06], [-1.0, 0.4, 0]);
+      for (let k = 0; k < 10; k++) { const a = k * 2.1; add(g, new THREE.BoxGeometry(0.06, 0.01, 0.01), m(shade(col, 1.3).getHex()), [Math.cos(a) * 0.19, (k % 3 - 1) * 0.08, Math.sin(a) * 0.19], [0, a, 0.6]); }
+      for (const x of [-0.05, 0, 0.05]) add(g, new THREE.SphereGeometry(0.018, 6, 4), m('#2a1a0e'), [x, 0.17, -0.08]);
+      break;
+    }
     case 'mug': {
       add(g, new THREE.CylinderGeometry(0.13, 0.12, 0.3, 14, 1, true), m(col), [0, 0, 0]);
       add(g, new THREE.CylinderGeometry(0.12, 0.12, 0.02, 14), m(shade(col, 0.6).getHex()), [0, -0.14, 0]);

@@ -1,5 +1,5 @@
 import { mulberry32 } from '../../art/noise';
-import { TOWN, LAYOUT, LAGOON, SEA_SPOTS, PATHS, BEACH, coastPoint, coastDist, nearestPathDist, FLATS } from './island';
+import { TOWN, LAYOUT, LAGOON, SEA_SPOTS, PATHS, BEACH, coastPoint, coastDist, nearestPathDist, FLATS, SUN, SUN_LAYOUT, SUN_RADIUS, SUN_SEA_SPOTS, sunPoint } from './island';
 import { World } from './world';
 import { buildingSolids, doorPoints, toLocal, toWorld, type BuildingDef } from './buildings';
 
@@ -16,6 +16,9 @@ export interface SpawnPoint { enemy: string; x: number; z: number }
 export interface IslandLayout {
   world: World;
   dock: { x: number; zStart: number; len: number; headWidth: number; deckY: number; headZ: number };
+  extraDocks: IslandLayout['dock'][]; // other harbours' piers (Port Halyard)
+  /** Where the ferry leaves the player and ship at each harbour. */
+  ports: { id: 'bellwether' | 'sunreach'; name: string; ship: { x: number; z: number; heading: number }; land: { x: number; z: number } }[];
   mooring: { x: number; z: number; heading: number };
   buildings: Building[];
   nodes: NodePlacement[];
@@ -48,6 +51,20 @@ export function buildIsland(seed = 1): IslandLayout {
   world.decks.push({ x: 0, z: zStart + len / 2, w: 2.4, d: len, y: deckY });
   world.decks.push({ x: 0, z: headZ + 1.0, w: headWidth, d: 2.2, y: deckY });
   const mooring = { x: 0.6, z: headZ + 2.1 + 1.45 + 1.1, heading: 0 };
+  // Port Halyard's pier on Sunreach, built the same way
+  const SL = SUN_LAYOUT;
+  const sunDock = (() => {
+    const x = SL.dockBase.x, zs = SL.dockBase.z - 1.5;
+    let n = 8;
+    while (n < 30 && world.ground(x, zs + n + 4) > -2.2) n += 1;
+    world.decks.push({ x, z: zs + n / 2, w: 2.4, d: n, y: deckY });
+    world.decks.push({ x, z: zs + n + 1.0, w: headWidth, d: 2.2, y: deckY });
+    return { x, zStart: zs, len: n, headWidth, deckY, headZ: zs + n };
+  })();
+  const ports: IslandLayout['ports'] = [
+    { id: 'bellwether', name: 'Bellwether', ship: mooring, land: { x: 0, z: headZ + 0.4 } },
+    { id: 'sunreach', name: 'Port Halyard', ship: { x: sunDock.x + 0.6, z: sunDock.headZ + 4.65, heading: 0 }, land: { x: sunDock.x, z: sunDock.headZ + 0.4 } },
+  ];
 
   // ---- village
   const buildings: Building[] = [
@@ -76,10 +93,14 @@ export function buildIsland(seed = 1): IslandLayout {
     { id: 'fire', x: LAYOUT.cove.x - 2.5, z: LAYOUT.cove.z + 1.5 },
     // the vent forge on Ironcrag's summit: the only heat that melts Cinderite
     { id: 'vent', x: LAYOUT.summit.x, z: LAYOUT.summit.z },
+    // Port Halyard's open forge on its quay square, and a cookfire
+    { id: 'furnace', x: SL.port.x + 5.5, z: SL.port.z - 5 }, { id: 'anvil', x: SL.port.x + 3, z: SL.port.z - 7.5 },
+    { id: 'bench', x: SL.port.x + 6.5, z: SL.port.z - 8.5 }, { id: 'fire', x: SL.port.x - 5, z: SL.port.z - 5.5 },
   ];
   // strongboxes: one at the quay, one at the Ironcrag mining camp
-  const bankB = TOWN.buildings.find((x) => x.id === 'bank')!, [bkx, bkz] = toWorld(bankB, 0, 0.1);
-  const banks: IslandLayout['banks'] = [{ x: V.x + 4.6, z: V.z + 2.2 }, { x: LAYOUT.peak.x + 2.5, z: LAYOUT.peak.z + 21 }, { x: bkx, z: bkz, booth: true }];
+  // a bank counter in front of every bank's grille (Bellwether's and Port Halyard's)
+  const booths = TOWN.buildings.filter((x) => x.id === 'bank' || x.id === 'p_bank').map((bb) => { const [x, z] = toWorld(bb, 0, 0.1); return { x, z, booth: true }; });
+  const banks: IslandLayout['banks'] = [{ x: V.x + 4.6, z: V.z + 2.2 }, { x: LAYOUT.peak.x + 2.5, z: LAYOUT.peak.z + 21 }, ...booths];
   for (const b of banks) if (!b.booth) world.solids.push({ x: b.x, z: b.z, w: 1.2, d: 0.8 });
   const solidOf = { furnace: 1.0, anvil: 0.45, fire: 0.7, vent: 1.2 } as const;
   for (const st of stations) world.solids.push(st.id === 'bench' ? { x: st.x, z: st.z, w: 1.8, d: 0.9 } : { x: st.x, z: st.z, r: solidOf[st.id] });
@@ -95,6 +116,7 @@ export function buildIsland(seed = 1): IslandLayout {
     { id: 'watch_n', x: X.x + 0.6, z: X.z - 9.5, facing: Math.PI / 2 },
     { id: 'watch_e', x: X.x + 11, z: X.z + 2.5, facing: Math.PI },
     { id: 'bram', x: S.x - 1.4, z: S.z + 1.9, facing: Math.PI / 2 },
+    { id: 'halyard_watch', x: SL.plaza.x + 3, z: SL.plaza.z - 7, facing: Math.PI / 2 },
   ];
   for (const n of npcs) world.solids.push({ x: n.x, z: n.z, r: 0.35 });
 
@@ -135,7 +157,7 @@ export function buildIsland(seed = 1): IslandLayout {
       if (Math.hypot(x - o[0], z - o[1]) < m + 1.6) return true;
     }
     for (const st of TOWN.stalls) if (Math.hypot(x - st.x, z - st.z) < m + 1.6) return true;
-    return square && Math.hypot(x - TOWN.square.x, z - TOWN.square.z) < TOWN.square.r + m;
+    return square && TOWN.squares.some((q) => Math.hypot(x - q.x, z - q.z) < q.r + m);
   };
   const free = (x: number, z: number, minCoast = 4, clearance = 2.2) => {
     if (coastDist(x, z) < minCoast) return false;
@@ -233,6 +255,22 @@ export function buildIsland(seed = 1): IslandLayout {
     nodes.push({ uid: `n${uid++}`, def, x, z, seed: deg });
   }
 
+  // ---- Sunreach: the Greenheart's old trees, Ember Hill's ores, shore fishing, sea grounds
+  scatter('tree_amber', SL.jungle.x, SL.jungle.z, 11, 6, 3.6);
+  scatter('tree_yew', SL.jungle.x - 6, SL.jungle.z - 8, 8, 4, 4);
+  scatter('rock_coal', SL.ember.x - 4, SL.ember.z + 8, 7, 5, 2.6);
+  scatter('rock_gold', SL.ember.x + 6, SL.ember.z + 6, 5, 3, 2.8);
+  scatter('rock_storm', SL.ember.x, SL.ember.z - 2, 6, 3, 2.8);
+  scatter('rock_abyss', SL.ember.x + 4, SL.ember.z - 6, 5, 2, 3);
+  for (const n of nodes) if (Math.hypot(n.x - SUN.x, n.z - SUN.z) < SUN_RADIUS + 20 && !world.solids.some((so) => so.x === n.x && so.z === n.z)) world.solids.push({ x: n.x, z: n.z, r: n.def.startsWith('tree') ? 0.45 : 0.75 });
+  const sunOut = (th: number) => (th * Math.PI) / 180;
+  // shore fishing: sprat & mackerel by the harbour, lobster pots on the reef shore, gloomfish & barracuda off the north-west rocks
+  for (const [def, th] of [['spot_sprat', 120], ['spot_sprat', 150], ['spot_lobster', 15], ['spot_lobster', 35], ['spot_gloom', 240]] as const) {
+    const [fx, fz] = sunPoint(th, 8), p = shoreSpot(fx, fz, sunOut(th));
+    if (p && !nodes.some((n) => Math.hypot(n.x - p[0], n.z - p[1]) < 5)) nodes.push({ uid: `n${uid++}`, def, x: p[0], z: p[1], seed: th });
+  }
+  for (const [def, list] of Object.entries(SUN_SEA_SPOTS)) for (const [x, z] of list) nodes.push({ uid: `n${uid++}`, def, x, z, seed: Math.round(x + z) });
+
   // ---- reefs / sea stacks
   const reefs: IslandLayout['reefs'] = [];
   for (let tries = 0; tries < 600 && reefs.length < 22; tries++) {
@@ -242,6 +280,13 @@ export function buildIsland(seed = 1): IslandLayout {
     if (Math.hypot(x - LAYOUT.islet.x, z - LAYOUT.islet.z) < 24) continue; // keep the islet's landing clear
     if (world.ground(x, z) > -0.6) continue;
     reefs.push({ x, z, r: 0.8 + rnd() * 1.2 });
+  }
+  for (let tries = 0, made = 0; tries < 300 && made < 9; tries++) {
+    const [x, z] = sunPoint(rnd() * 360, -(5 + rnd() * 16));
+    if (Math.hypot(x - ports[1].ship.x, z - ports[1].ship.z) < 22 || x < SUN.x - SUN_RADIUS - 4) continue; // keep the harbour mouth and the channel clear
+    if (nodes.some((n) => n.def.startsWith('spot_') && Math.hypot(n.x - x, n.z - z) < 9) || world.ground(x, z) > -0.6) continue;
+    reefs.push({ x, z, r: 0.8 + rnd() * 1.2 });
+    made++;
   }
   world.reefs.push(...reefs);
 
@@ -275,6 +320,34 @@ export function buildIsland(seed = 1): IslandLayout {
     made++;
   }
 
+  // Sunreach: dense jungle (broadleaf sea-oak, all fellable), boulders on the hill, coconut palms round the beaches
+  const sunClear = [{ x: SL.temple.x, z: SL.temple.z, r: 10 }, { x: SL.plaza.x, z: SL.plaza.z, r: 12 }, { x: SL.port.x, z: SL.port.z, r: 16 }];
+  for (let tries = 0, made = 0; tries < 6000 && made < 150; tries++) {
+    const a = rnd() * Math.PI * 2, r = Math.sqrt(rnd()) * (SUN_RADIUS + 6), x = SUN.x + Math.cos(a) * r, z = SUN.z + Math.sin(a) * r;
+    if (!free(x, z, BEACH + 1, 2.4) || sunClear.some((k) => Math.hypot(x - k.x, z - k.z) < k.r)) continue;
+    const gy = world.ground(x, z);
+    if (gy < 0.5 || gy > 10) continue;
+    const onHill = Math.hypot(x - SL.ember.x, z - SL.ember.z) < 13;
+    if (onHill && rnd() < 0.75) continue;
+    nodes.push({ uid: `n${uid++}`, def: 'tree_oak', x, z, seed: Math.floor(rnd() * 1e6), scenery: true, s: 0.9 + rnd() * 0.45, rot: rnd() * Math.PI * 2 });
+    world.solids.push({ x, z, r: 0.45 });
+    made++;
+  }
+  for (let tries = 0, made = 0; tries < 900 && made < 22; tries++) {
+    const a = rnd() * Math.PI * 2, r = Math.sqrt(rnd()) * SUN_RADIUS, x = SUN.x + Math.cos(a) * r, z = SUN.z + Math.sin(a) * r;
+    if (!free(x, z, 1, 2) || sunClear.some((k) => Math.hypot(x - k.x, z - k.z) < k.r)) continue;
+    const sc = 0.35 + rnd() * 0.7;
+    nodes.push({ uid: `n${uid++}`, def: 'rock_boulder', x, z, seed: Math.floor(rnd() * 1e6), scenery: true, s: sc, rot: rnd() * 6.28 });
+    world.solids.push({ x, z, r: Math.max(0.45, sc * 0.9) });
+    made++;
+  }
+  for (let th = 0; th < 360; th += 11) {
+    const [x, z] = sunPoint(th + rnd() * 5, 3.5 + rnd() * 4);
+    if (!free(x, z, 1.5, 3) || sunClear.some((k) => Math.hypot(x - k.x, z - k.z) < k.r - 4) || world.ground(x, z) < 0.3) continue;
+    nodes.push({ uid: `n${uid++}`, def: 'palm', x, z, seed: Math.floor(rnd() * 1e6), rot: rnd() * 6.28 });
+    world.solids.push({ x, z, r: 0.4 });
+  }
+
   // bramble bushes: meadows and wood edges
   for (let tries = 0, made = 0; tries < 3000 && made < 36; tries++) {
     const a = rnd() * Math.PI * 2, r = 12 + Math.sqrt(rnd()) * 75;
@@ -291,6 +364,12 @@ export function buildIsland(seed = 1): IslandLayout {
     const p = shoreSpot(lx, lz, Math.atan2(lz, lx), -0.04); // kelp likes the shallows
     if (p && Math.hypot(p[0] - mooring.x, p[1] - mooring.z) > 14 && !nodes.some((n) => Math.hypot(n.x - p[0], n.z - p[1]) < 6))
       nodes.push({ uid: `n${uid++}`, def: 'kelp_bed', x: p[0], z: p[1], seed: deg, scenery: true, s: 0.9 + rnd() * 0.3, rot: rnd() * 6.28 });
+  }
+  for (let th = 0; th < 360; th += 10) {
+    const [lx, lz] = sunPoint(th + rnd() * 6, 6);
+    const p = shoreSpot(lx, lz, sunOut(th), -0.04);
+    if (p && Math.hypot(p[0] - ports[1].ship.x, p[1] - ports[1].ship.z) > 14 && !nodes.some((n) => Math.hypot(n.x - p[0], n.z - p[1]) < 6))
+      nodes.push({ uid: `n${uid++}`, def: 'kelp_bed', x: p[0], z: p[1], seed: th + 1000, scenery: true, s: 0.9 + rnd() * 0.3, rot: rnd() * 6.28 });
   }
   // disturbed sand: candidate dig spots on beaches and dirt tracks (only a few are active at a time)
   for (let k = 0, made = 0; k < 400 && made < 30; k++) {
@@ -416,6 +495,9 @@ export function buildIsland(seed = 1): IslandLayout {
   spawn('drowned', W.x - 4, W.z + 2); spawn('drowned', W.x + 2, W.z + 4); spawn('drowned', W.x - 8, W.z + 6); spawn('drowned', W.x - 2, W.z + 9);
   spawn('wreck_captain', W.x - 5, W.z + 5);
   spawn('stone_sentinel', M.x - 5, M.z - 1); spawn('stone_sentinel', M.x + 7, M.z + 1);
+  // Sunreach (stage 1: hunters in the Greenheart, ironshells on the reef shore; its own creatures come next)
+  spawn('poacher', SL.jungle.x + 3, SL.jungle.z + 2); spawn('poacher', SL.jungle.x - 7, SL.jungle.z - 3); spawn('poacher_gunner', SL.jungle.x - 2, SL.jungle.z - 10);
+  for (let k = 0; k < 3; k++) { const [x, z] = sunPoint(10 + k * 14, 3.5); spawn('ironshell_crab', x, z); }
 
   // townsfolk walking their rounds between the squares and front doors (paths found once, on the baked grid)
   const door = (id: string) => doorPoints(TOWN.buildings.find((b) => b.id === id)!).out;
@@ -441,6 +523,8 @@ export function buildIsland(seed = 1): IslandLayout {
   return {
     world,
     dock: { x: 0, zStart, len, headWidth, deckY, headZ },
+    extraDocks: [sunDock],
+    ports,
     mooring,
     buildings,
     nodes,

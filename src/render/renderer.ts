@@ -20,13 +20,13 @@ import type { WeaponKind } from '../game/data/items';
 
 const HELD_OF: Record<WeaponKind, HeldKind> = { cutlass: 'cutlass', dagger: 'dagger', pike: 'pike', greatsword: 'greatsword', pistol: 'pistol', pistols: 'pistol', shortbow: 'bow', longbow: 'longbow', crossbow: 'crossbow', staff: 'staff' };
 import { buildCrab, animateCrab, type CrabRig } from '../art/models/crab';
-import { buildPine, buildBroadleaf, buildRock, buildOreRock, buildCrate, buildLanternPost, buildDock, buildGrass, buildBush, buildKelp } from '../art/models/props';
+import { buildPine, buildBroadleaf, buildRock, buildOreRock, buildCrate, buildLanternPost, buildDock, buildPalm, buildGrass, buildBush, buildKelp } from '../art/models/props';
 import { buildBench, buildFurnace, buildAnvil, buildCookfire, buildTent, buildSmithyShed, buildPillar, buildPlinth, buildStrongbox, buildDigSpot, buildGuardian, buildStump, buildRipples, type GuardianRig } from '../art/models/world';
 import { buildLootShard, buildItemModel, SHARD_TINT, type LootShard, type ShardKind } from '../art/models/items';
 import { item } from '../game/data/items';
 import { NODES, PLAYER_BASE } from '../game/data/content';
 import type { Game, GameEvent, Enemy, Telegraph } from '../game/sim/game';
-import { coastDist, nearestPathDist, WORLD_HALF, BEACH } from '../game/world/island';
+import { coastDist, nearestPathDist, WORLD_HALF, BEACH, SUN, SUN_LAYOUT } from '../game/world/island';
 import { HN, HCELL } from '../game/world/world';
 import { buildTerrainMesh } from './terrainMesh';
 import { bakeRig, bakeStatic, bakeFlat, mergeColoured } from './bake';
@@ -225,6 +225,7 @@ export class GameRenderer {
     };
     const d = L.dock;
     root.add(buildDock(d.x, d.zStart, d.len, d.headWidth, d.deckY, 21).group);
+    for (const xd of L.extraDocks) root.add(buildDock(xd.x, xd.zStart, xd.len, xd.headWidth, xd.deckY, 22).group);
     for (const b of L.buildings) {
       const y = w.ground(b.x, b.z);
       if (b.kind === 'tent') place(buildTent(b.seed), b.x, b.z, b.rot, y);
@@ -343,15 +344,17 @@ export class GameRenderer {
     // bucketed into 40 m cells so each clump is its own culled draw
     const CELL = 40, buckets = new Map<string, THREE.Vector3[]>();
     let made = 0;
-    for (let i = 0; i < 90000 && made < 9000; i++) {
-      const x = (rnd() - 0.5) * 200, z = (rnd() - 0.5) * 200;
+    // Bellwether, then Sunreach (each island gets its own share)
+    for (let i = 0; i < 130000 && made < 12500; i++) {
+      const sun = i >= 90000 || made >= 9000;
+      const x = sun ? SUN.x + (rnd() - 0.5) * 140 : (rnd() - 0.5) * 200, z = sun ? SUN.z + (rnd() - 0.5) * 140 : (rnd() - 0.5) * 200;
       if (coastDist(x, z) < BEACH || !w.walkable(x, z)) continue; // no grass on the beach
       const y = w.ground(x, z);
       if (y > 8) continue; // bare upper peak
       const p = nearestPathDist(x, z);
       if (p.d < p.width + 0.5) continue;
       if (Math.hypot(x - this.game.layout.ruin.x, z - this.game.layout.ruin.z) < 8) continue;
-      if (Math.hypot(x, z - this.game.layout.respawn.z) < 15) continue;
+      if (Math.hypot(x, z - this.game.layout.respawn.z) < 15 || Math.hypot(x - SUN_LAYOUT.port.x, z - SUN_LAYOUT.port.z) < 14) continue; // the quay squares
       if (this.game.layout.town.some((b) => { const [lx, lz] = toLocal(b, x, z); return Math.abs(lx) < b.w / 2 + 0.4 && Math.abs(lz) < b.d / 2 + 0.4; })) continue; // not through the floors
       if (this.game.layout.stalls.some((st) => Math.hypot(st.x - x, st.z - z) < 1.6)) continue;
       const key = `${Math.floor(x / CELL)},${Math.floor(z / CELL)}`;
@@ -396,6 +399,9 @@ export class GameRenderer {
         const h = -w.ground(n.x, n.z) + 3.4; // from the seabed to well above the waterline
         live = buildSpire(n.seed, h);
         dead = buildSpire(n.seed, h, true);
+      } else if (n.def === 'palm') {
+        live = buildPalm(n.seed, true);
+        dead = buildPalm(n.seed, false);
       } else if (n.def === 'salt_pan') {
         live = buildSaltPan(n.seed, true);
         dead = buildSaltPan(n.seed, false);

@@ -417,3 +417,4 @@ body.portrait .skgrid { grid-template-columns: repeat(4, 1fr); }
 .sktile.total { flex-direction: column; justify-content: center; gap: 0; text-align: center; cursor: default; }
 .sktile.total span { font-size: 11px; color: var(--ink-dim); }
 .sktile.total b { font: 700 18px var(--display); color: #f2d34a; text-shadow: 0 2px 0 #000; }
+.maptabs button { min-height: 36px; padding: 4px 10px; font-size: 12px; }

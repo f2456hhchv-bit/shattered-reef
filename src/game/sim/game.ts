@@ -27,6 +27,7 @@ export type GameEvent =
   | { type: 'squall' }
   | { type: 'teleport'; fromX: number; fromZ: number; x: number; z: number }
   | { type: 'alchemy' }
+  | { type: 'ferryOffer'; npc: string; to: string; price: number }
   | { type: 'roll' }
   | { type: 'dodge'; x: number; z: number }
   | { type: 'shoot'; x: number; z: number; tx: number; tz: number }
@@ -94,6 +95,8 @@ const FINDS: Partial<Record<SkillId, string>> = { woodcutting: 'bird_nest', mini
 
 export const STATION_NAMES: Record<Station, string> = { furnace: 'Furnace', anvil: 'Anvil', fire: 'Cookfire', bench: 'Workbench', vent: 'Vent forge' };
 
+let sharedLayout: IslandLayout | undefined;
+
 export class Game {
   readonly layout: IslandLayout;
   readonly world: World;
@@ -144,7 +147,8 @@ export class Game {
   bossSummons = 0;
 
   constructor(opts: { seed?: number; save?: SaveData | null } = {}) {
-    this.layout = buildIsland(1);
+    // the layout is read-only after build, so every Game shares one (a build is ~0.8 s)
+    this.layout = sharedLayout ??= buildIsland(1);
     this.world = this.layout.world;
     this.rnd = mulberry32(opts.seed ?? (Date.now() & 0xffffffff));
     const fresh = defaultSave(this.layout.respawn, this.layout.mooring);
@@ -227,7 +231,7 @@ export class Game {
       out.push({ key: `node:${n.uid}`, kind: 'node', x: n.x, z: n.z, range: this.nodeReach(d), label: d.name, verb: d.verb });
     }
     if (!onShip) {
-      for (const n of this.layout.npcs) out.push({ key: `npc:${n.id}`, kind: 'npc', x: n.x, z: n.z, range: 2.2, label: NPCS[n.id].name, verb: NPCS[n.id].shop ? 'Trade' : NPCS[n.id].bank ? 'Bank' : 'Talk' });
+      for (const n of this.layout.npcs) out.push({ key: `npc:${n.id}`, kind: 'npc', x: n.x, z: n.z, range: 2.2, label: NPCS[n.id].name, verb: NPCS[n.id].shop ? 'Trade' : NPCS[n.id].bank ? 'Bank' : NPCS[n.id].ferry ? 'Travel' : 'Talk' });
       this.layout.stations.forEach((st, i) => out.push({ key: `station:${i}`, kind: 'station', x: st.x, z: st.z, range: 2.3, label: STATION_NAMES[st.id], verb: st.id === 'fire' ? 'Cook' : st.id === 'furnace' || st.id === 'vent' ? 'Smelt' : st.id === 'bench' ? 'Craft' : 'Forge' }));
       this.layout.banks.forEach((b, i) => out.push({ key: `bank:${i}`, kind: 'bank', x: b.x, z: b.z, range: 2.2, label: b.booth ? 'Bank counter' : 'Strongbox', verb: b.booth ? 'Bank' : 'Open' }));
       out.push({ key: 'ship', kind: 'ship', x: this.ship.x, z: this.ship.z, range: 4.2, label: 'Your sloop', verb: 'Board' });
@@ -793,6 +797,7 @@ export class Game {
     }
     if (npc.shop && this.openShopOf(npcId)) return;
     if (npc.bank) { this.emit({ type: 'openBank' }); return; }
+    if (npc.ferry) { this.emit({ type: 'ferryOffer', npc: npcId, to: npc.ferry.to, price: npc.ferry.price }); return; }
     if (npc.heals && this.p.hp < this.stats.maxHp) {
       this.p.hp = this.stats.maxHp;
       this.emit({ type: 'dialog', npc: npcId, lines: [npc.heals] });
@@ -1164,6 +1169,27 @@ export class Game {
     this.castUtility('home');
     this.emit({ type: 'teleport', fromX, fromZ, x: this.p.x, z: this.p.z });
     this.msg('The tide carries you home to Bellwether.', 'good');
+    this.rev++;
+  }
+
+  /** Pay a harbourmaster for passage: you and your ship arrive at the other harbour's pier. */
+  takeFerry(npcId: string) {
+    const f = NPCS[npcId]?.ferry, n = this.layout.npcs.find((x) => x.id === npcId);
+    const port = f && this.layout.ports.find((p) => p.id === f.to);
+    if (!f || !n || !port || this.dead || this.p.onShip || Math.hypot(n.x - this.p.x, n.z - this.p.z) > 4.5) return;
+    if (count(this.p.inv, 'coins') < f.price) { this.msg(`Passage costs ${f.price} coins.`, 'warn'); return; }
+    remove(this.p.inv, 'coins', f.price);
+    const fromX = this.p.x, fromZ = this.p.z;
+    this.stopAction();
+    this.path = [];
+    this.pending = null;
+    this.target = null;
+    this.p.x = port.land.x;
+    this.p.z = port.land.z;
+    Object.assign(this.s.ship, port.ship);
+    this.shipSpeed = 0;
+    this.emit({ type: 'teleport', fromX, fromZ, x: this.p.x, z: this.p.z });
+    this.msg(`You step off the cutter at ${port.name}. Your ship is moored alongside.`, 'good');
     this.rev++;
   }
 

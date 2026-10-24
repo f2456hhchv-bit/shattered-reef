@@ -4,7 +4,7 @@
 const path = require('path');
 const { chromium } = require(path.join(require('child_process').execSync('npm root -g').toString().trim(), 'playwright'));
 const BUDGET = { calls: Number(process.env.MAX_CALLS ?? 450), tris: Number(process.env.MAX_TRIS ?? 900000) };
-const PLACES = [['quay', 0, 60], ['market', 0, 38], ['inn (inside)', -13, 31], ['saltpine', -36, 20], ['heartwood', -46, -50], ['ironcrag', 2, -42], ['wreck', 0, 0, 'wreck']];
+const PLACES = [['quay', 0, 60], ['market', 0, 38], ['inn (inside)', -13, 31], ['saltpine', -36, 20], ['heartwood', -46, -50], ['ironcrag', 2, -42], ['wreck', 0, 0, 'wreck'], ['port halyard', 190, 14], ['greenheart', 176, -28], ['palm cove', 145, 5]];
 (async () => {
   const b = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
   const p = await b.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
