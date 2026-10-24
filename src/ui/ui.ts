@@ -4,11 +4,11 @@ import { wears, condOf, WORN_OUT_EFFECT } from '../game/sim/inventory';
 import { onTap } from './tap';
 import { portrait } from './portrait';
 import { NPC_LOOKS, PLAYER_LOOK } from '../art/cast';
-import { NODES, SKILLS, UNLOCKS, RECIPES, ELITE_AFFIXES, PLAYER_BASE, SPELLS, type Station } from '../game/data/content';
+import { NODES, SKILLS, UNLOCKS, RECIPES, UTILITY_SPELLS, ELITE_AFFIXES, PLAYER_BASE, SPELLS, type Station } from '../game/data/content';
 import type { Stance } from '../game/sim/gear';
 import { NPCS, QUESTS } from '../game/data/quests';
 import { PLACES, WORLD_HALF, coastDist, nearestPathDist, FLATS } from '../game/world/island';
-import { count, displayName, INV_SIZE, type Stack } from '../game/sim/inventory';
+import { count, displayName, stackValue, INV_SIZE, type Stack } from '../game/sim/inventory';
 import { levelForXp, levelProgress, xpForLevel, MAX_LEVEL } from '../game/sim/xp';
 import { earlyBoost, EARLY_BOOST_TO, type Game, type GameEvent, type MsgKind } from '../game/sim/game';
 import type { GameRenderer } from '../render/renderer';
@@ -481,7 +481,7 @@ export class UI {
         break;
       }
       case 'quests': morph(c, this.questsHtml()); break;
-      case 'map': c.innerHTML = '<h2 class="title">Bellwether Isle</h2><canvas id="mapbig" width="600" height="600" aria-label="Island map. Tap to walk there."></canvas><p class="muted" style="font-size:12px;margin:8px 0 0">Gold star: quest objective. Tap the map to walk there.</p>'; forget(c); this.bindBigMap(); this.drawBigMap(); break;
+      case 'map': c.innerHTML = '<h2 class="title">Bellwether Isle</h2><canvas id="mapbig" width="600" height="600" aria-label="Island map. Tap to walk there."></canvas><p class="muted" style="font-size:12px;margin:8px 0 0">Gold star: quest objective. Tap the map to walk there.</p>' + this.utilityRow(); forget(c); this.bindBigMap(); this.drawBigMap(); break;
       case 'settings': morph(c, this.settingsHtml()); break;
     }
   }
@@ -489,7 +489,8 @@ export class UI {
   /** One set of handlers on the tab panel for its whole life (content is patched, never re-bound). */
   private bindContent(c: HTMLElement) {
     const g = this.game;
-    onTap(c, '[data-slot], [data-equip], [data-stance], [data-spell], [data-q], [data-dmg], [data-music], [data-sfx], [data-fps], [data-lv], [data-skill], [data-skillback], #saveNow, #resetSave', (t, pointer) => {
+    onTap(c, '[data-slot], [data-equip], [data-stance], [data-spell], [data-q], [data-dmg], [data-music], [data-sfx], [data-fps], [data-lv], [data-skill], [data-skillback], [data-home], #saveNow, #resetSave', (t, pointer) => {
+      if (t.dataset.home) { g.teleportHome(); return; }
       if (t.dataset.slot !== undefined) {
         const i = Number(t.dataset.slot);
         const st = g.p.inv[i];
@@ -699,6 +700,10 @@ export class UI {
     else {
       if (d.heal) acts.push('<button class="btn primary" data-a="use">Eat</button>');
       if (d.opens) acts.push(`<button class="btn primary" data-a="use">${OPEN_VERB[st.id] ?? 'Open'}</button>`);
+      if (!d.quest && st.id !== 'coins' && g.level('magic') >= UTILITY_SPELLS.alchemy.level && !this.shopOpen && !this.bankOpen) {
+        const coins = Math.max(1, Math.floor(stackValue({ ...st, qty: 1 }) * UTILITY_SPELLS.alchemy.rate)), blk = g.utilityBlock('alchemy');
+        acts.push(`<button class="btn" data-a="alch" ${blk ? `disabled title="${esc(blk)}"` : ''}>Alchemise ${coins}c</button>`);
+      }
       if (e) acts.push(`<button class="btn primary" data-a="use" ${g.equipBlock(st) ? 'disabled' : ''}>Equip</button>`);
       if (this.shopOpen && !d.quest && st.id !== 'coins') {
         const each = g.sellPrice({ ...st, qty: 1 });
@@ -729,6 +734,7 @@ export class UI {
       if (i === undefined) return;
       if (a === 'use') { g.useSlot(i); if (!g.p.inv[i] || item(g.p.inv[i]!.id).equip) this.closePop(); }
       if (a === 'drop') { g.dropSlot(i); this.closePop(); }
+      if (a === 'alch') { g.alchemy(i); if (!g.p.inv[i]) this.closePop(); else this.renderPop(); }
       if (a === 'deposit') { g.deposit(i); this.closePop(); }
       if (a === 'sell1') g.sell(i, false);
       if (a === 'sellall') { g.sell(i, true); this.closePop(); }
@@ -834,6 +840,14 @@ export class UI {
     return (['accurate', 'aggressive', 'defensive'] as Stance[]).map((k) => `<button data-stance="${k}" class="${stance === k ? 'on' : ''}"><b>${stanceLabel[k][0]}</b><small>${stanceLabel[k][1]}</small></button>`).join('');
   }
 
+  /** Tide-walk Home, once Magic allows it (shown in the loadout and the Map tab). */
+  private utilityRow(): string {
+    const g = this.game, u = UTILITY_SPELLS.home;
+    if (g.level('magic') < u.level) return '';
+    const blk = g.utilityBlock('home');
+    return `<h3>Magic</h3><button class="btn" data-home="1" ${blk ? 'disabled' : ''} style="width:100%">${esc(u.name)} · ${u.charms} charms${blk ? ` <small class="muted">(${esc(blk.toLowerCase())})</small>` : ''}</button>`;
+  }
+
   private spellButtons(): string {
     const g = this.game, st = g.stats;
     return SPELLS.map((sp) => `<button data-spell="${sp.id}" class="${st.spell?.id === sp.id ? 'on' : ''}" ${g.level('magic') < sp.level ? 'disabled' : ''}><b>${esc(sp.name)}</b><small>Lv ${sp.level} · max ${sp.maxHit} · ${sp.charms ? `${sp.charms} charm${sp.charms > 1 ? 's' : ''}` : 'free'}</small></button>`).join('');
@@ -845,8 +859,9 @@ export class UI {
     if (!el) {
       el = h('div', { id: 'loadout', class: 'panel', role: 'dialog', 'aria-label': 'Loadout' });
       document.body.appendChild(el);
-      onTap(el, '.x, [data-lw], [data-la], [data-spell], [data-stance]', (b) => {
+      onTap(el, '.x, [data-lw], [data-la], [data-spell], [data-stance], [data-home]', (b) => {
         if (b.classList.contains('x')) { this.closeLoadout(); return; }
+        if (b.dataset.home) { g.teleportHome(); this.closeLoadout(); return; }
         if (b.dataset.lw || b.dataset.la) g.equip(Number(b.dataset.lw ?? b.dataset.la));
         else if (b.dataset.spell) g.setSpell(b.dataset.spell);
         else if (b.dataset.stance) g.setStance(b.dataset.stance as Stance);
@@ -856,6 +871,7 @@ export class UI {
     const w = g.p.equip.weapon;
     const weapons = g.p.inv.map((s, i) => (s && item(s.id).equip?.slot === 'weapon' ? this.slotHtml(s, `data-lw="${i}"`) : '')).join('');
     let pick = '';
+    const util = this.utilityRow();
     if (st.style === 'magic') pick = `<h3>Spell <small class="muted">${fmt(count(g.p.inv, 'charm_tide'))} tide charms</small></h3><div class="stances spells">${this.spellButtons()}</div>`;
     else if (st.style === 'ranged') {
       const need = st.needsAmmo ?? 'shot', eq = g.p.equip.ammo;
@@ -865,7 +881,7 @@ export class UI {
     }
     morph(el, `<div class="lohead">${w ? this.slotHtml(w, 'data-equip="weapon"') : ''}<div><b>${w ? esc(displayName(w)) : 'Bare hands'}</b><small class="muted">${KIND_TIPS[st.kind]}</small></div><button class="x" aria-label="Close">×</button></div>
       ${weapons ? `<h3>Swap weapon</h3><div class="lorow">${weapons}</div>` : ''}${pick}
-      <h3>Stance</h3><div class="stances">${this.stanceButtons()}</div>`);
+      <h3>Stance</h3><div class="stances">${this.stanceButtons()}</div>${util}`);
     // above the buttons, right-aligned (centred in portrait), kept on screen
     const r = this.el['ab-load'].getBoundingClientRect(), wd = el.offsetWidth, ht = el.offsetHeight;
     const x = this.portrait ? (window.innerWidth - wd) / 2 : Math.min(window.innerWidth - wd - 8, r.right - wd);

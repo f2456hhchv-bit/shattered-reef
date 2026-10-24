@@ -21,7 +21,9 @@ export type PerkKind =
   | 'regen' // +v health per 10 s
   | 'hp' // +v max health
   | 'ammo' // ranged: v% chance a shot isn't used
-  | 'charms'; // magic: v% chance a spell's charms aren't used
+  | 'charms' // magic: v% chance a spell's charms aren't used
+  | 'last' // gathering: v% chance a tree, rock or spot doesn't run out when it would
+  | 'spec'; // combat: special attack recharges v% faster
 
 export interface Perk { level: number; name: string; kind: PerkKind; v: number }
 
@@ -60,6 +62,35 @@ export const PERKS: Record<SkillId, Perk[]> = {
     P(60, 'Attuned', 'acc', 3), P(70, 'Well of power', 'charms', 9), P(80, 'Stormcaller', 'dmg', 3), P(90, 'Archmage', 'crit', 3), P(99, 'Mastery', 'charms', 10)],
 };
 
+// Half-step perks (Tom, 2026-10-24: "need more depth and unlocks for every skill"): a smaller real effect at 5, 15,
+// 25 ... 95, so every skill earns something every five levels on top of its content.
+const H = (name: string, kind: PerkKind, v: number) => ({ name, kind, v });
+const halfGathering = (what: string) => [H('Light swing', 'speed', 2), H(`Lasting ${what}`, 'last', 10), H('Second helping', 'double', 2), H('Knows the grain', 'speed', 2), H(`Deep ${what}`, 'last', 10),
+  H('Old hand', 'xp', 3), H('Rich pickings', 'double', 3), H('Effortless', 'speed', 3), H(`Endless ${what}`, 'last', 15), H('Treasure sense', 'find', 1)];
+const halfProduction = [H('Practised', 'quick', 5), H('Careful', 'save', 2), H('Steady hand', 'fine', 1), H('Brisk', 'quick', 5), H('Sparing', 'save', 3),
+  H('Craftsman', 'fine', 2), H('Journeyman', 'xp', 3), H('Swift', 'quick', 5), H('Economical', 'save', 3), H('Masterwork', 'fine', 3)];
+const HALF: Record<SkillId, { name: string; kind: PerkKind; v: number }[]> = {
+  woodcutting: halfGathering('timber'), mining: halfGathering('veins'), fishing: halfGathering('shoals'),
+  smithing: halfProduction, gunsmithing: halfProduction, fletching: halfProduction,
+  cooking: [H('Low flame', 'burn', 5), H('Good stock', 'heal', 3), H('Busy galley', 'quick', 10), H('Practised cook', 'burn', 5), H('Seconds', 'double', 2),
+    H('Seasoned', 'heal', 3), H('Galley master', 'quick', 10), H('Sure hand', 'burn', 10), H('Feast cook', 'double', 3), H('Signature dish', 'heal', 5)],
+  attack: [H('Guarded stance', 'acc', 1), H('Quick recovery', 'spec', 5), H('Measured', 'acc', 1), H('Find the gap', 'crit', 1), H('Tempo', 'spec', 5),
+    H('Swordsman', 'acc', 2), H('Exploit', 'crit', 1), H('Relentless', 'spec', 10), H('Blademaster', 'acc', 2), H('Perfect form', 'crit', 2)],
+  strength: [H('Muscle', 'dmg', 1), H('Wide swing', 'cleave', 5), H('Bruiser', 'dmg', 1), H('Second wind', 'spec', 5), H('Brawn', 'dmg', 1),
+    H('Reaping', 'cleave', 5), H('Hammer blow', 'dmg', 2), H('Fury', 'spec', 5), H('Colossus', 'dmg', 2), H('Unstoppable', 'dmg', 2)],
+  defence: [H('Wary', 'dr', 0.5), H('Thick skin', 'hp', 1), H('Parry', 'dr', 0.5), H('Hardened', 'hp', 1), H('Shield wall', 'dr', 1),
+    H('Iron will', 'hp', 2), H('Bastion', 'dr', 1), H('Stonewall', 'hp', 2), H('Rampart', 'dr', 1), H('Aegis', 'dr', 1)],
+  hitpoints: [H('Healthy', 'heal', 3), H('Hale', 'hp', 1), H('Good digestion', 'heal', 3), H('Robust', 'hp', 1), H('Hearty eater', 'heal', 3),
+    H('Vigour', 'hp', 2), H('Regrowth', 'regen', 1), H('Feaster', 'heal', 5), H('Indomitable', 'hp', 2), H('Undying', 'hp', 3)],
+  ranged: [H('Keen eye', 'acc', 1), H('Light pouch', 'ammo', 4), H('Heavy draw', 'dmg', 1), H('Quick reload', 'spec', 5), H('Recover shots', 'ammo', 4),
+    H('Weak spot', 'crit', 1), H('Power shot', 'dmg', 2), H('Volley', 'spec', 5), H('Fletcher\'s luck', 'ammo', 5), H('Hawkeye', 'dmg', 2)],
+  magic: [H('Clear mind', 'acc', 1), H('Charm keeper', 'charms', 4), H('Tide-sworn', 'dmg', 1), H('Quick tides', 'spec', 5), H('Charm saver', 'charms', 4),
+    H('Riptide focus', 'crit', 1), H('Deep current', 'dmg', 2), H('Storm tides', 'spec', 5), H('Sea-blessed', 'charms', 5), H('Leviathan\'s voice', 'dmg', 2)],
+};
+for (const k of Object.keys(HALF) as SkillId[]) {
+  PERKS[k] = [...PERKS[k], ...HALF[k].map((h, i) => P(5 + i * 10, h.name, h.kind, h.v))].sort((a, b) => a.level - b.level);
+}
+
 /** Sum of a perk kind a skill has earned at this level. */
 export function perkTotal(skill: SkillId, level: number, kind: PerkKind): number {
   let t = 0;
@@ -90,6 +121,8 @@ export function perkText(p: Perk): string {
     case 'hp': return `+${v} max health`;
     case 'ammo': return `${v}% chance a shot isn't used`;
     case 'charms': return `${v}% chance a spell's charms aren't used`;
+    case 'last': return `${v}% chance a spot doesn't run out`;
+    case 'spec': return `Special attack recharges ${v}% faster`;
   }
 }
 
