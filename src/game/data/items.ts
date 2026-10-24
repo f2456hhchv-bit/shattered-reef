@@ -66,25 +66,27 @@ const ARMOUR_AFFIX = ['max_hp', 'armour', 'regen'];
 
 
 // ---- tiers: generated so every metal, wood and fish follows one rule set --------------------------
-/** Metals, low to high. `m` indexes the gear stat tables below. Existing early ids are kept for saves. */
+/** Metals, low to high. `m` indexes the gear stat tables below. Existing early ids are kept for saves.
+ * Levels follow RuneScape (Tom, 2026-10-24): gear like bronze/iron 1, steel 5, black 10, mithril 20, adamant 30,
+ * rune 40, then 50/60/70 for the high metals (dragon 60, barrows 70); axes and pickaxes 1/1/6/11/21/31/41/51/61/71. */
 export const METALS = [
   { key: 'bronze', name: 'Bronze', color: '#c08a4a', req: 1, toolReq: 1 },
-  { key: 'iron', name: 'Iron', color: '#9aa0a4', req: 10, toolReq: 10 },
-  { key: 'steel', name: 'Steel', color: '#b9c4cc', req: 20, toolReq: 20 },
-  { key: 'storm', name: 'Stormsilver', color: '#86b6dc', req: 30, toolReq: 30 },
-  { key: 'abyss', name: 'Abyssite', color: '#3f7a66', req: 40, toolReq: 40 },
-  { key: 'tide', name: 'Tidecore', color: '#3cc6c4', req: 50, toolReq: 50 },
-  { key: 'cinder', name: 'Cinderite', color: '#b8452a', req: 60, toolReq: 60 },
-  { key: 'sky', name: 'Skyglass', color: '#8a7ae0', req: 70, toolReq: 70 },
-  { key: 'levi', name: 'Leviathite', color: '#d8cdb4', req: 80, toolReq: 80 },
-  { key: 'ori', name: 'Orichalcum', color: '#e0a33a', req: 90, toolReq: 90 },
+  { key: 'iron', name: 'Iron', color: '#9aa0a4', req: 1, toolReq: 1 },
+  { key: 'steel', name: 'Steel', color: '#b9c4cc', req: 5, toolReq: 6 },
+  { key: 'storm', name: 'Stormsilver', color: '#86b6dc', req: 10, toolReq: 11 },
+  { key: 'abyss', name: 'Abyssite', color: '#3f7a66', req: 20, toolReq: 21 },
+  { key: 'tide', name: 'Tidecore', color: '#3cc6c4', req: 30, toolReq: 31 },
+  { key: 'cinder', name: 'Cinderite', color: '#b8452a', req: 40, toolReq: 41 },
+  { key: 'sky', name: 'Skyglass', color: '#8a7ae0', req: 50, toolReq: 51 },
+  { key: 'levi', name: 'Leviathite', color: '#d8cdb4', req: 60, toolReq: 61 },
+  { key: 'ori', name: 'Orichalcum', color: '#e0a33a', req: 70, toolReq: 71 },
 ] as const;
 const CUT = { acc: [9, 14, 21, 30, 40, 52, 64, 77, 90, 104], str: [8, 13, 20, 29, 39, 51, 63, 76, 89, 103] };
 const HELM = [5, 8, 12, 17, 23, 30, 37, 45, 53, 62];
 const PLATE = [14, 21, 32, 46, 62, 80, 98, 118, 140, 164];
 const SHOT_STR = [7, 13, 20, 28, 37, 47, 57, 68, 80, 92];
-const PISTOL = { acc: [10, 22, 32, 44, 58, 72, 86, 100, 115, 130], req: [1, 15, 25, 35, 45, 55, 65, 75, 85, 92], range: [9, 10, 10, 11, 11, 12, 12, 13, 13, 14] };
-const BOW_REQ = [1, 10, 20, 30, 45, 60, 75], BOW_ACC = [8, 18, 28, 40, 56, 76, 98];
+const PISTOL = { acc: [10, 22, 32, 44, 58, 72, 86, 100, 115, 130], req: [1, 6, 16, 21, 26, 36, 46, 56, 61, 70], range: [9, 10, 10, 11, 11, 12, 12, 13, 13, 14] };
+const BOW_REQ = [1, 5, 20, 30, 40, 50, 60], BOW_ACC = [8, 18, 28, 40, 56, 76, 98];
 const BAR_VALUE = [18, 40, 70, 140, 280, 560, 900, 1400, 2200, 3400];
 /**
  * Each metal has a signature trait, so a higher tier is a choice as well as an upgrade: weapons (and pistols)

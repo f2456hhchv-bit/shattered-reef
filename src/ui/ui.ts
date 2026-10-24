@@ -12,7 +12,7 @@ import { PLACES, placeRegion } from '../game/world/places';
 import { REGIONS } from '../game/world/regions';
 import { count, displayName, stackValue, INV_SIZE, type Stack } from '../game/sim/inventory';
 import { levelForXp, levelProgress, xpForLevel, MAX_LEVEL } from '../game/sim/xp';
-import { earlyBoost, EARLY_BOOST_TO, type Game, type GameEvent, type MsgKind } from '../game/sim/game';
+import { type Game, type GameEvent, type MsgKind } from '../game/sim/game';
 import type { GameRenderer } from '../render/renderer';
 import { itemIcon, rarityColour, TAB_ICONS, SKILL_ICONS, SLOT_ICONS } from './icons';
 import { LEVEL_GAIN } from '../game/data/perks';
@@ -198,7 +198,7 @@ export class UI {
     switch (e.type) {
       case 'msg': this.log(e.text, e.kind); break;
       case 'xp': this.xpDrop(e.skill, e.amount); break;
-      case 'level': this.banner(`${cap(e.skill)} level ${e.level}`, this.nextUnlockText(e.skill) ?? 'Keep going.', e.skill); break;
+      case 'level': this.levelUp(e.skill, e.level); break;
       case 'discover': { const f = this.game.placeInfo(e.id)?.foes; this.banner(e.name, f ? `Discovered · Foes level ${f[0]}${f[1] > f[0] ? `–${f[1]}` : ''}` : 'Discovered · Peaceful'); break; }
       case 'quest': {
         const q = QUESTS[e.id];
@@ -254,13 +254,47 @@ export class UI {
     this.bannerT = 2.6;
   }
 
-  private nextUnlockText(skill: SkillId): string | null {
-    const lvl = this.game.level(skill);
-    const now = UNLOCKS[skill].filter((x) => x.level === lvl).map((x) => x.text);
-    if (now.length) return `Unlocked: ${now.slice(0, 3).join(' · ')}${now.length > 3 ? ` +${now.length - 3} more` : ''}`;
-    const next = UNLOCKS[skill].find((x) => x.level > lvl);
-    return `${LEVEL_GAIN[skill]}.${next ? ` Next at ${next.level}: ${next.text}` : ''}`;
+  // ------------------------------------------------------------------ level up (RuneScape's congratulations)
+  private lvQueue: { skill: SkillId; level: number }[] = [];
+  private lvEl: HTMLElement | null = null;
+  private lvT = 0;
+  /** A level up: the RuneScape moment. A card with the skill's medal, "Congratulations!" and what you can do now. */
+  levelUp(skill: SkillId, level: number) {
+    const q = this.lvQueue.find((x) => x.skill === skill);
+    if (q) q.level = level; else this.lvQueue.push({ skill, level }); // several levels at once: one card, the latest level
+    if (!this.lvEl) this.showLevelCard();
   }
+  private showLevelCard() {
+    const next = this.lvQueue.shift();
+    if (!next) return;
+    const { skill, level } = next, sk = SKILLS.find((x) => x.id === skill)!;
+    const now = UNLOCKS[skill].filter((u) => u.level === level);
+    const things = now.filter((u) => !u.perk), perks = now.filter((u) => u.perk);
+    const upcoming = UNLOCKS[skill].find((u) => u.level > level && !u.perk);
+    const lines = things.slice(0, 4).map((u) => `<li>${u.icon ? `<img src="${itemIcon(u.icon)}" alt="">` : ''}<span>${esc(u.text)}</span></li>`).join('')
+      + (things.length > 4 ? `<li class="more">and ${things.length - 4} more: see the skill guide</li>` : '')
+      + perks.map((u) => `<li class="perk"><span>${esc(u.text)}</span></li>`).join('');
+    const el = document.createElement('div');
+    el.className = 'lvup';
+    el.style.setProperty('--c', sk.colour);
+    el.innerHTML = `<div class="lv-card"><i class="medal big" style="--c:${sk.colour}">${SKILL_ICONS[skill]}</i>
+      <h3>Congratulations!</h3><p>You've just advanced ${/^[AEIOU]/.test(sk.name) ? 'an' : 'a'} <b>${sk.name}</b> level.<br>You have reached level <b>${level}</b>.</p>
+      ${lines ? `<div class="lv-sub">You can now</div><ul>${lines}</ul>` : `<p class="muted">${esc(LEVEL_GAIN[skill])}.</p>`}
+      ${upcoming ? `<p class="lv-next">Next at level ${upcoming.level}: ${esc(upcoming.text)}</p>` : ''}
+      <div class="lv-tap">Tap to continue</div></div>`;
+    document.body.appendChild(el);
+    this.lvEl = el;
+    this.lvT = 7;
+    onTap(el, '.lv-card', () => this.hideLevelCard());
+  }
+  private hideLevelCard() {
+    const el = this.lvEl;
+    if (!el) return;
+    this.lvEl = null;
+    el.classList.add('out');
+    setTimeout(() => { el.remove(); this.showLevelCard(); }, 260);
+  }
+
 
   // ------------------------------------------------------------------ per-frame
   update(dt: number) {
@@ -331,6 +365,7 @@ export class UI {
     } else bb.hidden = true;
     this.el.ko.hidden = !(g.dead > 0);
     if (this.bannerT > 0) { this.bannerT -= dt; if (this.bannerT <= 0) this.el.banner.classList.remove('show'); }
+    if (this.lvEl) { this.lvT -= dt; if (this.lvT <= 0) this.hideLevelCard(); }
     // windows that depend on position
     if (this.station && !g.nearStation(this.station)) this.closeWindows();
     if (this.shopOpen && !g.nearShop()) this.closeWindows();
@@ -508,8 +543,10 @@ export class UI {
   /** One set of handlers on the tab panel for its whole life (content is patched, never re-bound). */
   private bindContent(c: HTMLElement) {
     const g = this.game;
-    onTap(c, '[data-slot], [data-equip], [data-stance], [data-spell], [data-q], [data-dmg], [data-music], [data-sfx], [data-fps], [data-lv], [data-skill], [data-skillback], [data-home], [data-mapview], #saveNow, #resetSave', (t, pointer) => {
+    onTap(c, '[data-slot], [data-equip], [data-stance], [data-spell], [data-q], [data-dmg], [data-music], [data-sfx], [data-fps], [data-lv], [data-skill], [data-skillback], [data-gcat], [data-sort], [data-home], [data-mapview], #saveNow, #resetSave', (t, pointer) => {
       if (t.dataset.home) { g.teleportHome(); return; }
+      if (t.dataset.sort) { this.closePop(); g.sortPack(t.dataset.sort as 'type' | 'value' | 'quality'); this.log(`Pack sorted by ${t.dataset.sort}.`); return; }
+      if (t.dataset.gcat) { this.guideCat = t.dataset.gcat; this.lastRev = -1; this.renderTab(); return; }
       if (t.dataset.mapview) { this.mapView = t.dataset.mapview as 'here' | 'chart'; this.renderTab(); return; }
       if (t.dataset.slot !== undefined) {
         const i = Number(t.dataset.slot);
@@ -529,7 +566,7 @@ export class UI {
       else if (t.dataset.music) { g.s.settings.music = t.dataset.music === '1'; this.onAudio(); this.lastRev = -1; }
       else if (t.dataset.sfx) { g.s.settings.sfx = t.dataset.sfx === '1'; this.onAudio(); this.lastRev = -1; }
       else if (t.dataset.lv !== undefined && t.closest('.toggle')) { g.s.settings.nodeLevels = t.dataset.lv === '1'; this.lastRev = -1; }
-      else if (t.dataset.skill) { this.skillView = t.dataset.skill as SkillId; this.skillScroll = true; this.lastRev = -1; }
+      else if (t.dataset.skill) { this.skillView = t.dataset.skill as SkillId; this.guideCat = null; this.skillScroll = true; this.lastRev = -1; }
       else if (t.dataset.skillback !== undefined) { this.skillView = null; this.lastRev = -1; }
       else if (t.id === 'saveNow') { this.onSave(); this.log('Voyage saved.', 'good'); this.lastRev = -1; }
       else if (t.id === 'resetSave') this.confirm('Erase your progress and start again?', 'Erase and restart', () => this.onReset());
@@ -555,7 +592,9 @@ export class UI {
     const g = this.game;
     const coins = count(g.p.inv, 'coins');
     const used = g.p.inv.filter(Boolean).length;
-    return `<div class="row" style="justify-content:space-between;margin-bottom:8px"><h2 class="title" style="margin:0">Pack</h2><span class="muted" style="font-size:12px">${used}/${INV_SIZE} · ${fmt(coins)} coins</span></div>
+    const sorts = (['type', 'value', 'quality'] as const).map((m) => `<button data-sort="${m}">${cap(m)}</button>`).join('');
+    return `<div class="row" style="justify-content:space-between;margin-bottom:6px"><h2 class="title" style="margin:0">Pack</h2><span class="muted" style="font-size:12px">${used}/${INV_SIZE} · ${fmt(coins)} coins</span></div>
+      <div class="row sortrow"><span class="muted">Sort by</span><span class="seg">${sorts}</span></div>
       <div class="grid28 pack">${g.p.inv.map((s, i) => this.slotHtml(s, `data-slot="${i}"`)).join('')}</div>
       <p class="muted" style="font-size:12px;margin:10px 0 0">${matchMedia('(pointer: fine)').matches ? 'Click to use or equip. Right-click for details.' : 'Tap an item for details and actions.'}</p>`;
   }
@@ -587,20 +626,36 @@ export class UI {
       <p class="muted" style="font-size:12px;margin:8px 0 0">Every enemy is weak to one style: melee beats gunners, ranged beats brigands, magic beats crabs and the Guardian.</p>`;
   }
 
-  /** Every level of one skill, 1 to 99: what it unlocks, its perks, or what the level improves. */
+  /** The skill guide (RuneScape's: tap a skill): tabs of what it unlocks, each with its icon and level, locked ones
+   * greyed; plus "All levels", every level 1 to 99 with what it brings. */
+  private guideCat: string | null = null;
   private skillDetailHtml(id: SkillId) {
     const g = this.game, sk = SKILLS.find((x) => x.id === id)!, cur = g.level(id);
-    const rows: string[] = [];
-    for (let L = 1; L <= 99; L++) {
-      const at = UNLOCKS[id].filter((u) => u.level === L);
-      const body = at.length
-        ? at.map((u) => (u.text.startsWith('Perk · ') ? `<span class="perk">${esc(u.text.slice(7))}</span>` : esc(u.text))).join('<br>')
-        : `<span class="muted">${L === 1 ? 'Where everyone starts' : esc(LEVEL_GAIN[id])}</span>`;
-      rows.push(`<div class="lvrow${L <= cur ? ' got' : ''}${L === cur ? ' cur' : ''}${at.length ? ' has' : ''}" data-lv="${L}"><span class="n">${L}</span><div>${body}</div></div>`);
+    const list = UNLOCKS[id];
+    const ORDER = ['Trees', 'Rocks', 'Fish', 'Hatchets', 'Pickaxes', 'Gear', 'Bars', 'Weapons', 'Bows', 'Crossbows', 'Guns', 'Staffs', 'Armour', 'Ammo', 'Tools', 'Dishes', 'Jewellery', 'Spells', 'Foes', 'Other', 'Perks'];
+    const cats = [...new Set(list.map((u) => u.cat))].sort((a, b) => ORDER.indexOf(a) - ORDER.indexOf(b));
+    const tab = this.guideCat && (cats.includes(this.guideCat) || this.guideCat === 'All') ? this.guideCat : cats[0] ?? 'All';
+    const tabs = [...cats, 'All'].map((c) => `<button data-gcat="${c}" class="${c === tab ? 'on' : ''}">${c === 'All' ? 'All levels' : c}</button>`).join('');
+    let body: string;
+    if (tab === 'All') {
+      const rows: string[] = [];
+      for (let L = 1; L <= 99; L++) {
+        const at = list.filter((u) => u.level === L);
+        const txt = at.length ? at.map((u) => (u.perk ? `<span class="perk">${esc(u.text)}</span>` : esc(u.text))).join('<br>') : `<span class="muted">${L === 1 ? 'Where everyone starts' : esc(LEVEL_GAIN[id])}</span>`;
+        rows.push(`<div class="lvrow${L <= cur ? ' got' : ''}${L === cur ? ' cur' : ''}${at.length ? ' has' : ''}" data-lv="${L}"><span class="n">${L}</span><div>${txt}</div></div>`);
+      }
+      body = `<div class="lvlist">${rows.join('')}</div>`;
+    } else {
+      const nextLv = list.find((u) => u.cat === tab && u.level > cur)?.level;
+      body = `<div class="guide">${list.filter((u) => u.cat === tab).map((u) => {
+        const got = u.level <= cur;
+        const pic = u.icon ? `<img src="${itemIcon(u.icon)}" alt="">` : `<i class="medal" style="--c:${sk.colour}">${SKILL_ICONS[id]}</i>`;
+        return `<div class="gentry${got ? '' : ' lock'}${u.level === nextLv ? ' next' : ''}"><span class="glv">${u.level}</span>${pic}<span class="gtx">${esc(u.text)}</span>${got ? '' : '<b class="glock" aria-label="locked">🔒</b>'}</div>`;
+      }).join('')}</div>`;
     }
     return `<div class="row lvhead" style="gap:10px;margin-bottom:8px"><button class="btn small" data-skillback aria-label="Back to all skills">‹ Skills</button>
-      <span class="medal" style="--c:${sk.colour}">${SKILL_ICONS[id]}</span><div><h2 class="title" style="margin:0">${sk.name}</h2><span class="muted" style="font-size:12px">Level ${cur} · ${fmt(Math.floor(g.p.xp[id]))} XP${cur < MAX_LEVEL ? ` · ${fmt(Math.ceil(xpForLevel(cur + 1) - g.p.xp[id]))} to ${cur + 1}` : ''}<br>${esc(sk.blurb)}${cur < EARLY_BOOST_TO ? ` · <b style="color:var(--brass)">×${earlyBoost(cur).toFixed(1)} XP</b> while learning (to level ${EARLY_BOOST_TO})` : ''}</span></div></div>
-      <div class="lvlist">${rows.join('')}</div>`;
+      <span class="medal" style="--c:${sk.colour}">${SKILL_ICONS[id]}</span><div><h2 class="title" style="margin:0">${sk.name}</h2><span class="muted" style="font-size:12px">Level ${cur} · ${fmt(Math.floor(g.p.xp[id]))} XP${cur < MAX_LEVEL ? ` · ${fmt(Math.ceil(xpForLevel(cur + 1) - g.p.xp[id]))} to ${cur + 1}` : ''}<br>${esc(sk.blurb)}</span></div></div>
+      <div class="seg gtabs">${tabs}</div>${body}`;
   }
 
   private skillsHtml() {

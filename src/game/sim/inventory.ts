@@ -85,3 +85,33 @@ export function stackValue(s: Stack): number {
   const d = item(s.id);
   return Math.floor(d.value * (s.inst ? RARITY[s.inst.rarity].valueMul : 1));
 }
+
+export type SortMode = 'type' | 'value' | 'quality';
+const RARITY_RANK = { common: 0, fine: 1, rare: 2, relic: 3 } as const;
+/** Group order for "type": coins, quest items, tools, weapons, armour, ammo, food (best first), things to open, materials. */
+function typeRank(s: Stack): number {
+  const d = item(s.id);
+  if (s.id === 'coins') return 0;
+  if (d.quest) return 1;
+  if (d.tool) return 2;
+  if (d.equip?.slot === 'weapon') return 3;
+  if (d.equip?.slot === 'ammo') return 5;
+  if (d.equip) return 4;
+  if (d.heal) return 6;
+  if (d.opens) return 7;
+  return 8;
+}
+const MAT_ORDER = ['logs_', 'ore_', 'bar_', 'fish_'];
+/** Auto-sort the pack (Tom: by value, quality etc.). Items keep their stacks; empty slots go to the end. */
+export function sortInventory(inv: Inventory, mode: SortMode) {
+  const items = inv.filter((s): s is Stack => !!s);
+  const unit = (s: Stack) => stackValue({ ...s, qty: 1 });
+  const mat = (s: Stack) => { const k = MAT_ORDER.findIndex((p) => s.id.startsWith(p)); return k < 0 ? MAT_ORDER.length : k; };
+  const rank = (s: Stack) => RARITY_RANK[s.inst?.rarity ?? 'common'];
+  items.sort((a, b) => {
+    if (mode === 'value') return unit(b) * b.qty - unit(a) * a.qty || item(a.id).name.localeCompare(item(b.id).name); // the whole stack's worth
+    if (mode === 'quality') return rank(b) - rank(a) || unit(b) - unit(a) || item(a.id).name.localeCompare(item(b.id).name);
+    return typeRank(a) - typeRank(b) || (item(b.id).heal ?? 0) - (item(a.id).heal ?? 0) || mat(a) - mat(b) || unit(b) - unit(a) || item(a.id).name.localeCompare(item(b.id).name);
+  });
+  for (let i = 0; i < inv.length; i++) inv[i] = items[i] ?? null;
+}

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { Game } from './game';
 import { defaultSave, parseSave } from './save';
 import { xpForLevel } from './xp';
-import { count } from './inventory';
+import { count, stackValue } from './inventory';
 import { ITEMS } from '../data/items';
 import { levelForXp } from './xp';
 import { NODES, RECIPES, ENEMIES, LOOT, SHOPS, UNLOCKS, SKILLS } from '../data/content';
@@ -504,6 +504,39 @@ describe('the living island', () => {
     b.done(() => count(g.p.inv, 'ore_copper') + count(g.p.inv, 'ore_tin') >= 1);
     expect(count(g.p.inv, 'ore_copper') + count(g.p.inv, 'ore_tin')).toBeGreaterThanOrEqual(1);
   });
+  it('levels follow RuneScape: oak 15, iron ore 15, coal 30, gold 40; steel gear 5, rune-tier 40; bars 1/15/30; no XP boost', () => {
+    const lv = (id: string) => NODES[id].level;
+    expect([lv('tree_oak'), lv('tree_willow'), lv('tree_amber'), lv('tree_yew')]).toEqual([15, 30, 45, 60]);
+    expect([lv('rock_iron'), lv('rock_coal'), lv('rock_gold')]).toEqual([15, 30, 40]);
+    expect([ITEMS.cutlass_steel.equip!.reqs.attack, ITEMS.plate_storm.equip!.reqs.defence, ITEMS.cutlass_cinder.equip!.reqs.attack]).toEqual([5, 10, 40]);
+    expect(['smelt_bronze', 'smelt_iron', 'smelt_steel'].map((id) => RECIPES.find((r) => r.id === id)!.level)).toEqual([1, 15, 30]);
+    // the anvil: a new item every few levels within a bar's tier (dagger +0 ... platebody +18)
+    const bronze = RECIPES.filter((r) => r.station === 'anvil' && r.output.id.endsWith('_bronze')).map((r) => r.level).sort((a, b) => a - b);
+    expect(bronze).toEqual([1, 2, 3, 4, 6, 7, 15, 19]);
+    const g = fresh();
+    g.addXp('woodcutting', 25);
+    expect(g.p.xp.woodcutting).toBe(25); // RuneScape's normal log, no boost
+    // every skill's guide is grouped into tabs, and the items in it carry their icons
+    expect(new Set(UNLOCKS.woodcutting.map((u) => u.cat))).toEqual(new Set(['Trees', 'Hatchets', 'Perks']));
+    expect(UNLOCKS.mining.filter((u) => u.cat === 'Rocks').every((u) => ITEMS[u.icon!])).toBe(true);
+  });
+
+  it('the pack sorts by type, value and quality', () => {
+    const g = fresh();
+    g.p.inv = g.p.inv.map(() => null);
+    g.p.inv[3] = { id: 'ore_copper', qty: 5 }; g.p.inv[7] = { id: 'coins', qty: 100 }; g.p.inv[9] = { id: 'hatchet_bronze', qty: 1 };
+    g.p.inv[12] = { id: 'fish_shark', qty: 2 }; g.p.inv[15] = { id: 'bread', qty: 3 };
+    g.p.inv[20] = { id: 'cutlass_steel', qty: 1, inst: { uid: 1, rarity: 'rare', affixes: [] } }; g.p.inv[21] = { id: 'cutlass_steel', qty: 1 };
+    g.sortPack('type');
+    expect(g.p.inv.slice(0, 8).map((s) => s?.id ?? null)).toEqual(['coins', 'hatchet_bronze', 'cutlass_steel', 'cutlass_steel', 'fish_shark', 'bread', 'ore_copper', null]);
+    g.sortPack('quality');
+    expect(g.p.inv[0]?.inst?.rarity).toBe('rare');
+    g.sortPack('value');
+    const vals = g.p.inv.filter(Boolean).map((s) => stackValue(s!) * s!.qty);
+    expect(vals).toEqual([...vals].sort((a, b) => b - a));
+    expect(g.p.inv.filter(Boolean).length).toBe(7); // nothing lost
+  });
+
   it('rocks and trees give 2-5+ items before they run out, then you carry on to the next one by yourself', () => {
     const g = fresh();
     g.p.xp.mining = xpForLevel(12); g.give('pickaxe_iron', 1); // below the Lasting and double-haul perks, so the count is exact

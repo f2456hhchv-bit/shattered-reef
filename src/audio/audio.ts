@@ -195,7 +195,7 @@ export class GameAudio {
         break;
       }
       case 'gain': if (e.id === 'coins') [1568, 2093, 1760].forEach((f, i) => this.bell(f, 0.3, 0.05, this.ctx!.currentTime + i * 0.05)); break;
-      case 'level': this.arp([62, 66, 69, 74, 78], 0.09, 0.12); break;
+      case 'level': this.fanfare(); break;
       case 'quest': this.arp([69, 74, 78, 81], 0.12, 0.1); break;
       case 'discover': this.arp([62, 64, 67, 69, 71, 74], 0.07, 0.08); break;
       case 'boss':
@@ -207,6 +207,13 @@ export class GameAudio {
     }
   }
 
+  /** The level-up jingle: a rising flourish, then a held major chord with a bell on top (RuneScape's moment, our tune). */
+  private fanfare() {
+    const t = this.ctx!.currentTime;
+    [67, 72, 76, 79].forEach((n, i) => this.pluck(midi(n), 0.6, 0.13, t + i * 0.085, this.sfx));
+    [72, 76, 79, 84].forEach((n) => this.tone(midi(n), 1.6, { type: 'triangle', gain: 0.05, attack: 0.03, lp: 2600, at: t + 0.36, out: this.sfx }));
+    this.bell(midi(96), 1.4, 0.06, t + 0.36, this.sfx);
+  }
   private arp(notes: number[], step: number, gain: number) {
     const t = this.ctx!.currentTime;
     notes.forEach((n, i) => this.pluck(midi(n), 0.9, gain, t + i * step, this.sfx));
