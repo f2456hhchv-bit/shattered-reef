@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { earlyBoost, Game } from './game';
+import { Game } from './game';
 import { PERKS } from '../data/perks';
 import { levelForXp, xpForLevel, MAX_LEVEL, MAX_XP } from './xp';
 import { add, count, emptyInventory, remove, INV_SIZE } from './inventory';
@@ -249,7 +249,7 @@ describe('gameplay loop', () => {
     run(g, 5, () => count(g.p.inv, 'bar_bronze') >= 1);
     expect(count(g.p.inv, 'bar_bronze')).toBe(1);
     expect(count(g.p.inv, 'ore_copper')).toBe(0);
-    expect(g.p.xp.smithing).toBeCloseTo(6.25 * earlyBoost(1), 0); // RuneScape's bronze bar, with the early-levels boost
+    expect(g.p.xp.smithing).toBeCloseTo(6.25, 1); // RuneScape's bronze bar
   });
 
   it('refuses to craft without ingredients and consumes nothing', () => {
@@ -576,7 +576,7 @@ describe('combat skills (RuneScape model)', () => {
     expect(d.quests.bell).toBe(2);
   });
 
-  it('pacing: 10 minutes of crab fighting at level 1 lands around Attack 9-14 (early-level boost), not 20+', () => {
+  it('pacing: 10 minutes of crab fighting at level 1 lands around Attack 5-10 (RuneScape: 4 XP a damage, no boost), not 20+', () => {
     const g = fresh(41);
     let kills = 0;
     g.on((e) => { if (e.type === 'enemyDeath') kills++; });
@@ -589,7 +589,7 @@ describe('combat skills (RuneScape model)', () => {
       g.step(1 / 30);
     }
     expect(kills).toBeGreaterThan(5);
-    expect(g.level('attack')).toBeGreaterThanOrEqual(8);
-    expect(g.level('attack')).toBeLessThanOrEqual(16);
+    expect(g.level('attack')).toBeGreaterThanOrEqual(5);
+    expect(g.level('attack')).toBeLessThanOrEqual(10);
   });
 });

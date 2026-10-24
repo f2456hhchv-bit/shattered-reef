@@ -27,7 +27,7 @@ import { buildPine, buildBroadleaf, buildRock, buildOreRock, buildCrate, buildLa
 import { buildBench, buildFurnace, buildAnvil, buildCookfire, buildTent, buildSmithyShed, buildPillar, buildPlinth, buildStrongbox, buildDigSpot, buildGuardian, buildStump, buildRipples, type GuardianRig } from '../art/models/world';
 import { buildLootShard, buildItemModel, SHARD_TINT, type LootShard, type ShardKind } from '../art/models/items';
 import { item } from '../game/data/items';
-import { NODES, PLAYER_BASE } from '../game/data/content';
+import { NODES, PLAYER_BASE, SKILLS } from '../game/data/content';
 import type { Game, GameEvent, Enemy, Telegraph } from '../game/sim/game';
 import { coastDist, nearestPathDist, BEACH, SUN, SUN_LAYOUT } from '../game/world/island';
 import { HCELL } from '../game/world/world';
@@ -108,6 +108,7 @@ export class GameRenderer {
     return rig;
   }
   private playerSwing = 0;
+  private fireworks: { t: number; x: number; y: number; z: number; colour: number }[] = [];
   private ship: ShipRig;
   private npcs = new Map<string, HumanoidRig>();
   private houses: { b: BuildingDef; v: EnterableView; k: number }[] = [];
@@ -786,8 +787,11 @@ export class GameRenderer {
         break;
       }
       case 'level': {
-        const p = this.game.p;
-        this.particles.burst(p.x, g.world.standY(p.x, p.z) + 1.2, p.z, 40, 0xf2cf5b, { speed: 3, up: 6, size: 0.14, life: 1.1, grav: 6 });
+        // RuneScape's fireworks: gold sparks spray up from you, then rockets burst overhead in the skill's colour
+        const p = this.game.p, y = g.world.standY(p.x, p.z), col = parseInt((SKILLS.find((s) => s.id === e.skill)?.colour ?? '#f2cf5b').slice(1), 16);
+        this.particles.burst(p.x, y + 1.2, p.z, 40, 0xf2cf5b, { speed: 3, up: 6, size: 0.14, life: 1.1, grav: 6 });
+        for (let k = 0; k < 5; k++) this.fireworks.push({ t: 0.25 + k * 0.22, x: p.x + Math.cos(k * 2.4) * 1.6, y: y + 4.2 + (k % 2) * 1.1, z: p.z + Math.sin(k * 2.4) * 1.6, colour: k % 2 ? 0xfff2c0 : col });
+        this.shake = Math.max(this.shake, 0.12);
         break;
       }
       case 'explode': this.particles.burst(e.x, g.world.standY(e.x, e.z) + 0.3, e.z, 30, 0xb8a888, { speed: e.r * 2.5, up: 3, size: 0.2, life: 0.6 }); this.shake = Math.max(this.shake, 0.35); break;
@@ -1011,6 +1015,11 @@ export class GameRenderer {
       this.whirlFx.position.set(p.x, world.standY(p.x, p.z) + 0.6, p.z);
       this.whirlFx.rotation.z = -k * 6;
     }
+    for (const f of this.fireworks) {
+      f.t -= dt;
+      if (f.t <= 0) { this.particles.burst(f.x, f.y, f.z, 34, f.colour, { speed: 5, up: 1.5, size: 0.12, life: 1.0, grav: 3, spread: 1 }); this.particles.burst(f.x, f.y, f.z, 8, 0xffffff, { speed: 2, up: 1, size: 0.08, life: 0.5, grav: 1 }); }
+    }
+    this.fireworks = this.fireworks.filter((f) => f.t > 0);
     this.particles.update(dt);
     this.terrain.uniforms.uTime.value = t;
     for (const u of this.grassTime) u.value = t;

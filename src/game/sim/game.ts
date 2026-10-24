@@ -7,7 +7,7 @@ import { PLACES, placeRegion } from '../world/places';
 import { regionLayout, cachedLayout, type IslandLayout, type Arena } from '../world/layout';
 import { REGIONS, edgeCrossed, arrival, type RegionId } from '../world/regions';
 import type { World } from '../world/world';
-import { add, canAdd, count, remove, displayName, stackValue, wears, condOf, WORN_OUT_EFFECT, type Stack } from './inventory';
+import { add, canAdd, count, remove, displayName, stackValue, wears, condOf, sortInventory, WORN_OUT_EFFECT, type Stack, type SortMode } from './inventory';
 import { computeStats, makeInstance, rollRarity, hitChance, reqBlock, type PlayerStats, type Stance } from './gear';
 import { levelForXp, MAX_XP } from './xp';
 import { defaultSave, SAVE_VERSION, BANK_MAX, type SaveData } from './save';
@@ -74,10 +74,6 @@ export interface Enemy {
   moving: boolean;
 }
 
-/** Early levels come quicker (Tom, 2026-10-24: 15 minutes for level 2 was too slow): x3 XP at level 1, fading
- * to x1 at 30. Level 30 is 0.1% of the XP to 99, so the long game is untouched. */
-export const EARLY_BOOST_TO = 30;
-export function earlyBoost(level: number): number { return level >= EARLY_BOOST_TO ? 1 : 1 + (2 * (EARLY_BOOST_TO - level)) / (EARLY_BOOST_TO - 1); }
 
 export interface Drop { id: number; x: number; z: number; stack: Stack; t: number; home?: boolean } // home: loot from your kill, flies to you
 export interface Projectile { id: number; x: number; z: number; vx: number; vz: number; life: number; damage: number; from: 'player' | 'enemy'; kind?: 'shot' | 'magic' | 'arrow'; crit?: boolean; style?: CombatStyle; spellBase?: number; knock?: number }
@@ -263,7 +259,7 @@ export class Game {
 
   // ------------------------------------------------------------------ xp + items
   addXp(skill: SkillId, amount: number) {
-    const amt = Math.round(amount * earlyBoost(this.level(skill)) * (1 + (COMBAT_SKILLS.includes(skill) ? 0 : this.stats.xpBonus) + perkTotal(skill, this.level(skill), 'xp') / 100) * 10) / 10;
+    const amt = Math.round(amount * (1 + (COMBAT_SKILLS.includes(skill) ? 0 : this.stats.xpBonus) + perkTotal(skill, this.level(skill), 'xp') / 100) * 10) / 10;
     if (amt <= 0) return;
     const before = this.level(skill);
     this.p.xp[skill] = Math.min(MAX_XP, this.p.xp[skill] + amt);
@@ -271,7 +267,8 @@ export class Game {
     this.emit({ type: 'xp', skill, amount: amt });
     if (after > before) {
       this.emit({ type: 'level', skill, level: after });
-      this.msg(`${skill[0].toUpperCase()}${skill.slice(1)} level ${after}!`, 'good');
+      // RuneScape's own words
+      this.msg(`Congratulations, you've just advanced ${/^[aeiou]/.test(skill) ? 'an' : 'a'} ${skill[0].toUpperCase()}${skill.slice(1)} level. You are now level ${after}.`, 'good');
       if (COMBAT_SKILLS.includes(skill)) { this.recalc(); if (skill === 'hitpoints') this.p.hp = Math.min(this.stats.maxHp, this.p.hp + (after - before)); }
     }
     this.rev++;
@@ -290,6 +287,9 @@ export class Game {
   }
 
   private uid() { return this.s.nextUid++; }
+
+  /** Tidy the pack: by type (tools first, food best-first, materials grouped), by value, or by quality. */
+  sortPack(mode: SortMode) { sortInventory(this.p.inv, mode); this.rev++; }
 
   /** Best usable tool for a skill; `only` restricts to one item (fishing spots need a specific tool). */
   bestTool(skill: SkillId, only?: string) {
@@ -491,7 +491,8 @@ export class Game {
     const lvl = this.level(d.skill);
     const toolK = d.skill === 'fishing' ? 1 : Math.min(1.6, Math.max(0.45, 1 + 0.15 * (toolPower - Math.min(10, d.tier + 1))));
     const perk = perkTotal(d.skill, lvl, 'speed') / 100;
-    return Math.min(0.85, d.rate * (1 + Math.max(0, lvl - d.level) * 0.012) * toolK * (1 + this.stats.gather + perk));
+    // like RuneScape, every level past the requirement makes success likelier (+1.6% of the base rate per level)
+    return Math.min(0.85, d.rate * (1 + Math.max(0, lvl - d.level) * 0.016) * toolK * (1 + this.stats.gather + perk));
   }
 
   /** Interaction range for a node (ship spots are fished from deck; kelp and fish lie just offshore). */

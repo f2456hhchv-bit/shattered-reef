@@ -56,7 +56,9 @@ const rock = (id: string, name: string, item: string, t: number, level: number, 
   ({ id, name, skill: 'mining', level, xp, item, difficulty: 0.45 + 0.3 * t, tier: t, rate, yield: t >= 6 ? [2, 4] : [2, 5], respawn, verb: 'Mine' });
 // Fishing level and XP per fish (FISH order). A spot holds one or more of them (RuneScape: trout and salmon share
 // a spot); you catch what your level allows, the best of it more often as you level.
-const FISH_LV: [number, number][] = [[1, 10], [8, 35], [20, 50], [30, 70], [40, 90], [50, 100], [62, 120], [76, 110], [85, 120], [14, 40], [26, 60], [45, 80], [68, 115]];
+// RuneScape's own: shrimp 1/10, herring 10/30, trout 20/50, salmon 30/70, tuna 35/80, lobster 40/90, mackerel 16/20, bass 46/100,
+// swordfish 50/100, monkfish 62/120, shark 76/110, anglerfish 82/120
+const FISH_LV: [number, number][] = [[1, 10], [10, 30], [20, 50], [30, 70], [40, 90], [50, 100], [62, 120], [76, 110], [82, 120], [16, 20], [46, 100], [35, 80], [68, 115]];
 const spot = (key: string, fish: number[], rate: number, tool: string, fromShip = false): NodeDef => {
   const order = [...fish].sort((a, b) => FISH_LV[a][0] - FISH_LV[b][0]);
   const catches = order.map((t) => ({ item: `fish_${FISH[t].key}_raw`, level: FISH_LV[t][0], xp: FISH_LV[t][1] }));
@@ -66,18 +68,18 @@ const spot = (key: string, fish: number[], rate: number, tool: string, fromShip 
     catches: catches.length > 1 ? catches : undefined, difficulty: 0.45 + 0.06 * order[0], tier: order[0], rate, yield: null, respawn: 0, verb: tool === 'lobster_pot' ? 'Set pot' : tool === 'harpoon' ? 'Harpoon' : 'Fish', tool, fromShip: fromShip || undefined };
 };
 export const NODES: Record<string, NodeDef> = Object.fromEntries(([
-  tree(0, 1, 25, 0.24, 14), tree(1, 15, 37.5, 0.25, 25), tree(2, 30, 67.5, 0.25, 30), tree(3, 45, 100, 0.22, 40), tree(4, 60, 175, 0.15, 60), tree(5, 75, 250, 0.133, 90), tree(6, 90, 380, 0.105, 120),
+  tree(0, 1, 25, 0.33, 14), tree(1, 15, 37.5, 0.25, 25), tree(2, 30, 67.5, 0.25, 30), tree(3, 45, 100, 0.22, 40), tree(4, 60, 175, 0.15, 60), tree(5, 75, 250, 0.133, 90), tree(6, 90, 380, 0.105, 120),
   // mining follows the metal ladder: each metal's ore sits ~10 levels apart, tier = the metal it makes
-  rock('rock_copper', 'Copper rock', 'ore_copper', 0, 1, 17.5, 0.3, 6), rock('rock_tin', 'Tin rock', 'ore_tin', 0, 1, 17.5, 0.3, 6), rock('rock_iron', 'Iron rock', 'ore_iron', 1, 15, 35, 0.29, 10),
-  rock('rock_coal', 'Coal seam', 'ore_coal', 2, 25, 50, 0.29, 25), rock('rock_gold', 'Gold vein', 'ore_gold', 2, 35, 65, 0.29, 40), rock('rock_storm', 'Stormsilver vein', 'ore_storm', 3, 45, 80, 0.28, 70),
-  rock('rock_abyss', 'Abyssite vein', 'ore_abyss', 4, 55, 95, 0.27, 100), rock('rock_tide', 'Tidecore vein', 'ore_tide', 5, 65, 125, 0.25, 150),
+  rock('rock_copper', 'Copper rock', 'ore_copper', 0, 1, 17.5, 0.42, 6), rock('rock_tin', 'Tin rock', 'ore_tin', 0, 1, 17.5, 0.42, 6), rock('rock_iron', 'Iron rock', 'ore_iron', 1, 15, 35, 0.29, 10),
+  rock('rock_coal', 'Coal seam', 'ore_coal', 2, 30, 50, 0.29, 25), rock('rock_gold', 'Gold vein', 'ore_gold', 2, 40, 65, 0.29, 40), rock('rock_storm', 'Stormsilver vein', 'ore_storm', 3, 50, 80, 0.28, 70),
+  rock('rock_abyss', 'Abyssite vein', 'ore_abyss', 4, 60, 95, 0.27, 100), rock('rock_tide', 'Tidecore vein', 'ore_tide', 5, 70, 125, 0.25, 150),
   rock('rock_cinder', 'Cinderite vent', 'ore_cinder', 6, 75, 145, 0.22, 180), rock('rock_sky', 'Fallen star', 'ore_sky', 7, 82, 170, 0.2, 220),
   { ...rock('rock_levi', 'Leviathan bones', 'ore_levi', 8, 88, 190, 0.19, 260), islet: true }, { ...rock('rock_ori', 'Drowned spire', 'ore_ori', 9, 94, 220, 0.17, 300), fromShip: true },
-  spot('sprat', [0, 9], 0.4, 'fishing_rod'), spot('bell', [1, 10], 0.29, 'fishing_rod', true), spot('trout', [2, 3], 0.27, 'fishing_rod'), spot('salmon', [2, 3], 0.25, 'fishing_rod'), spot('lobster', [4], 0.22, 'lobster_pot'),
+  spot('sprat', [0, 9], 0.56, 'fishing_rod'), spot('bell', [1, 10], 0.29, 'fishing_rod', true), spot('trout', [2, 3], 0.27, 'fishing_rod'), spot('salmon', [2, 3], 0.25, 'fishing_rod'), spot('lobster', [4], 0.22, 'lobster_pot'),
   spot('sword', [11, 5], 0.23, 'harpoon', true), spot('gloom', [6, 12], 0.22, 'harpoon'), spot('shark', [7], 0.27, 'harpoon', true), spot('angler', [7, 8], 0.28, 'harpoon', true),
   // the living island: every boulder can be mined, bushes and kelp picked, disturbed sand dug
   { id: 'rock_boulder', name: 'Boulder', skill: 'mining', level: 1, xp: 10, item: 'ore_copper', drops: [{ item: 'ore_copper', w: 1 }, { item: 'ore_tin', w: 1 }], bonus: { item: 'geode', chance: 0.04 },
-    difficulty: 0.45, tier: 0, rate: 0.3, yield: [2, 5], respawn: 45, verb: 'Mine' },
+    difficulty: 0.45, tier: 0, rate: 0.4, yield: [2, 5], respawn: 45, verb: 'Mine' },
   { id: 'bush_berry', name: 'Bramble bush', level: 1, xp: 0, item: 'berries', difficulty: 0, tier: 0, rate: 0.9, yield: [2, 4], respawn: 60, verb: 'Pick' },
   { id: 'palm', name: 'Coconut palm', level: 1, xp: 0, item: 'coconut', difficulty: 0, tier: 0, rate: 0.7, yield: [2, 3], respawn: 70, verb: 'Pick' },
   { id: 'kelp_bed', name: 'Kelp bed', level: 1, xp: 0, item: 'kelp', difficulty: 0, tier: 0, rate: 0.8, yield: [2, 4], respawn: 50, verb: 'Gather', reach: 3.4 },
@@ -105,20 +107,23 @@ export interface Recipe {
 // Tools and pistols need a log of the matching tier, so woodcutting feeds the forge.
 const SMELT: { metal: string; level: number; xp: number; station: Station; inputs: { id: string; qty: number }[] }[] = [
   { metal: 'bronze', level: 1, xp: 6.25, station: 'furnace', inputs: [{ id: 'ore_copper', qty: 1 }, { id: 'ore_tin', qty: 1 }] },
-  { metal: 'iron', level: 12, xp: 12.5, station: 'furnace', inputs: [{ id: 'ore_iron', qty: 1 }, { id: 'logs_pine', qty: 1 }] },
-  { metal: 'steel', level: 24, xp: 17.5, station: 'furnace', inputs: [{ id: 'ore_iron', qty: 1 }, { id: 'ore_coal', qty: 2 }] },
-  { metal: 'storm', level: 36, xp: 30, station: 'furnace', inputs: [{ id: 'ore_storm', qty: 1 }, { id: 'ore_coal', qty: 3 }] },
-  { metal: 'abyss', level: 48, xp: 37.5, station: 'furnace', inputs: [{ id: 'ore_abyss', qty: 1 }, { id: 'ore_coal', qty: 3 }, { id: 'kelp_ash', qty: 1 }] },
-  { metal: 'tide', level: 58, xp: 50, station: 'furnace', inputs: [{ id: 'ore_tide', qty: 1 }, { id: 'ore_coal', qty: 4 }, { id: 'sea_salt', qty: 1 }] },
-  { metal: 'cinder', level: 68, xp: 60, station: 'vent', inputs: [{ id: 'ore_cinder', qty: 1 }, { id: 'ore_coal', qty: 2 }] },
-  { metal: 'sky', level: 78, xp: 70, station: 'furnace', inputs: [{ id: 'ore_sky', qty: 1 }, { id: 'ore_coal', qty: 4 }, { id: 'crystal_geode', qty: 1 }] },
-  { metal: 'levi', level: 86, xp: 80, station: 'furnace', inputs: [{ id: 'ore_levi', qty: 1 }, { id: 'ore_coal', qty: 4 }, { id: 'sea_salt', qty: 2 }] },
-  { metal: 'ori', level: 92, xp: 90, station: 'furnace', inputs: [{ id: 'ore_ori', qty: 1 }, { id: 'ore_coal', qty: 5 }, { id: 'crystal_geode', qty: 1 }] },
+  { metal: 'iron', level: 15, xp: 12.5, station: 'furnace', inputs: [{ id: 'ore_iron', qty: 1 }, { id: 'logs_pine', qty: 1 }] },
+  { metal: 'steel', level: 30, xp: 17.5, station: 'furnace', inputs: [{ id: 'ore_iron', qty: 1 }, { id: 'ore_coal', qty: 2 }] },
+  { metal: 'storm', level: 50, xp: 30, station: 'furnace', inputs: [{ id: 'ore_storm', qty: 1 }, { id: 'ore_coal', qty: 3 }] },
+  { metal: 'abyss', level: 60, xp: 37.5, station: 'furnace', inputs: [{ id: 'ore_abyss', qty: 1 }, { id: 'ore_coal', qty: 3 }, { id: 'kelp_ash', qty: 1 }] },
+  { metal: 'tide', level: 70, xp: 50, station: 'furnace', inputs: [{ id: 'ore_tide', qty: 1 }, { id: 'ore_coal', qty: 4 }, { id: 'sea_salt', qty: 1 }] },
+  { metal: 'cinder', level: 75, xp: 60, station: 'vent', inputs: [{ id: 'ore_cinder', qty: 1 }, { id: 'ore_coal', qty: 2 }] },
+  { metal: 'sky', level: 82, xp: 70, station: 'furnace', inputs: [{ id: 'ore_sky', qty: 1 }, { id: 'ore_coal', qty: 4 }, { id: 'crystal_geode', qty: 1 }] },
+  { metal: 'levi', level: 88, xp: 80, station: 'furnace', inputs: [{ id: 'ore_levi', qty: 1 }, { id: 'ore_coal', qty: 4 }, { id: 'sea_salt', qty: 2 }] },
+  { metal: 'ori', level: 94, xp: 90, station: 'furnace', inputs: [{ id: 'ore_ori', qty: 1 }, { id: 'ore_coal', qty: 5 }, { id: 'crystal_geode', qty: 1 }] },
 ];
 const PER_BAR = [12.5, 25, 37.5, 50, 62.5, 75, 87.5, 100, 112.5, 125];
 const TOOL_LOG = ['pine', 'oak', 'willow', 'amber', 'yew', 'star', 'star', 'cedar', 'cedar', 'cedar'];
 const PISTOL_LOG = ['pine', 'oak', 'willow', 'amber', 'yew', 'star', 'star', 'cedar', 'cedar', 'cedar'];
-const SHOT_LVL = [1, 10, 20, 30, 40, 50, 60, 70, 80, 90];
+const SHOT_LVL = [1, 10, 20, 30, 40, 50, 60, 70, 80, 90]; // gunsmithing (ours, not RuneScape's)
+// RuneScape's Fletching: arrows bronze 1, iron 15, steel 30, mithril 45, adamant 60, rune 75, dragon 90; crossbows 9 ... 78
+const ARROW_LVL = [1, 15, 30, 45, 52, 60, 68, 75, 82, 90];
+const XBOW_LVL = [9, 39, 46, 54, 58, 61, 65, 69, 74, 78];
 const PISTOL_LVL = [5, 15, 25, 35, 45, 55, 65, 75, 85, 93];
 
 function buildRecipes(): Recipe[] {
@@ -133,30 +138,33 @@ function buildRecipes(): Recipe[] {
     const L = SMELT[m].level, bar = `bar_${mt.key}`, xp = PER_BAR[m];
     const forge = (kind: string, lvl: number, bars: number, extra: { id: string; qty: number }[] = [], roll = true) =>
       out.push({ id: `forge_${kind}_${mt.key}`, station: 'anvil', skill: 'smithing', level: Math.min(99, lvl), xp: xp * bars, inputs: [{ id: bar, qty: bars }, ...extra], output: { id: `${kind}_${mt.key}`, qty: 1 }, rarityRoll: roll || undefined });
-    forge('hatchet', L, 1, [{ id: `logs_${TOOL_LOG[m]}`, qty: 1 }], false);
-    forge('pickaxe', L, 1, [{ id: `logs_${TOOL_LOG[m]}`, qty: 1 }], false);
-    forge('cutlass', L + 2, 2);
-    forge('helm', L + 4, 2);
-    forge('plate', L + 7, 5);
+    // RuneScape's anvil: within each bar's tier a new item every few levels: dagger +0, axe +1, med helm +3,
+    // scimitar +5, spear/longsword +6, two-hander +14, platebody +18 (rune platebody is the famous 99)
     forge('dagger', L, 1);
-    forge('pike', L + 3, 2, [{ id: `logs_${TOOL_LOG[m]}`, qty: 1 }]);
-    forge('greatsword', L + 6, 3);
+    forge('hatchet', L + 1, 1, [{ id: `logs_${TOOL_LOG[m]}`, qty: 1 }], false);
+    forge('pickaxe', L + 2, 2, [{ id: `logs_${TOOL_LOG[m]}`, qty: 1 }], false);
+    forge('helm', L + 3, 1);
+    forge('cutlass', L + 5, 2);
+    forge('pike', L + 6, 2, [{ id: `logs_${TOOL_LOG[m]}`, qty: 1 }]);
+    forge('greatsword', L + 14, 3);
+    forge('plate', L + 18, 5);
     out.push({ id: `gun_pistols_${mt.key}`, station: 'bench', skill: 'gunsmithing', level: Math.min(99, PISTOL_LVL[m] + 3), xp: xp * 4.8, inputs: [{ id: bar, qty: 2 }, { id: `logs_${PISTOL_LOG[m]}`, qty: 2 }], output: { id: `pistols_${mt.key}`, qty: 1 }, rarityRoll: true });
     // fletching: crossbows (a metal prod on a wooden stock), arrows (metal heads on saltpine shafts), bolts
-    out.push({ id: `fletch_crossbow_${mt.key}`, station: 'bench', skill: 'fletching', level: Math.min(99, SHOT_LVL[m] + 8), xp: xp * 2, inputs: [{ id: bar, qty: 1 }, { id: `logs_${TOOL_LOG[m]}`, qty: 1 }], output: { id: `crossbow_${mt.key}`, qty: 1 }, rarityRoll: true });
-    out.push({ id: `fletch_arrow_${mt.key}`, station: 'bench', skill: 'fletching', level: SHOT_LVL[m], xp: xp * 0.8, inputs: [{ id: bar, qty: 1 }, { id: 'logs_pine', qty: 1 }], output: { id: `arrow_${mt.key}`, qty: 15 } });
-    out.push({ id: `fletch_bolt_${mt.key}`, station: 'bench', skill: 'fletching', level: Math.min(99, SHOT_LVL[m] + 3), xp: xp * 0.9, inputs: [{ id: bar, qty: 1 }], output: { id: `bolt_${mt.key}`, qty: 12 } });
+    out.push({ id: `fletch_crossbow_${mt.key}`, station: 'bench', skill: 'fletching', level: XBOW_LVL[m], xp: xp * 2, inputs: [{ id: bar, qty: 1 }, { id: `logs_${TOOL_LOG[m]}`, qty: 1 }], output: { id: `crossbow_${mt.key}`, qty: 1 }, rarityRoll: true });
+    out.push({ id: `fletch_arrow_${mt.key}`, station: 'bench', skill: 'fletching', level: ARROW_LVL[m], xp: xp * 0.8, inputs: [{ id: bar, qty: 1 }, { id: 'logs_pine', qty: 1 }], output: { id: `arrow_${mt.key}`, qty: 15 } });
+    out.push({ id: `fletch_bolt_${mt.key}`, station: 'bench', skill: 'fletching', level: Math.min(99, ARROW_LVL[m] + 3), xp: xp * 0.9, inputs: [{ id: bar, qty: 1 }], output: { id: `bolt_${mt.key}`, qty: 12 } });
     out.push({ id: `gun_shot_${mt.key}`, station: 'bench', skill: 'gunsmithing', level: SHOT_LVL[m], xp: xp, inputs: [{ id: bar, qty: 1 }], output: { id: `shot_${mt.key}`, qty: 15 } });
     out.push({ id: `gun_pistol_${mt.key}`, station: 'bench', skill: 'gunsmithing', level: PISTOL_LVL[m], xp: xp * 2.4, inputs: [{ id: bar, qty: 1 }, { id: `logs_${PISTOL_LOG[m]}`, qty: 1 }], output: { id: m === 0 ? 'pistol_flintlock' : `pistol_${mt.key}`, qty: 1 }, rarityRoll: true });
   });
   // bows: a shortbow then a longbow from every wood (RuneScape-like spacing)
-  const BOW_LVL: [number, number][] = [[1, 10], [20, 25], [35, 40], [50, 55], [65, 70], [80, 85], [90, 95]], BOW_XP = [10, 25, 42, 65, 90, 120, 160];
+  const BOW_LVL: [number, number][] = [[5, 10], [20, 25], [35, 40], [50, 55], [65, 70], [80, 85], [90, 95]], BOW_XP = [10, 25, 42, 65, 90, 120, 160];
   WOODS.forEach((w, t) => {
     out.push({ id: `fletch_shortbow_${w.key}`, station: 'bench', skill: 'fletching', level: BOW_LVL[t][0], xp: BOW_XP[t], inputs: [{ id: `logs_${w.key}`, qty: 2 }], output: { id: `shortbow_${w.key}`, qty: 1 }, rarityRoll: true });
     out.push({ id: `fletch_longbow_${w.key}`, station: 'bench', skill: 'fletching', level: BOW_LVL[t][1], xp: BOW_XP[t] * 1.5, inputs: [{ id: `logs_${w.key}`, qty: 3 }], output: { id: `longbow_${w.key}`, qty: 1 }, rarityRoll: true });
   });
-  // cooking: RuneScape-like levels and XP; burning stops ~20 levels above the requirement
-  const COOK: [number, number, number][] = [[1, 30, 20], [10, 60, 34], [15, 70, 40], [25, 90, 50], [40, 120, 64], [45, 140, 70], [55, 150, 80], [70, 210, 92], [84, 230, 99], [14, 50, 38], [26, 85, 52], [45, 105, 68], [68, 165, 88]];
+  // cooking: RuneScape's levels, XP and burn-stop levels (shrimp 1/30/34, herring 5, trout 15/70/49, salmon 25/90/58,
+  // tuna 30/100/63, lobster 40/120/74, bass 43/130/80, swordfish 45/140/86, monkfish 62/150/92, shark 80/210/99, anglerfish 84/230/99)
+  const COOK: [number, number, number][] = [[1, 30, 34], [5, 50, 38], [15, 70, 49], [25, 90, 58], [40, 120, 74], [45, 140, 86], [62, 150, 92], [80, 210, 99], [84, 230, 99], [10, 60, 45], [43, 130, 80], [30, 100, 63], [68, 165, 94]];
   FISH.forEach((f, t) => out.push({ id: `cook_${f.key}`, station: 'fire', skill: 'cooking', level: COOK[t][0], xp: COOK[t][1], inputs: [{ id: `fish_${f.key}_raw`, qty: 1 }], output: { id: `fish_${f.key}`, qty: 1 }, burn: { item: 'burnt_food', stopLevel: COOK[t][2] } }));
   out.push({ id: 'cook_parcel_sprat', station: 'fire', skill: 'cooking', level: 5, xp: 40, inputs: [{ id: 'fish_sprat_raw', qty: 1 }, { id: 'kelp', qty: 1 }], output: { id: 'parcel_sprat', qty: 1 }, burn: { item: 'burnt_food', stopLevel: 25 } });
   out.push({ id: 'cook_parcel_trout', station: 'fire', skill: 'cooking', level: 22, xp: 85, inputs: [{ id: 'fish_trout_raw', qty: 1 }, { id: 'kelp', qty: 1 }], output: { id: 'parcel_trout', qty: 1 }, burn: { item: 'burnt_food', stopLevel: 46 } });
@@ -176,29 +184,47 @@ function buildRecipes(): Recipe[] {
 }
 export const RECIPES: Recipe[] = buildRecipes();
 
-/** What each level unlocks, generated from the data so it can never drift from the game. */
-function buildUnlocks(): Record<SkillId, { level: number; text: string }[]> {
-  const u: Record<string, { level: number; text: string }[]> = {};
-  const put = (skill: string, level: number, text: string) => (u[skill] ??= []).push({ level, text });
-  for (const n of Object.values(NODES)) if (n.skill) put(n.skill, n.level, `${n.name}${n.fromShip ? ' (from your ship)' : ''}`);
-  for (const n of Object.values(NODES)) for (const c of n.catches ?? []) if (c.level > n.level) put('fishing', c.level, `Catch ${ITEMS[c.item].name.replace(/^Raw /, '').toLowerCase()} at the ${n.name.toLowerCase()}`);
-  for (const r of RECIPES) put(r.skill, r.level, ITEMS[r.output.id].name);
+/** One line of a skill guide: what unlocks at a level, the item that shows it, and the guide tab it lives on. */
+export interface Unlock { level: number; text: string; cat: string; icon?: string; perk?: boolean }
+
+/** What each level unlocks, generated from the data so it can never drift from the game. Grouped into the tabs of
+ * a RuneScape skill guide (Trees / Hatchets, Rocks / Pickaxes, Bars / Weapons / Armour ...). */
+function buildUnlocks(): Record<SkillId, Unlock[]> {
+  const u: Record<string, Unlock[]> = {};
+  const put = (skill: string, level: number, text: string, cat: string, icon?: string, perk?: boolean) => (u[skill] ??= []).push({ level, text, cat, icon, perk });
+  const NODE_CAT: Partial<Record<SkillId, string>> = { woodcutting: 'Trees', mining: 'Rocks', fishing: 'Fish' };
+  const TOOL_CAT: Partial<Record<SkillId, string>> = { woodcutting: 'Hatchets', mining: 'Pickaxes', fishing: 'Gear' };
+  // what a made item is, for the guide tab it goes under
+  const madeCat = (id: string) => {
+    const it = ITEMS[id];
+    if (id.startsWith('bar_')) return 'Bars';
+    if (it.tool) return 'Tools';
+    if (it.heal) return id.startsWith('fish_') ? 'Fish' : 'Dishes';
+    if (it.equip?.slot === 'ammo') return 'Ammo';
+    if (it.equip?.slot === 'weapon') return it.equip.style === 'magic' ? 'Staffs' : it.equip.kind === 'crossbow' ? 'Crossbows' : it.equip.kind === 'shortbow' || it.equip.kind === 'longbow' ? 'Bows' : it.equip.style === 'ranged' ? 'Guns' : 'Weapons';
+    if (it.equip?.slot === 'ring') return 'Jewellery';
+    if (it.equip) return 'Armour';
+    return 'Other';
+  };
+  for (const n of Object.values(NODES)) if (n.skill) put(n.skill, n.level, `${n.name}${n.skill === 'woodcutting' && n.id.startsWith('tree_') ? ' trees' : ''}${n.fromShip ? ' (from your ship)' : ''}`, NODE_CAT[n.skill] ?? 'Other', n.catches?.[0].item ?? n.item);
+  for (const n of Object.values(NODES)) for (const c of n.catches ?? []) if (c.level > n.level) put('fishing', c.level, `${ITEMS[c.item].name.replace(/^Raw /, '')} at the ${n.name.toLowerCase()}`, 'Fish', c.item);
+  for (const r of RECIPES) put(r.skill, r.level, ITEMS[r.output.id].name, madeCat(r.output.id), r.output.id);
   for (const it of Object.values(ITEMS)) {
-    if (it.tool && it.tool.level > 1) put(it.tool.skill, it.tool.level, ITEMS[it.id].name);
+    if (it.tool && it.tool.level > 1) put(it.tool.skill, it.tool.level, ITEMS[it.id].name, TOOL_CAT[it.tool.skill] ?? 'Tools', it.id);
     if (!it.equip) continue;
-    for (const [k, v] of Object.entries(it.equip.reqs)) if ((v ?? 0) > 1) put(k, v!, ITEMS[it.id].name);
+    for (const [k, v] of Object.entries(it.equip.reqs)) if ((v ?? 0) > 1) put(k, v!, ITEMS[it.id].name, madeCat(it.id), it.id);
   }
-  for (const sp of SPELLS) put('magic', sp.level, sp.name);
-  for (const u of Object.values(UTILITY_SPELLS)) put('magic', u.level, `${u.name} (${u === UTILITY_SPELLS.alchemy ? 'turn an item into coins' : 'teleport to Bellwether'})`);
-  for (const e of Object.values(ENEMIES)) if (!e.boss) put('attack', Math.max(1, Math.round(e.level * 0.8)), `Fight: ${e.name} (level ${e.level})`);
-  put('hitpoints', 11, '+1 health every level');
-  put('strength', 10, 'Max hit +1 roughly every 4 levels');
-  for (const [skill, list] of Object.entries(PERKS)) for (const p of list) put(skill, p.level, `Perk · ${p.name}: ${perkText(p)}`);
+  for (const sp of SPELLS) put('magic', sp.level, `${sp.name} (max hit ${sp.maxHit})`, 'Spells', 'charm_tide');
+  for (const x of Object.values(UTILITY_SPELLS)) put('magic', x.level, `${x.name} (${x === UTILITY_SPELLS.alchemy ? 'turn an item into coins' : 'teleport to Bellwether'})`, 'Spells', x === UTILITY_SPELLS.alchemy ? 'coins' : 'charm_tide');
+  for (const e of Object.values(ENEMIES)) if (!e.boss) put('attack', Math.max(1, Math.round(e.level * 0.8)), `Fight: ${e.name} (level ${e.level})`, 'Foes');
+  put('hitpoints', 11, '+1 health every level', 'Other');
+  put('strength', 10, 'Max hit +1 roughly every 4 levels', 'Other');
+  for (const [skill, list] of Object.entries(PERKS)) for (const p of list) put(skill, p.level, `${p.name}: ${perkText(p)}`, 'Perks', undefined, true);
   for (const k of Object.keys(u)) {
     const seen = new Set<string>();
-    u[k] = u[k].sort((a, b) => a.level - b.level).filter((x) => (seen.has(x.text) ? false : (seen.add(x.text), true)));
+    u[k] = u[k].sort((a, b) => a.level - b.level).filter((x) => (seen.has(x.cat + x.text) ? false : (seen.add(x.cat + x.text), true)));
   }
-  return u as Record<SkillId, { level: number; text: string }[]>;
+  return u as Record<SkillId, Unlock[]>;
 }
 
 export interface Shop {
@@ -257,21 +283,21 @@ export const SHOP = SHOPS.general;
 
 // ---- magic -------------------------------------------------------------------
 export interface Spell { id: string; name: string; level: number; maxHit: number; baseXp: number; charms: number }
-// RuneScape's Wind Strike: max 2, 5.5 base xp; Water Bolt-ish at 9.
+// RuneScape's spell book by max hit: strikes 1-13, bolts to 35, blasts to 59, waves to 75, surges to 95.
 export const SPELLS: Spell[] = [
   { id: 'spray', name: 'Brine Spray', level: 1, maxHit: 2, baseXp: 5.5, charms: 0 }, // free: magic is always usable
-  { id: 'bolt', name: 'Tide Bolt', level: 9, maxHit: 5, baseXp: 11.5, charms: 2 },
-  { id: 'lash', name: 'Wave Lash', level: 14, maxHit: 6, baseXp: 14, charms: 2 },
-  { id: 'undertow', name: 'Undertow', level: 20, maxHit: 8, baseXp: 17.5, charms: 2 },
-  { id: 'surge', name: 'Surge Bolt', level: 27, maxHit: 10, baseXp: 21, charms: 3 },
+  { id: 'bolt', name: 'Tide Bolt', level: 5, maxHit: 5, baseXp: 11.5, charms: 2 },
+  { id: 'lash', name: 'Wave Lash', level: 9, maxHit: 6, baseXp: 14, charms: 2 },
+  { id: 'undertow', name: 'Undertow', level: 13, maxHit: 8, baseXp: 17.5, charms: 2 },
+  { id: 'surge', name: 'Surge Bolt', level: 23, maxHit: 10, baseXp: 21, charms: 3 },
   { id: 'blast', name: 'Brine Blast', level: 35, maxHit: 12, baseXp: 25, charms: 3 },
-  { id: 'tidecall', name: 'Tidecall', level: 43, maxHit: 14, baseXp: 28.5, charms: 3 },
-  { id: 'riptide', name: 'Riptide', level: 50, maxHit: 16, baseXp: 32.5, charms: 4 },
-  { id: 'lance', name: 'Abyssal Lance', level: 58, maxHit: 18, baseXp: 36, charms: 4 },
-  { id: 'maelstrom', name: 'Maelstrom', level: 65, maxHit: 20, baseXp: 40, charms: 5 },
-  { id: 'tempest', name: 'Tempest', level: 72, maxHit: 22, baseXp: 44, charms: 5 },
-  { id: 'wrath', name: 'Leviathan\'s Wrath', level: 80, maxHit: 24, baseXp: 47.5, charms: 6 },
-  { id: 'deluge', name: 'Deluge', level: 90, maxHit: 27, baseXp: 55, charms: 7 },
+  { id: 'tidecall', name: 'Tidecall', level: 47, maxHit: 14, baseXp: 28.5, charms: 3 },
+  { id: 'riptide', name: 'Riptide', level: 59, maxHit: 16, baseXp: 32.5, charms: 4 },
+  { id: 'lance', name: 'Abyssal Lance', level: 65, maxHit: 18, baseXp: 36, charms: 4 },
+  { id: 'maelstrom', name: 'Maelstrom', level: 75, maxHit: 20, baseXp: 40, charms: 5 },
+  { id: 'tempest', name: 'Tempest', level: 81, maxHit: 22, baseXp: 44, charms: 5 },
+  { id: 'wrath', name: 'Leviathan\'s Wrath', level: 90, maxHit: 24, baseXp: 47.5, charms: 6 },
+  { id: 'deluge', name: 'Deluge', level: 95, maxHit: 27, baseXp: 55, charms: 7 },
 ];
 /** Utility spells (RuneScape's High Alchemy and Home Teleport, in the island's terms). */
 export const UTILITY_SPELLS = {
