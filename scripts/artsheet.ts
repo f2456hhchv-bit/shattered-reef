@@ -88,10 +88,12 @@ function itemGroup(id: string): string {
   if (id === 'coins') return 'Coins & charms';
   if (d.quest) return 'Quest items';
   if (d.tool) return 'Tools';
-  if (d.equip?.slot === 'weapon') return d.equip.style === 'magic' ? 'Staffs' : d.equip.style === 'ranged' ? 'Ranged weapons' : 'Melee weapons';
+  if (d.equip?.off === 'orb' || d.equip?.off === 'book') return 'Magic';
+  if (d.equip?.slot === 'weapon') return d.equip.style === 'magic' ? 'Magic' : d.equip.style === 'ranged' ? 'Ranged weapons' : 'Melee weapons';
   if (d.equip?.slot === 'ammo') return 'Ammunition';
-  if (d.equip?.slot === 'head' || d.equip?.slot === 'body') return 'Armour';
-  if (d.equip?.slot === 'ring') return 'Rings';
+  if (d.equip?.off === 'shield') return 'Shields';
+  if (d.equip?.slot === 'ring' || d.equip?.slot === 'neck' || d.equip?.slot === 'wrist') return 'Jewellery';
+  if (d.equip) return 'Armour';
   if (d.heal || id.startsWith('fish_') || id.includes('meat')) return 'Food & fish';
   if (id.startsWith('ore_') || id.startsWith('bar_')) return 'Ores & bars';
   if (id.startsWith('logs_')) return 'Logs';
