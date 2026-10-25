@@ -81,6 +81,7 @@ export function animateBoar(r: BoarRig, t: number, moving: boolean, charging: bo
 const SPIDER_LOOK: Record<string, { body: number; dark: number; mark: number; eye: number }> = {
   cave: { body: 0x4a3e36, dark: 0x2a221e, mark: 0xb89a6a, eye: 0xe8402a },
   giant: { body: 0x2c2a30, dark: 0x16151a, mark: 0xc84a2a, eye: 0xf2c84a },
+  queen: { body: 0x3a2440, dark: 0x1e1222, mark: 0xe8a83a, eye: 0xff6a3a }, // the Broodmother
 };
 
 export function buildSpider(look = 'cave', seed = 5): SpiderRig {

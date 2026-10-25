@@ -2110,8 +2110,7 @@ export class Game {
           if (!playerHittable || (inSafe && !e.summoned) || (dS > 22 && !e.summoned)) { e.state = 'return'; break; }
           const atk = e.def.attack;
           if (atk.kind === 'shot') {
-            if (dP < atk.keepAway) this.enemyMove(e, e.x - (px - e.x), e.z - (pz - e.z), speed * 0.8, dt, 0);
-            else if (dP > atk.range * 0.9) this.enemyMove(e, px, pz, speed, dt, atk.range * 0.8);
+            if (dP > atk.range * 0.9) this.enemyMove(e, px, pz, speed, dt, atk.range * 0.8);
             e.facing = Math.atan2(pz - e.z, px - e.x);
             if (dP <= atk.range && e.cd <= 0 && e.fx.disarm <= 0 && e.fx.bite <= 0) {
               e.state = 'windup'; e.t = atk.windup / fr; e.aim = { x: px, z: pz };
@@ -2197,7 +2196,7 @@ export class Game {
     this.bossCast = 3.5;
     this.bossSummons = 0;
     this.emit({ type: 'boss', state: 'rise' });
-    this.msg(a.boss === 'guardian' ? 'The bell sings. The stone answers. The Lockbound Guardian rises!' : 'The gong booms through the temple. Something vast uncoils beneath the flagstones: the Sunscale rises!', 'combat');
+    this.msg(a.boss === 'guardian' ? 'The bell sings. The stone answers. The Lockbound Guardian rises!' : a.boss === 'broodmother' ? 'The bones shift. Webs tremble across the hollow, and the Broodmother climbs out of the dark!' : 'The gong booms through the temple. Something vast uncoils beneath the flagstones: the Sunscale rises!', 'combat');
   }
 
   private stepBoss(e: Enemy, dt: number) {
@@ -2205,20 +2204,20 @@ export class Game {
     const px = this.p.x, pz = this.p.z;
     if (e.state === 'rise') { e.t -= dt; if (e.t <= 0) e.state = 'chase'; return; }
     if (this.dead || this.p.onShip || Math.hypot(px - R.x, pz - R.z) > 24) { this.resetBoss(); return; }
-    const serpent = e.def.id === 'temple_serpent';
+    const serpent = e.def.id === 'temple_serpent', brood = e.def.id === 'broodmother';
     const frac = e.hp / e.maxHp;
     const enrage = (frac < 0.25 ? 1.35 : 1) * (e.fx.slow > 0 ? 0.6 : 1);
-    // summons at 66% and 33%: crabs boil up round the Guardian, snakes drop from the temple's vines
+    // summons at 66% and 33%: crabs boil up round the Guardian, snakes drop from the temple's vines, the brood hatches
     if (e.fx.bite <= 0 && ((this.bossSummons === 0 && frac < 0.66) || (this.bossSummons === 1 && frac < 0.33))) {
       this.bossSummons++;
       for (let k = 0; k < (serpent ? 1 : 2); k++) { // one snake a wave: they're level 30, the crabs level 2
         const a = (k / 2) * Math.PI * 2 + this.rnd();
         const x = R.x + Math.cos(a) * 4.5, z = R.z + Math.sin(a) * 4.5;
-        const c = this.spawnEnemy(serpent ? ENEMIES.jungle_snake : ENEMIES.reef_crab, x, z, true);
+        const c = this.spawnEnemy(serpent ? ENEMIES.jungle_snake : brood ? ENEMIES.weaver_young : ENEMIES.reef_crab, x, z, true);
         c.state = 'chase';
       }
       this.emit({ type: 'boss', state: 'summon' });
-      this.msg(serpent ? 'The Sunscale hisses. Snakes drop from the temple vines!' : 'The Guardian strikes its chest-bell. Crabs boil up from the stones!', 'combat');
+      this.msg(serpent ? 'The Sunscale hisses. Snakes drop from the temple vines!' : brood ? 'Egg sacs split along the hollow\'s walls. Her brood comes for you!' : 'The Guardian strikes its chest-bell. Crabs boil up from the stones!', 'combat');
     }
     e.cd = Math.max(0, e.cd - dt * enrage);
     this.bossCast -= dt * enrage;
@@ -2233,6 +2232,10 @@ export class Game {
         // Venom spit: a long line toward where you stand, then a second, quicker cast soon after
         this.bossCast = this.bossSummons % 2 ? 4.5 : 6;
         this.telegraphs.push({ id: this.nextId++, kind: 'line', x: e.x, z: e.z, r: 13, angle: e.facing, width: 1.8, t: 0, dur: 1.1 / enrage, damage: 6, source: e.id });
+      } else if (brood) {
+        // Web spray: a wide splash of web where you stand
+        this.bossCast = 5.5;
+        this.telegraphs.push({ id: this.nextId++, kind: 'circle', x: px, z: pz, r: 3.4, angle: 0, width: 0, t: 0, dur: 1.3 / enrage, damage: 8, source: e.id });
       } else {
         // Slam: telegraphed circle where the player stands
         this.bossCast = 7;
@@ -2243,14 +2246,14 @@ export class Game {
       return;
     }
     if (dP < 4.2 && e.cd <= 0) {
-      e.cd = serpent ? 3.4 : 4;
-      if (serpent && this.rnd() < 0.45) {
-        // Coil crush: the whole ground round the serpent, roll out or take it
-        this.telegraphs.push({ id: this.nextId++, kind: 'circle', x: e.x, z: e.z, r: 4.2, angle: 0, width: 0, t: 0, dur: 1.2 / enrage, damage: 7, source: e.id });
+      e.cd = serpent || brood ? 3.4 : 4;
+      if ((serpent || brood) && this.rnd() < 0.45) {
+        // Coil crush (serpent) / leg sweep (Broodmother): the whole ground round her, roll out or take it
+        this.telegraphs.push({ id: this.nextId++, kind: 'circle', x: e.x, z: e.z, r: brood ? 4.6 : 4.2, angle: 0, width: 0, t: 0, dur: 1.2 / enrage, damage: brood ? 9 : 7, source: e.id });
         e.state = 'windup'; e.t = 1.2 / enrage;
       } else {
         // Sweep (Guardian) / tail lash (serpent): cone in front
-        this.telegraphs.push({ id: this.nextId++, kind: 'cone', x: e.x, z: e.z, r: serpent ? 5.2 : 4.8, angle: e.facing, width: serpent ? 2.3 : 1.9, t: 0, dur: 0.9 / enrage, damage: serpent ? 5 : 3, source: e.id });
+        this.telegraphs.push({ id: this.nextId++, kind: 'cone', x: e.x, z: e.z, r: serpent || brood ? 5.2 : 4.8, angle: e.facing, width: serpent ? 2.3 : brood ? 2.0 : 1.9, t: 0, dur: 0.9 / enrage, damage: serpent ? 5 : brood ? 8 : 3, source: e.id });
         e.state = 'windup'; e.t = 0.9 / enrage;
       }
       this.emit({ type: 'enemyAttack', id: e.id });
@@ -2268,7 +2271,7 @@ export class Game {
     this.boss = null;
     this.bossArena = null;
     this.emit({ type: 'boss', state: 'reset' });
-    this.msg(b.def.id === 'temple_serpent' ? 'The Sunscale slides back under the flagstones. Strike the gong to face it again.' : 'The Guardian sinks back into the stone. Ring the bell to try again.', 'combat');
+    this.msg(b.def.id === 'temple_serpent' ? 'The Sunscale slides back under the flagstones. Strike the gong to face it again.' : b.def.id === 'broodmother' ? 'The Broodmother draws back into the dark. Disturb the bones to call her out again.' : 'The Guardian sinks back into the stone. Ring the bell to try again.', 'combat');
   }
 
   private bossDefeated(e: Enemy) {
@@ -2281,6 +2284,11 @@ export class Game {
     if (e.def.id === 'temple_serpent') {
       if (!this.s.flags.serpent_defeated) this.msg('The Sunscale lies still. Its scales shine like hammered gold.', 'good');
       this.s.flags.serpent_defeated = true;
+      return;
+    }
+    if (e.def.id === 'broodmother') {
+      if (!this.s.flags.broodmother_defeated) this.msg('The Broodmother curls up and is still. Weaver Hollow goes quiet.', 'good');
+      this.s.flags.broodmother_defeated = true;
       return;
     }
     this.s.flags.guardian_defeated = true;

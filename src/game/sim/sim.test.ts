@@ -514,11 +514,13 @@ describe('combat skills (RuneScape model)', () => {
     b.recalc();
     expect(b.ammoBlock()).toBeNull();
     expect(b.stats.maxHit).toBeGreaterThan(wrongAmmoHit);
-    const c = b.enemies.find((e) => e.def.id === 'reef_crab' && !e.elite)!;
-    goNear(b, c.x + 6, c.z);
-    b.interact(`enemy:${c.id}`);
-    run(b, 60, () => !c.alive);
-    expect(c.alive).toBe(false);
+    // a crab dies to one arrow and Ranged 40 can save an arrow, so shoot a few
+    for (const c of b.enemies.filter((e) => e.def.id === 'reef_crab' && !e.elite).slice(0, 4)) {
+      goNear(b, c.x + 6, c.z);
+      b.interact(`enemy:${c.id}`);
+      run(b, 60, () => !c.alive);
+      expect(c.alive).toBe(false);
+    }
     expect(b.p.equip.ammo!.qty).toBeLessThan(30);
 
     // a pistol in each hand fires two shots a volley
@@ -740,7 +742,7 @@ describe('keys and keyholes (docs/KEYS.md)', () => {
     const slot = (id: string) => { atBank(g); g.combatTimer = 99; g.slotKey(id); g.keyCd = 0; };
     // Root
     slot('woodsman');
-    let c = crabNear(g); g.p.x = c.x + 1.5;
+    let c = crabNear(g); g.p.x = c.x + 2.4; // inside the key's 3 m reach, clear of the push-apart that would nudge it
     g.useKey();
     expect(c.fx.root).toBeGreaterThan(3.9);
     const x0 = c.x; run(g, 1.5);

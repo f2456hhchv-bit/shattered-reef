@@ -187,6 +187,13 @@ function buildIslandRegion(region: IslandId): IslandLayout {
     const gong = { x: TP.x, z: TP.z + 4.6 };
     world.solids.push({ x: gong.x, z: gong.z, r: 0.7 });
     arenas.push({ boss: 'temple_serpent', x: TP.x, z: TP.z, r: 7, altar: gong, label: 'Temple gong', verb: 'Strike' });
+  } else if (amb) {
+    // Weaver Hollow: old standing stones, webbed over; the gap faces the trail from the landing (south-west)
+    const HO = AL.hollow, gap = 4, ga = (gap / 9) * Math.PI * 2 + Math.PI / 9;
+    ring(HO.x, HO.z, gap, 900);
+    const bones = { x: HO.x + Math.cos(ga) * 4.6, z: HO.z + Math.sin(ga) * 4.6 };
+    world.solids.push({ x: bones.x, z: bones.z, r: 0.7 });
+    arenas.push({ boss: 'broodmother', x: HO.x, z: HO.z, r: 7, altar: bones, label: 'Web-wrapped bones', verb: 'Disturb' });
   }
 
   // ---- cave mouths
@@ -364,7 +371,7 @@ function buildIslandRegion(region: IslandId): IslandLayout {
   const keepClear = bell
     ? [{ x: R.x, z: R.z, r: 11 }, { x: C.x, z: C.z, r: 9 }, { x: LAYOUT.cove.x, z: LAYOUT.cove.z, r: 9 }, { x: X.x, z: X.z, r: 6 }]
     : sun ? [{ x: SL.temple.x, z: SL.temple.z, r: 11 }, { x: SL.plaza.x, z: SL.plaza.z, r: 12 }, { x: SL.port.x, z: SL.port.z, r: 16 }]
-    : amb ? [{ x: AL.landing.x, z: AL.landing.z, r: 14 }, { x: AL.camp.x, z: AL.camp.z, r: 9 }, { x: AL.hollow.x, z: AL.hollow.z, r: 5 }]
+    : amb ? [{ x: AL.landing.x, z: AL.landing.z, r: 14 }, { x: AL.camp.x, z: AL.camp.z, r: 9 }, { x: AL.hollow.x, z: AL.hollow.z, r: 11 }]
     : [{ x: WL.starfall.x, z: WL.starfall.z, r: 10 }, { x: WL.landing.x, z: WL.landing.z, r: 14 }, { x: WL.crag.x, z: WL.crag.z - 6, r: 7 }];
   if (bell) {
     const woods = [{ x: F.x, z: F.z, r: 20 }, { x: GV.x, z: GV.z, r: 13 }, { x: HW.x, z: HW.z, r: 20 }, { x: LAYOUT.fen.x, z: LAYOUT.fen.z, r: 16 }];
@@ -604,32 +611,38 @@ function buildIslandRegion(region: IslandId): IslandLayout {
     spawn('brigand', C.x - 2.5, C.z + 2); spawn('brigand', C.x + 2.5, C.z + 1.5); spawn('brigand', C.x, C.z - 2.5);
     spawn('gunner', C.x + 4, C.z - 3); spawn('gunner', C.x - 5, C.z - 1);
     for (let k = 0; k < 5; k++) { const a = (k / 5) * Math.PI * 2 + 0.7; spawn('mire_crab', LAGOON.x + Math.cos(a) * (LAGOON.r + 2.5), LAGOON.z + Math.sin(a) * (LAGOON.r + 2.5)); }
+    // bog wisps drift over the fen
+    for (let k = 0; k < 3; k++) { const a = (k / 3) * Math.PI * 2 + 0.2; spawn('bog_wisp', LAGOON.x + Math.cos(a) * (LAGOON.r + 9), LAGOON.z + Math.sin(a) * (LAGOON.r + 9)); }
     const SC = LAYOUT.cove;
     spawn('smuggler', SC.x - 3, SC.z - 2); spawn('smuggler', SC.x + 2, SC.z - 4); spawn('smuggler', SC.x - 5, SC.z - 6);
     spawn('smuggler_gunner', SC.x + 4, SC.z - 1); spawn('smuggler_gunner', SC.x - 1, SC.z - 8);
-    // Wreckers' Point: crabs pick over the wreck (the drowned are on Stormwrack now)
+    // Wreckers' Point: driftlings, bundles of sea-wrack off the wreck that got up and walked
     const W = LAYOUT.wreck;
-    for (const [dx, dz] of [[-4, 2], [2, 4], [-6, 7]]) spawn('reef_crab', W.x + dx, W.z + dz);
+    for (const [dx, dz] of [[-4, 2], [2, 4], [-6, 7], [3, 9]]) spawn('driftling', W.x + dx, W.z + dz);
   } else if (wrack) {
     const W = WL.wreck, CR = WL.crag, OW = WL.oldwood;
-    spawn('drowned', W.x - 4, W.z + 2); spawn('drowned', W.x + 2, W.z + 4); spawn('drowned', W.x - 8, W.z + 6); spawn('drowned', W.x - 2, W.z + 9);
+    spawn('drowned', W.x - 4, W.z + 2); spawn('drowned', W.x + 2, W.z + 4); spawn('brine_wraith', W.x - 8, W.z + 6); spawn('brine_wraith', W.x - 2, W.z + 9);
     spawn('wreck_captain', W.x - 5, W.z + 5);
     spawn('stone_sentinel', CR.x - 5, CR.z + 2); spawn('stone_sentinel', CR.x + 7, CR.z + 3);
-    // the Old Wood's guardians walk among the drowned's trees (islands past 50 mix their levels)
-    spawn('wreck_captain', OW.x + 2, OW.z + 4); spawn('drowned', OW.x - 6, OW.z); spawn('drowned', OW.x + 6, OW.z - 5);
+    spawn('storm_wisp', CR.x - 9, CR.z - 4); spawn('storm_wisp', CR.x + 9, CR.z - 6);
+    // the Old Wood's own: oakhearts, and a wraith among the trees (islands past 50 mix their levels)
+    spawn('oakheart', OW.x + 2, OW.z + 4); spawn('oakheart', OW.x - 6, OW.z - 2); spawn('brine_wraith', OW.x + 6, OW.z - 5);
   } else if (amb) {
     // boars at the amberwood's edge, ironshells on the shore, poachers on the headland, weavers in the hollow
     const AW = AL.amberwood, CP = AL.camp, HO = AL.hollow;
-    for (const [dx, dz] of [[10, 8], [12, -6], [4, 12]]) spawn('boar', AW.x + dx, AW.z + dz);
+    for (const [dx, dz] of [[10, 8], [4, 12]]) spawn('boar', AW.x + dx, AW.z + dz);
+    for (const [dx, dz] of [[-6, -8], [-10, 2], [12, -6]]) spawn('moonhound', AW.x + dx, AW.z + dz);
+    for (const [dx, dz] of [[-4, 4], [6, -2], [2, -8]]) spawn('amber_golem', AL.goldhill.x + dx, AL.goldhill.z + dz);
     for (let k = 0; k < 4; k++) { const [x, z] = amberPoint(-4 + k * 10, 3.5); spawn('ironshell_crab', x, z); }
     spawn('poacher', CP.x - 3, CP.z + 2); spawn('poacher', CP.x + 3, CP.z + 1.5); spawn('poacher', CP.x, CP.z - 3);
     spawn('poacher_gunner', CP.x + 5, CP.z - 3); spawn('poacher_gunner', CP.x - 5, CP.z - 1);
-    for (const [dx, dz] of [[-2, 2], [3, -3], [4, 3]]) spawn('giant_spider', HO.x + dx, HO.z + dz);
+    for (const [dx, dz] of [[-13, -6], [2, -13], [12, 8]]) spawn('giant_spider', HO.x + dx, HO.z + dz); // round the hollow's rim
   } else {
     // boars root along the jungle's edge, snakes coil in the Greenheart, mire crabs work the reef shore
     for (const [dx, dz] of [[-30, 0], [-26, 12], [-20, -14], [-34, -10], [-10, -30]]) spawn('boar', SUN.x + dx, SUN.z + dz); // the jungle's west edge, away from town
     for (const [dx, dz] of [[-4, 2], [-10, -10], [-18, -6], [2, -12]]) spawn('jungle_snake', SL.jungle.x + dx, SL.jungle.z + dz);
     for (let k = 0; k < 4; k++) { const [x, z] = sunPoint(8 + k * 11, 3.5); spawn('mire_crab', x, z); }
+    for (const [dx, dz] of [[8, -4], [-12, 4], [-2, -18]]) spawn('stalker', SL.jungle.x + dx, SL.jungle.z + dz);
   }
 
   // townsfolk walking their rounds between the squares and front doors (paths found once, on the baked grid)
@@ -726,6 +739,7 @@ function buildCave(region: RegionId): IslandLayout {
     for (let k = 0; k < 5; k++) { const a = rnd() * 6.28, r = 2 + rnd() * (pool.r - 3); put('web', pool.x + Math.cos(a) * r, pool.z + Math.sin(a) * r, 0.9, false, 0.8 + rnd() * 0.5); }
     for (const [dx, dz] of [[-3, 2], [3, -2], [0, -5], [4, 3]]) spawns.push({ enemy: 'cave_spider', x: pool.x + dx, z: pool.z + dz });
     spawns.push({ enemy: 'cave_spider', x: hall.x - 6, z: hall.z - 6 });
+    for (const [dx, dz] of [[3, 3], [-3, 4], [5, -2]]) spawns.push({ enemy: 'cave_bat', x: hall.x + dx, z: hall.z + dz });
   } else {
     const hall = ch('hall'), nest = ch('nest'), vein = ch('vein'), magma = ch('magma');
     scatter('rock_coal', hall, 5); scatter('rock_iron', hall, 3);
@@ -741,6 +755,7 @@ function buildCave(region: RegionId): IslandLayout {
     world.solids.push({ x: magma.x - 4.5, z: magma.z + 4, r: 1.2 });
     for (const [dx, dz] of [[4, 4], [-5, -2], [6, -6]]) spawns.push({ enemy: 'ember_snake', x: magma.x + dx, z: magma.z + dz });
     spawns.push({ enemy: 'weaver_young', x: hall.x - 7, z: hall.z - 4 });
+    for (const [dx, dz] of [[3, 3], [-2, 5], [4, -3]]) spawns.push({ enemy: 'ember_bat', x: vein.x + dx, z: vein.z + dz });
   }
 
   world.bake();

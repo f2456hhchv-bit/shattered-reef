@@ -10,6 +10,7 @@ import { NPC_LOOKS, TOWNS_LOOKS, PLAYER_LOOK, HUMAN_LOOKS, BRIGAND_LOOK } from '
 import { buildHumanoid } from '../src/art/models/character';
 import { buildCrab } from '../src/art/models/crab';
 import { buildBoar, buildSpider, buildSnake } from '../src/art/models/beasts';
+import { buildFantasy, type FantasyModel } from '../src/art/models/fantasy';
 import { buildGuardian, buildFurnace, buildAnvil, buildCookfire, buildBench, buildStrongbox, buildPlinth, buildPillar, buildTent, buildSmithyShed, buildStump, buildDigSpot, buildRipples } from '../src/art/models/world';
 import { buildPine, buildBroadleaf, buildRock, buildOreRock, buildCrate, buildLanternPost, buildPalm, buildBush, buildKelp, buildBuoy } from '../src/art/models/props';
 import { buildCinderVent, buildFallenStar, buildBones, buildSpire, buildSaltPan, buildVentForge, buildLeviathan, buildCrater } from '../src/art/models/highnodes';
@@ -125,6 +126,7 @@ export async function renderAll(mode: 'sheet' | 'files' = 'sheet') {
     else if (e.model === 'boar') o = buildBoar(3).root;
     else if (e.model === 'spider') o = buildSpider(e.look, 5).root;
     else if (e.model === 'snake') o = buildSnake(e.look, 9).root;
+    else if (e.model === 'wisp' || e.model === 'golem' || e.model === 'hound' || e.model === 'bat' || e.model === 'wraith') o = buildFantasy(e.model as FantasyModel, e.look, 7).root;
     else { const look = HUMAN_LOOKS[e.look ?? e.model] ?? BRIGAND_LOOK; o = buildHumanoid(e.model === 'gunner' ? { ...look, held: 'musket' } : look).root; }
     const where = e.boss ? 'Boss' : e.level >= 50 ? 'Late game' : e.level >= 20 ? 'Mid game' : 'Early game';
     const loot = LOOT[e.loot];

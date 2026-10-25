@@ -38,9 +38,12 @@ const { chromium } = require(path.join(require('child_process').execSync('npm ro
   await p.waitForFunction(() => document.querySelector('[data-slot="3"]'), null, { timeout: 60000 });
   let opened = 0;
   for (let k = 0; k < 3; k++) {
-    await tap(...Object.values(await center('[data-slot="3"]')), 160);
+    const at = await center('[data-slot="3"]');
+    // what is actually under the finger (the intermittent 0/3 failure: record it, so the next one names its cause)
+    const under = await p.evaluate(({ x, y }) => { const el = document.elementFromPoint(x, y); return el ? `${el.tagName}.${el.className}`.slice(0, 60) : null; }, at);
+    await tap(...Object.values(at), 160);
     await p.waitForTimeout(1500);
-    if (await p.evaluate(() => !!window.__reef.ui.pop)) opened++;
+    if (await p.evaluate(() => !!window.__reef.ui.pop)) opened++; else (res.missed ??= []).push({ under, card: await p.evaluate(() => document.querySelectorAll('.lvup').length), hp: await p.evaluate(() => window.__reef.game.p.hp) });
     await p.evaluate(() => window.__reef.ui.closePop());
   }
   res.slotTaps = `${opened}/3`;

@@ -28,6 +28,7 @@ function offHeld(id: string | undefined): HeldKind {
 }
 import { buildCrab, animateCrab, type CrabRig } from '../art/models/crab';
 import { buildBoar, animateBoar, buildSpider, animateSpider, buildSnake, animateSnake, type BoarRig, type SpiderRig, type SnakeRig } from '../art/models/beasts';
+import { buildFantasy, animateFantasy, type FantasyModel, type FantasyRig } from '../art/models/fantasy';
 import { buildCaveMouth, buildRope, buildWeb, buildCrystal, buildCaveTorch, buildStalagmite, buildLava, buildGong } from '../art/models/cave';
 import { REGIONS } from '../game/world/regions';
 import { artOverride, spriteSwap } from '../art/overrides';
@@ -76,7 +77,8 @@ interface GuardView { kind: 'guardian'; rig: GuardianRig; mat: THREE.MeshStandar
 interface BoarView { kind: 'boar'; rig: BoarRig; mat: THREE.MeshStandardMaterial }
 interface SpiderView { kind: 'spider'; rig: SpiderRig; mat: THREE.MeshStandardMaterial }
 interface SnakeView { kind: 'snake'; rig: SnakeRig; mat: THREE.MeshStandardMaterial }
-type EnemyView = (RigView | CrabView | GuardView | BoarView | SpiderView | SnakeView) & { root: THREE.Group; ring?: THREE.Mesh; swingT: number; seen: boolean; baseScale: number };
+interface FantasyView { kind: 'fantasy'; rig: FantasyRig; mat: THREE.MeshStandardMaterial }
+type EnemyView = (RigView | CrabView | GuardView | BoarView | SpiderView | SnakeView | FantasyView) & { root: THREE.Group; ring?: THREE.Mesh; swingT: number; seen: boolean; baseScale: number };
 
 export class GameRenderer {
   readonly renderer: THREE.WebGLRenderer;
@@ -388,7 +390,9 @@ export class GameRenderer {
       }
     }
     propS = 1;
-    for (const a of L.arenas) { propKey = a.boss === 'guardian' ? 'plinth' : 'gong'; place(a.boss === 'guardian' ? buildPlinth() : buildGong(), a.altar.x, a.altar.z, 0); }
+    // each boss's waking point: the Guardian's bell plinth, the Sunscale's gong, the Broodmother's web-wrapped bones
+    const broodAltar = () => { const g = new THREE.Group(), bones = buildBones(5), web = buildWeb(3); bones.scale.setScalar(0.9); web.scale.setScalar(1.4); g.add(bones, web); return g; };
+    for (const a of L.arenas) { propKey = a.boss === 'guardian' ? 'plinth' : a.boss === 'broodmother' ? 'bones' : 'gong'; place(a.boss === 'guardian' ? buildPlinth() : a.boss === 'broodmother' ? broodAltar() : buildGong(), a.altar.x, a.altar.z, 0); }
     propKey = 'strongbox';
     for (const b of L.banks) if (!b.booth) place(buildStrongbox(), b.x, b.z, 0);
     propKey = null;
@@ -628,6 +632,12 @@ export class GameRenderer {
       bakeRig(rig.root, material);
       if (!e.def.boss) blobShadow(rig.root, rig.segs[2]);
       v = { kind: 'snake', rig, mat: material, root: rig.root, swingT: 0, seen: true, baseScale: rig.root.scale.x };
+    } else if (e.def.model === 'wisp' || e.def.model === 'golem' || e.def.model === 'hound' || e.def.model === 'bat' || e.def.model === 'wraith') {
+      const rig = buildFantasy(e.def.model as FantasyModel, e.def.look, e.id);
+      rig.root.scale.setScalar(e.def.scale * (e.elite ? 1.2 : 1));
+      bakeRig(rig.root, material);
+      blobShadow(rig.root, rig.body);
+      v = { kind: 'fantasy', rig, mat: material, root: rig.root, swingT: 0, seen: true, baseScale: rig.root.scale.x };
     } else if (e.def.model === 'guardian') {
       const rig = buildGuardian();
       if (!e.def.boss) { recolour(rig.root, { stoneDark: 0x4e4c54, stone: 0x77737c }); rig.root.scale.setScalar(e.def.scale); }
@@ -684,7 +694,11 @@ export class GameRenderer {
         animateCrab(v.rig, t + e.id, e.moving);
         if (e.state === 'windup') v.rig.clawR.rotation.x = -0.7;
       } else if (v.kind === 'boar') animateBoar(v.rig, t + e.id, e.moving, e.state === 'chase' || e.state === 'windup');
-      else if (v.kind === 'spider') animateSpider(v.rig, t + e.id, e.moving, e.state === 'windup' || v.swingT > 0);
+      else if (v.kind === 'spider') {
+        animateSpider(v.rig, t + e.id, e.moving, e.state === 'windup' || v.swingT > 0);
+        if (e.state === 'rise') v.root.position.y = y - 2.5 * Math.max(0, e.t / 2.2); // the Broodmother climbs out of the hollow
+      }
+      else if (v.kind === 'fantasy') animateFantasy(v.rig, t + e.id, e.moving, e.state === 'windup' || v.swingT > 0);
       else if (v.kind === 'snake') {
         animateSnake(v.rig, t + e.id, e.moving, e.state === 'windup' || v.swingT > 0);
         if (e.state === 'rise') v.root.position.y = y - 2.5 * Math.max(0, e.t / 2.2); // the Sunscale coils up out of the flagstones
