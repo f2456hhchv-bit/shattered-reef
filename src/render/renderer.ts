@@ -37,7 +37,7 @@ import { buildBench, buildFurnace, buildAnvil, buildCookfire, buildTent, buildSm
 import { buildLootShard, buildItemModel, SHARD_TINT, type LootShard, type ShardKind } from '../art/models/items';
 import { NODES, PLAYER_BASE, SKILLS } from '../game/data/content';
 import type { Game, GameEvent, Enemy, Telegraph } from '../game/sim/game';
-import { coastDist, nearestPathDist, BEACH, SUN, SUN_LAYOUT } from '../game/world/island';
+import { coastDist, nearestPathDist, BEACH, SUN, SUN_LAYOUT, WRACK } from '../game/world/island';
 import { HCELL } from '../game/world/world';
 import { buildTerrainMesh } from './terrainMesh';
 import { bakeRig, bakeStatic, bakeFlat, mergeColoured } from './bake';
@@ -472,7 +472,8 @@ export class GameRenderer {
     // bucketed into 40 m cells so each clump is its own culled draw
     const CELL = 40, buckets = new Map<string, THREE.Vector3[]>();
     let made = 0;
-    const sun = this.game.s.region === 'sunreach', cx = sun ? SUN.x : 0, cz = sun ? SUN.z : 0, span = sun ? 140 : 200, most = sun ? 4500 : 9000;
+    const reg = this.game.s.region, sun = reg === 'sunreach', wrack = reg === 'wrack';
+    const cx = sun ? SUN.x : wrack ? WRACK.x : 0, cz = sun ? SUN.z : wrack ? WRACK.z : 0, span = sun ? 140 : wrack ? 130 : 200, most = sun ? 4500 : wrack ? 3000 : 9000;
     for (let i = 0; i < 130000 && made < most; i++) {
       const x = cx + (rnd() - 0.5) * span, z = cz + (rnd() - 0.5) * span;
       if (coastDist(x, z) < BEACH || !w.walkable(x, z)) continue; // no grass on the beach

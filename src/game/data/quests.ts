@@ -24,7 +24,7 @@ export interface NpcDef {
   shop?: boolean; // keeps a shop (see SHOPS: the shop's keeper)
   bank?: boolean; // talking opens your bank
   heals?: string; // restores you to full health, with this line
-  ferry?: { to: 'bellwether' | 'sunreach'; price: number }; // offers passage to another harbour
+  ferry?: { to: 'bellwether' | 'sunreach' | 'wrack'; price: number }[]; // offers passage to other harbours
 }
 
 export const NPCS: Record<string, NpcDef> = {
@@ -43,9 +43,9 @@ export const NPCS: Record<string, NpcDef> = {
     heals: 'Hold still. There: the tide\'s mended worse than you. Go carefully.' },
   corwin: { id: 'corwin', name: 'Corwin Ashe', title: 'Reeve of Bellwether',
     idle: ['Bellwether was a fishing camp when I was a boy. Now look at it: a bank, a chapel, an inn with a roof that doesn\'t leak.', 'The brigands on the east road cost us a cart a week. Thin them out and the town will remember it.'] },
-  wynn: { id: 'wynn', name: 'Wynn Harrow', title: 'Harbourmaster', ferry: { to: 'sunreach', price: 30 },
+  wynn: { id: 'wynn', name: 'Wynn Harrow', title: 'Harbourmaster', ferry: [{ to: 'sunreach', price: 30 }, { to: 'wrack', price: 120 }],
     idle: ['Sunreach lies east across the channel: jungle, a hill full of ore, and Port Halyard on its south shore. Sail yourself, or I\'ll take you for thirty coins.'] },
-  sefa: { id: 'sefa', name: 'Sefa Odun', title: 'Harbourmaster of Port Halyard', ferry: { to: 'bellwether', price: 30 },
+  sefa: { id: 'sefa', name: 'Sefa Odun', title: 'Harbourmaster of Port Halyard', ferry: [{ to: 'bellwether', price: 30 }, { to: 'wrack', price: 90 }],
     idle: ['Bellwether\'s a day\'s sail west, or an hour on my cutter. Thirty coins.'] },
   tamsin: { id: 'tamsin', name: 'Tamsin Vey', title: 'Trader', shop: true,
     idle: ['Steel, spice, and arrows that fly straight. Everything a Bellwether captain forgets to pack.'] },
@@ -53,6 +53,8 @@ export const NPCS: Record<string, NpcDef> = {
     idle: ['Sit. Eat. The jungle will still be there, and so will the things in it.'] },
   ines: { id: 'ines', name: 'Ines Carro', title: 'Banker', bank: true,
     idle: ['Ada keeps the books in Bellwether, I keep them here. Same ledger: what you leave with one, you take from the other.'] },
+  mercy: { id: 'mercy', name: 'Mercy Gale', title: 'Harbourmaster of Gallows Landing', ferry: [{ to: 'sunreach', price: 90 }, { to: 'bellwether', price: 120 }],
+    idle: ['Gallows Landing. Named for what the Wrack does to ships, not for anything we do. Mostly.'] },
   halyard_watch: { id: 'halyard_watch', name: 'Watchman Okoro', title: 'Port watch',
     idle: ['North through the plaza is the Greenheart. Hunters in there shoot first. East, Ember Hill: coal and gold, if you can swing a pick.', 'The old temple in the jungle? Nobody goes in. Something still keeps it.'] },
   watch_n: { id: 'watch_n', name: 'Watchman Pell', title: 'Town watch', idle: ['North road runs to the Copperback Hills and the foot of Ironcrag. Mind the crabs in iron shells.'] },

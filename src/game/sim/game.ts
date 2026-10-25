@@ -1011,7 +1011,7 @@ export class Game {
     if (npc.bank) { this.emit({ type: 'openBank' }); return; }
     const board = Object.keys(BOARDS).find((b) => BOARDS[b].npc === npcId);
     if (board) { this.emit({ type: 'openBoard', board }); return; } // harbourmasters keep the bounty board (and the ferry)
-    if (npc.ferry) { this.emit({ type: 'ferryOffer', npc: npcId, to: npc.ferry.to, price: npc.ferry.price }); return; }
+    if (npc.ferry) { this.emit({ type: 'ferryOffer', npc: npcId, to: npc.ferry[0].to, price: npc.ferry[0].price }); return; }
     if (npc.heals && this.p.hp < this.stats.maxHp) {
       this.p.hp = this.stats.maxHp;
       this.emit({ type: 'dialog', npc: npcId, lines: [npc.heals] });
@@ -1853,8 +1853,8 @@ export class Game {
   }
 
   /** Pay a harbourmaster for passage: you and your ship arrive at the other harbour's pier. */
-  takeFerry(npcId: string) {
-    const f = NPCS[npcId]?.ferry, n = this.layout.npcs.find((x) => x.id === npcId);
+  takeFerry(npcId: string, to?: string) {
+    const routes = NPCS[npcId]?.ferry, f = routes?.find((r) => !to || r.to === to), n = this.layout.npcs.find((x) => x.id === npcId);
     if (!f || !n || this.dead || this.p.onShip || Math.hypot(n.x - this.p.x, n.z - this.p.z) > 4.5) return;
     if (count(this.p.inv, 'coins') < f.price) { this.msg(`Passage costs ${f.price} coins.`, 'warn'); return; }
     remove(this.p.inv, 'coins', f.price);
@@ -1998,7 +1998,7 @@ export class Game {
       this.stopAction();
       this.target = null;
       this.emit({ type: 'playerDeath' });
-      this.msg(`Oh dear, you are dead. You wake at ${this.region.home === 'sunreach' ? 'Port Halyard' : 'the quay'}.`, 'warn');
+      this.msg(`Oh dear, you are dead. You wake at ${this.region.home === 'sunreach' ? 'Port Halyard' : this.region.home === 'wrack' ? 'Gallows Landing' : 'the quay'}.`, 'warn');
       if (this.boss) this.resetBoss();
     }
   }

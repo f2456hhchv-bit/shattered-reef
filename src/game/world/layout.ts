@@ -1,9 +1,9 @@
 import { mulberry32 } from '../../art/noise';
-import { BELL_TOWN, PORT_TOWN, LAYOUT, LAGOON, SEA_SPOTS, PATHS, BEACH, coastPoint, coastDist, nearestPathDist, FLATS, SUN, SUN_LAYOUT, SUN_RADIUS, SUN_SEA_SPOTS, sunPoint, rawHeight } from './island';
+import { BELL_TOWN, PORT_TOWN, LAYOUT, LAGOON, SEA_SPOTS, PATHS, BEACH, coastPoint, coastDist, nearestPathDist, FLATS, SUN, SUN_LAYOUT, SUN_RADIUS, SUN_SEA_SPOTS, sunPoint, WRACK, WRACK_LAYOUT, WRACK_RADIUS, WRACK_SEA_SPOTS, wrackPoint, rawHeight } from './island';
 import { World } from './world';
 import { buildingSolids, doorPoints, toLocal, toWorld, type BuildingDef } from './buildings';
 import type { TownPlan } from './town';
-import { REGIONS, type RegionId } from './regions';
+import { REGIONS, type IslandId, type RegionId } from './regions';
 import { CAVES, CAVE_WALK_MAX, caveHeight, caveOpen, chamberAt } from './caves';
 
 // Everything placed in a region, derived deterministically. Shared by simulation and renderer.
@@ -49,7 +49,7 @@ const cache = new Map<RegionId, IslandLayout>();
 /** A region's layout (built once, then shared: it's read-only after the build). */
 export function regionLayout(id: RegionId): IslandLayout {
   let l = cache.get(id);
-  if (!l) cache.set(id, (l = REGIONS[id].kind === 'cave' ? buildCave(id) : buildIslandRegion(id as 'bellwether' | 'sunreach')));
+  if (!l) cache.set(id, (l = REGIONS[id].kind === 'cave' ? buildCave(id) : buildIslandRegion(id as IslandId)));
   return l;
 }
 /** A region's layout if it has been built this session (no build: for lists that mustn't stall the UI). */
@@ -65,17 +65,22 @@ const CAVE_MOUTHS: { id: string; island: RegionId; cave: RegionId; at: () => { x
   { id: 'mouth_ember', island: 'sunreach', cave: 'ember_deep', at: () => ({ x: SUN_LAYOUT.ember.x - 9, z: SUN_LAYOUT.ember.z + 9, facing: Math.PI * 0.6 }) },
 ];
 
-function buildIslandRegion(region: 'bellwether' | 'sunreach'): IslandLayout {
-  const bell = region === 'bellwether';
-  const rnd = mulberry32(bell ? 1 : 2);
+/** Stormwrack has no town: an outpost of stations, a strongbox and the harbourmaster. */
+const NO_TOWN: TownPlan = { buildings: [], npcs: [], stalls: [], squares: [] };
+
+function buildIslandRegion(region: IslandId): IslandLayout {
+  const bell = region === 'bellwether', sun = region === 'sunreach', wrack = region === 'wrack';
+  const rnd = mulberry32(bell ? 1 : sun ? 2 : 3);
   const world = new World(REGIONS[region].bounds, rawHeight);
-  const T: TownPlan = bell ? BELL_TOWN : PORT_TOWN;
-  const SL = SUN_LAYOUT;
+  const T: TownPlan = bell ? BELL_TOWN : sun ? PORT_TOWN : NO_TOWN;
+  const SL = SUN_LAYOUT, WL = WRACK_LAYOUT;
+  /** a point `inset` metres inside this island's coast at angle `deg` (negative: out at sea) */
+  const cp = (deg: number, inset: number): [number, number] => (bell ? coastPoint : sun ? sunPoint : wrackPoint)(deg, inset);
   const V = LAYOUT.village;
 
   // ---- the harbour's pier: walk out from the beach until the water is deep enough for the ship
   const deckY = 1.0, headWidth = 9;
-  const base = bell ? LAYOUT.dockBase : SL.dockBase;
+  const base = bell ? LAYOUT.dockBase : sun ? SL.dockBase : WL.dockBase;
   const dock: Dock = (() => {
     const x = base.x, zs = base.z - 1.5;
     let n = 8;
@@ -85,7 +90,7 @@ function buildIslandRegion(region: 'bellwether' | 'sunreach'): IslandLayout {
     return { x, zStart: zs, len: n, headWidth, deckY, headZ: zs + n };
   })();
   const mooring = { x: dock.x + 0.6, z: dock.headZ + 2.1 + 1.45 + 1.1, heading: 0 };
-  const port = { name: bell ? 'Bellwether' : 'Port Halyard', ship: mooring, land: { x: dock.x, z: dock.headZ + 0.4 } };
+  const port = { name: bell ? 'Bellwether' : sun ? 'Port Halyard' : 'Gallows Landing', ship: mooring, land: { x: dock.x, z: dock.headZ + 0.4 } };
 
   const buildings: Building[] = [];
   const stations: IslandLayout['stations'] = [];
@@ -110,9 +115,12 @@ function buildIslandRegion(region: 'bellwether' | 'sunreach'): IslandLayout {
       // outlying camps: a forge at the foot of Ironcrag, cookfires at the fen and the cove
       { id: 'furnace', x: M.x + 9, z: M.z + 19 }, { id: 'anvil', x: M.x + 6, z: M.z + 20.5 },
       { id: 'fire', x: LAYOUT.fen.x + 2.5, z: LAYOUT.fen.z + 3 }, { id: 'fire', x: LAYOUT.cove.x - 2.5, z: LAYOUT.cove.z + 1.5 },
-      // the vent forge on Ironcrag's summit: the only heat that melts Cinderite
-      { id: 'vent', x: LAYOUT.summit.x, z: LAYOUT.summit.z },
     );
+  } else if (wrack) {
+    // Gallows Landing's open-air outpost, and the vent forge on Thunder Crag (the only heat that melts Cinderite)
+    const LD = WL.landing;
+    stations.push({ id: 'furnace', x: LD.x + 5.5, z: LD.z - 3 }, { id: 'anvil', x: LD.x + 3, z: LD.z - 5.5 }, { id: 'bench', x: LD.x - 5.5, z: LD.z - 4 },
+      { id: 'fire', x: LD.x - 4, z: LD.z + 2.5 }, { id: 'vent', x: WL.crag.x, z: WL.crag.z - 6 });
   } else {
     // Port Halyard's open forge on its quay square, and a cookfire
     stations.push({ id: 'furnace', x: SL.port.x + 5.5, z: SL.port.z - 5 }, { id: 'anvil', x: SL.port.x + 3, z: SL.port.z - 7.5 },
@@ -122,7 +130,7 @@ function buildIslandRegion(region: 'bellwether' | 'sunreach'): IslandLayout {
 
   // strongboxes (the quay, the Ironcrag camp) and a counter in front of every bank's grille
   const booths = T.buildings.filter((x) => x.id === 'bank' || x.id === 'p_bank').map((bb) => { const [x, z] = toWorld(bb, 0, 0.1); return { x, z, booth: true }; });
-  const banks: IslandLayout['banks'] = [...(bell ? [{ x: V.x + 4.6, z: V.z + 2.2 }, { x: M.x + 2.5, z: M.z + 21 }] : []), ...booths];
+  const banks: IslandLayout['banks'] = [...(bell ? [{ x: V.x + 4.6, z: V.z + 2.2 }, { x: M.x + 2.5, z: M.z + 21 }] : wrack ? [{ x: WL.landing.x + 1.5, z: WL.landing.z - 6.5 }] : []), ...booths];
   for (const b of banks) if (!b.booth) world.solids.push({ x: b.x, z: b.z, w: 1.2, d: 0.8 });
   const solidOf = { furnace: 1.0, anvil: 0.45, fire: 0.7, vent: 1.2 } as const;
   for (const st of stations) world.solids.push(st.id === 'bench' ? { x: st.x, z: st.z, w: 1.8, d: 0.9 } : { x: st.x, z: st.z, r: solidOf[st.id] });
@@ -138,7 +146,8 @@ function buildIslandRegion(region: 'bellwether' | 'sunreach'): IslandLayout {
     { id: 'watch_e', x: X.x + 11, z: X.z + 2.5, facing: Math.PI },
     { id: 'bram', x: S.x - 1.4, z: S.z + 1.9, facing: Math.PI / 2 },
   );
-  else npcs.push({ id: 'halyard_watch', x: SL.plaza.x + 3, z: SL.plaza.z - 7, facing: Math.PI / 2 });
+  else if (sun) npcs.push({ id: 'halyard_watch', x: SL.plaza.x + 3, z: SL.plaza.z - 7, facing: Math.PI / 2 });
+  else npcs.push({ id: 'mercy', x: WL.dockBase.x + 3.2, z: WL.dockBase.z - 1.0, facing: Math.PI / 2 });
   for (const n of npcs) world.solids.push({ x: n.x, z: n.z, r: 0.35 });
 
   // ---- boss arenas: a ring of broken pillars round the point that wakes the guardian, walled with fallen
@@ -165,7 +174,7 @@ function buildIslandRegion(region: 'bellwether' | 'sunreach'): IslandLayout {
     const plinth = { x: R.x, z: R.z + 4.6 }; // just inside the gap, so the arena centre stays clear
     world.solids.push({ x: plinth.x, z: plinth.z, r: 0.7 });
     arenas.push({ boss: 'guardian', x: R.x, z: R.z, r: 7, altar: plinth, label: 'Bell hollow', verb: 'Ring' });
-  } else {
+  } else if (sun) {
     // the Sunken Temple: its gap faces the jungle trail (south); the serpent's gong stands just inside
     const TP = SL.temple;
     ring(TP.x, TP.z, 2, 700);
@@ -232,24 +241,26 @@ function buildIslandRegion(region: 'bellwether' | 'sunreach'): IslandLayout {
       const a = (k / 8) * Math.PI * 2 + 0.3;
       scatter('tree_willow', LAGOON.x + Math.cos(a) * (LAGOON.r + 6), LAGOON.z + Math.sin(a) * (LAGOON.r + 6), 3, 1, 3.4);
     }
-    // Heartwood: the deeper you go, the older the trees
-    scatter('tree_amber', HW.x + 6, HW.z + 8, 10, 6, 3.6);
-    scatter('tree_yew', HW.x - 2, HW.z - 2, 8, 5, 4);
-    scatter('tree_star', HW.x - 9, HW.z - 7, 6, 3, 4.2);
-    scatter('tree_cedar', HW.x - 14, HW.z + 2, 6, 2, 4.6);
-    // Ironcrag: coal and gold at the foot, stormsilver and abyssite up the slopes
+    // Heartwood (Bellwether is the starter island, levels 1-30: Tom, 2026-10-25): willows and sea-oaks
+    scatter('tree_willow', HW.x + 4, HW.z + 6, 10, 5, 3.6);
+    scatter('tree_oak', HW.x - 6, HW.z - 4, 9, 4, 3.6);
+    // Ironcrag: coal at the foot, and more iron up the slopes
     scatter('rock_coal', M.x - 8, M.z + 15, 7, 6, 2.6);
     scatter('rock_coal', M.x + 13, M.z + 12, 5, 3, 2.6);
-    scatter('rock_gold', M.x + 15, M.z + 7, 5, 3, 2.8);
-    scatter('rock_storm', M.x - 6, M.z + 5, 6, 4, 2.8);
-    scatter('rock_abyss', M.x + 4, M.z - 3, 6, 3, 3);
-    // Wreckers' Point: tidecore veins in the rocks
-    scatter('rock_tide', LAYOUT.wreck.x - 3, LAYOUT.wreck.z + 3, 7, 3, 3);
-    // the high metals: Cinderite vents round the summit forge, fallen stars at Starfall
-    scatter('rock_cinder', LAYOUT.summit.x, LAYOUT.summit.z, 10, 3, 3);
-    scatter('rock_sky', LAYOUT.starfall.x, LAYOUT.starfall.z, 6, 3, 3.2);
+    scatter('rock_iron', M.x - 6, M.z + 5, 6, 4, 2.8);
+  } else if (wrack) {
+    // Stormwrack (levels 55 and up): the Old Wood's ancient trees, the crag's high metals, the fallen star,
+    // tidecore in the Wrack's rocks
+    const OW = WL.oldwood, CR = WL.crag;
+    scatter('tree_yew', OW.x + 6, OW.z + 6, 9, 4, 4);
+    scatter('tree_star', OW.x - 4, OW.z - 3, 7, 3, 4.2);
+    scatter('tree_cedar', OW.x - 11, OW.z + 3, 6, 2, 4.6);
+    scatter('rock_abyss', CR.x - 8, CR.z + 12, 7, 4, 3);
+    scatter('rock_cinder', CR.x, CR.z - 6, 9, 3, 3);
+    scatter('rock_sky', WL.starfall.x, WL.starfall.z, 6, 3, 3.2);
+    scatter('rock_tide', WL.wreck.x - 3, WL.wreck.z + 3, 7, 3, 3);
     // Leviathan's Rest: the bones lie along the islet's crown (no free() here: it's off the main coast)
-    const IS = LAYOUT.islet;
+    const IS = WL.islet;
     for (let k = 0, made = 0; k < 40 && made < 3; k++) {
       const a = k * 2.1, r = 3.5 + (k % 3) * 1.5, x = IS.x + Math.cos(a) * r, z = IS.z + Math.sin(a) * r;
       if (world.ground(x, z) < 0.6 || nodes.some((n) => Math.hypot(n.x - x, n.z - z) < 3.2)) continue;
@@ -286,21 +297,22 @@ function buildIslandRegion(region: 'bellwether' | 'sunreach'): IslandLayout {
       if (p && !nodes.some((n) => Math.hypot(n.x - p[0], n.z - p[1]) < 5)) nodes.push({ uid: `n${uid++}`, def, x: p[0], z: p[1], seed: Math.round(a * 100) });
     }
   };
-  const outward = (p: { x: number; z: number }) => Math.atan2(p.z, p.x);
   const sunOut = (th: number) => (th * Math.PI) / 180;
   if (bell) {
     nodes.push({ uid: `n${uid++}`, def: 'spot_sprat', x: dock.x - headWidth / 2 - 1.6, z: dock.headZ + 1.0, seed: 1 }); // off the dock head
     // lagoon: walk inward from the shore toward the centre
     const lagoonIn = (a: number) => [LAGOON.x + Math.cos(a) * (LAGOON.r + 6), LAGOON.z + Math.sin(a) * (LAGOON.r + 6), a + Math.PI] as const;
     for (const [a, def] of [[0.2, 'spot_trout'], [1.6, 'spot_trout'], [3.4, 'spot_salmon'], [4.8, 'spot_salmon']] as const) { const [fx, fz, ang] = lagoonIn(a); placeShore(def, fx, fz, [ang]); }
-    placeShore('spot_lobster', LAYOUT.cove.x, LAYOUT.cove.z, [outward(LAYOUT.cove) - 0.5, outward(LAYOUT.cove) + 0.5, outward(LAYOUT.cove)]);
-    placeShore('spot_gloom', LAYOUT.wreck.x, LAYOUT.wreck.z, [outward(LAYOUT.wreck) - 0.6, outward(LAYOUT.wreck) + 0.6]);
-    // the Drowned Spire stands in open water: mined from the deck
-    nodes.push({ uid: `n${uid++}`, def: 'rock_ori', x: LAYOUT.spire.x, z: LAYOUT.spire.z, seed: 77 });
     for (const [def, list] of Object.entries(SEA_SPOTS)) for (const [deg, inset] of list) {
       const [x, z] = coastPoint(deg, inset);
       nodes.push({ uid: `n${uid++}`, def, x, z, seed: deg });
     }
+  } else if (wrack) {
+    // gloomfish off the Wrack's rocks; the Drowned Spire in open water, mined from the deck; the deep-water grounds
+    const wOut = Math.atan2(WL.wreck.z - WRACK.z, WL.wreck.x - WRACK.x);
+    placeShore('spot_gloom', WL.wreck.x, WL.wreck.z, [wOut - 0.6, wOut + 0.6]);
+    nodes.push({ uid: `n${uid++}`, def: 'rock_ori', x: WL.spire.x, z: WL.spire.z, seed: 77 });
+    for (const [def, list] of Object.entries(WRACK_SEA_SPOTS)) for (const [x, z] of list) nodes.push({ uid: `n${uid++}`, def, x, z, seed: Math.round(x + z) });
   } else {
     // sprat & mackerel by the harbour, lobster pots on the reef shore, gloomfish & barracuda off the north-west rocks
     for (const [def, th] of [['spot_sprat', 120], ['spot_sprat', 150], ['spot_lobster', 15], ['spot_lobster', 35], ['spot_gloom', 240]] as const) {
@@ -312,12 +324,14 @@ function buildIslandRegion(region: 'bellwether' | 'sunreach'): IslandLayout {
 
   // ---- reefs / sea stacks
   const reefs: IslandLayout['reefs'] = [];
-  for (let tries = 0, made = 0; tries < 600 && made < (bell ? 22 : 9); tries++) {
-    const [x, z] = bell ? coastPoint(rnd() * 360, -(4 + rnd() * 26)) : sunPoint(rnd() * 360, -(5 + rnd() * 16));
+  for (let tries = 0, made = 0; tries < 600 && made < (bell ? 22 : sun ? 9 : 14); tries++) {
+    const [x, z] = bell ? coastPoint(rnd() * 360, -(4 + rnd() * 26)) : cp(rnd() * 360, -(5 + rnd() * 16));
     if (Math.hypot(x - mooring.x, z - mooring.z) < (bell ? 18 : 22)) continue; // keep the harbour mouth clear
     if (nodes.some((n) => (n.def.startsWith('spot_') || n.def === 'rock_ori') && Math.hypot(n.x - x, n.z - z) < 9)) continue;
     if (bell && Math.hypot(x - LAYOUT.islet.x, z - LAYOUT.islet.z) < 24) continue; // keep the islet's landing clear
-    if (!bell && x < SUN.x - SUN_RADIUS - 4) continue; // the western approach (the sea lane from Bellwether) stays open
+    if (sun && (x < SUN.x - SUN_RADIUS - 4 || x > SUN.x + SUN_RADIUS + 4)) continue; // both sea lanes stay open
+    if (wrack && x < WRACK.x - WRACK_RADIUS - 4) continue; // the western approach (from Sunreach) stays open
+    if (wrack && Math.hypot(x - WRACK_LAYOUT.islet.x, z - WRACK_LAYOUT.islet.z) < 24) continue;
     if (world.ground(x, z) > -0.6) continue;
     reefs.push({ x, z, r: 0.8 + rnd() * 1.2 });
     made++;
@@ -325,10 +339,11 @@ function buildIslandRegion(region: 'bellwether' | 'sunreach'): IslandLayout {
   world.reefs.push(...reefs);
 
   // ---- vegetation and rocks (solid, every one usable): woods are dense, open country is sparse
-  const centre = bell ? { x: 0, z: 0 } : SUN;
+  const centre = bell ? { x: 0, z: 0 } : sun ? SUN : WRACK;
   const keepClear = bell
-    ? [{ x: LAYOUT.starfall.x, z: LAYOUT.starfall.z, r: 10 }, { x: R.x, z: R.z, r: 11 }, { x: C.x, z: C.z, r: 9 }, { x: LAYOUT.cove.x, z: LAYOUT.cove.z, r: 9 }, { x: X.x, z: X.z, r: 6 }]
-    : [{ x: SL.temple.x, z: SL.temple.z, r: 11 }, { x: SL.plaza.x, z: SL.plaza.z, r: 12 }, { x: SL.port.x, z: SL.port.z, r: 16 }];
+    ? [{ x: R.x, z: R.z, r: 11 }, { x: C.x, z: C.z, r: 9 }, { x: LAYOUT.cove.x, z: LAYOUT.cove.z, r: 9 }, { x: X.x, z: X.z, r: 6 }]
+    : sun ? [{ x: SL.temple.x, z: SL.temple.z, r: 11 }, { x: SL.plaza.x, z: SL.plaza.z, r: 12 }, { x: SL.port.x, z: SL.port.z, r: 16 }]
+    : [{ x: WL.starfall.x, z: WL.starfall.z, r: 10 }, { x: WL.landing.x, z: WL.landing.z, r: 14 }, { x: WL.crag.x, z: WL.crag.z - 6, r: 7 }];
   if (bell) {
     const woods = [{ x: F.x, z: F.z, r: 20 }, { x: GV.x, z: GV.z, r: 13 }, { x: HW.x, z: HW.z, r: 20 }, { x: LAYOUT.fen.x, z: LAYOUT.fen.z, r: 16 }];
     for (let tries = 0, made = 0; tries < 9000 && made < 260; tries++) {
@@ -344,6 +359,19 @@ function buildIslandRegion(region: 'bellwether' | 'sunreach'): IslandLayout {
       const kind = inWood || rnd() < 0.6 ? 'pine' : 'broadleaf';
       // every tree on the island can be felled: pines are saltpine, broadleafs sea-oak
       nodes.push({ uid: `n${uid++}`, def: kind === 'pine' ? 'tree_pine' : 'tree_oak', x, z, seed: Math.floor(rnd() * 1e6), scenery: true, s: 0.85 + rnd() * 0.35, rot: rnd() * Math.PI * 2 });
+      world.solids.push({ x, z, r: 0.45 });
+      made++;
+    }
+  } else if (wrack) {
+    // a windswept island: storm-bent pines, thick only in the Old Wood, nothing on the crag's bare top
+    for (let tries = 0, made = 0; tries < 6000 && made < 110; tries++) {
+      const a = rnd() * Math.PI * 2, r = Math.sqrt(rnd()) * (WRACK_RADIUS + 6), x = WRACK.x + Math.cos(a) * r, z = WRACK.z + Math.sin(a) * r;
+      const inWood = Math.hypot(x - WL.oldwood.x, z - WL.oldwood.z) < 16;
+      if (!inWood && rnd() < 0.55) continue;
+      if (!free(x, z, BEACH + 1, 2.6) || keepClear.some((k) => Math.hypot(x - k.x, z - k.z) < k.r)) continue;
+      const gy = world.ground(x, z);
+      if (gy < 0.5 || gy > 8) continue;
+      nodes.push({ uid: `n${uid++}`, def: inWood && rnd() < 0.3 ? 'tree_oak' : 'tree_pine', x, z, seed: Math.floor(rnd() * 1e6), scenery: true, s: 0.85 + rnd() * 0.4, rot: rnd() * Math.PI * 2 });
       world.solids.push({ x, z, r: 0.45 });
       made++;
     }
@@ -366,8 +394,8 @@ function buildIslandRegion(region: 'bellwether' | 'sunreach'): IslandLayout {
       world.solids.push({ x, z, r: 0.4 });
     }
   }
-  for (let tries = 0, made = 0; tries < (bell ? 2400 : 900) && made < (bell ? 80 : 22); tries++) {
-    const a = rnd() * Math.PI * 2, r = bell ? 15 + rnd() * 75 : Math.sqrt(rnd()) * SUN_RADIUS;
+  for (let tries = 0, made = 0; tries < (bell ? 2400 : 900) && made < (bell ? 80 : sun ? 22 : 40); tries++) {
+    const a = rnd() * Math.PI * 2, r = bell ? 15 + rnd() * 75 : Math.sqrt(rnd()) * (sun ? SUN_RADIUS : WRACK_RADIUS);
     const x = centre.x + Math.cos(a) * r, z = centre.z + Math.sin(a) * r;
     if (!free(x, z, 1, 2) || (!bell && keepClear.some((k) => Math.hypot(x - k.x, z - k.z) < k.r))) continue;
     const s = 0.35 + rnd() * 0.7;
@@ -389,16 +417,16 @@ function buildIslandRegion(region: 'bellwether' | 'sunreach'): IslandLayout {
   }
   // kelp beds just off the beaches, all the way round
   for (let deg = 0; deg < 360; deg += bell ? 9 : 10) {
-    const [lx, lz] = bell ? coastPoint(deg + rnd() * 6, 6) : sunPoint(deg + rnd() * 6, 6);
+    const [lx, lz] = cp(deg + rnd() * 6, 6);
     const p = shoreSpot(lx, lz, bell ? Math.atan2(lz, lx) : sunOut(deg), -0.04); // kelp likes the shallows
     if (p && Math.hypot(p[0] - mooring.x, p[1] - mooring.z) > 14 && !nodes.some((n) => Math.hypot(n.x - p[0], n.z - p[1]) < 6))
-      nodes.push({ uid: `n${uid++}`, def: 'kelp_bed', x: p[0], z: p[1], seed: deg + (bell ? 0 : 1000), scenery: true, s: 0.9 + rnd() * 0.3, rot: rnd() * 6.28 });
+      nodes.push({ uid: `n${uid++}`, def: 'kelp_bed', x: p[0], z: p[1], seed: deg + (bell ? 0 : sun ? 1000 : 2000), scenery: true, s: 0.9 + rnd() * 0.3, rot: rnd() * 6.28 });
   }
   // disturbed sand: candidate dig spots on beaches and dirt tracks (only a few are active at a time)
   const paths = PATHS.filter((pth) => pth.pts.every(([x, z]) => world.inside(x, z, 4)));
   for (let k = 0, made = 0; k < 400 && made < (bell ? 30 : 14); k++) {
     let x: number, z: number;
-    if (k % 2) { const [cx, cz] = bell ? coastPoint(rnd() * 360, 2.5 + rnd() * 3) : sunPoint(rnd() * 360, 2.5 + rnd() * 3); x = cx; z = cz; }
+    if (k % 2) { const [cx, cz] = cp(rnd() * 360, 2.5 + rnd() * 3); x = cx; z = cz; }
     else { const pth = paths[Math.floor(rnd() * paths.length)]; const i = Math.floor(rnd() * (pth.pts.length - 1)); const t = rnd(); x = pth.pts[i][0] + (pth.pts[i + 1][0] - pth.pts[i][0]) * t + (rnd() - 0.5) * 3; z = pth.pts[i][1] + (pth.pts[i + 1][1] - pth.pts[i][1]) * t + (rnd() - 0.5) * 3; }
     if (world.ground(x, z) < 0.3 || Math.hypot(x - port.land.x, z - port.land.z) < 26) continue;
     if (nodes.some((n) => Math.hypot(n.x - x, n.z - z) < 4) || props.some((p) => Math.hypot(p.x - x, p.z - z) < 2)) continue;
@@ -480,15 +508,29 @@ function buildIslandRegion(region: 'bellwether' | 'sunreach'): IslandLayout {
       world.solids.push({ x, z, r: 1.0 });
       made++;
     }
-    // the leviathan's skeleton (the bones you mine are the loose ones) and the star's scorched crater
-    props.push({ kind: 'leviathan', x: LAYOUT.islet.x, z: LAYOUT.islet.z, rot: 0.6, s: 1, seed: 5 });
-    world.solids.push({ x: LAYOUT.islet.x, z: LAYOUT.islet.z, r: 1.4 });
-    props.push({ kind: 'crater', x: LAYOUT.starfall.x, z: LAYOUT.starfall.z, rot: 0, s: 1, seed: 6 });
     for (let k = 0, made = 0; k < 200 && made < 30; k++) {
       const a = rnd() * Math.PI * 2, r = 10 + rnd() * 55, x = Math.cos(a) * r, z = Math.sin(a) * r;
       if (coastDist(x, z) < BEACH + 2 || world.ground(x, z) > 6) continue;
       if (decor('flowers', x, z, 0.4, 0, false)) made++;
     }
+  } else if (wrack) {
+    const D = WL.dockBase, LD = WL.landing;
+    dress([['crate', D.x - 2.6, D.z - 1.8], ['barrel', D.x + 2.6, D.z - 2.4], ['lantern', D.x + 2, D.z - 1.0], ['lantern', LD.x - 3, LD.z + 4], ['lantern', LD.x + 4, LD.z - 7], ['crate', LD.x - 7, LD.z - 6], ['barrel', LD.x + 7.5, LD.z + 1]]);
+    decor('netrack', D.x - 7, D.z - 1.5, 1.3, -0.1, true);
+    {
+      // the Wrack's namesake: a ship broken on the point
+      const [wx, wz] = wrackPoint(316, 0.8);
+      if (decor('wreck', wx, wz, 2.2, Math.atan2(wz - WRACK.z, wx - WRACK.x) + Math.PI / 2, false)) {
+        const w = props[props.length - 1];
+        for (const d of [-2.6, 0, 2.6]) world.solids.push({ x: w.x + Math.cos(w.rot - Math.PI / 2) * d, z: w.z - Math.sin(w.rot - Math.PI / 2) * d, r: 1.1 });
+      }
+    }
+    // the leviathan's skeleton (the bones you mine are the loose ones) and the star's scorched crater
+    props.push({ kind: 'leviathan', x: WL.islet.x, z: WL.islet.z, rot: 0.6, s: 1, seed: 5 });
+    world.solids.push({ x: WL.islet.x, z: WL.islet.z, r: 1.4 });
+    props.push({ kind: 'crater', x: WL.starfall.x, z: WL.starfall.z, rot: 0, s: 1, seed: 6 });
+    for (let k = 0; k < 16; k++) { const [x, z] = wrackPoint(k * 22.5 + rnd() * 8, 2 + rnd() * 5); if (Math.hypot(x - D.x, z - D.z) > 20) decor('driftwood', x, z, 0.6, rnd() * 6.28, false); }
+    for (let k = 0; k < 10; k++) { const [x, z] = wrackPoint(k * 36 + rnd() * 8, 1.5 + rnd() * 5); if (Math.hypot(x - D.x, z - D.z) > 20) decor('shells', x, z, 0.5, rnd() * 6.28, false); }
   } else {
     const P = SL.port;
     dress([['crate', P.x - 2.6, SL.dockBase.z - 1.8], ['barrel', P.x + 2.6, SL.dockBase.z - 2.4], ['lantern', P.x + 2, SL.dockBase.z - 1.0], ['lantern', SL.plaza.x - 4, SL.plaza.z + 3]]);
@@ -521,13 +563,15 @@ function buildIslandRegion(region: 'bellwether' | 'sunreach'): IslandLayout {
     const SC = LAYOUT.cove;
     spawn('smuggler', SC.x - 3, SC.z - 2); spawn('smuggler', SC.x + 2, SC.z - 4); spawn('smuggler', SC.x - 5, SC.z - 6);
     spawn('smuggler_gunner', SC.x + 4, SC.z - 1); spawn('smuggler_gunner', SC.x - 1, SC.z - 8);
-    spawn('ironshell_crab', M.x - 12, M.z + 18); spawn('ironshell_crab', M.x - 3, M.z + 19); spawn('ironshell_crab', M.x + 16, M.z + 14); spawn('ironshell_crab', M.x - 14, M.z + 11);
-    spawn('poacher', HW.x + 2, HW.z + 4); spawn('poacher', HW.x - 6, HW.z); spawn('poacher', HW.x + 8, HW.z - 4);
-    spawn('poacher_gunner', HW.x - 2, HW.z + 10); spawn('poacher_gunner', HW.x - 10, HW.z - 3);
+    // Wreckers' Point: crabs pick over the wreck (the drowned are on Stormwrack now)
     const W = LAYOUT.wreck;
+    for (const [dx, dz] of [[-4, 2], [2, 4], [-6, 7]]) spawn('reef_crab', W.x + dx, W.z + dz);
+  } else if (wrack) {
+    const W = WL.wreck, CR = WL.crag, OW = WL.oldwood;
     spawn('drowned', W.x - 4, W.z + 2); spawn('drowned', W.x + 2, W.z + 4); spawn('drowned', W.x - 8, W.z + 6); spawn('drowned', W.x - 2, W.z + 9);
     spawn('wreck_captain', W.x - 5, W.z + 5);
-    spawn('stone_sentinel', M.x - 5, M.z - 1); spawn('stone_sentinel', M.x + 7, M.z + 1);
+    spawn('stone_sentinel', CR.x - 5, CR.z + 2); spawn('stone_sentinel', CR.x + 7, CR.z + 3);
+    spawn('giant_spider', OW.x + 2, OW.z + 4); spawn('giant_spider', OW.x - 6, OW.z); spawn('giant_spider', OW.x + 6, OW.z - 5);
   } else {
     // boars root along the jungle's edge, snakes coil in the Greenheart, poachers hunt them both
     for (const [dx, dz] of [[-30, 0], [-26, 12], [-20, -14], [-34, -10], [-10, -30]]) spawn('boar', SUN.x + dx, SUN.z + dz); // the jungle's west edge, away from town
@@ -539,7 +583,7 @@ function buildIslandRegion(region: 'bellwether' | 'sunreach'): IslandLayout {
   // townsfolk walking their rounds between the squares and front doors (paths found once, on the baked grid)
   const door = (id: string) => doorPoints(T.buildings.find((b) => b.id === id)!).out;
   const P = SL.plaza;
-  const rounds: { look: string; stops: [number, number][] }[] = bell ? [
+  const rounds: { look: string; stops: [number, number][] }[] = wrack ? [] : bell ? [
     { look: 'towns_a', stops: [[X.x - 4, X.z + 2], door('inn'), [X.x - 22, X.z + 1], door('house_2'), [X.x - 6, X.z + 8]] },
     { look: 'towns_b', stops: [[X.x + 4, X.z - 2], door('bank'), door('chapel'), [X.x + 25, X.z + 1], door('house_3')] },
     { look: 'towns_c', stops: [[V.x + 2, V.z + 1], door('chart'), [V.x + 2, V.z - 10], [X.x + 1.5, X.z + 6], door('store')] },
@@ -560,7 +604,7 @@ function buildIslandRegion(region: 'bellwether' | 'sunreach'): IslandLayout {
     if (path.length > 4) wanderers.push({ look: rd.look, path });
   }
 
-  const home = bell ? { x: 0, z: V.z + 6 } : { x: P.x, z: P.z + 2 };
+  const home = bell ? { x: 0, z: V.z + 6 } : sun ? { x: P.x, z: P.z + 2 } : { x: WL.landing.x, z: WL.landing.z + 2 };
   const respawnPt = world.nearestWalkable(home.x, home.z, 6) ?? [home.x, home.z];
   return {
     region, world, dock, port, mooring, buildings, nodes, props, reefs, stations, banks,
@@ -624,7 +668,7 @@ function buildCave(region: RegionId): IslandLayout {
     world.solids.push({ x: hold.x + 1, z: hold.z + 1, r: 0.7 });
     spawns.push({ enemy: 'smuggler', x: hold.x - 3, z: hold.z - 2 }, { enemy: 'smuggler', x: hold.x + 3, z: hold.z - 3 }, { enemy: 'smuggler_gunner', x: hold.x - 1, z: hold.z + 4 });
     // Glimmer Grotto: crystals light it; iron, coal and silver veins
-    scatter('rock_iron', grotto, 4); scatter('rock_coal', grotto, 3); scatter('rock_storm', grotto, 1); scatter('rock_tin', hall, 3); scatter('rock_copper', hall, 3);
+    scatter('rock_iron', grotto, 4); scatter('rock_coal', grotto, 4); scatter('rock_tin', hall, 3); scatter('rock_copper', hall, 3);
     for (let k = 0; k < 6; k++) { const a = rnd() * 6.28, r = 2 + rnd() * (grotto.r - 3); put('crystal', grotto.x + Math.cos(a) * r, grotto.z + Math.sin(a) * r, 0.5, true, 0.7 + rnd() * 0.6); }
     // the Drip Pool: cave spiders under the webs
     for (let k = 0; k < 5; k++) { const a = rnd() * 6.28, r = 2 + rnd() * (pool.r - 3); put('web', pool.x + Math.cos(a) * r, pool.z + Math.sin(a) * r, 0.9, false, 0.8 + rnd() * 0.5); }
@@ -633,7 +677,7 @@ function buildCave(region: RegionId): IslandLayout {
   } else {
     const hall = ch('hall'), nest = ch('nest'), vein = ch('vein'), magma = ch('magma');
     scatter('rock_coal', hall, 5); scatter('rock_gold', hall, 3); scatter('rock_storm', hall, 3);
-    scatter('rock_abyss', vein, 4); scatter('rock_tide', vein, 2);
+    scatter('rock_abyss', vein, 6);
     for (let k = 0; k < 4; k++) { const a = rnd() * 6.28, r = 2 + rnd() * (vein.r - 3); put('crystal', vein.x + Math.cos(a) * r, vein.z + Math.sin(a) * r, 0.5, true, 0.8 + rnd() * 0.6); }
     // the Weaver's Nest: webs everywhere, giant spiders
     for (let k = 0; k < 9; k++) { const a = rnd() * 6.28, r = 1.5 + rnd() * (nest.r - 2.5); put('web', nest.x + Math.cos(a) * r, nest.z + Math.sin(a) * r, 0.9, false, 0.9 + rnd() * 0.6); }
@@ -641,7 +685,7 @@ function buildCave(region: RegionId): IslandLayout {
     // the Magma Pool: lava you can't cross, Cinderite vents and a vent forge, ember snakes
     props.push({ kind: 'lava', x: magma.x + 2, z: magma.z - 3, rot: 0, s: 3.2, seed: 9 });
     world.solids.push({ x: magma.x + 2, z: magma.z - 3, r: 3.4 });
-    scatter('rock_cinder', magma, 3);
+    scatter('rock_storm', magma, 3); // tidecore and cinderite are Stormwrack's now (Mining 70+)
     stations.push({ id: 'vent', x: magma.x - 4.5, z: magma.z + 4 });
     world.solids.push({ x: magma.x - 4.5, z: magma.z + 4, r: 1.2 });
     for (const [dx, dz] of [[4, 4], [-5, -2], [6, -6]]) spawns.push({ enemy: 'ember_snake', x: magma.x + dx, z: magma.z + dz });

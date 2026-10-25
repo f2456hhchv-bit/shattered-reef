@@ -6,9 +6,11 @@ import { count, stackValue } from './inventory';
 import { ITEMS } from '../data/items';
 import { levelForXp } from './xp';
 import { NODES, RECIPES, ENEMIES, LOOT, SHOPS, UNLOCKS, SKILLS } from '../data/content';
-import { LAYOUT, nearestPathDist } from '../world/island';
+import { LAYOUT, WRACK_LAYOUT, nearestPathDist } from '../world/island';
 import { toWorld, toLocal, doorPoints, isInside } from '../world/buildings';
 import { regionLayout } from '../world/layout';
+import { NPC_LOOKS } from '../../art/cast';
+import { NPCS } from '../data/quests';
 import { REGIONS, type RegionId } from '../world/regions';
 
 const base = new Game({ seed: 3 });
@@ -17,7 +19,7 @@ const IDS = Object.keys(REGIONS) as RegionId[];
 const ISLANDS = IDS.filter((id) => REGIONS[id].kind === 'island');
 /** A fresh game standing at a region's start (town or cave mouth). */
 const inRegion = (id: RegionId, seed = 3) => {
-  const L = regionLayout(id), sv = defaultSave(L.respawn, base.layout.mooring!);
+  const L = regionLayout(id), sv = defaultSave(L.respawn, (L.mooring ?? base.layout.mooring)!);
   return new Game({ seed, save: { ...sv, region: id } });
 };
 /** Where you start out on foot in a region: its harbour, or beside the rope in a cave. */
@@ -146,9 +148,9 @@ describe('content placement', () => {
 
   it('places report their danger and what can be gathered there', () => {
     expect(g.placeInfo('ruin')!.foes).toEqual([22, 22]); // the Guardian, though it is not a regular spawn
-    const peak = g.placeInfo('peak')!;
-    expect(peak.foes![0]).toBeGreaterThanOrEqual(30);
-    expect(peak.gather.map((n) => n.name)).toContain('Stormsilver vein');
+    const peak = inRegion('wrack').placeInfo('thundercrag')!;
+    expect(peak.foes![0]).toBeGreaterThanOrEqual(55);
+    expect(peak.gather.map((n) => n.name)).toContain('Abyssite vein');
     expect(g.placeInfo('wood')!.foes).toBeNull();
   });
 
@@ -251,6 +253,43 @@ describe('content placement', () => {
     expect(count(f.p.inv, 'coins')).toBe(100 + 25 - 60); // started with 25
   });
 
+  it('every NPC placed in any region has a look to be drawn with', () => {
+    const placed = IDS.flatMap((id) => regionLayout(id).npcs.map((n) => n.id));
+    expect(placed.filter((id) => !NPC_LOOKS[id] || !NPCS[id])).toEqual([]);
+  });
+
+  it('three islands in level order: every foe and every gathering spot sits inside its region\'s band', () => {
+    for (const id of IDS) {
+      const L = regionLayout(id), [lo, hi] = REGIONS[id].band!;
+      const foes = [...L.spawns.map((s) => ENEMIES[s.enemy].level), ...L.arenas.map((a) => ENEMIES[a.boss].level)];
+      expect(Math.max(...foes), `${id} hardest foe`).toBeLessThanOrEqual(hi);
+      const gather = L.nodes.filter((n) => !n.scenery).map((n) => NODES[n.def].level);
+      expect(Math.max(...gather), `${id} highest node`).toBeLessThanOrEqual(hi + 2); // gloom shoals (62) off Sunreach
+      if (REGIONS[id].kind === 'island') expect(Math.max(...gather), `${id} reaches its band`).toBeGreaterThanOrEqual(lo);
+    }
+    expect(REGIONS.bellwether.band![0]).toBe(1);
+    expect(REGIONS.wrack.band![1]).toBe(99);
+  });
+
+  it('Stormwrack: Wynn sails you there, Mercy Gale keeps the board, and dying wakes you at Gallows Landing', () => {
+    const f = fresh();
+    f.give('coins', 200);
+    const wynn = f.layout.npcs.find((n) => n.id === 'wynn')!;
+    const q = f.world.nearestWalkable(wynn.x, wynn.z, 3)!; f.p.x = q[0]; f.p.z = q[1];
+    f.takeFerry('wynn', 'wrack');
+    expect(f.s.region).toBe('wrack');
+    expect(f.ship.region).toBe('wrack');
+    expect(count(f.p.inv, 'coins')).toBe(25 + 200 - 120);
+    expect(f.layout.npcs.some((n) => n.id === 'mercy')).toBe(true);
+    for (const st of ['furnace', 'anvil', 'fire', 'bench'] as const) expect(f.layout.stations.some((s) => s.id === st), st).toBe(true);
+    expect(f.layout.banks.length).toBeGreaterThan(0);
+    const r = f.layout.respawn;
+    expect(Math.hypot(f.p.x - f.layout.port!.land.x, f.p.z - f.layout.port!.land.z)).toBeLessThan(0.01);
+    f.damagePlayer(99999); expect(f.dead).toBeGreaterThan(0); run(f, 8, () => !f.dead);
+    expect(f.s.region).toBe('wrack');
+    expect(Math.hypot(f.p.x - r.x, f.p.z - r.z)).toBeLessThan(3);
+  });
+
   it('caves: walk in through the mouth, gather and fight inside, climb the rope back out where you came in', () => {
     for (const [island, cave] of [['bellwether', 'smugglers_caves'], ['sunreach', 'ember_deep']] as const) {
       const f = inRegion(island);
@@ -329,7 +368,7 @@ describe('content placement', () => {
   });
 
   it('islet nodes can be reached from a beach the ship can sail up to', () => {
-    const I = LAYOUT.islet;
+    const g = inRegion('wrack'), I = WRACK_LAYOUT.islet;
     // a landing: walkable islet ground with open, ship-navigable water within a few metres
     let landing: [number, number] | null = null;
     for (let a = 0; a < Math.PI * 2 && !landing; a += 0.1) for (let r = 8; r < 20 && !landing; r += 0.5) {
@@ -349,8 +388,8 @@ describe('content placement', () => {
 });
 
 describe('end-game content works end to end', () => {
-  const maxed = () => {
-    const g = fresh();
+  const maxed = (id: RegionId = 'bellwether') => {
+    const g = id === 'bellwether' ? fresh() : inRegion(id);
     for (const s of SKILLS) g.p.xp[s.id] = xpForLevel(99);
     g.recalc();
     g.p.hp = g.stats.maxHp;
@@ -359,7 +398,7 @@ describe('end-game content works end to end', () => {
   const goTo = (g: Game, x: number, z: number) => { const q = g.world.nearestWalkable(x, z, 4)!; g.p.x = q[0]; g.p.z = q[1]; };
 
   it('chops Leviathan cedar and mines a tidecore vein with tidecore tools', () => {
-    const g = maxed();
+    const g = maxed('wrack');
     g.give('hatchet_tide', 1); g.give('pickaxe_tide', 1);
     for (const def of ['tree_cedar', 'rock_tide'] as const) {
       const n = g.nodes.find((x) => x.def === def)!;
@@ -406,8 +445,8 @@ describe('end-game content works end to end', () => {
     expect(g.p.inv.some((s) => s?.id === 'plate_tide')).toBe(true);
   });
 
-  it('harpoons an abyssal angler from the ship and cooks it at the fen fire', () => {
-    const g = maxed();
+  it('harpoons an abyssal angler from the ship and cooks it at the Gallows Landing fire', () => {
+    const g = maxed('wrack');
     g.give('harpoon', 1);
     const spot = g.nodes.find((x) => x.def === 'spot_angler')!;
     g.p.onShip = true;
@@ -417,7 +456,7 @@ describe('end-game content works end to end', () => {
     g.interact(`node:${spot.uid}`);
     expect(run(g, 90, () => count(g.p.inv, 'fish_angler_raw') >= 1)).toBe(true);
     g.p.onShip = false;
-    const fire = g.layout.stations.filter((s) => s.id === 'fire')[1];
+    const fire = g.layout.stations.find((s) => s.id === 'fire')!;
     goTo(g, fire.x + 1.4, fire.z + 1.2);
     g.craft('cook_angler', 1);
     run(g, 10, () => count(g.p.inv, 'fish_angler') + count(g.p.inv, 'burnt_food') >= 1);
@@ -425,7 +464,7 @@ describe('end-game content works end to end', () => {
   });
 
   it('a fishing spot refuses the wrong tool', () => {
-    const g = maxed();
+    const g = maxed('sunreach');
     const n = g.nodes.find((x) => x.def === 'spot_lobster')!;
     goTo(g, n.x, n.z);
     g.interact(`node:${n.uid}`);
