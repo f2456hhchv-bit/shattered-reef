@@ -374,7 +374,7 @@ export const PLAYER_BASE = {
 // ---- enemies -------------------------------------------------------------------
 export type EnemyModel = 'crab' | 'brigand' | 'gunner' | 'guardian' | 'boar' | 'spider' | 'snake';
 /** Visual variant: crab shell / humanoid outfit / stone tint, chosen by the renderer. */
-export type EnemyLook = 'reef' | 'mire' | 'ironshell' | 'brigand' | 'gunner' | 'smuggler' | 'poacher' | 'drowned' | 'captain' | 'sentinel' | 'cave' | 'giant' | 'jungle' | 'ember' | 'sunscale';
+export type EnemyLook = 'reef' | 'mire' | 'ironshell' | 'brigand' | 'gunner' | 'smuggler' | 'poacher' | 'drowned' | 'captain' | 'sentinel' | 'cave' | 'giant' | 'jungle' | 'ember' | 'sunscale' | 'hunter';
 
 export interface EnemyDef {
   id: string;
@@ -444,6 +444,19 @@ export const ENEMIES: Record<string, EnemyDef> = {
     speed: 2.6, radius: 0.6, aggro: 11, attack: { kind: 'shot', range: 9, windup: 0.7, cooldown: 3.0, keepAway: 4 }, loot: 'ember', respawn: 50, scale: 1.7 },
   temple_serpent: { id: 'temple_serpent', name: 'The Sunscale', model: 'snake', look: 'sunscale', boss: true, level: 60, hp: 170, att: 58, def: 42, defBonus: { melee: 40, ranged: 10, magic: 30 }, weakness: 'ranged', style: 'melee', accBonus: 50, maxHit: 9,
     speed: 2.7, radius: 1.5, aggro: 20, attack: { kind: 'melee', range: 3.5, windup: 0.6, cooldown: 3 }, loot: 'serpent', respawn: 0, scale: 3.0 },
+  // bounty hunters (bounties.ts): they come for you once your bounty is big enough; three tiers by your bounty
+  bounty_hunter_1: { hostile: true, id: 'bounty_hunter_1', name: 'Bounty hunter', model: 'brigand', look: 'hunter', level: 22, hp: 30, att: 20, def: 16, defBonus: { melee: 15, ranged: 10, magic: 0 }, weakness: 'magic', style: 'melee', accBonus: 16, maxHit: 4,
+    speed: 3.5, radius: 0.45, aggro: 14, attack: { kind: 'melee', range: 1.7, windup: 0.4, cooldown: 2.4 }, loot: 'hunter', respawn: 0, scale: 1.2 },
+  bounty_gunman_1: { hostile: true, id: 'bounty_gunman_1', name: 'Bounty gunman', model: 'gunner', look: 'hunter', level: 24, hp: 24, att: 22, def: 12, defBonus: { melee: -5, ranged: 15, magic: 5 }, weakness: 'melee', style: 'ranged', accBonus: 18, maxHit: 4,
+    speed: 3.2, radius: 0.45, aggro: 16, attack: { kind: 'shot', range: 10, windup: 0.9, cooldown: 3.4, keepAway: 6 }, loot: 'hunter', respawn: 0, scale: 1.2 },
+  bounty_hunter_2: { hostile: true, id: 'bounty_hunter_2', name: 'Veteran bounty hunter', model: 'brigand', look: 'hunter', level: 45, hp: 55, att: 42, def: 36, defBonus: { melee: 35, ranged: 25, magic: 10 }, weakness: 'magic', style: 'melee', accBonus: 38, maxHit: 7,
+    speed: 3.6, radius: 0.45, aggro: 14, attack: { kind: 'melee', range: 1.7, windup: 0.4, cooldown: 2.4 }, loot: 'hunter2', respawn: 0, scale: 1.22 },
+  bounty_gunman_2: { hostile: true, id: 'bounty_gunman_2', name: 'Veteran bounty gunman', model: 'gunner', look: 'hunter', level: 47, hp: 45, att: 44, def: 30, defBonus: { melee: 5, ranged: 35, magic: 15 }, weakness: 'melee', style: 'ranged', accBonus: 40, maxHit: 7,
+    speed: 3.3, radius: 0.45, aggro: 16, attack: { kind: 'shot', range: 11, windup: 0.85, cooldown: 3.3, keepAway: 6 }, loot: 'hunter2', respawn: 0, scale: 1.22 },
+  bounty_hunter_3: { hostile: true, id: 'bounty_hunter_3', name: 'Famed bounty hunter', model: 'brigand', look: 'hunter', level: 68, hp: 85, att: 62, def: 55, defBonus: { melee: 55, ranged: 40, magic: 25 }, weakness: 'magic', style: 'melee', accBonus: 58, maxHit: 11,
+    speed: 3.7, radius: 0.5, aggro: 14, attack: { kind: 'melee', range: 1.8, windup: 0.4, cooldown: 2.4 }, loot: 'hunter3', respawn: 0, scale: 1.3 },
+  bounty_gunman_3: { hostile: true, id: 'bounty_gunman_3', name: 'Famed bounty gunman', model: 'gunner', look: 'hunter', level: 70, hp: 70, att: 64, def: 48, defBonus: { melee: 15, ranged: 55, magic: 30 }, weakness: 'melee', style: 'ranged', accBonus: 60, maxHit: 10,
+    speed: 3.4, radius: 0.45, aggro: 16, attack: { kind: 'shot', range: 12, windup: 0.8, cooldown: 3.2, keepAway: 6 }, loot: 'hunter3', respawn: 0, scale: 1.3 },
 };
 
 export interface EliteAffix { id: string; name: string; desc: string; colour: string }
@@ -472,6 +485,12 @@ export const LOOT: Record<string, LootTable> = {
     gear: { chance: 0.12, items: ['cutlass_storm', 'helm_storm', 'longbow_amber', 'shortbow_amber', 'crossbow_storm', 'ring_gold', 'book_storm', 'shield_storm', 'amulet_gold'], weights: { common: 48, fine: 38, rare: 14 } } },
   drowned: { coins: [40, 90], drops: [{ item: 'charm_tide', chance: 0.6, qty: [10, 25] }, { item: 'fish_gloom', chance: 0.3 }, { item: 'bar_abyss', chance: 0.08 }],
     gear: { chance: 0.12, items: ['cutlass_abyss', 'helm_abyss', 'plate_abyss', 'pistol_abyss', 'staff_tide', 'greatsword_abyss', 'legs_abyss', 'book_storm', 'orb_storm'], weights: { common: 45, fine: 38, rare: 15, relic: 2 } } },
+  hunter: { coins: [40, 120], drops: [{ item: 'shot_steel', chance: 0.4, qty: [6, 14] }, { item: 'fish_lobster', chance: 0.3 }, { item: 'charm_tide', chance: 0.4, qty: [6, 14] }],
+    gear: { chance: 0.25, items: ['cutlass_storm', 'pistol_storm', 'shield_storm', 'boots_storm', 'gloves_storm', 'amulet_gold'], weights: { common: 40, fine: 45, rare: 15 } } },
+  hunter2: { coins: [120, 300], drops: [{ item: 'shot_tide', chance: 0.4, qty: [8, 16] }, { item: 'fish_sword', chance: 0.3 }, { item: 'charm_tide', chance: 0.5, qty: [10, 20] }],
+    gear: { chance: 0.3, items: ['cutlass_tide', 'pistol_tide', 'shield_tide', 'legs_tide', 'gloves_tide', 'ring_crystal'], weights: { common: 30, fine: 45, rare: 22, relic: 3 } } },
+  hunter3: { coins: [300, 700], drops: [{ item: 'shot_cinder', chance: 0.4, qty: [8, 16] }, { item: 'fish_shark', chance: 0.4 }, { item: 'crystal_geode', chance: 0.3 }],
+    gear: { chance: 0.35, items: ['cutlass_sky', 'pistol_sky', 'shield_sky', 'legs_sky', 'gloves_sky', 'amulet_crystal'], weights: { fine: 45, rare: 45, relic: 10 } } },
   captain: { coins: [120, 260], drops: [{ item: 'bar_abyss', chance: 0.4, qty: [1, 2] }, { item: 'sea_salt', chance: 0.4, qty: [2, 5] }, { item: 'fish_shark', chance: 0.4, qty: [1, 2] }],
     gear: { chance: 0.4, items: ['cutlass_tide', 'pistol_tide', 'staff_tide', 'plate_abyss', 'ring_gold', 'book_tide', 'wand_tide'], weights: { fine: 50, rare: 40, relic: 10 } } },
   sentinel: { coins: [150, 320], drops: [{ item: 'ore_tide', chance: 0.35 }, { item: 'ore_cinder', chance: 0.25 }, { item: 'crystal_geode', chance: 0.2 }, { item: 'ore_storm', chance: 0.5, qty: [1, 3] }, { item: 'charm_tide', chance: 1, qty: [20, 40] }],

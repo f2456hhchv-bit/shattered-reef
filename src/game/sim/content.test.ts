@@ -108,7 +108,8 @@ describe('content placement', () => {
     const placed = new Set(all.flatMap((L) => L.nodes.map((n) => n.def)));
     expect(Object.keys(NODES).filter((id) => !placed.has(id))).toEqual([]);
     const spawned = new Set(all.flatMap((L) => L.spawns.map((s) => s.enemy)));
-    expect(Object.values(ENEMIES).filter((e) => !e.boss && !spawned.has(e.id)).map((e) => e.id)).toEqual([]);
+    // bounty hunters aren't placed: they come looking for you (bounties.ts)
+    expect(Object.values(ENEMIES).filter((e) => !e.boss && !spawned.has(e.id) && !e.id.startsWith('bounty_')).map((e) => e.id)).toEqual([]);
     const arenas = new Set(all.flatMap((L) => L.arenas.map((a) => a.boss)));
     expect(Object.values(ENEMIES).filter((e) => e.boss && !arenas.has(e.id)).map((e) => e.id)).toEqual([]);
   });

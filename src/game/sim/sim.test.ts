@@ -795,3 +795,97 @@ describe('keys and keyholes (docs/KEYS.md)', () => {
     expect(c.key).toBe('quick_study'); // can't slot a key you don't have
   });
 });
+
+describe('bounties and crew', () => {
+  const strong = (g: Game) => { for (const k of ['attack', 'strength', 'defence', 'hitpoints'] as const) g.p.xp[k] = xpForLevel(60); g.p.equip.weapon = { id: 'cutlass_steel', qty: 1 }; g.recalc(); g.p.hp = g.stats.maxHp; };
+  const killNear = (g: Game, e: { x: number; z: number; id: number; alive: boolean }) => { g.p.x = e.x + 1.4; g.p.z = e.z; g.interact(`enemy:${e.id}`); run(g, 40, () => !e.alive); };
+
+  it('the board posts contracts; a hunt pays coins and bounty the moment it is done', () => {
+    const g = fresh(70);
+    strong(g);
+    const offers = g.boardOffers('bellwether');
+    expect(offers.length).toBeGreaterThanOrEqual(2);
+    g.s.boards.bellwether = { offers: [{ id: 999, board: 'bellwether', kind: 'hunt', enemy: 'reef_crab', need: 2, have: 0, coins: 40, bounty: 30 }], refreshAt: 1e9 };
+    g.acceptContract('bellwether', 999);
+    expect(g.s.contracts.length).toBe(1);
+    const coins0 = count(g.p.inv, 'coins');
+    for (let k = 0; k < 2; k++) killNear(g, g.enemies.find((e) => e.def.id === 'reef_crab' && e.alive && !e.elite)!);
+    expect(g.s.contracts.length).toBe(0);
+    expect(count(g.p.inv, 'coins')).toBeGreaterThanOrEqual(coins0 + 40);
+    expect(g.s.bounty).toBeGreaterThanOrEqual(30);
+  });
+
+  it('a wanted target appears where it lurks, named and tough; beating it completes the contract and it never comes back', () => {
+    const g = fresh(71);
+    strong(g);
+    const w = g.boardOffers('bellwether').find((c) => c.kind === 'wanted')!;
+    expect(w).toBeTruthy();
+    expect(w.region).toBe('bellwether');
+    g.acceptContract('bellwether', w.id);
+    run(g, 0.2);
+    const e = g.enemies.find((x) => x.contract === w.id)!;
+    expect(e).toBeTruthy();
+    expect(g.enemyName(e)).toContain(w.name!);
+    expect(e.maxHp).toBe(e.def.hp * 10 * 3);
+    e.hp = 10;
+    killNear(g, e);
+    expect(g.s.contracts.length).toBe(0);
+    expect(g.s.bounty).toBeGreaterThanOrEqual(w.bounty);
+    run(g, 2);
+    expect(g.enemies.some((x) => x.contract === w.id)).toBe(false);
+  });
+
+  it('a big bounty sends hunters after you, away from town', () => {
+    const g = fresh(72);
+    let warned = false;
+    g.on((e) => { if (e.type === 'hunters') warned = true; });
+    g.addBounty(6000);
+    expect(g.s.hunterAt).toBeGreaterThan(0);
+    const far = g.enemies.find((e) => e.def.id === 'reef_crab')!;
+    g.p.x = far.x + 3; g.p.z = far.z;
+    g.s.playTime = g.s.hunterAt + 1;
+    run(g, 0.2);
+    expect(warned).toBe(true);
+    const hunters = g.enemies.filter((e) => e.def.id.startsWith('bounty_'));
+    expect(hunters.length).toBeGreaterThanOrEqual(2);
+    expect(hunters.every((h) => h.state === 'chase' && h.once)).toBe(true);
+  });
+
+  it('crew: sign a sailor (bounty and fee), their bonus counts, and your first mate fights beside you for no XP', () => {
+    const g = fresh(73);
+    expect(g.recruitBlock('jory')).toMatch(/bounty/);
+    g.give('coins', 500);
+    const heal0 = g.stats.healBonus;
+    g.recruit('nell');
+    expect(g.s.crew).toEqual(['nell']);
+    expect(g.s.mate).toBe('nell');
+    expect(g.stats.healBonus).toBeCloseTo(heal0 + 0.1, 5);
+    const c = g.enemies.find((e) => e.def.id === 'reef_crab' && e.alive && !e.elite)!;
+    g.p.x = c.x + 4; g.p.z = c.z;
+    run(g, 0.5);
+    expect(g.mate).not.toBeNull();
+    c.state = 'chase'; // it's coming for you
+    let mateHits = 0;
+    g.on((e) => { if (e.type === 'mateAttack') mateHits++; });
+    g.p.equip.weapon = undefined; g.recalc();
+    run(g, 8, () => mateHits > 0);
+    expect(mateHits).toBeGreaterThan(0);
+    g.setMate(null);
+    run(g, 0.1);
+    expect(g.mate).toBeNull();
+  });
+
+  it('saves keep bounty, contracts and crew; junk is dropped; v7 saves start at zero', () => {
+    const d = defaultSave(base.layout.respawn, base.layout.mooring!) as unknown as Record<string, unknown>;
+    const v7 = { ...d, version: 7 } as Record<string, unknown>;
+    for (const k of ['bounty', 'boards', 'contracts', 'crew', 'mate', 'hunterAt']) delete v7[k];
+    const a = parseSave(JSON.stringify(v7), defaultSave(base.layout.respawn, base.layout.mooring!))!;
+    expect([a.bounty, a.contracts, a.crew, a.mate]).toEqual([0, [], [], null]);
+    const b = parseSave(JSON.stringify({ ...d, bounty: 1234, crew: ['nell', 'ghost'], mate: 'ghost',
+      contracts: [{ id: 1, board: 'bellwether', kind: 'hunt', enemy: 'reef_crab', need: 5, have: 2, coins: 10, bounty: 5 }, { id: 2, board: 'nowhere', enemy: 'reef_crab' }, { id: 3, board: 'sunreach', kind: 'wanted', enemy: 'nobody' }] }), defaultSave(base.layout.respawn, base.layout.mooring!))!;
+    expect(b.bounty).toBe(1234);
+    expect(b.crew).toEqual(['nell']);
+    expect(b.mate).toBeNull();
+    expect(b.contracts.map((c) => c.id)).toEqual([1]);
+  });
+});

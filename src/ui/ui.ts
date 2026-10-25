@@ -4,7 +4,7 @@ import { wears, condOf, WORN_OUT_EFFECT } from '../game/sim/inventory';
 import { onTap } from './tap';
 import { portrait } from './portrait';
 import { NPC_LOOKS, PLAYER_LOOK } from '../art/cast';
-import { NODES, SKILLS, UNLOCKS, RECIPES, UTILITY_SPELLS, ELITE_AFFIXES, PLAYER_BASE, SPELLS, type Station } from '../game/data/content';
+import { NODES, SKILLS, UNLOCKS, RECIPES, UTILITY_SPELLS, ELITE_AFFIXES, ENEMIES, PLAYER_BASE, SPELLS, type Station } from '../game/data/content';
 import type { Stance } from '../game/sim/gear';
 import { NPCS, QUESTS } from '../game/data/quests';
 import { coastDist, nearestPathDist, FLATS, SUN, coastR, sunCoastR, LAYOUT, SUN_LAYOUT } from '../game/world/island';
@@ -17,6 +17,7 @@ import type { GameRenderer } from '../render/renderer';
 import { itemIcon, rarityColour, TAB_ICONS, SKILL_ICONS, SLOT_ICONS } from './icons';
 import { LEVEL_GAIN } from '../game/data/perks';
 import { KEY, KEYS, KEY_CONFIG } from '../game/data/keys';
+import { BOARDS, CREW, BOUNTY_CONFIG, rankOf, type Contract } from '../game/data/bounties';
 
 type Tab = 'pack' | 'gear' | 'skills' | 'quests' | 'map' | 'settings';
 const TABS: { id: Tab; name: string; key: string }[] = [
@@ -244,6 +245,9 @@ export class UI {
       case 'openShop': this.openShop(); break;
       case 'ferryOffer': { const n = NPCS[e.npc]; this.confirm(`${n.idle[0]}`, `Sail (${e.price} coins)`, () => this.game.takeFerry(e.npc)); break; }
       case 'openBank': this.openBank(); break;
+      case 'openBoard': this.openBoard(e.board); break;
+      case 'rank': this.banner('Wanted!', `Bounty ${e.bounty.toLocaleString('en-GB')} · ${e.rank}`); break;
+      case 'hunters': this.banner('Bounty hunters!', 'They\'ve come to collect'); break;
       case 'hit': this.damageNumber(e.x, e.z, e.amount, e.target === 'player', e.crit); break;
       case 'dodge': this.damageNumber(e.x, e.z, 'Dodged', false, true); break;
       case 'boss': if (e.state === 'defeat') this.banner('Guardian defeated', 'The Broken Ring falls silent'); break;
@@ -409,6 +413,7 @@ export class UI {
     if (this.station && !g.nearStation(this.station)) this.closeWindows();
     if (this.shopOpen && !g.nearShop()) this.closeWindows();
     if (this.bankOpen && !g.nearBank()) this.closeWindows();
+    if (this.boardOpen && !this.nearBoard()) this.closeWindows();
     // panel content
     if (g.rev !== this.lastRev) {
       this.lastRev = g.rev;
@@ -418,6 +423,7 @@ export class UI {
       if (this.shopOpen) this.renderShop();
       if (this.loadoutOpen) this.renderLoadout();
       if (this.bankOpen) this.renderBank();
+      if (this.boardOpen) this.renderBoard();
       if (this.pop) this.renderPop();
     }
     this.mmT -= dt;
@@ -769,7 +775,11 @@ export class UI {
       }).join('');
       return `<h3 class="title" style="font-size:14px;margin:10px 0 4px">${esc(r.name)} <small class="muted">${found.length}/${here.length}</small></h3><ul style="margin:0;padding-left:18px">${items}</ul>`;
     }).join('');
-    return `<h2 class="title">Quests</h2>${qs}<div class="brass-rule"></div><h2 class="title">Places (${g.s.discovered.length}/${PLACES.length})</h2>${disc}`;
+    const contracts = g.s.contracts.map((c) => `<li>${c.kind === 'wanted' ? `<b>Wanted: ${esc(c.name!)}</b> near ${esc(g.placeNear(c.region!, c.x!, c.z!))}` : `<b>${c.have}/${c.need}</b> ${esc(ENEMIES[c.enemy].name.toLowerCase())}s`}</li>`).join('');
+    const crew = g.s.crew.length ? `<small class="muted">Crew: ${g.s.crew.map((id) => esc(CREW.find((c) => c.id === id)!.name)).join(', ')}</small>` : '';
+    const poster = `<div class="poster"><span>WANTED</span><b>${g.s.bounty.toLocaleString('en-GB')}</b><small>${esc(rankOf(g.s.bounty))}</small></div>
+      ${contracts ? `<ul style="margin:6px 0;padding-left:18px">${contracts}</ul>` : '<p class="muted" style="font-size:12px">The harbourmasters post bounty contracts on their boards.</p>'}${crew}`;
+    return `<h2 class="title">Your bounty</h2>${poster}<div class="brass-rule"></div><h2 class="title">Quests</h2>${qs}<div class="brass-rule"></div><h2 class="title">Places (${g.s.discovered.length}/${PLACES.length})</h2>${disc}`;
   }
 
   private settingsHtml() {
@@ -899,8 +909,14 @@ export class UI {
       el = h('div', { id, class: 'win panel', role: 'dialog', 'aria-label': title });
       document.body.appendChild(el);
       const g = this.game;
-      onTap(el, '.x, [data-r], [data-buy], [data-c], [data-wd], [data-dep], [data-rep], [data-sell], [data-shoptab], [data-sskill]', (b) => {
+      onTap(el, '.x, [data-r], [data-buy], [data-c], [data-wd], [data-dep], [data-rep], [data-sell], [data-shoptab], [data-sskill], [data-btab], [data-take], [data-drop-c], [data-recruit], [data-mate], [data-ferry]', (b) => {
         if (b.classList.contains('x')) { this.closeWindows(); return; }
+        if (b.dataset.btab) { this.boardTab = b.dataset.btab as 'bounties' | 'crew' | 'passage'; this.renderBoard(); return; }
+        if (b.dataset.take && this.boardOpen) { g.acceptContract(this.boardOpen, Number(b.dataset.take)); return; }
+        if (b.dataset.dropC) { g.abandonContract(Number(b.dataset.dropC)); return; }
+        if (b.dataset.recruit) { g.recruit(b.dataset.recruit); return; }
+        if (b.dataset.mate !== undefined) { g.setMate(b.dataset.mate || null); return; }
+        if (b.dataset.ferry) { const n = b.dataset.ferry; this.closeWindows(); g.takeFerry(n); return; }
         if (b.dataset.sskill && this.station) { this.stationSkill[this.station] = b.dataset.sskill; this.renderStation(); return; }
         if (b.dataset.shoptab) { this.shopTab = b.dataset.shoptab as 'buy' | 'sell'; this.renderShop(); return; }
         if (b.dataset.sell) { const [i, n] = b.dataset.sell.split(':'); g.sell(Number(i), n === 'all'); this.renderShop(); return; }
@@ -918,6 +934,8 @@ export class UI {
 
   closeWindows() {
     this.station = null;
+    this.boardOpen = null;
+    document.getElementById('boardwin')?.remove();
     this.shopOpen = false;
     this.bankOpen = false;
     document.getElementById('bankwin')?.remove();
@@ -928,7 +946,52 @@ export class UI {
     this.lastRev = -1;
   }
 
-  anyWindowOpen() { return !!(this.station || this.shopOpen || this.bankOpen || this.dialog || document.getElementById('confirm')); }
+  anyWindowOpen() { return !!(this.station || this.shopOpen || this.bankOpen || this.boardOpen || this.dialog || document.getElementById('confirm')); }
+
+  // ------------------------------------------------------------------ the harbour board: bounties, crew, passage
+  private boardOpen: string | null = null;
+  private boardTab: 'bounties' | 'crew' | 'passage' = 'bounties';
+  private nearBoard() {
+    const b = this.boardOpen && BOARDS[this.boardOpen], n = b && this.game.layout.npcs.find((x) => x.id === b.npc);
+    return !!n && !this.game.p.onShip && Math.hypot(n.x - this.game.p.x, n.z - this.game.p.z) < 6;
+  }
+  private openBoard(board: string) {
+    this.closeWindows();
+    this.boardOpen = board;
+    this.renderBoard();
+  }
+  /** One contract as a row: what, how far along, what it pays, and its button. */
+  private contractHtml(c: Contract, btn: string) {
+    const e = ENEMIES[c.enemy];
+    const what = c.kind === 'wanted' ? `<b>WANTED: ${esc(c.name!)}</b><small>A ${esc(e.name.toLowerCase())} (level ${e.level}, tougher than most). Last seen near ${esc(this.game.placeNear(c.region!, c.x!, c.z!))}.</small>`
+      : `<b>Hunt ${c.need} ${esc(e.name.toLowerCase())}s</b><small>Level ${e.level}${c.have ? ` · ${c.have}/${c.need} done` : ''}</small>`;
+    return `<div class="recipe brow"><div>${what}<div class="need">${c.coins.toLocaleString('en-GB')} coins · +${c.bounty.toLocaleString('en-GB')} bounty</div></div><div class="btns">${btn}</div></div>`;
+  }
+  private renderBoard() {
+    const g = this.game, board = this.boardOpen!, B = BOARDS[board], tab = this.boardTab;
+    const tabs = `<div class="seg shoptabs" style="margin-bottom:8px">${(['bounties', 'crew', 'passage'] as const).map((t) => `<button data-btab="${t}" class="${t === tab ? 'on' : ''}">${cap(t)}</button>`).join('')}</div>`;
+    const poster = `<div class="poster"><span>WANTED</span><b>${g.s.bounty.toLocaleString('en-GB')}</b><small>${esc(rankOf(g.s.bounty))}${g.s.bounty >= BOUNTY_CONFIG.hunterFrom ? ' · hunters are after you' : ''}</small></div>`;
+    let body = '';
+    if (tab === 'bounties') {
+      const mine = g.s.contracts.map((c) => this.contractHtml(c, `<button class="btn" data-drop-c="${c.id}">Abandon</button>`)).join('');
+      const full = g.s.contracts.length >= BOUNTY_CONFIG.maxActive;
+      const offers = g.boardOffers(board).map((c) => this.contractHtml(c, `<button class="btn primary" data-take="${c.id}" ${full ? 'disabled title="You carry the most you can"' : ''}>Take</button>`)).join('');
+      body = `${poster}<h3 class="title" style="font-size:13px">Your contracts (${g.s.contracts.length}/${BOUNTY_CONFIG.maxActive})</h3>${mine || '<p class="muted">None yet. Take one below.</p>'}
+        <h3 class="title" style="font-size:13px">On the board</h3>${offers || '<p class="muted">Nothing posted. Come back later.</p>'}<p class="muted" style="font-size:12px">New contracts are posted every ${BOUNTY_CONFIG.refreshS / 60} minutes. Contracts pay out the moment they're done.</p>`;
+    } else if (tab === 'crew') {
+      const rows = CREW.map((c) => {
+        const signed = g.s.crew.includes(c.id), mate = g.s.mate === c.id, block = g.recruitBlock(c.id);
+        const btn = signed ? (mate ? '<span class="tag">First mate</span>' : `<button class="btn" data-mate="${c.id}">Bring ashore</button>`)
+          : `<button class="btn primary" data-recruit="${c.id}" ${block ? `disabled title="${esc(block)}"` : ''}>Sign (${c.coins.toLocaleString('en-GB')}c)</button>`;
+        return `<div class="recipe brow"><div><b>${esc(c.name)}</b> <small class="muted">${esc(c.role)}</small><small>"${esc(c.line)}"</small><div class="need">${esc(c.passive.text)} · ashore: fights with ${c.mate.style}${signed || block || !c.bounty ? '' : ` · wants a bounty of ${c.bounty.toLocaleString('en-GB')}`}</div>${!signed && block ? `<div class="need miss">${esc(block)}</div>` : ''}</div><div class="btns">${btn}</div></div>`;
+      }).join('');
+      body = `${poster}<p class="muted" style="font-size:12px;margin:0 0 6px">Everyone you sign gives their bonus from aboard. Your first mate comes ashore and fights beside you.${g.s.mate ? ' <button class="btn" data-mate="">Leave everyone aboard</button>' : ''}</p>${rows}`;
+    } else {
+      const npc = NPCS[B.npc], f = npc.ferry;
+      body = f ? `<p>${esc(npc.idle[0])}</p><button class="btn primary" data-ferry="${B.npc}">Sail to ${esc(REGIONS[f.to].name)} (${f.price} coins)</button>` : '<p class="muted">No passage from here.</p>';
+    }
+    this.win('boardwin', `${NPCS[B.npc].name}'s board`, tabs + body);
+  }
 
   /** the skill tab last chosen at each station */
   private stationSkill: Partial<Record<Station, string>> = {};
