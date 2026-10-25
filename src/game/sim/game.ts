@@ -84,7 +84,8 @@ export interface Enemy {
   hitFlash: number;
   moving: boolean;
   /** key powers on this foe: seconds left of each, and marked hits left */
-  fx: { root: number; disarm: number; slow: number; shatter: number; lesson: number; marks: number };
+  fx: { root: number; disarm: number; slow: number; shatter: number; lesson: number; marks: number;
+    weak: number; ward: number; spoil: number; fuse: number; turn: number; bite: number; picked: boolean; spoilAcc: number };
   /** a one-off foe (a wanted target, a bounty hunter): drops loot, never respawns */
   once?: boolean;
   /** a wanted target: its name and the contract it belongs to */
@@ -159,6 +160,8 @@ export class Game {
   specialCd = 0;
   /** seconds until the slotted key's power can be turned again */
   keyCd = 0;
+  /** an elite's power taken with the Skeleton Key */
+  stolen: { affix: string; t: number } | null = null;
   rollCd = 0;
   rollT = 0; // > 0 while rolling (invulnerable)
   private rollDir = { x: 0, z: 1 };
@@ -189,6 +192,7 @@ export class Game {
     this.boardRnd = mulberry32(((opts.seed ?? Date.now()) ^ 0x626f6172) >>> 0);
     const home = regionLayout('bellwether');
     this.s = opts.save ?? defaultSave(home.respawn, home.mooring!);
+    if (this.s.flags.bell_done && !this.s.keyring.includes('keels_tooth')) this.s.keyring.push('keels_tooth'); // finished the bell quest before keys
     // layouts are read-only after their build, so every Game shares them (a build takes up to ~0.6 s)
     this.layout = regionLayout(this.s.region);
     this.world = this.layout.world;
@@ -293,6 +297,14 @@ export class Game {
     st.gather += this.crewV('gather') / 100;
     st.maxHp = Math.round(st.maxHp * (1 + this.crewV('max_hp') / 100));
     if (st.style === 'ranged') st.maxHit = Math.floor(st.maxHit * (1 + this.crewV('ranged_dmg') / 100));
+    const kp = this.activeKey()?.passive;
+    if (kp?.kind === 'cook') st.healBonus += kp.v / 100;
+    if (kp?.kind === 'dr') st.dr += kp.v / 100;
+    if (kp?.kind === 'ammo_save') st.ammoSave += kp.v / 100;
+    if ((kp?.kind === 'melee_dmg' && st.style === 'melee') || (kp?.kind === 'magic_dmg' && st.style === 'magic')) st.maxHit = Math.floor(st.maxHit * (1 + kp.v / 100));
+    // Steal: an elite's power for a while
+    if (this.stolen?.affix === 'barnacled') st.dr += 0.33;
+    if (this.stolen?.affix === 'frenzied') st.speed /= 1.4;
     this.stats = st;
     this.rev++;
   }
@@ -575,7 +587,8 @@ export class Game {
         const lvl = this.level(d.skill);
         if (this.rnd() < perkTotal(d.skill, lvl, 'double') / 100 && canAdd(this.p.inv, got)) { this.give(got, 1); this.msg(`Lucky haul: a second ${item(got).name.toLowerCase()}.`, 'good'); }
         const find = FINDS[d.skill];
-        if (find && this.rnd() < perkTotal(d.skill, lvl, 'find') / 100 && canAdd(this.p.inv, find)) { this.give(find, 1); this.msg(`You find a ${item(find).name.toLowerCase()}!`, 'loot'); }
+        const findMul = this.activeKey()?.passive.kind === 'find_bonus' ? 1 + this.activeKey()!.passive.v / 100 : 1;
+        if (find && this.rnd() < perkTotal(d.skill, lvl, 'find') / 100 * findMul && canAdd(this.p.inv, find)) { this.give(find, 1); this.msg(`You find a ${item(find).name.toLowerCase()}!`, 'loot'); }
         const kp = this.activeKey()?.passive;
         if (kp && ((kp.kind === 'extra_log' && d.skill === 'woodcutting') || (kp.kind === 'extra_ore' && d.skill === 'mining')) && this.rnd() < kp.v / 100 && canAdd(this.p.inv, got)) {
           this.give(got, 1); this.msg(`Your ${this.activeKey()!.name} turns up a second ${item(got).name.toLowerCase()}.`, 'good');
@@ -657,12 +670,13 @@ export class Game {
     if (block) { this.msg(block + '.', 'warn'); this.stopAction(); return; }
     const lvl = this.level(r.skill);
     // Thrifty perks: sometimes the materials survive the work
-    const saved = this.rnd() < perkTotal(r.skill, lvl, 'save') / 100;
+    const kp = this.activeKey()?.passive;
+    const saved = this.rnd() < perkTotal(r.skill, lvl, 'save') / 100 + (kp?.kind === 'smith' && r.skill === 'smithing' ? 0.08 : 0);
     if (!saved) for (const i of r.inputs) remove(this.p.inv, i.id, i.qty); // validated above: all-or-nothing
     else this.msg('Thrifty: you keep your materials.', 'good');
     this.emit({ type: 'craftFx', station: r.station });
     if (r.burn) {
-      const span = Math.max(1, r.burn.stopLevel - r.level);
+      const span = Math.max(1, r.burn.stopLevel - (kp?.kind === 'cook' ? 5 : 0) - r.level);
       const burnChance = Math.max(0, 0.45 * (1 - (lvl - r.level) / span)) * (1 - perkTotal(r.skill, lvl, 'burn') / 100);
       if (this.rnd() < burnChance) {
         this.give(r.burn.item, 1);
@@ -671,7 +685,7 @@ export class Game {
       }
     }
     if (r.rarityRoll) {
-      const fine = 0.08 + lvl * 0.01 + perkTotal(r.skill, lvl, 'fine') / 100, rare = 0.015 + lvl * 0.003;
+      const fine = 0.08 + lvl * 0.01 + perkTotal(r.skill, lvl, 'fine') / 100 + (kp?.kind === 'smith' && r.skill === 'smithing' ? kp.v / 100 : 0), rare = 0.015 + lvl * 0.003;
       const roll = this.rnd();
       const rarity = roll < rare ? 'rare' : roll < rare + fine ? 'fine' : 'common';
       const inst = makeInstance(r.output.id, rarity, this.rnd, this.uid());
@@ -683,6 +697,7 @@ export class Game {
       if (r.burn && this.rnd() < perkTotal(r.skill, lvl, 'double') / 100 && canAdd(this.p.inv, r.output.id)) { this.give(r.output.id, 1); this.msg('Two pans: you cook an extra one.', 'good'); }
     }
     this.addXp(r.skill, r.xp);
+    this.rollKeyFind('production', KEY_CONFIG.craftChance);
     this.afterCraft(a);
   }
 
@@ -704,6 +719,7 @@ export class Game {
     if (d.opens) {
       remove(this.p.inv, st.id, 1);
       this.rollLoot(LOOT[d.opens], this.p.x, this.p.z);
+      if (this.activeKey()?.passive.kind === 'double_finds') this.rollLoot(LOOT[d.opens], this.p.x, this.p.z); // the Skeleton Key opens it twice
       this.msg(`You crack the ${d.name.toLowerCase()} open.`, 'loot');
       this.rev++;
       return;
@@ -1003,6 +1019,7 @@ export class Game {
     for (const g of e.give ?? []) this.give(g.id, g.qty);
     for (const x of e.xp ?? []) this.addXp(x.skill, x.amount);
     if (e.flag) this.s.flags[e.flag] = true;
+    if (e.flag === 'bell_done') this.giveKey('keels_tooth'); // the Broken Ring gives up its key
     if (e.stage !== undefined) this.setStage(questId, e.stage);
     this.rev++;
   }
@@ -1146,7 +1163,7 @@ export class Game {
     const e: Enemy = {
       id: this.nextId++, def, x, z, facing: this.rnd() * Math.PI * 2, spawnX: x, spawnZ: z,
       hp: def.hp * HP_SCALE, maxHp: def.hp * HP_SCALE, alive: true, state: 'idle', t: 0, cd: 0, aim: null, elite: null, respawnAt: 0, summoned, wander: null, hitFlash: 0, moving: false,
-      fx: { root: 0, disarm: 0, slow: 0, shatter: 0, lesson: 0, marks: 0 },
+      fx: { root: 0, disarm: 0, slow: 0, shatter: 0, lesson: 0, marks: 0, weak: 0, ward: 0, spoil: 0, fuse: 0, turn: 0, bite: 0, picked: false, spoilAcc: 0 },
     };
     this.rollElite(e);
     this.enemies.push(e);
@@ -1404,9 +1421,9 @@ export class Game {
   /** Keys are found anywhere, extremely rarely: a key you don't have yet, most often one from this line of work. */
   private rollKeyFind(family: KeyFamily, chance: number) {
     if (this.keyRnd() >= chance) return;
-    const left = KEYS.filter((k) => !this.s.keyring.includes(k.id));
+    const left = KEYS.filter((k) => !this.s.keyring.includes(k.id) && KEY_CONFIG.rarityWeight[k.rarity] > 0);
     if (!left.length) return;
-    const w = left.map((k) => (k.family === family ? KEY_CONFIG.themeWeight : 1));
+    const w = left.map((k) => (k.family === family ? KEY_CONFIG.themeWeight : 1) * KEY_CONFIG.rarityWeight[k.rarity]);
     let r = this.keyRnd() * w.reduce((a, b) => a + b, 0);
     const pick = left.find((_, i) => (r -= w[i]) <= 0) ?? left[left.length - 1];
     this.giveKey(pick.id);
@@ -1431,6 +1448,10 @@ export class Game {
     const k = this.activeKey();
     if (block || !k) { this.msg(`${block ?? 'No key'}.`, 'warn'); return; }
     const e = this.keyTarget()!, P = k.power, boss = !!e.def.boss, bm = boss ? KEY_CONFIG.bossMul : 1;
+    // powers that don't fit this foe are refused before the cooldown starts
+    if (P.id === 'pickpocket' && e.fx.picked) { this.msg('Already picked clean.', 'warn'); return; }
+    if (P.id === 'steal' && !e.elite) { this.msg('Only elites have a power worth stealing.', 'warn'); return; }
+    if (P.id === 'turncoat' && boss) { this.msg('It won\'t turn. Some things only serve themselves.', 'warn'); return; }
     this.keyCd = P.cooldown;
     this.combatTimer = 0;
     this.facing = Math.atan2(e.z - this.p.z, e.x - this.p.x);
@@ -1467,6 +1488,36 @@ export class Game {
         this.p.hp = Math.min(this.stats.maxHp, this.p.hp + amt);
         break;
       }
+      case 'pickpocket': e.fx.picked = true; this.rollLoot(LOOT[e.def.loot], this.p.x, this.p.z); this.msg(`You pick the ${this.enemyName(e).toLowerCase()}'s keyhole clean.`, 'loot'); break;
+      case 'rust': e.fx.weak = P.dur!; break;
+      case 'spoil': e.fx.spoil = P.dur!; break;
+      case 'ward': e.fx.ward = P.dur! * bm; break;
+      case 'knockdown': {
+        e.fx.root = Math.max(e.fx.root, P.dur! * bm); e.fx.disarm = Math.max(e.fx.disarm, P.dur! * bm);
+        if (e.state === 'windup') { e.state = 'chase'; e.aim = null; }
+        if (!boss) {
+          const dx = e.x - this.p.x, dz = e.z - this.p.z, d = Math.hypot(dx, dz) || 1;
+          for (let r = 2.5; r > 0; r -= 0.25) { const nx = e.x + (dx / d) * r, nz = e.z + (dz / d) * r; if (this.world.walkable(nx, nz)) { e.x = nx; e.z = nz; break; } }
+        }
+        break;
+      }
+      case 'fuse': e.fx.fuse = P.dur!; break;
+      case 'chain': {
+        // the foe first, then up to three more within 6 m, each struck at 60% of your max hit
+        const hit = [e, ...this.enemies.filter((o) => o !== e && o.alive && o.state !== 'rise' && Math.hypot(o.x - e.x, o.z - e.z) < 6).sort((a, b) => Math.hypot(a.x - e.x, a.z - e.z) - Math.hypot(b.x - e.x, b.z - e.z)).slice(0, P.v!)];
+        for (const o of hit) { const r = this.rollAgainst(o, Math.max(HP_SCALE, Math.round(this.stats.maxHit * 0.6))); this.damageEnemy(o, r.dmg, r.crit, this.stats.style, 0.3); this.emit({ type: 'keyTurn', x: o.x, z: o.z, power: 'chain' }); }
+        break;
+      }
+      case 'toll':
+        for (const o of this.enemies) if (o.alive && Math.hypot(o.x - this.p.x, o.z - this.p.z) <= P.v!) {
+          const m = o.def.boss ? KEY_CONFIG.bossMul : 1;
+          o.fx.root = Math.max(o.fx.root, P.dur! * m); o.fx.disarm = Math.max(o.fx.disarm, P.dur! * m);
+          if (o.state === 'windup' && !o.def.boss) { o.state = 'chase'; o.aim = null; }
+        }
+        break;
+      case 'steal': this.stolen = { affix: e.elite!, t: P.dur! }; this.recalc(); this.msg(`You take the ${e.elite} power for yourself.`, 'good'); break;
+      case 'turncoat': e.fx.turn = P.dur!; if (e.state === 'windup') { e.state = 'chase'; e.aim = null; } this.telegraphs = this.telegraphs.filter((t) => t.source !== e.id); break;
+      case 'bite': e.fx.bite = P.dur! * bm; if (!boss && e.state === 'windup') { e.state = 'chase'; e.aim = null; } if (!boss) this.telegraphs = this.telegraphs.filter((t) => t.source !== e.id); break;
       case 'blink': {
         // step through the keyhole: out on the far side of the foe
         const dx = e.x - this.p.x, dz = e.z - this.p.z, d = Math.hypot(dx, dz) || 1;
@@ -1478,6 +1529,34 @@ export class Game {
     }
     this.emit({ type: 'keyTurn', x: e.x, z: e.z, power: P.id });
     this.rev++;
+  }
+
+  /** Fuse: the foe bursts, hurting it and everything within 3 m (bosses take a share). */
+  private burstFuse(e: Enemy) {
+    const big = Math.round(this.stats.maxHit * 2.5);
+    this.emit({ type: 'keyTurn', x: e.x, z: e.z, power: 'fuse' });
+    this.emit({ type: 'explode', x: e.x, z: e.z, r: 3 });
+    for (const o of [...this.enemies]) {
+      if (!o.alive || Math.hypot(o.x - e.x, o.z - e.z) > 3) continue;
+      this.damageEnemy(o, o === e ? big : Math.round(big * 0.6), false, this.stats.style, 1.2);
+    }
+  }
+
+  /** Turncoat: for a while the foe fights its own side. */
+  private stepTurncoat(e: Enemy, dt: number) {
+    e.cd = Math.max(0, e.cd - dt);
+    if (e.state === 'windup' || e.state === 'idle' || e.state === 'return') e.state = 'chase';
+    const foe = this.enemies.filter((o) => o !== e && o.alive && o.state !== 'rise' && Math.hypot(o.x - e.x, o.z - e.z) < 10)
+      .sort((a, b) => Math.hypot(a.x - e.x, a.z - e.z) - Math.hypot(b.x - e.x, b.z - e.z))[0];
+    if (!foe) { this.enemyMove(e, this.p.x, this.p.z, e.def.speed, dt, 2); return; } // keeps close, harmless
+    const reach = (e.def.attack.kind === 'shot' ? e.def.attack.range * 0.8 : e.def.attack.range) + foe.def.radius;
+    const d = Math.hypot(foe.x - e.x, foe.z - e.z);
+    e.facing = Math.atan2(foe.z - e.z, foe.x - e.x);
+    if (d > reach) { this.enemyMove(e, foe.x, foe.z, e.def.speed, dt, reach * 0.9); return; }
+    if (e.cd > 0) return;
+    e.cd = e.def.attack.cooldown;
+    this.emit({ type: 'keyTurn', x: foe.x, z: foe.z, power: 'turncoat' });
+    this.damageEnemy(foe, Math.round(e.def.maxHit * HP_SCALE * 0.8), false, e.def.style, 0.3, 0, false);
   }
 
   // ---- stances, ammo, specials -------------------------------------------------
@@ -1529,6 +1608,7 @@ export class Game {
     maxHit = Math.max(HP_SCALE, maxHit);
     let dmg = crit ? maxHit : HP_SCALE + Math.floor(this.rnd() * (maxHit - HP_SCALE + 1));
     if ((e.elite || e.def.boss) && dmg > 0) dmg = Math.round(dmg * (1 + st.eliteDmg));
+    if (this.activeKey()?.passive.kind === 'desperate' && this.p.hp < this.stats.maxHp / 2) dmg = Math.round(dmg * (1 + this.activeKey()!.passive.v / 100)); // Mutineer's Key
     if (e.fx.lesson > 0 && e.def.weakness === st.style) dmg = Math.round(dmg * (1 + (KEY.quick_study.power.v ?? 15) / 100)); // Lesson
     if (st.seaDmg && (e.def.model === 'crab' || e.def.look === 'drowned' || e.def.look === 'captain')) dmg = Math.round(dmg * (1 + st.seaDmg));
     return { dmg, crit };
@@ -1660,15 +1740,17 @@ export class Game {
   utilityBlock(kind: keyof typeof UTILITY_SPELLS): string | null {
     const u = UTILITY_SPELLS[kind];
     if (this.level('magic') < u.level) return `Needs Magic level ${u.level}`;
-    if (count(this.p.inv, 'charm_tide') < u.charms) return `Needs ${u.charms} tide charms`;
+    if (count(this.p.inv, 'charm_tide') < this.utilityCharms(kind)) return `Needs ${u.charms} tide charms`;
     if (this.dead || this.p.onShip) return 'Not now';
     if (this.utilityCd > 0) return `Ready in ${Math.ceil(this.utilityCd)} s`;
     if (kind === 'home' && this.combatTimer < 5) return 'Not while fighting';
     return null;
   }
+  /** Charms a utility spell burns (the Bell Key makes teleports free). */
+  utilityCharms(kind: keyof typeof UTILITY_SPELLS) { return kind === 'home' && this.activeKey()?.passive.kind === 'free_teleport' ? 0 : UTILITY_SPELLS[kind].charms; }
   private castUtility(kind: keyof typeof UTILITY_SPELLS) {
     const u = UTILITY_SPELLS[kind];
-    if (this.rnd() >= this.stats.charmSave) remove(this.p.inv, 'charm_tide', u.charms);
+    if (this.rnd() >= this.stats.charmSave) remove(this.p.inv, 'charm_tide', this.utilityCharms(kind));
     this.utilityCd = u.cooldown;
     this.addXp('magic', u.xp);
   }
@@ -1759,6 +1841,7 @@ export class Game {
     for (let i = before; i < this.drops.length; i++) this.drops[i].home = true; // shot from range, it still reaches you
     if (e.def.boss) this.bossDefeated(e);
     this.onBountyKill(e);
+    if (this.stolen?.affix === 'volatile') for (const o of this.enemies) if (o !== e && o.alive && Math.hypot(o.x - e.x, o.z - e.z) < 2.6) this.damageEnemy(o, this.stats.maxHit, false, this.stats.style, 0.6);
     if (e.once) e.summoned = true; // gone for good once looted
     if (!e.summoned || e.once) this.rollKeyFind(this.stats.style, KEY_CONFIG.killChance * (1 + e.def.level / 40) * (e.def.boss ? 20 : e.elite ? 3 : 1));
   }
@@ -1794,7 +1877,9 @@ export class Game {
     const def = st.defLevel * (st.def[e.def.style] + 64);
     if (this.rnd() >= hitChance(att, def)) return 0;
     const max = (e.def.maxHit + (e.elite ? 1 : 0)) * HP_SCALE;
-    return HP_SCALE + Math.floor(this.rnd() * (max - HP_SCALE + 1));
+    const dmg = HP_SCALE + Math.floor(this.rnd() * (max - HP_SCALE + 1));
+    if (e.fx.ward > 0) return 0; // Ward
+    return e.fx.weak > 0 ? Math.max(HP_SCALE, Math.round(dmg * (1 - (KEY.smith.power.v ?? 50) / 100))) : dmg; // Rust
   }
 
   /** Unavoidable area damage (telegraphs): only a dodge roll or armour helps. */
@@ -1892,6 +1977,15 @@ export class Game {
       e.moving = false;
       const f = e.fx;
       f.root = Math.max(0, f.root - dt); f.disarm = Math.max(0, f.disarm - dt); f.slow = Math.max(0, f.slow - dt); f.shatter = Math.max(0, f.shatter - dt); f.lesson = Math.max(0, f.lesson - dt);
+      f.weak = Math.max(0, f.weak - dt); f.ward = Math.max(0, f.ward - dt); f.bite = Math.max(0, f.bite - dt); f.turn = Math.max(0, f.turn - dt);
+      if (e.alive && f.spoil > 0) {
+        // Spoil: a slow rot, a whole point at a time
+        f.spoil = Math.max(0, f.spoil - dt);
+        f.spoilAcc += e.maxHp * ((KEY.cook.power.v ?? 1) / 100) * dt;
+        if (f.spoilAcc >= HP_SCALE) { const d = Math.floor(f.spoilAcc / HP_SCALE) * HP_SCALE; f.spoilAcc -= d; this.damageEnemy(e, d, false, this.stats.style, 0); }
+      }
+      if (e.alive && f.fuse > 0) { f.fuse -= dt; if (f.fuse <= 0) this.burstFuse(e); }
+      if (e.alive && f.turn > 0 && !e.def.boss) { this.stepTurncoat(e, dt); continue; }
       if (!e.alive) {
         if (!e.summoned && !e.def.boss && this.time >= e.respawnAt) {
           e.alive = true; e.x = e.spawnX; e.z = e.spawnZ; e.state = 'idle'; e.cd = 0; this.rollElite(e);
@@ -1907,7 +2001,8 @@ export class Game {
       switch (e.state) {
         case 'idle': {
           // only camps, lairs and late-game foes attack on sight; the rest fight back when you hit them
-          if (playerHittable && !inSafe && e.def.hostile && dP < e.def.aggro) { e.state = 'chase'; break; }
+          const calmed = this.activeKey()?.passive.kind === 'sea_peace' && (e.def.model === 'crab' || e.def.look === 'drowned' || e.def.look === 'captain'); // Keel's Tooth
+          if (playerHittable && !inSafe && e.def.hostile && !calmed && dP < e.def.aggro) { e.state = 'chase'; break; }
           e.t -= dt;
           if (e.t <= 0) {
             e.t = 2 + this.rnd() * 4;
@@ -1924,13 +2019,13 @@ export class Game {
             if (dP < atk.keepAway) this.enemyMove(e, e.x - (px - e.x), e.z - (pz - e.z), speed * 0.8, dt, 0);
             else if (dP > atk.range * 0.9) this.enemyMove(e, px, pz, speed, dt, atk.range * 0.8);
             e.facing = Math.atan2(pz - e.z, px - e.x);
-            if (dP <= atk.range && e.cd <= 0 && e.fx.disarm <= 0) {
+            if (dP <= atk.range && e.cd <= 0 && e.fx.disarm <= 0 && e.fx.bite <= 0) {
               e.state = 'windup'; e.t = atk.windup / fr; e.aim = { x: px, z: pz };
               this.telegraphs.push({ id: this.nextId++, kind: 'line', x: e.x, z: e.z, r: atk.range + 2, angle: Math.atan2(pz - e.z, px - e.x), width: 0.7, t: 0, dur: atk.windup / fr, damage: 0, source: e.id });
             }
           } else {
             if (dP > atk.range + e.def.radius * 0.5) this.enemyMove(e, px, pz, speed, dt, atk.range * 0.8);
-            else if (e.cd <= 0 && e.fx.disarm <= 0) { e.state = 'windup'; e.t = atk.windup / fr; this.emit({ type: 'enemyAttack', id: e.id }); }
+            else if (e.cd <= 0 && e.fx.disarm <= 0 && e.fx.bite <= 0) { e.state = 'windup'; e.t = atk.windup / fr; this.emit({ type: 'enemyAttack', id: e.id }); }
             e.facing = Math.atan2(pz - e.z, px - e.x);
           }
           break;
@@ -1954,7 +2049,7 @@ export class Game {
         }
         case 'return': {
           this.enemyMove(e, e.spawnX, e.spawnZ, speed, dt, 0.5);
-          e.hp = Math.min(e.maxHp, e.hp + e.maxHp * 0.25 * dt);
+          if (e.fx.spoil <= 0) e.hp = Math.min(e.maxHp, e.hp + e.maxHp * 0.25 * dt); // Spoil stops the healing
           if (dS < 0.8) { e.state = 'idle'; e.hp = e.maxHp; }
           break;
         }
@@ -2020,7 +2115,7 @@ export class Game {
     const frac = e.hp / e.maxHp;
     const enrage = (frac < 0.25 ? 1.35 : 1) * (e.fx.slow > 0 ? 0.6 : 1);
     // summons at 66% and 33%: crabs boil up round the Guardian, snakes drop from the temple's vines
-    if ((this.bossSummons === 0 && frac < 0.66) || (this.bossSummons === 1 && frac < 0.33)) {
+    if (e.fx.bite <= 0 && ((this.bossSummons === 0 && frac < 0.66) || (this.bossSummons === 1 && frac < 0.33))) {
       this.bossSummons++;
       for (let k = 0; k < 2; k++) {
         const a = (k / 2) * Math.PI * 2 + this.rnd();
@@ -2037,7 +2132,7 @@ export class Game {
     if (e.state === 'windup') { e.t -= dt; if (e.t <= 0) e.state = 'chase'; return; }
     e.facing = Math.atan2(pz - e.z, px - e.x);
     // one telegraph at a time: never stack two attacks to land together
-    if (this.telegraphs.some((t) => t.source === e.id) || e.fx.disarm > 0) { if (dP > 3.2) this.enemyMove(e, px, pz, e.def.speed * enrage * 0.6, dt, 3.0); return; }
+    if (this.telegraphs.some((t) => t.source === e.id) || e.fx.disarm > 0 || e.fx.bite > 0) { if (dP > 3.2) this.enemyMove(e, px, pz, e.def.speed * enrage * 0.6, dt, 3.0); return; }
     if (this.bossCast <= 0) {
       if (serpent) {
         // Venom spit: a long line toward where you stand, then a second, quicker cast soon after
@@ -2119,7 +2214,9 @@ export class Game {
     for (const t of this.telegraphs) {
       t.t += dt;
       if (t.t < t.dur) continue;
-      if (t.damage > 0 && this.insideTelegraph(t, this.p.x, this.p.z)) this.damagePlayer(t.damage);
+      const src = this.enemies.find((e) => e.id === t.source);
+      const warded = !!src && src.fx.ward > 0, rusted = !!src && src.fx.weak > 0;
+      if (t.damage > 0 && !warded && this.insideTelegraph(t, this.p.x, this.p.z)) this.damagePlayer(rusted ? t.damage / 2 : t.damage);
       if (t.kind === 'circle' && t.damage > 0) this.emit({ type: 'explode', x: t.x, z: t.z, r: t.r });
     }
     this.telegraphs = this.telegraphs.filter((t) => t.t < t.dur);
@@ -2228,6 +2325,7 @@ export class Game {
     this.s.playTime += dt;
     this.specialCd = Math.max(0, this.specialCd - dt);
     this.keyCd = Math.max(0, this.keyCd - dt);
+    if (this.stolen) { this.stolen.t -= dt; if (this.stolen.t <= 0) { this.stolen = null; this.recalc(); this.msg('The stolen power fades.'); } }
     if (this.s.keyDormant > 0) { this.s.keyDormant = Math.max(0, this.s.keyDormant - dt); if (this.s.keyDormant === 0) { this.recalc(); this.msg(`Your ${KEY[this.s.key ?? '']?.name ?? 'key'} wakes.`, 'good'); } }
     this.utilityCd = Math.max(0, this.utilityCd - dt);
     this.rollCd = Math.max(0, this.rollCd - dt);

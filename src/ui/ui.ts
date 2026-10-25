@@ -30,7 +30,7 @@ const TABS: { id: Tab; name: string; key: string }[] = [
 ];
 /** Equipment grid, four across: head and jewellery on top, the hands in the middle, the rest below. */
 const SLOT_ORDER: Slot[] = ['head', 'neck', 'ammo', 'ring', 'weapon', 'body', 'offhand', 'ring2', 'hands', 'legs', 'feet', 'wrist'];
-const KEY_HINT: Record<string, string> = { any: 'anywhere at all', woodcutting: 'in trees', mining: 'in rock', fishing: 'on the line', melee: 'on foes you cut down', ranged: 'on foes you shoot', magic: 'on foes you spell down', sailing: 'fishing from your ship', explore: 'in places nobody has charted' };
+const KEY_HINT: Record<string, string> = { any: 'anywhere at all', woodcutting: 'in trees', mining: 'in rock', fishing: 'on the line', melee: 'on foes you cut down', ranged: 'on foes you shoot', magic: 'on foes you spell down', sailing: 'fishing from your ship', explore: 'in places nobody has charted', production: 'at the anvil, the fire or the bench' };
 const SLOT_NAME: Record<Slot, string> = { weapon: 'weapon', offhand: 'off-hand', ammo: 'ammo', head: 'head', body: 'body', legs: 'legs', feet: 'feet', hands: 'hands', neck: 'neck', wrist: 'wrist', ring: 'ring', ring2: 'ring' };
 /** What an item is worn as, for the details panel. */
 const slotLabel = (d: ItemDef) => {
@@ -681,7 +681,7 @@ export class UI {
     const sleep = g.s.keyDormant > 0 ? ` · <span class="miss">sleeps ${Math.ceil(g.s.keyDormant / 60)} more min</span>` : '';
     const rows = KEYS.map((k) => {
       const have = g.s.keyring.includes(k.id), on = g.s.key === k.id;
-      if (!have) return `<div class="keyrow unknown"><i class="kicon">${KEY_SVG}</i><div><b>???</b><small class="muted">Not found yet. Keys turn up anywhere, most often ${KEY_HINT[k.family]}.</small></div></div>`;
+      if (!have) return `<div class="keyrow unknown"><i class="kicon">${KEY_SVG}</i><div><b>???</b><small class="muted">${k.rarity === 'quest' ? 'Not yet. The end of a story gives this one up.' : `Not found yet. Keys turn up anywhere, most often ${KEY_HINT[k.family]}${k.rarity === 'legendary' ? ', and this one hardly ever' : ''}.`}</small></div></div>`;
       return `<div class="keyrow${on ? ' on' : ''}"><i class="kicon">${KEY_SVG}</i><div><b>${esc(k.name)}</b><small>In you: ${esc(k.passive.text)}</small><small>${esc(k.power.name)} (${k.power.cooldown} s): ${esc(k.power.text)}</small></div>
         ${on ? '<span class="tag">Slotted</span>' : `<button class="btn" data-key="${k.id}" ${block ? `disabled title="${esc(block)}"` : ''}>Slot</button>`}</div>`;
     }).join('');

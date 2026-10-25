@@ -13,6 +13,7 @@ Reflects the actual repository, not the roadmap.
 | `node scripts/e2e.cjs` (browser, laptop + phone) | passes, no console errors |
 | `node scripts/tour.cjs` (12 places) | renders, no errors |
 | Real phone | combat build tested by Tom (smooth, no heat); art pass 1 + big island **not yet tested** on a phone |
+| Keys 11-21 (2026-10-25) | tsc, 105 vitest tests (21 keys, Keel's Tooth from the bell quest, Rust/Ward/Spoil/Pickpocket, Knockdown/Fuse/Toll/Bell, Steal/Turncoat), e2e laptop + phone, Guardian balance unchanged |
 | Bounties + crew (2026-10-25) | tsc, 101 vitest tests (hunt contract pays, wanted target spawns named and never returns, hunters at 5,000+, crew signing + passive + mate fights, save v7→v8 and junk), e2e laptop + phone, touch-e2e 3/3, Guardian balance unchanged, phone screenshots of the board, crew tab and mate in a fight |
 | Crafting + keys (2026-10-25) | tsc, 96 vitest tests (crafting play test; keys: starter XP, swap rules + dormancy + dev setting, Root/Disarm/Mark/Drain/cooldown, a key found on a kill, save v6→v7 and junk ids), e2e laptop + phone, touch-e2e 3/3, Guardian balance unchanged |
 | Gear slots (2026-10-25) | tsc, 90 vitest tests (5 new: two-handers, off-hand pairing, dual stats, rings + suit totals, v5→v6 brace save), e2e laptop + phone, touch-e2e (1 of 3 runs failed with 0/3 slot taps and the player at 4/100 health: the known flake, new clue), screenshots of the 12-slot panel, two pistols, wand + orb, wand + shield |
@@ -149,7 +150,7 @@ Reflects the actual repository, not the roadmap.
 - Items 60+ have no new gear tiers yet (combat gear tops out at level 50–60 crafted, relic drops above); new skills (Agility, Thieving, ...) not started.
 
 ## Next
-0. Tom's queue, in order: ~~gear slots~~, ~~Crafting~~, ~~first 10 keys~~, ~~bounties and crew~~ (all 2026-10-25); the other 11 keys (`docs/KEYS.md`); unique signature late weapons; island arcs with their own rules.
+0. Tom's queue, in order: ~~gear slots~~, ~~Crafting~~, ~~first 10 keys~~, ~~bounties and crew~~ (all 2026-10-25); ~~the other 11 keys~~ (2026-10-25, all 21 built: `docs/KEYS.md`); unique signature late weapons; island arcs with their own rules.
    **Crafting: built 2026-10-25** (skill 14). Workbench and furnace, levels 1-90: tan boar hides with sea salt into leather (or buy it from Marta); leather gloves 1, boots 7, cap 9, chaps 11, padded coat 14; gold ring 5, bracelet 7, amulet 8 (moved from Smithing); sea-glass orb 10; silk hood 25 ... robe top 55 (+1-3% spell damage a piece, no magic penalty); snakeskin vambraces 30 ... body 45 (archers' set); coral orb 30; books 35/55/80 (no longer sold); crystal jewellery 40-50; sunscale shield 70, ring 75, legs 78, amulet 82, body 85, helm 90. Boars drop hides. Stations serving several skills (the workbench) have a tab per skill. Original list:
    - Leather (boar hides, a new boar drop): gloves 1, boots 7, cap 9, chaps 11, coat 14. Takes over the leather set Marta sells.
    - Snakeskin (Greenheart snakes): ranged armour 30-45: bracers, boots, chaps, cowl, body (+ranged accuracy, decent defence vs magic).
