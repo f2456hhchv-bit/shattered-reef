@@ -47,6 +47,8 @@ export const PERKS: Record<SkillId, Perk[]> = {
     P(60, 'Bowyer', 'fine', 3), P(70, 'Rhythm', 'quick', 10), P(80, 'Frugal', 'save', 5), P(90, 'Master bowyer', 'xp', 5), P(99, 'Mastery', 'extra', 5)],
   cooking: [P(10, 'Watchful', 'burn', 10), P(20, 'Hearty', 'heal', 5), P(30, 'Two pans', 'double', 3), P(40, 'Patience', 'burn', 10), P(50, 'Rich stock', 'heal', 5),
     P(60, 'Three pans', 'double', 4), P(70, 'Never burnt', 'burn', 15), P(80, 'Feast', 'heal', 5), P(90, 'Chef', 'xp', 5), P(99, 'Mastery', 'heal', 10)],
+  crafting: [P(10, 'Thrifty', 'save', 3), P(20, 'Fine stitch', 'fine', 2), P(30, 'Quick needle', 'quick', 10), P(40, 'Waste not', 'save', 4), P(50, 'Jeweller\'s eye', 'fine', 3),
+    P(60, 'Rhythm', 'quick', 10), P(70, 'Frugal', 'save', 5), P(80, 'Artisan', 'fine', 4), P(90, 'Master crafter', 'xp', 5), P(99, 'Mastery', 'fine', 5)],
   attack: [P(10, 'Sure strike', 'acc', 2), P(20, 'Footwork', 'acc', 2), P(30, 'Feint', 'acc', 2), P(40, 'Read the blade', 'acc', 2), P(50, 'Clean cut', 'crit', 2),
     P(60, 'Riposte', 'acc', 2), P(70, 'Duellist', 'acc', 3), P(80, 'Precision', 'crit', 2), P(90, 'Swordmaster', 'acc', 3), P(99, 'Mastery', 'crit', 3)],
   strength: [P(10, 'Heavy hand', 'dmg', 2), P(20, 'Brawler', 'dmg', 2), P(30, 'Cleaver', 'cleave', 15), P(40, 'Power', 'dmg', 2), P(50, 'Momentum', 'dmg', 2),
@@ -71,7 +73,7 @@ const halfProduction = [H('Practised', 'quick', 5), H('Careful', 'save', 2), H('
   H('Craftsman', 'fine', 2), H('Journeyman', 'xp', 3), H('Swift', 'quick', 5), H('Economical', 'save', 3), H('Masterwork', 'fine', 3)];
 const HALF: Record<SkillId, { name: string; kind: PerkKind; v: number }[]> = {
   woodcutting: halfGathering('timber'), mining: halfGathering('veins'), fishing: halfGathering('shoals'),
-  smithing: halfProduction, gunsmithing: halfProduction, fletching: halfProduction,
+  smithing: halfProduction, gunsmithing: halfProduction, fletching: halfProduction, crafting: halfProduction,
   cooking: [H('Low flame', 'burn', 5), H('Good stock', 'heal', 3), H('Busy galley', 'quick', 10), H('Practised cook', 'burn', 5), H('Seconds', 'double', 2),
     H('Seasoned', 'heal', 3), H('Galley master', 'quick', 10), H('Sure hand', 'burn', 10), H('Feast cook', 'double', 3), H('Signature dish', 'heal', 5)],
   attack: [H('Guarded stance', 'acc', 1), H('Quick recovery', 'spec', 5), H('Measured', 'acc', 1), H('Find the gap', 'crit', 1), H('Tempo', 'spec', 5),
@@ -129,7 +131,7 @@ export function perkText(p: Perk): string {
 /** What every single level-up improves, for the levels without a perk or an unlock. */
 export const LEVEL_GAIN: Record<SkillId, string> = {
   woodcutting: '+1% success on every tree', mining: '+1% success on every rock', fishing: '+1% success at every spot',
-  smithing: '+1% masterwork chance', gunsmithing: '+1% masterwork chance on pistols', fletching: '+1% masterwork chance on bows and crossbows', cooking: 'You burn food less often',
+  smithing: '+1% masterwork chance', gunsmithing: '+1% masterwork chance on pistols', fletching: '+1% masterwork chance on bows and crossbows', crafting: '+1% masterwork chance', cooking: 'You burn food less often',
   attack: 'Better accuracy', strength: 'Harder hits', defence: 'Harder to hit', hitpoints: '+1 max health',
   ranged: 'Better aim and stopping power', magic: 'Better accuracy and stronger spells',
 };

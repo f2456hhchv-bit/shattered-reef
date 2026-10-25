@@ -40,7 +40,7 @@ describe('content data', () => {
   });
 
   it('every gathering and production skill has something to do at every level, 1 to its top tier', () => {
-    const tops: Record<string, number> = { woodcutting: 90, mining: 85, fishing: 85, smithing: 99, gunsmithing: 90, fletching: 95, cooking: 84, magic: 80 };
+    const tops: Record<string, number> = { woodcutting: 90, mining: 85, fishing: 85, smithing: 99, gunsmithing: 90, fletching: 95, cooking: 84, magic: 80, crafting: 90 };
     for (const s of SKILLS) {
       const lv = [...new Set((UNLOCKS[s.id] ?? []).map((u) => u.level))].sort((a, b) => a - b);
       if (!(s.id in tops)) continue;
@@ -338,6 +338,26 @@ describe('end-game content works end to end', () => {
       g.interact(`node:${n.uid}`);
       expect(run(g, 240, () => count(g.p.inv, NODES[def].item) >= 1), def).toBe(true); // cedar is slow by design (~1 log / 20 s at 99)
     }
+  });
+
+  it('Crafting: tans a boar hide, stitches leather gloves at the workbench, casts a gold ring at the furnace', () => {
+    const g = fresh();
+    g.give('boar_hide', 2); g.give('sea_salt', 2); g.give('bar_gold', 1);
+    (g.p.xp as Record<string, number>).crafting = 600; // level 5 for the ring
+    const bench = g.layout.stations.find((s) => s.id === 'bench')!;
+    goTo(g, bench.x + 1.2, bench.z + 1.2);
+    g.craft('craft_tan', 2);
+    run(g, 20, () => count(g.p.inv, 'leather') >= 2);
+    expect(count(g.p.inv, 'leather')).toBe(2);
+    g.craft('craft_gloves_leather', 1);
+    run(g, 10, () => count(g.p.inv, 'gloves_leather') >= 1);
+    expect(count(g.p.inv, 'gloves_leather')).toBe(1);
+    const furnace = g.layout.stations.find((s) => s.id === 'furnace')!;
+    goTo(g, furnace.x + 1.6, furnace.z + 1.6);
+    g.craft('craft_ring_gold', 1);
+    run(g, 10, () => count(g.p.inv, 'ring_gold') >= 1);
+    expect(count(g.p.inv, 'ring_gold')).toBe(1);
+    expect(g.p.xp.crafting).toBeGreaterThan(600);
   });
 
   it('smelts tidecore and forges tidecore plate at the Ironcrag forge', () => {
