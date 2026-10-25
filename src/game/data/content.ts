@@ -470,6 +470,8 @@ export interface LootTable {
   coins?: [number, number];
   drops: { item: string; chance: number; qty?: [number, number] }[];
   gear?: { chance: number; items: string[]; weights: Partial<Record<'common' | 'fine' | 'rare' | 'relic', number>> };
+  /** a signature weapon: very rare, always a relic */
+  sig?: { item: string; chance: number };
 }
 
 export const LOOT: Record<string, LootTable> = {
@@ -483,17 +485,17 @@ export const LOOT: Record<string, LootTable> = {
   ironshell: { coins: [10, 30], drops: [{ item: 'ore_coal', chance: 0.5, qty: [2, 5] }, { item: 'ore_gold', chance: 0.2 }, { item: 'shell_fragment', chance: 0.5, qty: [1, 3] }], gear: { chance: 0.06, items: ['helm_steel', 'plate_steel', 'legs_steel', 'gloves_steel'], weights: { common: 50, fine: 40, rare: 10 } } },
   poacher: { coins: [25, 60], drops: [{ item: 'logs_amber', chance: 0.25, qty: [1, 3] }, { item: 'arrow_storm', chance: 0.3, qty: [6, 15] }, { item: 'fish_salmon', chance: 0.3 }],
     gear: { chance: 0.12, items: ['cutlass_storm', 'helm_storm', 'longbow_amber', 'shortbow_amber', 'crossbow_storm', 'ring_gold', 'book_storm', 'shield_storm', 'amulet_gold'], weights: { common: 48, fine: 38, rare: 14 } } },
-  drowned: { coins: [40, 90], drops: [{ item: 'charm_tide', chance: 0.6, qty: [10, 25] }, { item: 'fish_gloom', chance: 0.3 }, { item: 'bar_abyss', chance: 0.08 }],
+  drowned: { sig: { item: 'sig_lash', chance: 1 / 400 }, coins: [40, 90], drops: [{ item: 'charm_tide', chance: 0.6, qty: [10, 25] }, { item: 'fish_gloom', chance: 0.3 }, { item: 'bar_abyss', chance: 0.08 }],
     gear: { chance: 0.12, items: ['cutlass_abyss', 'helm_abyss', 'plate_abyss', 'pistol_abyss', 'staff_tide', 'greatsword_abyss', 'legs_abyss', 'book_storm', 'orb_storm'], weights: { common: 45, fine: 38, rare: 15, relic: 2 } } },
   hunter: { coins: [40, 120], drops: [{ item: 'shot_steel', chance: 0.4, qty: [6, 14] }, { item: 'fish_lobster', chance: 0.3 }, { item: 'charm_tide', chance: 0.4, qty: [6, 14] }],
     gear: { chance: 0.25, items: ['cutlass_storm', 'pistol_storm', 'shield_storm', 'boots_storm', 'gloves_storm', 'amulet_gold'], weights: { common: 40, fine: 45, rare: 15 } } },
   hunter2: { coins: [120, 300], drops: [{ item: 'shot_tide', chance: 0.4, qty: [8, 16] }, { item: 'fish_sword', chance: 0.3 }, { item: 'charm_tide', chance: 0.5, qty: [10, 20] }],
     gear: { chance: 0.3, items: ['cutlass_tide', 'pistol_tide', 'shield_tide', 'legs_tide', 'gloves_tide', 'ring_crystal'], weights: { common: 30, fine: 45, rare: 22, relic: 3 } } },
-  hunter3: { coins: [300, 700], drops: [{ item: 'shot_cinder', chance: 0.4, qty: [8, 16] }, { item: 'fish_shark', chance: 0.4 }, { item: 'crystal_geode', chance: 0.3 }],
+  hunter3: { sig: { item: 'sig_flintlock', chance: 1 / 150 }, coins: [300, 700], drops: [{ item: 'shot_cinder', chance: 0.4, qty: [8, 16] }, { item: 'fish_shark', chance: 0.4 }, { item: 'crystal_geode', chance: 0.3 }],
     gear: { chance: 0.35, items: ['cutlass_sky', 'pistol_sky', 'shield_sky', 'legs_sky', 'gloves_sky', 'amulet_crystal'], weights: { fine: 45, rare: 45, relic: 10 } } },
-  captain: { coins: [120, 260], drops: [{ item: 'bar_abyss', chance: 0.4, qty: [1, 2] }, { item: 'sea_salt', chance: 0.4, qty: [2, 5] }, { item: 'fish_shark', chance: 0.4, qty: [1, 2] }],
+  captain: { sig: { item: 'sig_jaw', chance: 1 / 250 }, coins: [120, 260], drops: [{ item: 'bar_abyss', chance: 0.4, qty: [1, 2] }, { item: 'sea_salt', chance: 0.4, qty: [2, 5] }, { item: 'fish_shark', chance: 0.4, qty: [1, 2] }],
     gear: { chance: 0.4, items: ['cutlass_tide', 'pistol_tide', 'staff_tide', 'plate_abyss', 'ring_gold', 'book_tide', 'wand_tide'], weights: { fine: 50, rare: 40, relic: 10 } } },
-  sentinel: { coins: [150, 320], drops: [{ item: 'ore_tide', chance: 0.35 }, { item: 'ore_cinder', chance: 0.25 }, { item: 'crystal_geode', chance: 0.2 }, { item: 'ore_storm', chance: 0.5, qty: [1, 3] }, { item: 'charm_tide', chance: 1, qty: [20, 40] }],
+  sentinel: { sig: { item: 'sig_stormcaller', chance: 1 / 300 }, coins: [150, 320], drops: [{ item: 'ore_tide', chance: 0.35 }, { item: 'ore_cinder', chance: 0.25 }, { item: 'crystal_geode', chance: 0.2 }, { item: 'ore_storm', chance: 0.5, qty: [1, 3] }, { item: 'charm_tide', chance: 1, qty: [20, 40] }],
     gear: { chance: 0.35, items: ['helm_tide', 'plate_tide', 'cutlass_tide', 'staff_tide', 'book_tide', 'shield_tide', 'bracelet_gold'], weights: { fine: 50, rare: 40, relic: 10 } } },
   geode: { coins: [10, 60], drops: [{ item: 'crystal_geode', chance: 0.4 }, { item: 'charm_tide', chance: 0.5, qty: [3, 10] }, { item: 'ore_gold', chance: 0.15 }, { item: 'shell_fragment', chance: 0.3 }] },
   nest: { coins: [5, 40], drops: [{ item: 'charm_tide', chance: 0.4, qty: [3, 8] }, { item: 'berries', chance: 0.4, qty: [2, 5] }, { item: 'crystal_geode', chance: 0.08 }],
@@ -503,13 +505,13 @@ export const LOOT: Record<string, LootTable> = {
   cave_spider: { coins: [3, 12], drops: [{ item: 'spider_silk', chance: 0.45 }, { item: 'charm_tide', chance: 0.3, qty: [3, 6] }], gear: { chance: 0.04, items: ['ring_brass', 'dagger_iron'], weights: { common: 55, fine: 38, rare: 7 } } },
   boar: { coins: [6, 20], drops: [{ item: 'boar_meat_raw', chance: 0.9 }, { item: 'boar_hide', chance: 0.7 }, { item: 'boar_meat_raw', chance: 0.25 }, { item: 'charm_tide', chance: 0.2, qty: [3, 8] }], gear: { chance: 0.04, items: ['cap_leather', 'coat_padded', 'chaps_leather', 'boots_leather', 'gloves_leather'], weights: { common: 55, fine: 38, rare: 7 } } },
   snake: { coins: [8, 25], drops: [{ item: 'snake_skin', chance: 0.55 }, { item: 'charm_tide', chance: 0.35, qty: [4, 9] }], gear: { chance: 0.05, items: ['ring_gold', 'dagger_steel'], weights: { common: 50, fine: 40, rare: 10 } } },
-  spider: { coins: [30, 70], drops: [{ item: 'spider_silk', chance: 0.8, qty: [1, 3] }, { item: 'crystal_geode', chance: 0.06 }, { item: 'charm_tide', chance: 0.5, qty: [8, 16] }],
+  spider: { sig: { item: 'sig_skypiercer', chance: 1 / 350 }, coins: [30, 70], drops: [{ item: 'spider_silk', chance: 0.8, qty: [1, 3] }, { item: 'crystal_geode', chance: 0.06 }, { item: 'charm_tide', chance: 0.5, qty: [8, 16] }],
     gear: { chance: 0.1, items: ['helm_abyss', 'dagger_abyss', 'ring_gold', 'crossbow_storm'], weights: { common: 48, fine: 38, rare: 14 } } },
-  ember: { coins: [45, 95], drops: [{ item: 'snake_skin', chance: 0.5 }, { item: 'ore_cinder', chance: 0.12 }, { item: 'ore_coal', chance: 0.5, qty: [2, 4] }],
+  ember: { sig: { item: 'sig_maelstrom', chance: 1 / 350 }, coins: [45, 95], drops: [{ item: 'snake_skin', chance: 0.5 }, { item: 'ore_cinder', chance: 0.12 }, { item: 'ore_coal', chance: 0.5, qty: [2, 4] }],
     gear: { chance: 0.1, items: ['cutlass_abyss', 'staff_tide', 'plate_abyss', 'longbow_amber'], weights: { common: 45, fine: 40, rare: 13, relic: 2 } } },
-  serpent: { coins: [300, 600], drops: [{ item: 'sunscale', chance: 1, qty: [1, 3] }, { item: 'snake_skin', chance: 1, qty: [3, 6] }, { item: 'bar_abyss', chance: 0.5, qty: [1, 3] }, { item: 'charm_tide', chance: 1, qty: [40, 80] }],
+  serpent: { sig: { item: 'sig_fang', chance: 1 / 40 }, coins: [300, 600], drops: [{ item: 'sunscale', chance: 1, qty: [1, 3] }, { item: 'snake_skin', chance: 1, qty: [3, 6] }, { item: 'bar_abyss', chance: 0.5, qty: [1, 3] }, { item: 'charm_tide', chance: 1, qty: [40, 80] }],
     gear: { chance: 1, items: ['cutlass_tide', 'pistol_tide', 'staff_tide', 'helm_tide', 'plate_tide', 'longbow_amber'], weights: { rare: 65, relic: 35 } } },
-  guardian: { coins: [80, 130], drops: [{ item: 'bar_iron', chance: 1, qty: [2, 4] }, { item: 'charm_tide', chance: 1, qty: [20, 40] }],
+  guardian: { sig: { item: 'sig_bell', chance: 1 / 80 }, coins: [80, 130], drops: [{ item: 'bar_iron', chance: 1, qty: [2, 4] }, { item: 'charm_tide', chance: 1, qty: [20, 40] }],
     gear: { chance: 1, items: ['lockplate', 'cutlass_iron', 'ring_brass', 'pistol_iron'], weights: { rare: 70, relic: 30 } } },
 };
 

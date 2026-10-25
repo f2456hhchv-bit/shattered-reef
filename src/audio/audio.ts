@@ -162,7 +162,7 @@ export class GameAudio {
       }
       case 'teleport': this.hiss(1.1, { freq: 300, to: 2400, q: 0.6, gain: 0.3, attack: 0.2 }); [523, 784, 1046].forEach((f) => this.tone(f, 0.9, { gain: 0.04, vib: 12 })); break;
       case 'keyTurn': { const k = this.near(e.x, e.z); this.tone(1800, 0.05, { gain: 0.08 * k }); this.tone(1200, 0.08, { gain: 0.06 * k }); this.hiss(0.25, { freq: 600, to: 3000, q: 1, gain: 0.12 * k, attack: 0.04 }); break; } // click, then the power
-      case 'keyFound': this.fanfare(); break;
+      case 'keyFound': case 'sigDrop': this.fanfare(); break;
       case 'alchemy': [1046, 1318, 1568].forEach((f) => this.tone(f, 0.35, { gain: 0.05 })); break;
       case 'squall': this.hiss(0.9, { freq: 500, to: 3000, q: 0.7, gain: 0.25, attack: 0.15 }); [660, 990, 1320].forEach((f) => this.tone(f, 0.7, { gain: 0.04, vib: 20 })); break;
       case 'roll': this.hiss(0.25, { type: 'lowpass', freq: 900, gain: 0.14, attack: 0.03 }); break;

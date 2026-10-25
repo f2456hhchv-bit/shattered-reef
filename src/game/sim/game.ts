@@ -34,6 +34,7 @@ export type GameEvent =
   | { type: 'teleport'; fromX: number; fromZ: number; x: number; z: number }
   | { type: 'alchemy' }
   | { type: 'keyFound'; id: string }
+  | { type: 'sigDrop'; id: string }
   | { type: 'openBoard'; board: string }
   | { type: 'rank'; bounty: number; rank: string }
   | { type: 'hunters'; x: number; z: number }
@@ -1255,7 +1256,7 @@ export class Game {
   private onBountyKill(e: Enemy) {
     if (e.contract !== undefined) {
       const c = this.s.contracts.find((x) => x.id === e.contract);
-      if (c) { this.rollLoot(LOOT[e.def.loot], e.x, e.z); this.completeContract(c); } // a wanted target carries a second share of loot
+      if (c) { this.rollLoot(LOOT[e.def.loot], e.x, e.z); if (this.rnd() < 1 / 25) this.dropSig('sig_locksmith', e.x, e.z); this.completeContract(c); } // a wanted target carries a second share of loot
     }
     for (const c of [...this.s.contracts]) if (c.kind === 'hunt' && c.enemy === e.def.id) { c.have++; if (c.have >= c.need) this.completeContract(c); else this.rev++; }
     if (e.def.boss) this.addBounty(BOUNTY_CONFIG.bossBounty[e.def.id] ?? 1000);
@@ -1531,6 +1532,59 @@ export class Game {
     this.rev++;
   }
 
+  /** Signature melee rules, after the hit lands. */
+  private jawN = 0;
+  private sigMelee(t: Enemy, dmg: number) {
+    const st = this.stats, boss = !!t.def.boss;
+    switch (st.sig) {
+      case 'lash': {
+        // drag the foe a little toward you and slow it
+        if (!boss) { const dx = this.p.x - t.x, dz = this.p.z - t.z, d = Math.hypot(dx, dz); if (d > 1.4 + t.def.radius) { const nx = t.x + (dx / d) * 0.6, nz = t.z + (dz / d) * 0.6; if (this.world.walkable(nx, nz)) { t.x = nx; t.z = nz; } } }
+        t.fx.slow = Math.max(t.fx.slow, 2);
+        break;
+      }
+      case 'jaw':
+        if (++this.jawN % 4 === 0) {
+          const r2 = this.rollAgainst(t);
+          this.damageEnemy(t, r2.dmg, r2.crit, 'melee', 0.4);
+          this.p.hp = Math.min(this.stats.maxHp, this.p.hp + Math.round((dmg + r2.dmg) * 0.05));
+          this.emit({ type: 'keyTurn', x: t.x, z: t.z, power: 'drain' });
+        }
+        break;
+      case 'bell':
+        if (dmg > 0 && this.rnd() < 0.25) { const m = boss ? 0.5 : 1; t.fx.root = Math.max(t.fx.root, 1.5 * m); t.fx.disarm = Math.max(t.fx.disarm, 1.5 * m); if (!boss && t.state === 'windup') { t.state = 'chase'; t.aim = null; } this.emit({ type: 'keyTurn', x: t.x, z: t.z, power: 'toll' }); }
+        break;
+      case 'venom': if (dmg > 0) t.fx.spoil = Math.max(t.fx.spoil, 4); break;
+    }
+  }
+
+  /** Signature ranged and magic rules: the extra targets are struck as the shot leaves. */
+  private sigRanged(t: Enemy) {
+    const st = this.stats;
+    const others = (r: number, from = t) => this.enemies.filter((o) => o !== t && o.alive && o.state !== 'rise' && Math.hypot(o.x - from.x, o.z - from.z) <= r)
+      .sort((a, b) => Math.hypot(a.x - from.x, a.z - from.z) - Math.hypot(b.x - from.x, b.z - from.z));
+    const strike = (o: Enemy, mul: number, power: string) => { const r = this.rollAgainst(o, Math.max(HP_SCALE, Math.round(st.maxHit * mul))); this.damageEnemy(o, r.dmg, r.crit, st.style, 0.2); this.emit({ type: 'keyTurn', x: o.x, z: o.z, power }); };
+    switch (st.sig) {
+      case 'ricochet': { const o = others(5)[0]; if (o) strike(o, 0.5, 'mark'); break; }
+      case 'storm': for (const o of others(5).slice(0, 2)) strike(o, 0.3, 'chain'); break;
+      case 'pierce': {
+        const ux = (t.x - this.p.x) / (Math.hypot(t.x - this.p.x, t.z - this.p.z) || 1), uz = (t.z - this.p.z) / (Math.hypot(t.x - this.p.x, t.z - this.p.z) || 1);
+        for (const o of this.enemies) {
+          if (o === t || !o.alive || o.state === 'rise') continue;
+          const ax = o.x - this.p.x, az = o.z - this.p.z, along = ax * ux + az * uz;
+          if (along > 0.5 && along <= st.range + 4 && Math.abs(ax * uz - az * ux) < 0.8 + o.def.radius) strike(o, 0.7, 'blink');
+        }
+        break;
+      }
+      case 'maelstrom':
+        for (const o of others(2.5)) {
+          if (!o.def.boss) { const dx = t.x - o.x, dz = t.z - o.z, d = Math.hypot(dx, dz) || 1, nx = o.x + (dx / d) * 0.8, nz = o.z + (dz / d) * 0.8; if (this.world.walkable(nx, nz)) { o.x = nx; o.z = nz; } }
+          strike(o, 0.5, 'undertow');
+        }
+        break;
+    }
+  }
+
   /** Fuse: the foe bursts, hurting it and everything within 3 m (bosses take a share). */
   private burstFuse(e: Enemy) {
     const big = Math.round(this.stats.maxHit * 2.5);
@@ -1609,6 +1663,8 @@ export class Game {
     let dmg = crit ? maxHit : HP_SCALE + Math.floor(this.rnd() * (maxHit - HP_SCALE + 1));
     if ((e.elite || e.def.boss) && dmg > 0) dmg = Math.round(dmg * (1 + st.eliteDmg));
     if (this.activeKey()?.passive.kind === 'desperate' && this.p.hp < this.stats.maxHp / 2) dmg = Math.round(dmg * (1 + this.activeKey()!.passive.v / 100)); // Mutineer's Key
+    const f = e.fx, keyed = f.root > 0 || f.disarm > 0 || f.slow > 0 || f.shatter > 0 || f.lesson > 0 || f.weak > 0 || f.ward > 0 || f.spoil > 0 || f.bite > 0 || f.marks > 0;
+    if (st.sig === 'locksmith' && keyed) dmg = Math.round(dmg * 1.25); // Locksmith's Blade
     if (e.fx.lesson > 0 && e.def.weakness === st.style) dmg = Math.round(dmg * (1 + (KEY.quick_study.power.v ?? 15) / 100)); // Lesson
     if (st.seaDmg && (e.def.model === 'crab' || e.def.look === 'drowned' || e.def.look === 'captain')) dmg = Math.round(dmg * (1 + st.seaDmg));
     return { dmg, crit };
@@ -1654,6 +1710,7 @@ export class Game {
         return along > 0.3 && along <= st.range + e.def.radius + 0.6 && Math.abs(ax * uz - az * ux) < 0.7 + e.def.radius;
       }) : [];
       this.damageEnemy(t, r.dmg, r.crit, 'melee', st.kind === 'greatsword' ? 0.6 : 0.35);
+      if (st.sig && t.alive) this.sigMelee(t, r.dmg);
       // a blade in the off-hand follows up on the same target
       if (st.dual && t.alive) { this.wear(this.p.equip.offhand, WEAR.weapon); const r2 = this.rollAgainst(t, st.dual.maxHit, st.dual.attRoll); this.damageEnemy(t, r2.dmg, r2.crit, 'melee', 0.15); }
       for (const e of pierced) { const rr = this.rollAgainst(e); this.damageEnemy(e, Math.round(rr.dmg * 0.6), false, 'melee', 0.3); }
@@ -1668,6 +1725,7 @@ export class Game {
     if (block) { this.warnAmmo(block); return false; }
     this.consumeAmmo(shots);
     this.fireAt(t, this.rollAgainst(t), st.style, st.spell?.baseXp ?? 0, st.dual ? -0.05 : 0);
+    if (st.sig) this.sigRanged(t);
     if (st.dual) { this.wear(this.p.equip.offhand, WEAR.weapon); this.fireAt(t, this.rollAgainst(t, st.dual.maxHit, st.dual.attRoll), st.style, 0, 0.05); }
     return true;
   }
@@ -1841,6 +1899,7 @@ export class Game {
     for (let i = before; i < this.drops.length; i++) this.drops[i].home = true; // shot from range, it still reaches you
     if (e.def.boss) this.bossDefeated(e);
     this.onBountyKill(e);
+    if (this.stats.sig === 'locksmith') this.keyCd = Math.max(0, this.keyCd - 5);
     if (this.stolen?.affix === 'volatile') for (const o of this.enemies) if (o !== e && o.alive && Math.hypot(o.x - e.x, o.z - e.z) < 2.6) this.damageEnemy(o, this.stats.maxHit, false, this.stats.style, 0.6);
     if (e.once) e.summoned = true; // gone for good once looted
     if (!e.summoned || e.once) this.rollKeyFind(this.stats.style, KEY_CONFIG.killChance * (1 + e.def.level / 40) * (e.def.boss ? 20 : e.elite ? 3 : 1));
@@ -1856,11 +1915,19 @@ export class Game {
       const qty = d.qty ? d.qty[0] + Math.floor(this.rnd() * (d.qty[1] - d.qty[0] + 1)) : 1;
       this.dropAt(x, z, { id: d.item, qty });
     }
+    if (table.sig && this.rnd() < table.sig.chance) this.dropSig(table.sig.item, x, z);
     if (table.gear && this.rnd() < table.gear.chance) {
       const id = table.gear.items[Math.floor(this.rnd() * table.gear.items.length)];
       const rarity = rollRarity(table.gear.weights, this.rnd);
       this.dropAt(x, z, { id, qty: 1, inst: makeInstance(id, rarity, this.rnd, this.uid()) });
     }
+  }
+
+  /** A signature weapon: always a relic, and the whole island hears about it. */
+  private dropSig(id: string, x: number, z: number) {
+    this.dropAt(x, z, { id, qty: 1, inst: makeInstance(id, 'relic', this.rnd, this.uid()) });
+    this.emit({ type: 'sigDrop', id });
+    this.msg(`Something rare falls: ${item(id).name}!`, 'loot');
   }
 
   dropAt(x: number, z: number, stack: Stack, delay = 0) {

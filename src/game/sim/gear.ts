@@ -1,4 +1,4 @@
-import { item, AFFIXES, RARITY, AMMO_FOR, weaponKind, ammoKind, pairGroup, type Rarity, type Slot, type SkillId, type CombatStyle, type WeaponKind, type AmmoKind } from '../data/items';
+import { item, AFFIXES, RARITY, AMMO_FOR, weaponKind, ammoKind, pairGroup, type Rarity, type Slot, type SkillId, type CombatStyle, type WeaponKind, type AmmoKind, type SigId } from '../data/items';
 import { HP_SCALE, SPELLS } from '../data/content';
 import { condOf, WORN_OUT_EFFECT, type Inst, type Stack } from './inventory';
 import { levelForXp } from './xp';
@@ -71,6 +71,8 @@ export interface PlayerStats {
   kind: WeaponKind; // weapon family
   /** a second weapon in the off-hand: its own accuracy roll and max hit, used on every attack */
   dual: { attRoll: number; maxHit: number } | null;
+  /** a signature weapon's rule, if you wield one */
+  sig: SigId | null;
   needsAmmo: AmmoKind | null; // what the ammo slot must hold for this weapon
   speed: number; // seconds per attack
   range: number; // metres
@@ -203,6 +205,7 @@ export function computeStats(xp: Record<SkillId, number>, equip: Partial<Record<
     style,
     kind,
     dual,
+    sig: mainDef?.sig?.id ?? null,
     needsAmmo,
     speed: (style === 'ranged' && stance === 'aggressive' ? baseSpeed * 0.75 : baseSpeed) / (1 + speedPct / 100), // "rapid"
     range: (weapon?.range ?? 1.6) + (kp?.kind === 'ranged_acc' && style === 'ranged' ? 1 : 0),
