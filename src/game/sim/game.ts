@@ -2,6 +2,7 @@ import { mulberry32 } from '../../art/noise';
 import { item, ammoKind, AMMO_NAME, isTwoHanded, offhandBlock, pairGroup, type ItemDef, type Slot, type SkillId, type CombatStyle } from '../data/items';
 import { perkTotal } from '../data/perks';
 import { KEY, KEYS, KEY_CONFIG, type KeyDef, type KeyFamily } from '../data/keys';
+import { BOARDS, BOUNTY_CONFIG, CREW_BY, WANTED_FIRST, WANTED_LAST, rankOf, type Contract, type CrewPassive } from '../data/bounties';
 import { HP_SCALE, NODES, RECIPES, ENEMIES, LOOT, ELITE_AFFIXES, SHOPS, PLAYER_BASE, UTILITY_SPELLS, COMBAT_SKILLS, XP_PER_DAMAGE, type EnemyDef, type Recipe, type Station } from '../data/content';
 import { NPCS, QUESTS, type DialogueNode, type Effect } from '../data/quests';
 import { PLACES, placeRegion } from '../world/places';
@@ -33,6 +34,10 @@ export type GameEvent =
   | { type: 'teleport'; fromX: number; fromZ: number; x: number; z: number }
   | { type: 'alchemy' }
   | { type: 'keyFound'; id: string }
+  | { type: 'openBoard'; board: string }
+  | { type: 'rank'; bounty: number; rank: string }
+  | { type: 'hunters'; x: number; z: number }
+  | { type: 'mateAttack'; x: number; z: number; tx: number; tz: number; style: CombatStyle }
   | { type: 'keyTurn'; x: number; z: number; power: string }
   | { type: 'ferryOffer'; npc: string; to: string; price: number }
   | { type: 'roll' }
@@ -80,7 +85,15 @@ export interface Enemy {
   moving: boolean;
   /** key powers on this foe: seconds left of each, and marked hits left */
   fx: { root: number; disarm: number; slow: number; shatter: number; lesson: number; marks: number };
+  /** a one-off foe (a wanted target, a bounty hunter): drops loot, never respawns */
+  once?: boolean;
+  /** a wanted target: its name and the contract it belongs to */
+  named?: string;
+  contract?: number;
 }
+
+/** Your first mate, ashore with you. */
+export interface Mate { id: string; x: number; z: number; facing: number; cd: number; moving: boolean }
 
 
 export interface Drop { id: number; x: number; z: number; stack: Stack; t: number; home?: boolean } // home: loot from your kill, flies to you
@@ -119,6 +132,10 @@ export class Game {
   rnd: () => number;
   /** key finds roll on their own stream, so adding them never reshuffles fights or gathering */
   private keyRnd: () => number;
+  /** bounty boards roll on their own stream too */
+  private boardRnd: () => number;
+  /** your first mate, when ashore */
+  mate: Mate | null = null;
   time = 0;
   /** increments on any change the UI should redraw (inventory, skills, quests, equipment) */
   rev = 0;
@@ -169,6 +186,7 @@ export class Game {
   constructor(opts: { seed?: number; save?: SaveData | null } = {}) {
     this.rnd = mulberry32(opts.seed ?? (Date.now() & 0xffffffff));
     this.keyRnd = mulberry32(((opts.seed ?? Date.now()) ^ 0x6b657973) >>> 0);
+    this.boardRnd = mulberry32(((opts.seed ?? Date.now()) ^ 0x626f6172) >>> 0);
     const home = regionLayout('bellwether');
     this.s = opts.save ?? defaultSave(home.respawn, home.mooring!);
     // layouts are read-only after their build, so every Game shares them (a build takes up to ~0.6 s)
@@ -189,7 +207,7 @@ export class Game {
     this.nodes = this.layout.nodes.map((n) => ({ ...n, depletedUntil: 0, left: this.rollYield(n.def) }));
     // only a few dig spots are disturbed at any time; the rest surface later
     for (const n of this.nodes) if (NODES[n.def].verb === 'Dig' && this.rnd() < 0.75) n.depletedUntil = this.rnd() * NODES[n.def].respawn;
-    this.enemies = []; this.drops = []; this.projectiles = []; this.telegraphs = [];
+    this.enemies = []; this.drops = []; this.projectiles = []; this.telegraphs = []; this.mate = null;
     this.boss = null; this.bossArena = null;
     for (const sp of this.layout.spawns) this.spawnEnemy(ENEMIES[sp.enemy], sp.x, sp.z, false);
     this.path = []; this.pending = null; this.target = null; this.action = null; this.shipTarget = null; this.shipRoute = [];
@@ -268,7 +286,18 @@ export class Game {
   get p() { return this.s.player; }
   get ship() { return this.s.ship; }
   level(skill: SkillId) { return levelForXp(this.p.xp[skill]); }
-  recalc() { this.stats = computeStats(this.p.xp, this.p.equip, this.s.combat.stance, this.s.combat.spell, this.activeKey()); this.rev++; }
+  recalc() {
+    const st = computeStats(this.p.xp, this.p.equip, this.s.combat.stance, this.s.combat.spell, this.activeKey());
+    // your crew's passives (every recruit counts, ashore or aboard)
+    st.healBonus += this.crewV('heal') / 100;
+    st.gather += this.crewV('gather') / 100;
+    st.maxHp = Math.round(st.maxHp * (1 + this.crewV('max_hp') / 100));
+    if (st.style === 'ranged') st.maxHit = Math.floor(st.maxHit * (1 + this.crewV('ranged_dmg') / 100));
+    this.stats = st;
+    this.rev++;
+  }
+  /** Sum of a crew passive over everyone you've signed. */
+  crewV(kind: CrewPassive) { return (this.s.crew ?? []).reduce((a, id) => a + (CREW_BY[id]?.passive.kind === kind ? CREW_BY[id].passive.v : 0), 0); }
 
   // ------------------------------------------------------------------ xp + items
   addXp(skill: SkillId, amount: number) {
@@ -383,6 +412,7 @@ export class Game {
   }
 
   enemyName(e: Enemy) {
+    if (e.named) return `${e.named} (wanted)`;
     const a = e.elite ? ELITE_AFFIXES.find((x) => x.id === e.elite) : null;
     return a ? `${a.name} ${e.def.name.toLowerCase()}` : e.def.name;
   }
@@ -905,11 +935,11 @@ export class Game {
   }
   buyPrice(id: string) {
     const e = this.shop.stock.find((x) => x.id === id);
-    return Math.max(1, Math.ceil(item(id).value * (e?.qty ?? 1) * this.shop.buyMul));
+    return Math.max(1, Math.ceil(item(id).value * (e?.qty ?? 1) * this.shop.buyMul * (1 - this.crewV('trade') / 100)));
   }
   sellPrice(st: Stack) {
     const want = this.shop.wants?.find((w) => st.id.startsWith(w.prefix));
-    return Math.floor(stackValue(st) * this.shop.sellMul * (want?.mul ?? 1));
+    return Math.floor(stackValue(st) * this.shop.sellMul * (want?.mul ?? 1) * (1 + this.crewV('trade') / 100));
   }
 
   buy(id: string) {
@@ -956,6 +986,8 @@ export class Game {
     }
     if (npc.shop && this.openShopOf(npcId)) return;
     if (npc.bank) { this.emit({ type: 'openBank' }); return; }
+    const board = Object.keys(BOARDS).find((b) => BOARDS[b].npc === npcId);
+    if (board) { this.emit({ type: 'openBoard', board }); return; } // harbourmasters keep the bounty board (and the ferry)
     if (npc.ferry) { this.emit({ type: 'ferryOffer', npc: npcId, to: npc.ferry.to, price: npc.ferry.price }); return; }
     if (npc.heals && this.p.hp < this.stats.maxHp) {
       this.p.hp = this.stats.maxHp;
@@ -1070,7 +1102,7 @@ export class Game {
       sh.heading += Math.max(-1, Math.min(1, diff * 2.2)) * 1.25 * dt;
       throttle *= Math.max(0.25, Math.cos(diff) * 0.5 + 0.5);
     }
-    const maxSpeed = 7.5 * (this.activeKey()?.passive.kind === 'ship_speed' ? 1 + this.activeKey()!.passive.v / 100 : 1);
+    const maxSpeed = 7.5 * (this.activeKey()?.passive.kind === 'ship_speed' ? 1 + this.activeKey()!.passive.v / 100 : 1) * (1 + this.crewV('ship_speed') / 100);
     const targetSpeed = throttle * maxSpeed;
     this.shipSpeed += (targetSpeed - this.shipSpeed) * Math.min(1, dt * (targetSpeed > this.shipSpeed ? 0.7 : 1.2));
     if (this.shipSpeed > 0.01) {
@@ -1130,6 +1162,193 @@ export class Game {
       e.maxHp = Math.round(e.def.hp * HP_SCALE * (e.elite === 'barnacled' ? 3 : 2));
     }
     e.hp = e.maxHp;
+  }
+
+  // ---- bounties and crew (bounties.ts) -----------------------------------------------
+  /** A board's offers, refreshed every half hour of play (and topped up after you take one). */
+  boardOffers(board: string): Contract[] {
+    const b = (this.s.boards[board] ??= { offers: [], refreshAt: 0 });
+    if (this.s.playTime >= b.refreshAt || !b.offers.length) { b.offers = this.makeOffers(board); b.refreshAt = this.s.playTime + BOUNTY_CONFIG.refreshS; }
+    return b.offers;
+  }
+
+  private makeOffers(board: string): Contract[] {
+    const B = BOARDS[board], r = this.boardRnd, cl = this.stats.combatLevel;
+    const pickOf = <T,>(a: T[]) => a[Math.floor(r() * a.length)];
+    // what lives on this island and in its caves, near enough your level
+    const foes = new Map<string, { region: RegionId; x: number; z: number }[]>();
+    for (const reg of B.regions) for (const sp of regionLayout(reg).spawns) {
+      const d = ENEMIES[sp.enemy];
+      if (!d || d.boss) continue;
+      (foes.get(d.id) ?? foes.set(d.id, []).get(d.id)!).push({ region: reg, x: sp.x, z: sp.z });
+    }
+    let ids = [...foes.keys()].filter((id) => ENEMIES[id].level <= cl + 12);
+    if (ids.length < 2) ids = [...foes.keys()].sort((a, b) => ENEMIES[a].level - ENEMIES[b].level).slice(0, 3);
+    const out: Contract[] = [];
+    const used = new Set<string>();
+    for (let k = 0; k < BOUNTY_CONFIG.offers - 1 && ids.length; k++) {
+      const left = ids.filter((id) => !used.has(id));
+      const id = pickOf(left.length ? left : ids); used.add(id);
+      const lv = ENEMIES[id].level, need = BOUNTY_CONFIG.huntN[0] + Math.floor(r() * (BOUNTY_CONFIG.huntN[1] - BOUNTY_CONFIG.huntN[0] + 1));
+      out.push({ id: this.uid(), board, kind: 'hunt', enemy: id, need, have: 0, coins: need * lv * BOUNTY_CONFIG.coinsPer, bounty: need * lv * BOUNTY_CONFIG.bountyPer });
+    }
+    // one wanted target: a named foe from a camp on the island itself
+    const hostile = ids.filter((id) => ENEMIES[id].hostile && foes.get(id)!.some((p) => p.region === B.island));
+    if (hostile.length) {
+      const id = pickOf(hostile), lv = ENEMIES[id].level, at = pickOf(foes.get(id)!.filter((p) => p.region === B.island));
+      const m = 10 * lv * BOUNTY_CONFIG.wantedMul;
+      out.push({ id: this.uid(), board, kind: 'wanted', enemy: id, need: 1, have: 0, coins: m * BOUNTY_CONFIG.coinsPer, bounty: m * BOUNTY_CONFIG.bountyPer,
+        name: `${pickOf(WANTED_FIRST)} ${pickOf(WANTED_LAST)}`, region: at.region, x: at.x, z: at.z });
+    }
+    return out;
+  }
+
+  /** Take a contract off a board. */
+  acceptContract(board: string, id: number) {
+    const b = this.s.boards[board], c = b?.offers.find((o) => o.id === id);
+    if (!c) return;
+    if (this.s.contracts.length >= BOUNTY_CONFIG.maxActive) { this.msg(`You can carry ${BOUNTY_CONFIG.maxActive} contracts at once.`, 'warn'); return; }
+    b.offers = b.offers.filter((o) => o !== c);
+    this.s.contracts.push(c);
+    this.msg(c.kind === 'wanted' ? `Contract taken: ${c.name}, wanted. Last seen near ${this.placeNear(c.region!, c.x!, c.z!)}.` : `Contract taken: ${c.need} ${ENEMIES[c.enemy].name.toLowerCase()}s.`, 'quest');
+    this.rev++;
+  }
+  abandonContract(id: number) { this.s.contracts = this.s.contracts.filter((c) => c.id !== id); this.rev++; }
+
+  /** The nearest named place to a spot (for "last seen near ..."). */
+  placeNear(region: RegionId, x: number, z: number) {
+    let best = REGIONS[region].name, bd = Infinity;
+    for (const pl of PLACES) { if (placeRegion(pl) !== region) continue; const d = Math.hypot(pl.x - x, pl.z - z); if (d < bd) { bd = d; best = pl.name; } }
+    return best;
+  }
+
+  /** Raise your bounty; a new rank is announced, and a big enough bounty sets the hunters on you. */
+  addBounty(n: number) {
+    if (n <= 0) return;
+    const before = rankOf(this.s.bounty);
+    this.s.bounty += Math.round(n);
+    const after = rankOf(this.s.bounty);
+    if (after !== before) { this.emit({ type: 'rank', bounty: this.s.bounty, rank: after }); this.msg(`Your bounty is ${this.s.bounty.toLocaleString('en-GB')}: ${after}.`, 'quest'); }
+    if (this.s.bounty >= BOUNTY_CONFIG.hunterFrom && !this.s.hunterAt) this.s.hunterAt = this.s.playTime + this.hunterGap();
+    this.rev++;
+  }
+  private hunterGap() { const [a, b] = BOUNTY_CONFIG.hunterEvery; return a + this.boardRnd() * (b - a); }
+
+  /** A foe down: contracts move on, notable kills raise your bounty. */
+  private onBountyKill(e: Enemy) {
+    if (e.contract !== undefined) {
+      const c = this.s.contracts.find((x) => x.id === e.contract);
+      if (c) { this.rollLoot(LOOT[e.def.loot], e.x, e.z); this.completeContract(c); } // a wanted target carries a second share of loot
+    }
+    for (const c of [...this.s.contracts]) if (c.kind === 'hunt' && c.enemy === e.def.id) { c.have++; if (c.have >= c.need) this.completeContract(c); else this.rev++; }
+    if (e.def.boss) this.addBounty(BOUNTY_CONFIG.bossBounty[e.def.id] ?? 1000);
+    else if (e.def.id.startsWith('bounty_')) this.addBounty(e.def.level * 5);
+    else if (e.def.hostile) this.addBounty(e.def.level * BOUNTY_CONFIG.killBounty);
+  }
+
+  private completeContract(c: Contract) {
+    this.s.contracts = this.s.contracts.filter((x) => x !== c);
+    this.give('coins', c.coins);
+    this.msg(`Contract done: ${c.kind === 'wanted' ? `${c.name} brought down` : `${c.need} ${ENEMIES[c.enemy].name.toLowerCase()}s`}. +${c.coins.toLocaleString('en-GB')} coins, +${c.bounty.toLocaleString('en-GB')} bounty.`, 'good');
+    this.addBounty(c.bounty);
+  }
+
+  /** Wanted targets appear where they lurk when you're in their region; bounty hunters come looking for you. */
+  private stepBounties() {
+    for (const c of this.s.contracts) {
+      if (c.kind !== 'wanted' || c.region !== this.s.region || this.enemies.some((e) => e.contract === c.id && e.alive)) continue;
+      const at = this.world.nearestWalkable(c.x!, c.z!, 6);
+      if (!at) continue;
+      const e = this.spawnEnemy(ENEMIES[c.enemy], at[0], at[1], false);
+      e.once = true; e.named = c.name; e.contract = c.id;
+      e.elite = ELITE_AFFIXES[Math.floor(this.boardRnd() * ELITE_AFFIXES.length)].id;
+      e.maxHp = e.hp = Math.round(e.def.hp * HP_SCALE * BOUNTY_CONFIG.wantedHp);
+    }
+    if (this.s.bounty < BOUNTY_CONFIG.hunterFrom || !this.s.hunterAt || this.s.playTime < this.s.hunterAt) return;
+    if (REGIONS[this.s.region].kind !== 'island' || this.p.onShip || this.dead || Math.hypot(this.p.x - this.layout.respawn.x, this.p.z - this.layout.respawn.z) < SAFE_RADIUS) return;
+    this.s.hunterAt = this.s.playTime + this.hunterGap();
+    const tier = this.s.bounty < 15000 ? 1 : this.s.bounty < 40000 ? 2 : 3;
+    const party = [`bounty_hunter_${tier}`, `bounty_gunman_${tier}`, ...(tier > 1 ? [`bounty_hunter_${tier}`] : [])];
+    const a0 = this.boardRnd() * Math.PI * 2;
+    party.forEach((id, k) => {
+      const a = a0 + k * 0.7, at = this.world.nearestWalkable(this.p.x + Math.cos(a) * 11, this.p.z + Math.sin(a) * 11, 5);
+      if (!at) return;
+      const e = this.spawnEnemy(ENEMIES[id], at[0], at[1], false);
+      e.once = true; e.state = 'chase';
+    });
+    this.emit({ type: 'hunters', x: this.p.x, z: this.p.z });
+    this.msg(`Bounty hunters! They've come to collect the ${this.s.bounty.toLocaleString('en-GB')} on your head.`, 'combat');
+  }
+
+  /** Sign a sailor from the board: they want a captain with a big enough bounty, and their fee. */
+  recruitBlock(id: string): string | null {
+    const c = CREW_BY[id];
+    if (!c) return 'Unknown';
+    if (this.s.crew.includes(id)) return 'Already in your crew';
+    if (this.s.bounty < c.bounty) return `Wants a captain with a bounty of ${c.bounty.toLocaleString('en-GB')}`;
+    if (count(this.p.inv, 'coins') < c.coins) return `Needs ${c.coins.toLocaleString('en-GB')} coins`;
+    return null;
+  }
+  recruit(id: string) {
+    const block = this.recruitBlock(id);
+    if (block) { this.msg(`${block}.`, 'warn'); return; }
+    const c = CREW_BY[id];
+    remove(this.p.inv, 'coins', c.coins);
+    this.s.crew.push(id);
+    if (!this.s.mate) this.s.mate = id;
+    this.recalc();
+    this.msg(`${c.name} signs on as your ${c.role.toLowerCase()}. ${c.passive.text}.`, 'good');
+  }
+  /** Who comes ashore with you (null: nobody; the rest stay aboard, their passives still count). */
+  setMate(id: string | null) {
+    if (id !== null && !this.s.crew.includes(id)) return;
+    this.s.mate = id;
+    this.mate = null;
+    this.rev++;
+  }
+
+  /** Your first mate: follows you ashore, fights what you fight (their hits give you no XP). */
+  private stepMate(dt: number) {
+    const def = this.s.mate ? CREW_BY[this.s.mate] : null;
+    if (!def || this.p.onShip || this.dead > 0) { this.mate = null; return; }
+    let m = this.mate;
+    if (!m || m.id !== def.id || Math.hypot(m.x - this.p.x, m.z - this.p.z) > 22) {
+      const at = this.world.nearestWalkable(this.p.x - Math.cos(this.facing) * 1.6, this.p.z - Math.sin(this.facing) * 1.6, 4) ?? [this.p.x, this.p.z];
+      m = this.mate = { id: def.id, x: at[0], z: at[1], facing: this.facing, cd: 1, moving: false };
+    }
+    m.cd = Math.max(0, m.cd - dt);
+    m.moving = false;
+    const tgt = this.enemies.find((e) => e.id === this.target && e.alive && e.state !== 'rise' && Math.hypot(e.x - this.p.x, e.z - this.p.z) < 12)
+      ?? this.enemies.filter((e) => e.alive && (e.state === 'chase' || e.state === 'windup') && Math.hypot(e.x - this.p.x, e.z - this.p.z) < 9)
+        .sort((a, b) => Math.hypot(a.x - m!.x, a.z - m!.z) - Math.hypot(b.x - m!.x, b.z - m!.z))[0];
+    const speed = PLAYER_BASE.speed * 1.05;
+    if (tgt) {
+      const d = Math.hypot(tgt.x - m.x, tgt.z - m.z), reach = def.mate.range + tgt.def.radius;
+      m.facing = Math.atan2(tgt.z - m.z, tgt.x - m.x);
+      if (d > reach) this.mateMove(m, tgt.x, tgt.z, speed * dt, reach * 0.9);
+      else if (m.cd <= 0) {
+        m.cd = 2.4;
+        const st = def.mate.style;
+        const defRoll = (tgt.def.def + 9) * (tgt.def.defBonus[st] + 64) * (tgt.fx.shatter > 0 ? 0.6 : 1);
+        const maxHit = Math.max(HP_SCALE, Math.round(this.stats.maxHit * def.mate.mul));
+        const dmg = this.rnd() < hitChance(this.stats.attRoll * 0.8, defRoll) ? HP_SCALE + Math.floor(this.rnd() * (maxHit - HP_SCALE + 1)) : 0;
+        this.emit({ type: 'mateAttack', x: m.x, z: m.z, tx: tgt.x, tz: tgt.z, style: st });
+        this.damageEnemy(tgt, dmg, false, st, 0.15, 0, false);
+      }
+      return;
+    }
+    // follow a step behind
+    const bx = this.p.x - Math.cos(this.facing) * 1.6, bz = this.p.z - Math.sin(this.facing) * 1.6;
+    if (Math.hypot(bx - m.x, bz - m.z) > 1.2) { m.facing = Math.atan2(bz - m.z, bx - m.x); this.mateMove(m, bx, bz, speed * (Math.hypot(this.p.x - m.x, this.p.z - m.z) > 6 ? 1.4 : 1) * dt, 0.4); }
+  }
+  private mateMove(m: Mate, tx: number, tz: number, step: number, stopAt: number) {
+    const dx = tx - m.x, dz = tz - m.z, d = Math.hypot(dx, dz);
+    if (d <= stopAt) return;
+    const s = Math.min(step, d - stopAt), nx = dx / d, nz = dz / d;
+    for (const [ux, uz] of [[nx, nz], [nx * 0.7 - nz * 0.7, nz * 0.7 + nx * 0.7], [nx * 0.7 + nz * 0.7, nz * 0.7 - nx * 0.7]] as [number, number][]) {
+      const x = m.x + ux * s, z = m.z + uz * s;
+      if (this.world.walkable(x, z)) { m.x = x; m.z = z; m.moving = true; return; }
+    }
   }
 
   // ---- keys and keyholes (docs/KEYS.md) -------------------------------------------
@@ -1510,14 +1729,14 @@ export class Game {
     this.emit({ type: 'roll' });
   }
 
-  private damageEnemy(e: Enemy, dmg: number, crit: boolean, style: CombatStyle, knock = 0.35, spellBase = 0) {
+  private damageEnemy(e: Enemy, dmg: number, crit: boolean, style: CombatStyle, knock = 0.35, spellBase = 0, byPlayer = true) {
     if (!e.alive || e.state === 'rise') return;
     dmg = Math.min(dmg, e.hp);
     e.hp -= dmg;
     if (dmg > 0) e.hitFlash = 0.12;
     this.emit({ type: 'hit', target: 'enemy', id: e.id, amount: dmg, crit, x: e.x, z: e.z });
-    this.combatXp(dmg, style, spellBase);
-    if (this.stats.leech > 0 && dmg > 0) this.p.hp = Math.min(this.stats.maxHp, this.p.hp + Math.max(HP_SCALE, Math.round(dmg * this.stats.leech)) * (this.rnd() < 0.5 ? 1 : 0));
+    if (byPlayer) this.combatXp(dmg, style, spellBase); // your mate's hits are theirs: no XP, no leech
+    if (byPlayer && this.stats.leech > 0 && dmg > 0) this.p.hp = Math.min(this.stats.maxHp, this.p.hp + Math.max(HP_SCALE, Math.round(dmg * this.stats.leech)) * (this.rnd() < 0.5 ? 1 : 0));
     if (e.state === 'idle' || e.state === 'return') e.state = 'chase';
     if (e.hp <= 0) { this.killEnemy(e); return; }
     if (!e.def.boss && knock > 0 && dmg > 0) {
@@ -1539,7 +1758,9 @@ export class Game {
     if (e.elite) this.rollLoot(LOOT.elite, e.x, e.z);
     for (let i = before; i < this.drops.length; i++) this.drops[i].home = true; // shot from range, it still reaches you
     if (e.def.boss) this.bossDefeated(e);
-    if (!e.summoned) this.rollKeyFind(this.stats.style, KEY_CONFIG.killChance * (1 + e.def.level / 40) * (e.def.boss ? 20 : e.elite ? 3 : 1));
+    this.onBountyKill(e);
+    if (e.once) e.summoned = true; // gone for good once looted
+    if (!e.summoned || e.once) this.rollKeyFind(this.stats.style, KEY_CONFIG.killChance * (1 + e.def.level / 40) * (e.def.boss ? 20 : e.elite ? 3 : 1));
   }
 
   private rollLoot(table: (typeof LOOT)[string], x: number, z: number) {
@@ -2029,7 +2250,9 @@ export class Game {
         if (amt > 0 && this.p.hp < this.stats.maxHp) this.p.hp = Math.min(this.stats.maxHp, this.p.hp + amt * HP_SCALE);
       }
       this.stepDiscovery();
+      this.stepBounties();
     }
+    this.stepMate(dt);
     this.stepEnemies(dt);
     this.stepProjectiles(dt);
     this.stepDrops(dt);

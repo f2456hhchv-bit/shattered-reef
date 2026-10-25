@@ -17,6 +17,7 @@ import { buildEnterable, buildStall, type EnterableView } from '../art/models/bu
 import { isInside, toLocal, WALL_H, type BuildingDef } from '../game/world/buildings';
 import { buildHumanoid, addOffhand, animateIdle, animateWalk, animateSwing, animateWork, animateFish, type HeldKind, type HumanoidRig } from '../art/models/character';
 import { item, pairGroup, weaponKind, type WeaponKind } from '../game/data/items';
+import { CREW_BY } from '../game/data/bounties';
 
 const HELD_OF: Record<WeaponKind, HeldKind> = { cutlass: 'cutlass', dagger: 'dagger', pike: 'pike', greatsword: 'greatsword', pistol: 'pistol', shortbow: 'bow', longbow: 'longbow', crossbow: 'crossbow', staff: 'staff', wand: 'wand' };
 /** What the left hand shows for the item in the off-hand slot. */
@@ -121,6 +122,32 @@ export class GameRenderer {
     return rig;
   }
   private playerSwing = 0;
+  /** your first mate ashore: built when they first come ashore, swapped when you change mates */
+  private mateRig: { id: string; rig: HumanoidRig } | null = null;
+  private mateSwing = 0;
+  private updateMate(dt: number, t: number) {
+    const g = this.game, m = g.mate, world = g.world;
+    if (!m) { if (this.mateRig) this.mateRig.rig.root.visible = false; return; }
+    if (!this.mateRig || this.mateRig.id !== m.id) {
+      if (this.mateRig) this.scene.remove(this.mateRig.rig.root);
+      const c = CREW_BY[m.id];
+      const rig = buildHumanoid({ ...c.look, boots: 'leather', held: c.mate.held, beard: c.look.beard });
+      rig.root.scale.setScalar(HERO);
+      bakeRig(rig.root, addSurfaceDetail(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: false, roughness: 0.9 }), CHAR_SURFACE));
+      humanoidShadow(rig);
+      this.scene.add(rig.root);
+      this.mateRig = { id: m.id, rig };
+    }
+    const r = this.mateRig.rig;
+    r.root.visible = true;
+    r.root.position.set(m.x, world.standY(m.x, m.z), m.z);
+    r.root.rotation.y = Math.PI / 2 - m.facing;
+    r.body.rotation.set(0, 0, 0);
+    this.mateSwing = Math.max(0, this.mateSwing - dt);
+    if (this.mateSwing > 0) animateSwing(r, 1 - this.mateSwing / 0.35);
+    else if (m.moving) animateWalk(r, t, 1.1);
+    else animateIdle(r, t + 1.3);
+  }
   private fireworks: { t: number; x: number; y: number; z: number; colour: number }[] = [];
   private ship: ShipRig;
   private npcs = new Map<string, HumanoidRig>();
@@ -803,6 +830,16 @@ export class GameRenderer {
         this.shake = Math.max(this.shake, 0.12);
         break;
       }
+      case 'mateAttack': {
+        if (e.style === 'melee') { this.mateSwing = 0.35; break; }
+        // a shot or a bolt of tide: a quick trail from your mate to the foe
+        const col = e.style === 'magic' ? 0x59d0c4 : 0xe9e3d0, y0 = g.world.standY(e.x, e.z) + 1.2, y1 = g.world.standY(e.tx, e.tz) + 0.8;
+        for (let k = 1; k <= 8; k++) { const f = k / 8; this.particles.burst(e.x + (e.tx - e.x) * f, y0 + (y1 - y0) * f, e.z + (e.tz - e.z) * f, 1, col, { speed: 0.2, up: 0, size: 0.08, life: 0.18 + f * 0.1, grav: 0 }); }
+        this.particles.burst(e.tx, y1, e.tz, 8, col, { speed: 2.5, up: 1, size: 0.08, life: 0.3, grav: 1 });
+        if (e.style === 'ranged') this.mateSwing = 0.2;
+        break;
+      }
+      case 'hunters': this.shake = Math.max(this.shake, 0.15); break;
       case 'keyFound': { const p = g.p; this.particles.burst(p.x, g.world.standY(p.x, p.z) + 1.4, p.z, 40, 0xd9b25a, { speed: 3, up: 4, size: 0.12, life: 1.0, grav: 2 }); break; }
       case 'alchemy': { const p = g.p; this.particles.burst(p.x, g.world.standY(p.x, p.z) + 1.2, p.z, 16, 0xf2cf5b, { speed: 2, up: 3, size: 0.09, life: 0.6, grav: 3 }); break; }
       case 'squall': {
@@ -963,6 +1000,7 @@ export class GameRenderer {
       if (Math.random() < 0.5) this.particles.burst(sh.x + c * 4.4, 0.1, sh.z + s * 4.4, 1, 0xf2f6ee, { speed: 1.2, up: 0.8, size: 0.14, life: 0.5, grav: 2 });
     }
 
+    this.updateMate(dt, t);
     // player
     const want = this.playerRig(g.stats.kind, offHeld(g.p.equip.offhand?.id));
     if (want !== this.player) { this.player.root.visible = false; this.player = want; }

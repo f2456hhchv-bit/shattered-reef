@@ -6,10 +6,12 @@ import type { Stance } from './gear';
 import { REGIONS, regionAt, type RegionId } from '../world/regions';
 import { SUN } from '../world/island';
 import { KEY, STARTER_KEY } from '../data/keys';
+import { BOARDS, CREW_BY, BOUNTY_CONFIG, type Contract } from '../data/bounties';
+import { ENEMIES } from '../data/content';
 
 // Versioned, validated save. Anything invalid is dropped or defaulted, never trusted.
 
-export const SAVE_VERSION = 7;
+export const SAVE_VERSION = 8;
 export const BANK_MAX = 400;
 const KEY_DORMANT_MAX = 3600; // distinct entries in the strongbox
 export const SAVE_KEY = 'shattered-reef.save';
@@ -33,6 +35,13 @@ export interface SaveData {
   key: string | null;
   keyDormant: number;
   combat: { stance: Stance; spell: string };
+  /** your own bounty, the boards' current offers, the contracts you carry, your crew and who comes ashore */
+  bounty: number;
+  boards: Record<string, { offers: Contract[]; refreshAt: number }>;
+  contracts: Contract[];
+  crew: string[];
+  mate: string | null;
+  hunterAt: number; // play time of the next bounty-hunter ambush (once your bounty is big enough)
 }
 
 export const SKILL_IDS: SkillId[] = ['attack', 'strength', 'defence', 'hitpoints', 'ranged', 'magic', 'woodcutting', 'mining', 'fishing', 'smithing', 'gunsmithing', 'fletching', 'cooking', 'crafting'];
@@ -90,6 +99,12 @@ export function defaultSave(spawn: { x: number; z: number }, ship: { x: number; 
     key: STARTER_KEY,
     keyDormant: 0,
     combat: { stance: 'accurate', spell: 'spray' },
+    bounty: 0,
+    boards: {},
+    contracts: [],
+    crew: [],
+    mate: null,
+    hunterAt: 0,
   };
 }
 
@@ -149,6 +164,8 @@ const MIGRATIONS: Record<number, (d: Record<string, unknown>) => Record<string, 
   },
   // v6 had no keys: everyone gets the starter key, slotted and awake
   6: (d) => ({ ...d, version: 7, keyring: [STARTER_KEY], key: STARTER_KEY, keyDormant: 0 }),
+  // v7 had no bounties or crew
+  7: (d) => ({ ...d, version: 8, bounty: 0, boards: {}, contracts: [], crew: [], mate: null, hunterAt: 0 }),
 };
 
 /** Parse + validate untrusted JSON. Returns null when unusable (caller starts fresh). */
@@ -228,6 +245,27 @@ export function parseSave(json: string | null, fallback: SaveData): SaveData | n
   d.keyring = [...new Set([STARTER_KEY, ...ring])];
   d.key = typeof raw.key === 'string' && d.keyring.includes(raw.key) ? raw.key : raw.key === null ? null : STARTER_KEY;
   d.keyDormant = num(raw.keyDormant, 0, 0, KEY_DORMANT_MAX);
+  // bounties and crew: contracts must name a real board and foe; only known crew; the mate must be crew
+  const contract = (c: unknown): Contract | null => {
+    const o = c as Record<string, unknown>;
+    if (!o || typeof o !== 'object' || typeof o.board !== 'string' || !BOARDS[o.board] || typeof o.enemy !== 'string' || !ENEMIES[o.enemy]) return null;
+    const kind = o.kind === 'wanted' ? 'wanted' : 'hunt';
+    const out: Contract = { id: Math.floor(num(o.id, 0)), board: o.board, kind, enemy: o.enemy, need: Math.floor(num(o.need, 1, 1, 100)), have: Math.floor(num(o.have, 0, 0, 100)), coins: Math.floor(num(o.coins, 0, 0, 1e7)), bounty: Math.floor(num(o.bounty, 0, 0, 1e7)) };
+    if (kind === 'wanted') {
+      if (typeof o.region !== 'string' || !(o.region in REGIONS)) return null;
+      out.name = typeof o.name === 'string' ? o.name.slice(0, 40) : 'Nameless'; out.region = o.region as RegionId; out.x = num(o.x, 0, -5000, 5000); out.z = num(o.z, 0, -5000, 5000);
+    }
+    return out;
+  };
+  const list = (v: unknown, max: number) => (Array.isArray(v) ? v.map(contract).filter((c): c is Contract => !!c).slice(0, max) : []);
+  d.bounty = Math.floor(num(raw.bounty, 0, 0, 1e9));
+  d.contracts = list(raw.contracts, BOUNTY_CONFIG.maxActive);
+  const bd = (raw.boards ?? {}) as Record<string, unknown>;
+  d.boards = {};
+  for (const id of Object.keys(BOARDS)) { const b = bd[id] as Record<string, unknown> | undefined; if (b) d.boards[id] = { offers: list(b.offers, BOUNTY_CONFIG.offers), refreshAt: num(b.refreshAt, 0, 0) }; }
+  d.crew = Array.isArray(raw.crew) ? [...new Set(raw.crew.filter((c): c is string => typeof c === 'string' && !!CREW_BY[c]))] : [];
+  d.mate = typeof raw.mate === 'string' && d.crew.includes(raw.mate) ? raw.mate : null;
+  d.hunterAt = num(raw.hunterAt, 0, 0);
   const cb = (raw.combat ?? {}) as Record<string, unknown>;
   d.combat = {
     stance: cb.stance === 'aggressive' || cb.stance === 'defensive' ? cb.stance : 'accurate',
