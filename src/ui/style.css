@@ -161,6 +161,8 @@ body.portrait #xpdrops { top: calc(var(--mm) + 18px + env(safe-area-inset-top, 0
 .status { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 10px; margin-left: 6px; letter-spacing: .04em; }
 .status.todo { background: #5a2a22; color: #ffb4a0; } .status.active { background: #5a4a1e; color: #ffe08a; } .status.done { background: #24502a; color: #a8f08a; }
 .equip { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-bottom: 10px; }
+.equip.twelve { grid-template-columns: repeat(4, 1fr); }
+.equip .slot.closed { opacity: .35; background-image: repeating-linear-gradient(135deg, transparent 0 6px, rgba(0,0,0,.25) 6px 9px); }
 .stances { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 6px 0 8px; }
 .stances button { border-radius: 8px; border: 1px solid #120b06; background: #2c1f14; padding: 6px 4px; min-height: 48px; display: grid; gap: 2px; }
 .stances button small { font-size: 10px; color: var(--ink-dim); }

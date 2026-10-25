@@ -19,7 +19,7 @@ export const SKILLS: { id: SkillId; name: string; colour: string; group: SkillGr
   { id: 'mining', name: 'Mining', colour: '#a07a5a', group: 'Gathering', blurb: 'Mine ore from rocks.' },
   { id: 'fishing', name: 'Fishing', colour: '#4fa7c2', group: 'Gathering', blurb: 'Fish from the quay, or better fish from your ship.' },
   { id: 'smithing', name: 'Smithing', colour: '#c9a050', group: 'Production', blurb: 'Smelt bars and forge tools, blades and armour.' },
-  { id: 'gunsmithing', name: 'Gunsmithing', colour: '#9a8a6a', group: 'Production', blurb: 'Make pistols, pistol braces and shot at the workbench.' },
+  { id: 'gunsmithing', name: 'Gunsmithing', colour: '#9a8a6a', group: 'Production', blurb: 'Make pistols and shot at the workbench. Two pistols make a pair.' },
   { id: 'fletching', name: 'Fletching', colour: '#8aa04a', group: 'Production', blurb: 'Carve bows from logs, fit crossbows, make arrows and bolts at the workbench.' },
   { id: 'cooking', name: 'Cooking', colour: '#d88a4a', group: 'Production', blurb: 'Cook food that heals you in a fight.' },
 ];
@@ -138,21 +138,32 @@ function buildRecipes(): Recipe[] {
   out.push({ id: 'forge_staff_storm', station: 'anvil', skill: 'smithing', level: 52, xp: 140, inputs: [{ id: 'bar_storm', qty: 2 }, { id: 'logs_amber', qty: 1 }, { id: 'charm_tide', qty: 50 }], output: { id: 'staff_storm', qty: 1 }, rarityRoll: true });
   out.push({ id: 'forge_staff_tide', station: 'anvil', skill: 'smithing', level: 88, xp: 260, inputs: [{ id: 'bar_tide', qty: 2 }, { id: 'logs_cedar', qty: 1 }, { id: 'charm_tide', qty: 100 }], output: { id: 'staff_tide', qty: 1 }, rarityRoll: true });
   out.push({ id: 'forge_ring_gold', station: 'anvil', skill: 'smithing', level: 42, xp: 45, inputs: [{ id: 'bar_gold', qty: 1 }], output: { id: 'ring_gold', qty: 1 }, rarityRoll: true });
+  out.push({ id: 'forge_bracelet_gold', station: 'anvil', skill: 'smithing', level: 44, xp: 50, inputs: [{ id: 'bar_gold', qty: 1 }], output: { id: 'bracelet_gold', qty: 1 }, rarityRoll: true });
+  out.push({ id: 'forge_amulet_gold', station: 'anvil', skill: 'smithing', level: 47, xp: 60, inputs: [{ id: 'bar_gold', qty: 2 }], output: { id: 'amulet_gold', qty: 1 }, rarityRoll: true });
+  // wands and orbs beside the staffs: a metal-capped wand, a crystal set in metal (books wait for Crafting)
+  out.push({ id: 'forge_wand_storm', station: 'anvil', skill: 'smithing', level: 51, xp: 80, inputs: [{ id: 'bar_storm', qty: 1 }, { id: 'logs_amber', qty: 1 }, { id: 'charm_tide', qty: 30 }], output: { id: 'wand_storm', qty: 1 }, rarityRoll: true });
+  out.push({ id: 'forge_orb_storm', station: 'anvil', skill: 'smithing', level: 53, xp: 90, inputs: [{ id: 'bar_storm', qty: 1 }, { id: 'crystal_geode', qty: 1 }, { id: 'charm_tide', qty: 30 }], output: { id: 'orb_storm', qty: 1 }, rarityRoll: true });
+  out.push({ id: 'forge_wand_tide', station: 'anvil', skill: 'smithing', level: 86, xp: 150, inputs: [{ id: 'bar_tide', qty: 1 }, { id: 'logs_cedar', qty: 1 }, { id: 'charm_tide', qty: 60 }], output: { id: 'wand_tide', qty: 1 }, rarityRoll: true });
+  out.push({ id: 'forge_orb_tide', station: 'anvil', skill: 'smithing', level: 89, xp: 170, inputs: [{ id: 'bar_tide', qty: 1 }, { id: 'crystal_geode', qty: 2 }, { id: 'charm_tide', qty: 60 }], output: { id: 'orb_tide', qty: 1 }, rarityRoll: true });
   METALS.forEach((mt, m) => {
     const L = SMELT[m].level, bar = `bar_${mt.key}`, xp = PER_BAR[m];
     const forge = (kind: string, lvl: number, bars: number, extra: { id: string; qty: number }[] = [], roll = true) =>
       out.push({ id: `forge_${kind}_${mt.key}`, station: 'anvil', skill: 'smithing', level: Math.min(99, lvl), xp: xp * bars, inputs: [{ id: bar, qty: bars }, ...extra], output: { id: `${kind}_${mt.key}`, qty: 1 }, rarityRoll: roll || undefined });
     // RuneScape's anvil: within each bar's tier a new item every few levels: dagger +0, axe +1, med helm +3,
-    // scimitar +5, spear/longsword +6, two-hander +14, platebody +18 (rune platebody is the famous 99)
+    // scimitar +5, spear/longsword +6, two-hander +14, platebody +18 (rune platebody is the famous 99);
+    // boots +2, gauntlets +4, kiteshield +12, platelegs +16 fill the gaps
     forge('dagger', L, 1);
     forge('hatchet', L + 1, 1, [{ id: `logs_${TOOL_LOG[m]}`, qty: 1 }], false);
     forge('pickaxe', L + 2, 2, [{ id: `logs_${TOOL_LOG[m]}`, qty: 1 }], false);
+    forge('boots', L + 2, 1);
     forge('helm', L + 3, 1);
+    forge('gloves', L + 4, 1);
     forge('cutlass', L + 5, 2);
     forge('pike', L + 6, 2, [{ id: `logs_${TOOL_LOG[m]}`, qty: 1 }]);
+    forge('shield', L + 12, 2);
     forge('greatsword', L + 14, 3);
+    forge('legs', L + 16, 3);
     forge('plate', L + 18, 5);
-    out.push({ id: `gun_pistols_${mt.key}`, station: 'bench', skill: 'gunsmithing', level: Math.min(99, PISTOL_LVL[m] + 3), xp: xp * 4.8, inputs: [{ id: bar, qty: 2 }, { id: `logs_${PISTOL_LOG[m]}`, qty: 2 }], output: { id: `pistols_${mt.key}`, qty: 1 }, rarityRoll: true });
     // fletching: crossbows (a metal prod on a wooden stock), arrows (metal heads on saltpine shafts), bolts
     out.push({ id: `fletch_crossbow_${mt.key}`, station: 'bench', skill: 'fletching', level: XBOW_LVL[m], xp: xp * 2, inputs: [{ id: bar, qty: 1 }, { id: `logs_${TOOL_LOG[m]}`, qty: 1 }], output: { id: `crossbow_${mt.key}`, qty: 1 }, rarityRoll: true });
     out.push({ id: `fletch_arrow_${mt.key}`, station: 'bench', skill: 'fletching', level: ARROW_LVL[m], xp: xp * 0.8, inputs: [{ id: bar, qty: 1 }, { id: 'logs_pine', qty: 1 }], output: { id: `arrow_${mt.key}`, qty: 15 } });
@@ -205,8 +216,9 @@ function buildUnlocks(): Record<SkillId, Unlock[]> {
     if (it.tool) return 'Tools';
     if (it.heal) return id.startsWith('fish_') ? 'Fish' : 'Dishes';
     if (it.equip?.slot === 'ammo') return 'Ammo';
-    if (it.equip?.slot === 'weapon') return it.equip.style === 'magic' ? 'Staffs' : it.equip.kind === 'crossbow' ? 'Crossbows' : it.equip.kind === 'shortbow' || it.equip.kind === 'longbow' ? 'Bows' : it.equip.style === 'ranged' ? 'Guns' : 'Weapons';
-    if (it.equip?.slot === 'ring') return 'Jewellery';
+    if (it.equip?.off === 'orb' || it.equip?.off === 'book') return 'Magic';
+    if (it.equip?.slot === 'weapon') return it.equip.style === 'magic' ? 'Magic' : it.equip.kind === 'crossbow' ? 'Crossbows' : it.equip.kind === 'shortbow' || it.equip.kind === 'longbow' ? 'Bows' : it.equip.style === 'ranged' ? 'Guns' : 'Weapons';
+    if (it.equip?.slot === 'ring' || it.equip?.slot === 'neck' || it.equip?.slot === 'wrist') return 'Jewellery';
     if (it.equip) return 'Armour';
     return 'Other';
   };
@@ -248,7 +260,9 @@ export const SHOPS: Record<string, Shop> = {
     stock: [
       { id: 'bread', qty: 1 }, { id: 'hatchet_chipped', qty: 1 }, { id: 'pickaxe_chipped', qty: 1 },
       { id: 'pistol_flintlock', qty: 1 }, { id: 'shot_bronze', qty: 25 }, { id: 'shortbow_pine', qty: 1 }, { id: 'arrow_bronze', qty: 25 }, { id: 'dagger_bronze', qty: 1 }, { id: 'staff_driftwood', qty: 1 }, { id: 'charm_tide', qty: 25 },
-      { id: 'cap_leather', qty: 1 }, { id: 'coat_padded', qty: 1 }, { id: 'spade', qty: 1 }, { id: 'staff_coral', qty: 1 },
+      { id: 'cap_leather', qty: 1 }, { id: 'coat_padded', qty: 1 }, { id: 'chaps_leather', qty: 1 }, { id: 'boots_leather', qty: 1 }, { id: 'gloves_leather', qty: 1 },
+      { id: 'spade', qty: 1 }, { id: 'staff_coral', qty: 1 }, { id: 'wand_driftwood', qty: 1 }, { id: 'orb_glass', qty: 1 }, { id: 'book_almanac', qty: 1 },
+      { id: 'shield_bronze', qty: 1 }, { id: 'amulet_brass', qty: 1 }, { id: 'bracelet_brass', qty: 1 },
     ],
     buyMul: 1.0, sellMul: 0.5,
   },
@@ -270,7 +284,8 @@ SHOPS.sunreach = {
   id: 'sunreach', name: 'Sunreach Trading Post', keeper: 'tamsin',
   stock: [
     { id: 'shortbow_oak', qty: 1 }, { id: 'longbow_willow', qty: 1 }, { id: 'crossbow_iron', qty: 1 }, { id: 'arrow_iron', qty: 25 }, { id: 'bolt_iron', qty: 20 }, { id: 'shot_steel', qty: 25 },
-    { id: 'cutlass_steel', qty: 1 }, { id: 'pike_iron', qty: 1 }, { id: 'helm_steel', qty: 1 }, { id: 'harpoon', qty: 1 }, { id: 'lobster_pot', qty: 1 }, { id: 'charm_tide', qty: 50 }, { id: 'sea_salt', qty: 5 },
+    { id: 'cutlass_steel', qty: 1 }, { id: 'pike_iron', qty: 1 }, { id: 'helm_steel', qty: 1 }, { id: 'shield_steel', qty: 1 }, { id: 'legs_iron', qty: 1 },
+    { id: 'wand_coral', qty: 1 }, { id: 'orb_coral', qty: 1 }, { id: 'book_coral', qty: 1 }, { id: 'book_storm', qty: 1 }, { id: 'book_tide', qty: 1 }, { id: 'harpoon', qty: 1 }, { id: 'lobster_pot', qty: 1 }, { id: 'charm_tide', qty: 50 }, { id: 'sea_salt', qty: 5 },
   ],
   buyMul: 1.15, sellMul: 0.55,
   wants: [{ prefix: 'ore_', mul: 1.3, note: 'Tamsin pays well for ore,' }, { prefix: 'logs_', mul: 1.3, note: 'timber' }, { prefix: 'spider_silk', mul: 1.5, note: 'and spider silk.' }],
@@ -413,27 +428,27 @@ export interface LootTable {
 export const LOOT: Record<string, LootTable> = {
   crab: { coins: [1, 4], drops: [{ item: 'crab_meat_raw', chance: 0.6 }, { item: 'shell_fragment', chance: 0.2 }, { item: 'charm_tide', chance: 0.25, qty: [2, 5] }], gear: { chance: 0.03, items: ['ring_brass'], weights: { common: 60, fine: 35, rare: 5 } } },
   brigand: { coins: [5, 15], drops: [{ item: 'bread', chance: 0.3 }, { item: 'shot_bronze', chance: 0.3, qty: [4, 10] }, { item: 'arrow_bronze', chance: 0.25, qty: [5, 12] }, { item: 'ore_iron', chance: 0.12 }],
-    gear: { chance: 0.15, items: ['cutlass_brigand', 'cap_leather', 'coat_padded', 'ring_brass', 'pistol_flintlock', 'dagger_bronze', 'shortbow_pine'], weights: { common: 50, fine: 38, rare: 12 } } },
+    gear: { chance: 0.15, items: ['cutlass_brigand', 'cap_leather', 'coat_padded', 'ring_brass', 'pistol_flintlock', 'dagger_bronze', 'shortbow_pine', 'amulet_brass', 'bracelet_brass', 'boots_leather'], weights: { common: 50, fine: 38, rare: 12 } } },
   elite: { coins: [12, 30], drops: [], gear: { chance: 0.6, items: ['cutlass_brigand', 'cap_leather', 'coat_padded', 'ring_brass', 'cutlass_bronze', 'pistol_flintlock', 'staff_driftwood'], weights: { fine: 65, rare: 35 } } },
   mire: { coins: [4, 12], drops: [{ item: 'crab_meat_raw', chance: 0.6 }, { item: 'charm_tide', chance: 0.4, qty: [3, 8] }, { item: 'logs_willow', chance: 0.15, qty: [1, 3] }], gear: { chance: 0.05, items: ['ring_brass', 'helm_iron'], weights: { common: 55, fine: 38, rare: 7 } } },
   smuggler: { coins: [15, 40], drops: [{ item: 'fish_lobster', chance: 0.25 }, { item: 'shot_steel', chance: 0.3, qty: [5, 12] }, { item: 'bar_steel', chance: 0.12 }, { item: 'charm_tide', chance: 0.3, qty: [5, 12] }],
-    gear: { chance: 0.12, items: ['cutlass_steel', 'helm_steel', 'pistol_steel', 'staff_coral', 'ring_gold', 'pistols_steel', 'pike_steel'], weights: { common: 50, fine: 38, rare: 12 } } },
-  ironshell: { coins: [10, 30], drops: [{ item: 'ore_coal', chance: 0.5, qty: [2, 5] }, { item: 'ore_gold', chance: 0.2 }, { item: 'shell_fragment', chance: 0.5, qty: [1, 3] }], gear: { chance: 0.06, items: ['helm_steel', 'plate_steel'], weights: { common: 50, fine: 40, rare: 10 } } },
+    gear: { chance: 0.12, items: ['cutlass_steel', 'helm_steel', 'pistol_steel', 'staff_coral', 'ring_gold', 'shield_steel', 'pike_steel', 'boots_steel', 'wand_coral'], weights: { common: 50, fine: 38, rare: 12 } } },
+  ironshell: { coins: [10, 30], drops: [{ item: 'ore_coal', chance: 0.5, qty: [2, 5] }, { item: 'ore_gold', chance: 0.2 }, { item: 'shell_fragment', chance: 0.5, qty: [1, 3] }], gear: { chance: 0.06, items: ['helm_steel', 'plate_steel', 'legs_steel', 'gloves_steel'], weights: { common: 50, fine: 40, rare: 10 } } },
   poacher: { coins: [25, 60], drops: [{ item: 'logs_amber', chance: 0.25, qty: [1, 3] }, { item: 'arrow_storm', chance: 0.3, qty: [6, 15] }, { item: 'fish_salmon', chance: 0.3 }],
-    gear: { chance: 0.12, items: ['cutlass_storm', 'helm_storm', 'longbow_amber', 'shortbow_amber', 'crossbow_storm', 'ring_gold'], weights: { common: 48, fine: 38, rare: 14 } } },
+    gear: { chance: 0.12, items: ['cutlass_storm', 'helm_storm', 'longbow_amber', 'shortbow_amber', 'crossbow_storm', 'ring_gold', 'book_storm', 'shield_storm', 'amulet_gold'], weights: { common: 48, fine: 38, rare: 14 } } },
   drowned: { coins: [40, 90], drops: [{ item: 'charm_tide', chance: 0.6, qty: [10, 25] }, { item: 'fish_gloom', chance: 0.3 }, { item: 'bar_abyss', chance: 0.08 }],
-    gear: { chance: 0.12, items: ['cutlass_abyss', 'helm_abyss', 'plate_abyss', 'pistol_abyss', 'staff_tide', 'greatsword_abyss'], weights: { common: 45, fine: 38, rare: 15, relic: 2 } } },
+    gear: { chance: 0.12, items: ['cutlass_abyss', 'helm_abyss', 'plate_abyss', 'pistol_abyss', 'staff_tide', 'greatsword_abyss', 'legs_abyss', 'book_storm', 'orb_storm'], weights: { common: 45, fine: 38, rare: 15, relic: 2 } } },
   captain: { coins: [120, 260], drops: [{ item: 'bar_abyss', chance: 0.4, qty: [1, 2] }, { item: 'sea_salt', chance: 0.4, qty: [2, 5] }, { item: 'fish_shark', chance: 0.4, qty: [1, 2] }],
-    gear: { chance: 0.4, items: ['cutlass_tide', 'pistol_tide', 'staff_tide', 'plate_abyss', 'ring_gold'], weights: { fine: 50, rare: 40, relic: 10 } } },
+    gear: { chance: 0.4, items: ['cutlass_tide', 'pistol_tide', 'staff_tide', 'plate_abyss', 'ring_gold', 'book_tide', 'wand_tide'], weights: { fine: 50, rare: 40, relic: 10 } } },
   sentinel: { coins: [150, 320], drops: [{ item: 'ore_tide', chance: 0.35 }, { item: 'ore_cinder', chance: 0.25 }, { item: 'crystal_geode', chance: 0.2 }, { item: 'ore_storm', chance: 0.5, qty: [1, 3] }, { item: 'charm_tide', chance: 1, qty: [20, 40] }],
-    gear: { chance: 0.35, items: ['helm_tide', 'plate_tide', 'cutlass_tide', 'staff_tide'], weights: { fine: 50, rare: 40, relic: 10 } } },
+    gear: { chance: 0.35, items: ['helm_tide', 'plate_tide', 'cutlass_tide', 'staff_tide', 'book_tide', 'shield_tide', 'bracelet_gold'], weights: { fine: 50, rare: 40, relic: 10 } } },
   geode: { coins: [10, 60], drops: [{ item: 'crystal_geode', chance: 0.4 }, { item: 'charm_tide', chance: 0.5, qty: [3, 10] }, { item: 'ore_gold', chance: 0.15 }, { item: 'shell_fragment', chance: 0.3 }] },
   nest: { coins: [5, 40], drops: [{ item: 'charm_tide', chance: 0.4, qty: [3, 8] }, { item: 'berries', chance: 0.4, qty: [2, 5] }, { item: 'crystal_geode', chance: 0.08 }],
     gear: { chance: 0.05, items: ['ring_brass', 'ring_gold'], weights: { common: 50, fine: 40, rare: 10 } } },
   treasure: { coins: [20, 120], drops: [{ item: 'charm_tide', chance: 0.5, qty: [5, 15] }, { item: 'geode', chance: 0.25 }, { item: 'bar_iron', chance: 0.15 }, { item: 'bar_steel', chance: 0.07 }, { item: 'ore_gold', chance: 0.15 }],
     gear: { chance: 0.08, items: ['ring_brass', 'ring_gold', 'cutlass_steel', 'pistol_steel', 'helm_steel'], weights: { common: 50, fine: 40, rare: 10 } } },
   cave_spider: { coins: [3, 12], drops: [{ item: 'spider_silk', chance: 0.45 }, { item: 'charm_tide', chance: 0.3, qty: [3, 6] }], gear: { chance: 0.04, items: ['ring_brass', 'dagger_iron'], weights: { common: 55, fine: 38, rare: 7 } } },
-  boar: { coins: [6, 20], drops: [{ item: 'boar_meat_raw', chance: 0.9 }, { item: 'boar_meat_raw', chance: 0.25 }, { item: 'charm_tide', chance: 0.2, qty: [3, 8] }], gear: { chance: 0.04, items: ['cap_leather', 'coat_padded'], weights: { common: 55, fine: 38, rare: 7 } } },
+  boar: { coins: [6, 20], drops: [{ item: 'boar_meat_raw', chance: 0.9 }, { item: 'boar_meat_raw', chance: 0.25 }, { item: 'charm_tide', chance: 0.2, qty: [3, 8] }], gear: { chance: 0.04, items: ['cap_leather', 'coat_padded', 'chaps_leather', 'boots_leather', 'gloves_leather'], weights: { common: 55, fine: 38, rare: 7 } } },
   snake: { coins: [8, 25], drops: [{ item: 'snake_skin', chance: 0.55 }, { item: 'charm_tide', chance: 0.35, qty: [4, 9] }], gear: { chance: 0.05, items: ['ring_gold', 'dagger_steel'], weights: { common: 50, fine: 40, rare: 10 } } },
   spider: { coins: [30, 70], drops: [{ item: 'spider_silk', chance: 0.8, qty: [1, 3] }, { item: 'crystal_geode', chance: 0.06 }, { item: 'charm_tide', chance: 0.5, qty: [8, 16] }],
     gear: { chance: 0.1, items: ['helm_abyss', 'dagger_abyss', 'ring_gold', 'crossbow_storm'], weights: { common: 48, fine: 38, rare: 14 } } },

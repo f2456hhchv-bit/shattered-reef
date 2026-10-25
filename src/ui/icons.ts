@@ -157,4 +157,11 @@ export const SLOT_ICONS: Record<string, string> = {
   head: svg(`<path d="M3 19c4-9 22-9 26 0-5 3-21 3-26 0z" ${S}/><path d="M9 15c1-5 4-7 7-7s6 2 7 7" ${S}/>`),
   body: svg(`<path d="M11 5l5 4 5-4 6 4v18h-6v-9h-10v9H5V9z" ${S}/><path d="M16 9v9" ${S}/>`),
   ring: svg(`<circle cx="16" cy="19" r="8" ${S}/><path d="M13 8l3-4 3 4-3 3z" ${S}/>`),
+  ring2: svg(`<circle cx="16" cy="19" r="8" ${S}/><path d="M13 8l3-4 3 4-3 3z" ${S}/>`),
+  offhand: svg(`<path d="M16 4l11 4v8c0 6-5 10-11 12C10 26 5 22 5 16V8z" ${S}/><path d="M16 8v16" ${S}/>`),
+  legs: svg(`<path d="M8 4h16l1 24h-6l-3-16-3 16H7z" ${S}/>`),
+  feet: svg(`<path d="M7 6h7v14h10c3 0 4 2 4 5v2H6z" ${S}/>`),
+  hands: svg(`<path d="M9 28V14l-3-5 2-2 4 5V5h2v8h1V4h2v9h1V5h2v9h1V7h2v13c0 5-3 8-7 8z" ${S}/>`),
+  neck: svg(`<path d="M7 4c0 10 4 15 9 15s9-5 9-15" ${S}/><path d="M16 19l-4 5 4 5 4-5z" ${S}/>`),
+  wrist: svg(`<ellipse cx="16" cy="16" rx="11" ry="6" ${S}/><ellipse cx="16" cy="16" rx="7" ry="3" ${S}/>`),
 };

@@ -5,13 +5,20 @@ export type SkillId =
   | 'woodcutting' | 'mining' | 'fishing'
   | 'smithing' | 'gunsmithing' | 'fletching' | 'cooking';
 export type CombatStyle = 'melee' | 'ranged' | 'magic';
-export type Slot = 'weapon' | 'ammo' | 'head' | 'body' | 'ring';
+/** Where an item is worn. Rings fit either ring slot (`ring` / `ring2`); one-handed weapons also fit the off-hand. */
+export type Slot = 'weapon' | 'offhand' | 'ammo' | 'head' | 'body' | 'legs' | 'feet' | 'hands' | 'neck' | 'wrist' | 'ring' | 'ring2';
+/** What sits in the off-hand when it isn't a second weapon (Tom, 2026-10-25). */
+export type OffhandKind = 'shield' | 'orb' | 'book';
 /** Weapon families: each plays differently (reach, speed, cleave, shots per attack, which ammo). */
-export type WeaponKind = 'cutlass' | 'dagger' | 'pike' | 'greatsword' | 'pistol' | 'pistols' | 'shortbow' | 'longbow' | 'crossbow' | 'staff';
+export type WeaponKind = 'cutlass' | 'dagger' | 'pike' | 'greatsword' | 'pistol' | 'shortbow' | 'longbow' | 'crossbow' | 'staff' | 'wand';
+/** Two-handed weapons close the off-hand slot. */
+export const TWO_HANDED: ReadonlySet<WeaponKind> = new Set(['pike', 'greatsword', 'shortbow', 'longbow', 'crossbow', 'staff']);
+/** Which one-handed weapons pair up in the off-hand: blades with blades, pistols with pistols, wands with wands. */
+export const PAIR_GROUP: Partial<Record<WeaponKind, string>> = { cutlass: 'blade', dagger: 'blade', pistol: 'pistol', wand: 'wand' };
 export type AmmoKind = 'shot' | 'arrow' | 'bolt';
-export const AMMO_FOR: Partial<Record<WeaponKind, AmmoKind>> = { pistol: 'shot', pistols: 'shot', shortbow: 'arrow', longbow: 'arrow', crossbow: 'bolt' };
+export const AMMO_FOR: Partial<Record<WeaponKind, AmmoKind>> = { pistol: 'shot', shortbow: 'arrow', longbow: 'arrow', crossbow: 'bolt' };
 export const AMMO_NAME: Record<AmmoKind, string> = { shot: 'shot', arrow: 'arrows', bolt: 'bolts' };
-export type IconShape = 'log' | 'ore' | 'bar' | 'fish' | 'meat' | 'coins' | 'bread' | 'hatchet' | 'pickaxe' | 'rod' | 'cutlass' | 'helm' | 'cap' | 'coat' | 'plate' | 'ring' | 'bell' | 'tooth' | 'shell' | 'burnt' | 'pistol' | 'shot' | 'staff' | 'charm' | 'harpoon' | 'pot' | 'lobster' | 'berries' | 'kelp' | 'geode' | 'spade' | 'parcel' | 'ash' | 'salt' | 'crystal' | 'nest' | 'casket' | 'mug' | 'bowl' | 'pie' | 'dagger' | 'pike' | 'greatsword' | 'pistols' | 'bow' | 'crossbow' | 'arrow' | 'bolt' | 'coconut';
+export type IconShape = 'log' | 'ore' | 'bar' | 'fish' | 'meat' | 'coins' | 'bread' | 'hatchet' | 'pickaxe' | 'rod' | 'cutlass' | 'helm' | 'cap' | 'coat' | 'plate' | 'ring' | 'bell' | 'tooth' | 'shell' | 'burnt' | 'pistol' | 'shot' | 'staff' | 'charm' | 'harpoon' | 'pot' | 'lobster' | 'berries' | 'kelp' | 'geode' | 'spade' | 'parcel' | 'ash' | 'salt' | 'crystal' | 'nest' | 'casket' | 'mug' | 'bowl' | 'pie' | 'dagger' | 'pike' | 'greatsword' | 'bow' | 'crossbow' | 'arrow' | 'bolt' | 'coconut' | 'wand' | 'orb' | 'book' | 'shield' | 'legs' | 'boots' | 'gloves' | 'amulet' | 'bracelet';
 
 /** RuneScape-style equipment bonuses. Accuracy applies to the weapon's own style. */
 export interface Bonuses {
@@ -38,6 +45,7 @@ export interface ItemDef {
     reqs: Partial<Record<SkillId, number>>;
     style?: CombatStyle; // weapons only
     kind?: WeaponKind; // weapons: defaults from the style (cutlass / pistol / staff)
+    off?: OffhandKind; // off-hand items
     ammo?: AmmoKind; // ammunition: which weapons fire it
     speed?: number; // seconds between attacks
     range?: number; // metres (melee weapons use the default reach)
@@ -56,6 +64,23 @@ export function weaponKind(d: ItemDef | undefined): WeaponKind {
   const e = d?.equip;
   return e?.kind ?? (e?.style === 'ranged' ? 'pistol' : e?.style === 'magic' ? 'staff' : 'cutlass');
 }
+/** A weapon that can also be held in the off-hand (one-handed and pairable). */
+export function pairGroup(d: ItemDef | undefined): string | null {
+  return d?.equip?.slot === 'weapon' ? PAIR_GROUP[weaponKind(d)] ?? null : null;
+}
+export const isTwoHanded = (d: ItemDef | undefined) => !!d?.equip && d.equip.slot === 'weapon' && TWO_HANDED.has(weaponKind(d));
+/** Why `off` can't go in the off-hand beside `main` (the main-hand weapon, if any), or null. Shields fit beside any
+ * one-handed weapon; orbs and books need a wand; a second weapon has to pair with the first. */
+export function offhandBlock(main: ItemDef | undefined, off: ItemDef): string | null {
+  if (main && isTwoHanded(main)) return `Your ${main.name.toLowerCase()} takes both hands`;
+  const kind = off.equip?.off;
+  if (kind === 'shield') return null;
+  if (kind === 'orb' || kind === 'book') return main && weaponKind(main) === 'wand' ? null : `${kind === 'orb' ? 'An orb' : 'A book'} goes beside a wand`;
+  const g = pairGroup(off);
+  if (!g) return 'That doesn\'t fit in the off-hand';
+  if (!main) return null;
+  return pairGroup(main) === g ? null : `A ${off.name.toLowerCase()} doesn't pair with your ${main.name.toLowerCase()}`;
+}
 /** Which ammunition an ammo item is (older shot items only say rangedStr). */
 export function ammoKind(d: ItemDef | undefined): AmmoKind | null {
   if (!d?.equip || d.equip.slot !== 'ammo') return null;
@@ -64,6 +89,8 @@ export function ammoKind(d: ItemDef | undefined): AmmoKind | null {
 const MELEE_AFFIX = ['dmg_pct', 'atk_speed', 'crit', 'cleave', 'elite_dmg', 'accuracy'];
 const RANGED_AFFIX = ['dmg_pct', 'atk_speed', 'crit', 'elite_dmg', 'accuracy', 'leech'];
 const ARMOUR_AFFIX = ['max_hp', 'armour', 'regen'];
+const JEWEL_AFFIX = ['gather_speed', 'xp_bonus', 'crit', 'max_hp', 'dmg_pct', 'accuracy', 'regen'];
+const MAGIC_AFFIX = ['dmg_pct', 'crit', 'elite_dmg', 'accuracy', 'leech'];
 
 
 // ---- tiers: generated so every metal, wood and fish follows one rule set --------------------------
@@ -85,6 +112,21 @@ export const METALS = [
 const CUT = { acc: [9, 14, 21, 30, 40, 52, 64, 77, 90, 104], str: [8, 13, 20, 29, 39, 51, 63, 76, 89, 103] };
 const HELM = [5, 8, 12, 17, 23, 30, 37, 45, 53, 62];
 const PLATE = [14, 21, 32, 46, 62, 80, 98, 118, 140, 164];
+/** A full suit is spread over six pieces (Tom, 2026-10-25: legs, boots, gloves, shield joined helm and plate). The
+ * five worn pieces add up to what helm + plate gave before, so a fully dressed fighter is where they were; a shield
+ * is the extra that dual-wielders give up. Each piece: share of HELM or PLATE, and its magic penalty. */
+const SUIT: Record<'helm' | 'plate' | 'legs' | 'boots' | 'gloves' | 'shield', { of: 'helm' | 'plate'; k: number; mag: (m: number) => number }> = {
+  helm: { of: 'helm', k: 0.65, mag: (m) => -Math.round((1 + m) * 0.6) },
+  plate: { of: 'plate', k: 0.6, mag: (m) => -Math.round((3 + 2 * m) * 0.6) },
+  legs: { of: 'plate', k: 0.32, mag: (m) => -Math.round((2 + m) * 0.4) },
+  boots: { of: 'helm', k: 0.22, mag: () => 0 },
+  gloves: { of: 'helm', k: 0.22, mag: () => 0 },
+  shield: { of: 'plate', k: 0.28, mag: (m) => -Math.round((1 + m) * 0.5) },
+};
+const suitDef = (piece: keyof typeof SUIT, m: number) => {
+  const p = SUIT[piece], base = (p.of === 'helm' ? HELM : PLATE)[m] * p.k;
+  return { defMelee: Math.max(1, Math.round(base)), defRanged: Math.max(1, Math.round(base * 0.85)), defMagic: p.mag(m) };
+};
 const SHOT_STR = [7, 13, 20, 28, 37, 47, 57, 68, 80, 92];
 const PISTOL = { acc: [10, 22, 32, 44, 58, 72, 86, 100, 115, 130], req: [1, 6, 16, 21, 26, 36, 46, 56, 61, 70], range: [9, 10, 10, 11, 11, 12, 12, 13, 13, 14] };
 const BOW_REQ = [1, 5, 20, 30, 40, 50, 60], BOW_ACC = [8, 18, 28, 40, 56, 76, 98];
@@ -156,7 +198,7 @@ function tierItems(): ItemDef[] {
   out.push(I({ id: 'casket', name: 'Sunken casket', desc: 'Barnacled and locked with rust. Tap it and Prise open.', icon: { shape: 'casket', color: '#5a4030', accent: '#c9a050' }, stackable: true, value: 60, opens: 'treasure' }));
   out.push(I({ id: 'bar_gold', name: 'Gold bar', desc: 'Too soft for blades. Perfect for rings.', icon: { shape: 'bar', color: '#e3c25e' }, stackable: true, value: 90 }));
   out.push(I({ id: 'ring_gold', name: 'Gold signet', desc: 'Smith-made. Gold takes enchantment well.', icon: { shape: 'ring', color: '#e3c25e', accent: '#d8442a' }, stackable: false, value: 160,
-    equip: { slot: 'ring', reqs: { defence: 1 }, bonus: { acc: 2, defMelee: 1, defRanged: 1, defMagic: 2 }, affixPool: ['gather_speed', 'xp_bonus', 'crit', 'max_hp', 'dmg_pct', 'accuracy', 'regen'] } }));
+    equip: { slot: 'ring', reqs: { defence: 1 }, bonus: { acc: 2, defMelee: 1, defRanged: 1, defMagic: 2 }, affixPool: JEWEL_AFFIX } }));
   METALS.forEach((mt, m) => {
     const col = mt.color, nm = mt.name, tr = METAL_TRAITS[mt.key];
     const wTrait = tr?.weapon, aTrait = tr?.armour, tTrait = toolTrait(m);
@@ -178,18 +220,22 @@ function tierItems(): ItemDef[] {
     melee('dagger', 'dagger', 'Quick and sure: stabs land often, but light.', 1.8, 1.15, 0.65, 1.4, { attack: mt.req }, 1);
     melee('pike', 'boarding pike', 'Long reach: strikes from further off and runs through whatever stands behind.', 3.0, 0.95, 1.1, 2.8, { attack: mt.req }, 2.5);
     melee('greatsword', 'greatsword', 'Two hands, slow and brutal: every swing cleaves the crowd around your target.', 3.6, 0.9, 1.55, 1.9, { attack: mt.req, strength: mt.req }, 4);
-    out.push(I({ id: `pistols_${mt.key}`, name: `${nm} pistol brace`, desc: 'A pistol in each hand: two shots every volley, each a little wilder. Burns shot twice as fast.', icon: { shape: 'pistols', color: '#5a3e28', accent: col }, stackable: false, value: BAR_VALUE[m] * 6,
-      equip: { slot: 'weapon', reqs: { ranged: Math.min(99, PISTOL.req[m] + 5) }, style: 'ranged', kind: 'pistols', speed: 2.6, range: PISTOL.range[m] - 2, bonus: { acc: Math.round(PISTOL.acc[m] * 0.85) }, affixPool: RANGED_AFFIX }, innate: wTrait }));
     out.push(I({ id: `crossbow_${mt.key}`, name: `${nm} crossbow`, desc: 'Slow to wind, rarely misses. Fires bolts.', icon: { shape: 'crossbow', color: '#6a4a30', accent: col }, stackable: false, value: BAR_VALUE[m] * 3,
       equip: { slot: 'weapon', reqs: { ranged: mt.req }, style: 'ranged', kind: 'crossbow', speed: 3.0, range: 11 + Math.floor(m / 3), bonus: { acc: Math.round(PISTOL.acc[m] * 1.2) }, affixPool: RANGED_AFFIX }, innate: wTrait }));
     out.push(I({ id: `arrow_${mt.key}`, name: `${nm} arrows`, desc: 'For shortbows and longbows. Equip in the ammo slot.', icon: { shape: 'arrow', color: col, accent: '#e9e3d0' }, stackable: true, value: Math.max(1, Math.ceil(BAR_VALUE[m] / 15)),
       equip: { slot: 'ammo', ammo: 'arrow', reqs: { ranged: mt.req }, bonus: { rangedStr: Math.round(SHOT_STR[m] * 0.85) }, affixPool: [] } }));
     out.push(I({ id: `bolt_${mt.key}`, name: `${nm} bolts`, desc: 'Short, heavy crossbow bolts. Equip in the ammo slot.', icon: { shape: 'bolt', color: col }, stackable: true, value: Math.max(1, Math.ceil(BAR_VALUE[m] / 11)),
       equip: { slot: 'ammo', ammo: 'bolt', reqs: { ranged: mt.req }, bonus: { rangedStr: Math.round(SHOT_STR[m] * 1.15) }, affixPool: [] } }));
-    if (m >= 1) out.push(I({ id: `helm_${mt.key}`, name: `${nm} helm`, desc: 'Good against blades, poor against spells.', icon: { shape: 'helm', color: col }, stackable: false, value: BAR_VALUE[m] * 2,
-      equip: { slot: 'head', reqs: { defence: mt.req }, bonus: { defMelee: HELM[m], defRanged: Math.round(HELM[m] * 0.85), defMagic: -1 - m }, affixPool: ARMOUR_AFFIX }, innate: aTrait }));
-    out.push(I({ id: `plate_${mt.key}`, name: `${nm} plate`, desc: 'Heavy chest armour. Spells find the gaps.', icon: { shape: 'plate', color: col }, stackable: false, value: BAR_VALUE[m] * 5,
-      equip: { slot: 'body', reqs: { defence: mt.req }, bonus: { defMelee: PLATE[m], defRanged: Math.round(PLATE[m] * 0.85), defMagic: -3 - m * 2 }, affixPool: ARMOUR_AFFIX }, innate: aTrait }));
+    // a full suit: helm, plate, legs, boots, gauntlets and a shield (gauntlets steady the aim a little)
+    const armour = (piece: keyof typeof SUIT, slot: Slot, shape: IconShape, name: string, desc: string, valueMul: number, extra: Bonuses = {}, off?: OffhandKind) =>
+      out.push(I({ id: `${piece}_${mt.key}`, name: `${nm} ${name}`, desc, icon: { shape, color: col }, stackable: false, value: BAR_VALUE[m] * valueMul,
+        equip: { slot, off, reqs: { defence: mt.req }, bonus: { ...suitDef(piece, m), ...extra }, affixPool: ARMOUR_AFFIX }, innate: aTrait }));
+    armour('helm', 'head', 'helm', 'helm', 'Good against blades, poor against spells.', 2);
+    armour('plate', 'body', 'plate', 'plate', 'Heavy chest armour. Spells find the gaps.', 5);
+    armour('legs', 'legs', 'legs', 'platelegs', 'Plated legs. Heavy, but nothing gets past them.', 3);
+    armour('boots', 'feet', 'boots', 'boots', 'Iron-shod boots. Steady footing on a wet deck.', 1);
+    armour('gloves', 'hands', 'gloves', 'gauntlets', 'Plated gloves. A steadier grip: a little more accurate.', 1, { acc: 1 + Math.round(m * 0.6) });
+    armour('shield', 'offhand', 'shield', 'shield', 'Off-hand. Turns blows; fits beside any one-handed weapon: a blade, a pistol or a wand.', 2, {}, 'shield');
   });
   // bows: one shortbow and one longbow per wood (Fletching), firing arrows
   WOODS.forEach((w, t) => {
@@ -228,7 +274,41 @@ function tierItems(): ItemDef[] {
   out.push(I({ id: 'fish_stew', name: 'Fisherman\'s stew', desc: 'Heals 18. Salmon, kelp and sea salt, slow-cooked.', icon: { shape: 'bowl', color: '#9a6a40', accent: '#d88a4a' }, stackable: true, value: 55, heal: 18 }));
   out.push(I({ id: 'parcel_trout', name: 'Kelp-wrapped trout', desc: 'Heals 11.', icon: { shape: 'parcel', color: '#3e5a26', accent: '#b8834a' }, stackable: true, value: 30, heal: 11 }));
   for (const [id, name, req, acc, dmg, col] of STAFFS) out.push(I({ id, name, desc: `Casts your chosen spell. +${dmg}% spell damage.`, icon: { shape: 'staff', color: '#6a4a30', accent: col }, stackable: false, value: req * 12,
-    equip: { slot: 'weapon', reqs: { magic: req }, style: 'magic', speed: 2.4, range: 9 + Math.floor(req / 30), bonus: { acc, magicDmg: dmg, defMagic: 4 + req / 5 }, affixPool: ['dmg_pct', 'crit', 'elite_dmg', 'accuracy', 'leech'] } }));
+    equip: { slot: 'weapon', reqs: { magic: req }, style: 'magic', speed: 2.4, range: 9 + Math.floor(req / 30), bonus: { acc, magicDmg: dmg, defMagic: 4 + req / 5 }, affixPool: MAGIC_AFFIX } }));
+  // one-handed magic (Tom, 2026-10-25): a wand leaves the off-hand free for an orb (power), a book (thrift and
+  // protection), a shield or a second wand. Wand + orb is a staff's equal; the others trade damage for something.
+  const MAGIC_TIERS = [
+    { key: 'driftwood', wood: '#8a6440', glow: '#59d0c4', req: 1 }, { key: 'coral', wood: '#6a4a30', glow: '#e07a6a', req: 20 },
+    { key: 'storm', wood: '#6a4a30', glow: '#86b6dc', req: 40 }, { key: 'tide', wood: '#6a4a30', glow: '#3cc6c4', req: 60 },
+  ];
+  const WAND = { acc: [5, 9, 14, 20], dmg: [0, 2, 5, 8] }, ORB = { acc: [3, 5, 8, 12], dmg: [1, 3, 5, 7] }, BOOK = { dmg: [0, 1, 2, 4], def: [4, 8, 12, 16], save: [10, 15, 20, 25] };
+  const WAND_NAME = ['Driftwood wand', 'Coral wand', 'Stormsilver wand', 'Tidecore wand'];
+  const ORB_NAME = ['Sea-glass orb', 'Coral orb', 'Storm orb', 'Tidecore orb'], ORB_ID = ['glass', 'coral', 'storm', 'tide'];
+  const BOOK_NAME = ['Sailor\'s almanac', 'Coral codex', 'Storm log', 'Tidecaller\'s grimoire'], BOOK_ID = ['almanac', 'coral', 'storm', 'tide'];
+  MAGIC_TIERS.forEach((t, k) => {
+    out.push(I({ id: `wand_${t.key}`, name: WAND_NAME[k], desc: 'One-handed: casts your chosen spell and leaves the off-hand free for an orb, a book, a shield or a second wand.', icon: { shape: 'wand', color: t.wood, accent: t.glow }, stackable: false, value: Math.max(20, t.req * 10),
+      equip: { slot: 'weapon', reqs: { magic: t.req }, style: 'magic', kind: 'wand', speed: 2.4, range: 8 + Math.floor(t.req / 30), bonus: { acc: WAND.acc[k], magicDmg: WAND.dmg[k], defMagic: 2 + k * 2 }, affixPool: MAGIC_AFFIX } }));
+    out.push(I({ id: `orb_${ORB_ID[k]}`, name: ORB_NAME[k], desc: `Off-hand, beside a wand. Focuses your spells: +${ORB.dmg[k]}% spell damage.`, icon: { shape: 'orb', color: t.glow, accent: '#e9fbff' }, stackable: false, value: Math.max(20, t.req * 9),
+      equip: { slot: 'offhand', off: 'orb', reqs: { magic: t.req }, bonus: { acc: ORB.acc[k], magicDmg: ORB.dmg[k] }, affixPool: MAGIC_AFFIX } }));
+    out.push(I({ id: `book_${BOOK_ID[k]}`, name: BOOK_NAME[k], desc: 'Off-hand, beside a wand. Its pages ward off spells, and its rites waste fewer tide charms.', icon: { shape: 'book', color: k === 0 ? '#7a5534' : '#3a4a6a', accent: t.glow }, stackable: false, value: Math.max(20, t.req * 9),
+      equip: { slot: 'offhand', off: 'book', reqs: { magic: t.req }, bonus: { magicDmg: BOOK.dmg[k], defMagic: BOOK.def[k] }, affixPool: ['max_hp', 'regen', 'xp_bonus', 'accuracy'] }, innate: [{ id: 'charm_save', v: BOOK.save[k] }] }));
+  });
+  // jewellery: a pendant and a bangle beside the rings (gold ones are forged; Crafting will take jewellery over)
+  out.push(I({ id: 'amulet_brass', name: 'Brass pendant', desc: 'A wave stamped in brass, on a cord.', icon: { shape: 'amulet', color: '#d4b25a' }, stackable: false, value: 45,
+    equip: { slot: 'neck', reqs: {}, bonus: { defMelee: 1, defRanged: 1, defMagic: 2 }, affixPool: JEWEL_AFFIX } }));
+  out.push(I({ id: 'amulet_gold', name: 'Gold amulet', desc: 'Heavy gold on a chain. Gold takes enchantment well.', icon: { shape: 'amulet', color: '#e3c25e', accent: '#d8442a' }, stackable: false, value: 200,
+    equip: { slot: 'neck', reqs: { defence: 1 }, bonus: { acc: 3, str: 3, defMelee: 2, defRanged: 2, defMagic: 3 }, affixPool: JEWEL_AFFIX } }));
+  out.push(I({ id: 'bracelet_brass', name: 'Brass bangle', desc: 'A plain band for the wrist.', icon: { shape: 'bracelet', color: '#d4b25a' }, stackable: false, value: 35,
+    equip: { slot: 'wrist', reqs: {}, bonus: { defMelee: 1, defRanged: 1, defMagic: 1 }, affixPool: JEWEL_AFFIX } }));
+  out.push(I({ id: 'bracelet_gold', name: 'Gold bracelet', desc: 'A twisted gold band. Gold takes enchantment well.', icon: { shape: 'bracelet', color: '#e3c25e', accent: '#59d0c4' }, stackable: false, value: 180,
+    equip: { slot: 'wrist', reqs: { defence: 1 }, bonus: { acc: 2, defMelee: 2, defRanged: 2, defMagic: 2 }, affixPool: JEWEL_AFFIX } }));
+  // leather: light, cheap, kind to spellcasters (a full leather set with the cap and padded coat)
+  out.push(I({ id: 'chaps_leather', name: 'Leather chaps', desc: 'Light. Good against shot.', icon: { shape: 'legs', color: '#7a5534' }, stackable: false, value: 20,
+    equip: { slot: 'legs', reqs: { defence: 1 }, bonus: { defMelee: 2, defRanged: 4, defMagic: 2 }, affixPool: [...ARMOUR_AFFIX, 'gather_speed'] } }));
+  out.push(I({ id: 'boots_leather', name: 'Leather boots', desc: 'Sea-boots, waxed against the wet.', icon: { shape: 'boots', color: '#5a3e28' }, stackable: false, value: 12,
+    equip: { slot: 'feet', reqs: {}, bonus: { defMelee: 1, defRanged: 2, defMagic: 1 }, affixPool: [...ARMOUR_AFFIX, 'gather_speed'] } }));
+  out.push(I({ id: 'gloves_leather', name: 'Leather gloves', desc: 'Supple gloves. A surer grip on a trigger or a blade.', icon: { shape: 'gloves', color: '#7a5534' }, stackable: false, value: 12,
+    equip: { slot: 'hands', reqs: {}, bonus: { acc: 2, defMelee: 1, defRanged: 1, defMagic: 1 }, affixPool: [...ARMOUR_AFFIX, 'gather_speed'] } }));
   return out;
 }
 
@@ -287,18 +367,16 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(
       equip: { slot: 'ammo', reqs: { ranged: 10 }, bonus: { rangedStr: 13 }, affixPool: [] } }),
     // ---- magic (any staff casts your chosen spell; spells burn tide charms)
     I({ id: 'staff_driftwood', name: 'Driftwood staff', desc: 'Casts your chosen spell. Burns tide charms.', icon: { shape: 'staff', color: '#8a6440', accent: '#59d0c4' }, stackable: false, value: 30,
-      equip: { slot: 'weapon', reqs: { magic: 1 }, style: 'magic', speed: 2.4, range: 9, bonus: { acc: 8, defMagic: 4 }, affixPool: ['dmg_pct', 'crit', 'elite_dmg', 'accuracy', 'leech'] } }),
+      equip: { slot: 'weapon', reqs: { magic: 1 }, style: 'magic', speed: 2.4, range: 9, bonus: { acc: 8, defMagic: 4 }, affixPool: MAGIC_AFFIX } }),
     // ---- armour (Defence requirement)
-    I({ id: 'helm_bronze', name: 'Bronze helm', desc: 'Good against blades, poor against spells.', icon: { shape: 'helm', color: '#c08a4a' }, stackable: false, value: 36,
-      equip: { slot: 'head', reqs: { defence: 1 }, bonus: { defMelee: 5, defRanged: 4, defMagic: -1 }, affixPool: ARMOUR_AFFIX } }),
     I({ id: 'cap_leather', name: 'Leather cap', desc: 'Light. Good against shot.', icon: { shape: 'cap', color: '#7a5534' }, stackable: false, value: 15,
       equip: { slot: 'head', reqs: { defence: 1 }, bonus: { defMelee: 2, defRanged: 4, defMagic: 2 }, affixPool: [...ARMOUR_AFFIX, 'gather_speed'] } }),
     I({ id: 'coat_padded', name: 'Padded coat', desc: 'Quilted and patched. Good against shot.', icon: { shape: 'coat', color: '#5a4636' }, stackable: false, value: 30,
       equip: { slot: 'body', reqs: { defence: 1 }, bonus: { defMelee: 4, defRanged: 8, defMagic: 3 }, affixPool: ARMOUR_AFFIX } }),
     I({ id: 'lockplate', name: 'Lockbound plate', desc: 'Brass armour from the Guardian\'s chest. The keyhole still hums.', icon: { shape: 'coat', color: '#b08a3e', accent: '#59d0c4' }, stackable: false, value: 300,
-      equip: { slot: 'body', reqs: { defence: 10 }, bonus: { defMelee: 20, defRanged: 16, defMagic: -6 }, affixPool: [...ARMOUR_AFFIX, 'elite_dmg', 'dmg_pct'] } }),
+      equip: { slot: 'body', reqs: { defence: 10 }, bonus: { defMelee: 12, defRanged: 10, defMagic: -4 }, affixPool: [...ARMOUR_AFFIX, 'elite_dmg', 'dmg_pct'] } }),
     I({ id: 'ring_brass', name: 'Brass ring', desc: 'Engraved with waves.', icon: { shape: 'ring', color: '#d4b25a' }, stackable: false, value: 40,
-      equip: { slot: 'ring', reqs: {}, bonus: {}, affixPool: ['gather_speed', 'xp_bonus', 'crit', 'max_hp', 'dmg_pct', 'accuracy'] } }),
+      equip: { slot: 'ring', reqs: {}, bonus: {}, affixPool: JEWEL_AFFIX } }),
     // ---- quest
     I({ id: 'tuning_bell', name: 'Tuning bell', desc: 'Cast by Iven Marr from your bronze. Ring it at the Broken Ring.', icon: { shape: 'bell', color: '#c08a4a' }, stackable: false, value: 0, quest: true }),
     I({ id: 'keels_tooth', name: 'Keel\'s Tooth', desc: 'A key shaped like a tooth, warm as a living thing.', icon: { shape: 'tooth', color: '#efe3c4', accent: '#59d0c4' }, stackable: false, value: 0, quest: true }),
@@ -338,5 +416,6 @@ export const AFFIXES: Record<string, AffixDef> = {
   xp_bonus: { id: 'xp_bonus', prefix: 'Studious', suffix: 'of Learning', min: 2, max: 5, fmt: (v) => `+${v}% skill experience` },
   // signature traits only (never rolled)
   durable: { id: 'durable', prefix: 'Tough', suffix: 'of Endurance', min: 40, max: 40, fmt: (v) => `Wears ${v}% slower` },
+  charm_save: { id: 'charm_save', prefix: 'Thrifty', suffix: 'of Thrift', min: 10, max: 25, fmt: (v) => `${v}% chance a spell burns no charms` },
   sea_dmg: { id: 'sea_dmg', prefix: 'Sea-bane', suffix: 'of the Deep', min: 15, max: 15, fmt: (v) => `+${v}% damage to crabs and the Drowned` },
 };

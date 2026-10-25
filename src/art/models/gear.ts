@@ -354,14 +354,3 @@ export function buildArrows(col: string, fletch: string, bolts: boolean, qty: nu
   g.rotation.z = -0.8;
   return g;
 }
-
-/** A pair of pistols, crossed. */
-export function buildPistolBrace(stock: string, metal: string, tier: number): THREE.Group {
-  const g = new THREE.Group();
-  const a = buildPistol(stock, metal, tier), b = buildPistol(stock, metal, tier);
-  // a matched pair, one above the other, both side-on: two clear pistol silhouettes
-  a.position.set(-0.04, 0.12, 0.03); a.rotation.z = 0.05;
-  b.position.set(0.04, -0.12, -0.03); b.rotation.z = 0.05;
-  g.add(a, b);
-  return g;
-}

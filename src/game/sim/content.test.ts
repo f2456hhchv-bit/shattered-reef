@@ -510,9 +510,9 @@ describe('the living island', () => {
     expect([lv('rock_iron'), lv('rock_coal'), lv('rock_gold')]).toEqual([15, 30, 40]);
     expect([ITEMS.cutlass_steel.equip!.reqs.attack, ITEMS.plate_storm.equip!.reqs.defence, ITEMS.cutlass_cinder.equip!.reqs.attack]).toEqual([5, 10, 40]);
     expect(['smelt_bronze', 'smelt_iron', 'smelt_steel'].map((id) => RECIPES.find((r) => r.id === id)!.level)).toEqual([1, 15, 30]);
-    // the anvil: a new item every few levels within a bar's tier (dagger +0 ... platebody +18)
+    // the anvil: a new item every few levels within a bar's tier (dagger +0, boots +2 ... platebody +18)
     const bronze = RECIPES.filter((r) => r.station === 'anvil' && r.output.id.endsWith('_bronze')).map((r) => r.level).sort((a, b) => a - b);
-    expect(bronze).toEqual([1, 2, 3, 4, 6, 7, 15, 19]);
+    expect(bronze).toEqual([1, 2, 3, 3, 4, 5, 6, 7, 13, 15, 17, 19]);
     const g = fresh();
     g.addXp('woodcutting', 25);
     expect(g.p.xp.woodcutting).toBe(25); // RuneScape's normal log, no boost

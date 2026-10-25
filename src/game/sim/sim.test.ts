@@ -6,6 +6,7 @@ import { add, count, emptyInventory, remove, INV_SIZE } from './inventory';
 import { parseSave, defaultSave, SAVE_VERSION, HP_START_XP } from './save';
 import { hitChance, combatLevel, levelsOf } from './gear';
 import { NODES } from '../data/content';
+import { ITEMS } from '../data/items';
 import { LAYOUT } from '../world/island';
 
 // One shared island (building it is the slow part); fresh Game state per test via the save.
@@ -498,7 +499,7 @@ describe('combat skills (RuneScape model)', () => {
     expect(g.stats.specCut).toBeCloseTo(0.05, 5);
   });
 
-  it('every weapon family plays differently: bows need arrows, braces fire twice, pikes reach and pierce, greatswords cleave', () => {
+  it('every weapon family plays differently: bows need arrows, two pistols fire twice, pikes reach and pierce, greatswords cleave', () => {
     // a bow won't fire shot; with arrows it fires and burns them
     const b = fresh(36);
     b.p.equip.weapon = { id: 'shortbow_pine', qty: 1 };
@@ -519,9 +520,10 @@ describe('combat skills (RuneScape model)', () => {
     expect(c.alive).toBe(false);
     expect(b.p.equip.ammo!.qty).toBeLessThan(30);
 
-    // a pistol brace fires two shots a volley
+    // a pistol in each hand fires two shots a volley
     const p = fresh(37);
-    p.p.equip.weapon = { id: 'pistols_bronze', qty: 1 };
+    p.p.equip.weapon = { id: 'pistol_flintlock', qty: 1 };
+    p.p.equip.offhand = { id: 'pistol_flintlock', qty: 1 };
     p.p.equip.ammo = { id: 'shot_bronze', qty: 30 };
     p.p.xp.ranged = xpForLevel(10);
     p.recalc();
@@ -591,5 +593,99 @@ describe('combat skills (RuneScape model)', () => {
     expect(kills).toBeGreaterThan(5);
     expect(g.level('attack')).toBeGreaterThanOrEqual(5);
     expect(g.level('attack')).toBeLessThanOrEqual(10);
+  });
+});
+
+describe('gear slots and the off-hand (Tom, 2026-10-25)', () => {
+  const slotOf = (g: Game, id: string) => g.p.inv.findIndex((s) => s?.id === id);
+  const lv = (g: Game, k: Record<string, number>) => { for (const [s, l] of Object.entries(k)) (g.p.xp as Record<string, number>)[s] = xpForLevel(l); g.recalc(); };
+
+  it('a two-handed weapon empties the off-hand; a shield sends a two-hander back to the pack', () => {
+    const g = fresh(50);
+    lv(g, { attack: 20, strength: 20, defence: 20 });
+    g.give('shield_bronze', 1); g.give('greatsword_bronze', 1);
+    g.equip(slotOf(g, 'shield_bronze'));
+    expect(g.p.equip.offhand?.id).toBe('shield_bronze');
+    g.equip(slotOf(g, 'greatsword_bronze'));
+    expect(g.p.equip.weapon?.id).toBe('greatsword_bronze');
+    expect(g.p.equip.offhand).toBeUndefined();
+    expect(count(g.p.inv, 'shield_bronze')).toBe(1); // back in the pack, not lost
+    g.equip(slotOf(g, 'shield_bronze'));
+    expect(g.p.equip.offhand?.id).toBe('shield_bronze');
+    expect(g.p.equip.weapon).toBeUndefined();
+    expect(count(g.p.inv, 'greatsword_bronze')).toBe(1);
+  });
+
+  it('orbs and books need a wand; a shield fits beside a wand or a pistol; blades pair with blades only', () => {
+    const g = fresh(51);
+    lv(g, { magic: 30, ranged: 30, attack: 30, defence: 30 });
+    g.give('orb_glass', 1); g.give('wand_driftwood', 1); g.give('book_almanac', 1); g.give('shield_bronze', 1);
+    g.equip(slotOf(g, 'orb_glass'));
+    expect(g.p.equip.offhand).toBeUndefined(); // the cutlass is no wand
+    g.equip(slotOf(g, 'wand_driftwood'));
+    g.equip(slotOf(g, 'orb_glass'));
+    expect(g.p.equip.offhand?.id).toBe('orb_glass');
+    g.equip(slotOf(g, 'shield_bronze'));
+    expect(g.p.equip.offhand?.id).toBe('shield_bronze');
+    // swapping the wand for a cutlass keeps the shield; a book then can't go in
+    g.give('cutlass_bronze', 1);
+    g.equip(slotOf(g, 'cutlass_bronze'));
+    expect(g.p.equip.offhand?.id).toBe('shield_bronze');
+    g.equip(slotOf(g, 'book_almanac'));
+    expect(g.p.equip.offhand?.id).toBe('shield_bronze');
+    // a dagger pairs with the cutlass; a pistol doesn't
+    g.give('dagger_bronze', 1); g.give('pistol_flintlock', 1);
+    g.equip(slotOf(g, 'pistol_flintlock'), true);
+    expect(g.p.equip.offhand?.id).toBe('shield_bronze');
+    g.equip(slotOf(g, 'dagger_bronze'), true);
+    expect(g.p.equip.offhand?.id).toBe('dagger_bronze');
+    expect(g.stats.dual).not.toBeNull();
+    // the pistol into the main hand: the dagger no longer pairs, so it goes back to the pack
+    g.equip(slotOf(g, 'pistol_flintlock'));
+    expect(g.p.equip.offhand).toBeUndefined();
+    expect(count(g.p.inv, 'dagger_bronze')).toBe(1);
+  });
+
+  it('a second weapon strikes at half its max hit and slows the pair a little; a shield adds defence instead', () => {
+    const g = fresh(52);
+    lv(g, { attack: 30, strength: 30, defence: 30 });
+    g.p.equip.weapon = { id: 'cutlass_steel', qty: 1 }; g.recalc();
+    const one = { ...g.stats };
+    g.p.equip.offhand = { id: 'cutlass_steel', qty: 1 }; g.recalc();
+    expect(g.stats.dual!.maxHit).toBeGreaterThanOrEqual(Math.floor(one.maxHit * 0.4));
+    expect(g.stats.dual!.maxHit).toBeLessThanOrEqual(Math.ceil(one.maxHit * 0.6));
+    expect(g.stats.speed).toBeGreaterThan(one.speed);
+    expect(g.stats.maxHit).toBe(one.maxHit); // the off-hand isn't added to the main hit
+    g.p.equip.offhand = { id: 'shield_steel', qty: 1 }; g.recalc();
+    expect(g.stats.dual).toBeNull();
+    expect(g.stats.def.melee).toBeGreaterThan(one.def.melee);
+  });
+
+  it('rings fill both ring slots; the five worn armour pieces add up to what helm and plate gave before', () => {
+    const g = fresh(53);
+    g.give('ring_brass', 1); g.give('ring_brass', 1); g.give('ring_brass', 1);
+    g.equip(slotOf(g, 'ring_brass')); g.equip(slotOf(g, 'ring_brass'));
+    expect([g.p.equip.ring?.id, g.p.equip.ring2?.id]).toEqual(['ring_brass', 'ring_brass']);
+    g.equip(slotOf(g, 'ring_brass')); // a third swaps with the first
+    expect(count(g.p.inv, 'ring_brass')).toBe(1);
+    // steel: old helm 12 + plate 32 = 44 melee defence
+    const sum = (ids: string[]) => ids.reduce((a, id) => a + (ITEMS[id].equip!.bonus.defMelee ?? 0), 0);
+    const suit = sum(['helm_steel', 'plate_steel', 'legs_steel', 'boots_steel', 'gloves_steel']);
+    expect(suit).toBeGreaterThanOrEqual(40);
+    expect(suit).toBeLessThanOrEqual(46);
+  });
+
+  it('an old save with a pistol brace loads as two pistols: one in each hand, or the spare in the pack', () => {
+    const d = defaultSave(base.layout.respawn, base.layout.mooring!) as unknown as Record<string, unknown>;
+    const p = d.player as Record<string, unknown>;
+    p.equip = { weapon: { id: 'pistols_steel', qty: 1, inst: { uid: 4, rarity: 'fine', affixes: [{ id: 'crit', v: 5 }] } } };
+    (p.inv as unknown[])[10] = { id: 'pistols_bronze', qty: 1 };
+    d.bank = [{ id: 'pistols_iron', qty: 2 }];
+    const out = parseSave(JSON.stringify({ ...d, version: 5 }), defaultSave(base.layout.respawn, base.layout.mooring!))!;
+    expect(out.player.equip.weapon?.id).toBe('pistol_steel');
+    expect(out.player.equip.weapon?.inst?.rarity).toBe('fine');
+    expect(out.player.equip.offhand?.id).toBe('pistol_steel');
+    expect(count(out.player.inv, 'pistol_flintlock')).toBe(2);
+    expect(out.bank.find((b) => b.id === 'pistol_iron')?.qty).toBe(4);
   });
 });

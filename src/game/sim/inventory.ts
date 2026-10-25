@@ -6,12 +6,13 @@ export interface Affix { id: string; v: number }
 export interface Inst { uid: number; rarity: Rarity; affixes: Affix[] }
 export interface Stack { id: string; qty: number; inst?: Inst; cond?: number } // cond: 0..100 condition (absent = 100)
 
-/** Weapons, armour and tools wear with use; ammo, rings and consumables don't. */
+const WEARING_SLOTS = new Set(['weapon', 'offhand', 'head', 'body', 'legs', 'feet', 'hands']);
+/** Weapons, armour, off-hands and tools wear with use; ammo, jewellery and consumables don't. */
 export function wears(id: string): boolean {
   const d = ITEMS[id];
   if (!d) return false;
   if (d.tool) return true;
-  return !!d.equip && (d.equip.slot === 'weapon' || d.equip.slot === 'head' || d.equip.slot === 'body');
+  return !!d.equip && WEARING_SLOTS.has(d.equip.slot);
 }
 export const condOf = (s: Stack | null | undefined) => (s && wears(s.id) ? s.cond ?? 100 : 100);
 /** A worn-out item still works, at reduced effect: nothing ever breaks or vanishes. */
