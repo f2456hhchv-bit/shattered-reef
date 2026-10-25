@@ -2,6 +2,7 @@ import { mulberry32 } from '../../art/noise';
 import { item, ammoKind, AMMO_NAME, isTwoHanded, offhandBlock, pairGroup, type ItemDef, type Slot, type SkillId, type CombatStyle } from '../data/items';
 import { perkTotal } from '../data/perks';
 import { KEY, KEYS, KEY_CONFIG, type KeyDef, type KeyFamily } from '../data/keys';
+import { DROP_CONFIG, GEMS, rareTable, commonTable } from '../data/drops';
 import { BOARDS, BOUNTY_CONFIG, CREW_BY, WANTED_FIRST, WANTED_LAST, rankOf, type Contract, type CrewPassive } from '../data/bounties';
 import { HP_SCALE, NODES, RECIPES, ENEMIES, LOOT, ELITE_AFFIXES, SHOPS, PLAYER_BASE, UTILITY_SPELLS, COMBAT_SKILLS, XP_PER_DAMAGE, type EnemyDef, type Recipe, type Station } from '../data/content';
 import { NPCS, QUESTS, type DialogueNode, type Effect } from '../data/quests';
@@ -593,6 +594,11 @@ export class Game {
         const kp = this.activeKey()?.passive;
         if (kp && ((kp.kind === 'extra_log' && d.skill === 'woodcutting') || (kp.kind === 'extra_ore' && d.skill === 'mining')) && this.rnd() < kp.v / 100 && canAdd(this.p.inv, got)) {
           this.give(got, 1); this.msg(`Your ${this.activeKey()!.name} turns up a second ${item(got).name.toLowerCase()}.`, 'good');
+        }
+        if (d.skill === 'mining' && this.rnd() < DROP_CONFIG.miningGem && canAdd(this.p.inv, 'gem_pearl_rough')) {
+          let w = this.rnd() * GEMS.reduce((a, g) => a + g.w, 0);
+          const gm = GEMS.find((o) => (w -= o.w) <= 0) ?? GEMS[0];
+          this.give(`gem_${gm.key}_rough`, 1); this.msg(`You find a rough ${gm.name.toLowerCase()} in the rock!`, 'loot');
         }
         this.rollKeyFind(d.fromShip ? 'sailing' : d.skill as KeyFamily, KEY_CONFIG.gatherChance);
       }
@@ -1894,7 +1900,7 @@ export class Game {
     if (this.target === e.id) this.target = null;
     if (e.elite === 'volatile') this.telegraphs.push({ id: this.nextId++, kind: 'circle', x: e.x, z: e.z, r: 2.6, angle: 0, width: 0, t: 0, dur: 1.1, damage: 4, source: e.id });
     const before = this.drops.length;
-    if (!e.summoned) this.rollLoot(LOOT[e.def.loot], e.x, e.z);
+    if (!e.summoned) { this.rollLoot(LOOT[e.def.loot], e.x, e.z); this.rollShared(e); }
     if (e.elite) this.rollLoot(LOOT.elite, e.x, e.z);
     for (let i = before; i < this.drops.length; i++) this.drops[i].home = true; // shot from range, it still reaches you
     if (e.def.boss) this.bossDefeated(e);
@@ -1921,6 +1927,27 @@ export class Game {
       const rarity = rollRarity(table.gear.weights, this.rnd);
       this.dropAt(x, z, { id, qty: 1, inst: makeInstance(id, rarity, this.rnd, this.uid()) });
     }
+  }
+
+  /** The shared tables every creature can reach (drops.ts): the common table, the gem table, and from level 15 up
+   * the rare drop table. Elites reach them more often; bosses always hit the gem and rare tables. */
+  private rollShared(e: Enemy) {
+    const r = this.rnd, lvl = e.def.level, k = e.elite ? DROP_CONFIG.eliteMul : 1, boss = !!e.def.boss;
+    const pick = <T extends { w: number }>(list: T[]) => { let x = r() * list.reduce((a, b) => a + b.w, 0); return list.find((o) => (x -= o.w) <= 0) ?? list[list.length - 1]; };
+    const drop = (item: string, qty: [number, number]) => this.dropAt(e.x, e.z, { id: item, qty: qty[0] + Math.floor(r() * (qty[1] - qty[0] + 1)) });
+    if (r() < DROP_CONFIG.commonChance * k) { const c = pick(commonTable(lvl)).pick; drop(c.item, c.qty); }
+    if (boss || r() < DROP_CONFIG.gemChance * k) this.dropGem(e.x, e.z);
+    if (boss || (lvl >= DROP_CONFIG.rareFrom && r() < DROP_CONFIG.rareChance * k)) {
+      const c = pick(rareTable(lvl)).pick;
+      if (c === 'gem') this.dropGem(e.x, e.z); else drop(c.item, c.qty);
+      this.msg('Rare drop!', 'loot');
+    }
+  }
+  /** A rough gem from the gem table (pearls common, a leviathan's eye one in 60). */
+  private dropGem(x: number, z: number) {
+    let w = this.rnd() * GEMS.reduce((a, g) => a + g.w, 0);
+    const g = GEMS.find((o) => (w -= o.w) <= 0) ?? GEMS[0];
+    this.dropAt(x, z, { id: `gem_${g.key}_rough`, qty: 1 });
   }
 
   /** A signature weapon: always a relic, and the whole island hears about it. */

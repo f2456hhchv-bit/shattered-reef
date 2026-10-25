@@ -3303,6 +3303,256 @@
   },
   {
    "kind": "items",
+   "id": "gem_pearl_rough",
+   "name": "Rough sea pearl",
+   "group": "Materials",
+   "file": "items/gem_pearl_rough.png",
+   "sha1": "e9d5df784305100439d012d9598a69e66f6c9378",
+   "h": 0.563,
+   "w": 0.535
+  },
+  {
+   "kind": "items",
+   "id": "gem_pearl",
+   "name": "Sea pearl",
+   "group": "Materials",
+   "file": "items/gem_pearl.png",
+   "sha1": "5af7a43c235108187ccd4cd99926337639165bee",
+   "h": 0.31,
+   "w": 0.524
+  },
+  {
+   "kind": "items",
+   "id": "ring_pearl",
+   "name": "Sea pearl ring",
+   "group": "Jewellery",
+   "file": "items/ring_pearl.png",
+   "sha1": "46eb538ed5dd35577c49486e5bc7b0b6d8b6d035",
+   "h": 0.418,
+   "w": 0.35
+  },
+  {
+   "kind": "items",
+   "id": "bracelet_pearl",
+   "name": "Sea pearl bracelet",
+   "group": "Jewellery",
+   "file": "items/bracelet_pearl.png",
+   "sha1": "a5dc4972046a12d10f2ac571ef1163cef0fc6a0e",
+   "h": 0.257,
+   "w": 0.43
+  },
+  {
+   "kind": "items",
+   "id": "amulet_pearl",
+   "name": "Sea pearl amulet",
+   "group": "Jewellery",
+   "file": "items/amulet_pearl.png",
+   "sha1": "10a12a76e3c1b664b9f7a3e46a5d726984f5c278",
+   "h": 0.608,
+   "w": 0.586
+  },
+  {
+   "kind": "items",
+   "id": "gem_jade_rough",
+   "name": "Rough kelp jade",
+   "group": "Materials",
+   "file": "items/gem_jade_rough.png",
+   "sha1": "8062d4e5f9de3ce9984a204ec7f748e35de9ddc0",
+   "h": 0.563,
+   "w": 0.535
+  },
+  {
+   "kind": "items",
+   "id": "gem_jade",
+   "name": "Kelp jade",
+   "group": "Materials",
+   "file": "items/gem_jade.png",
+   "sha1": "91e857b9f85cd0c99be3b72e4bed7a2bce9565ea",
+   "h": 0.31,
+   "w": 0.524
+  },
+  {
+   "kind": "items",
+   "id": "ring_jade",
+   "name": "Kelp jade ring",
+   "group": "Jewellery",
+   "file": "items/ring_jade.png",
+   "sha1": "92f9a9c5287dfb1b253a4a8401e3dc3869a2a5e5",
+   "h": 0.418,
+   "w": 0.35
+  },
+  {
+   "kind": "items",
+   "id": "bracelet_jade",
+   "name": "Kelp jade bracelet",
+   "group": "Jewellery",
+   "file": "items/bracelet_jade.png",
+   "sha1": "8340fc6d27702790454417e161f39709565d7802",
+   "h": 0.257,
+   "w": 0.43
+  },
+  {
+   "kind": "items",
+   "id": "amulet_jade",
+   "name": "Kelp jade amulet",
+   "group": "Jewellery",
+   "file": "items/amulet_jade.png",
+   "sha1": "2f0d47f3c9af5758add6ba49fec51b851eb8ab2f",
+   "h": 0.608,
+   "w": 0.586
+  },
+  {
+   "kind": "items",
+   "id": "gem_ruby_rough",
+   "name": "Rough coral ruby",
+   "group": "Materials",
+   "file": "items/gem_ruby_rough.png",
+   "sha1": "55e4760f24124f8a1ef1854125844bf05e02356e",
+   "h": 0.563,
+   "w": 0.535
+  },
+  {
+   "kind": "items",
+   "id": "gem_ruby",
+   "name": "Coral ruby",
+   "group": "Materials",
+   "file": "items/gem_ruby.png",
+   "sha1": "47fde0bd65886a4bfc8adbcfe8d1a87618e327a0",
+   "h": 0.31,
+   "w": 0.524
+  },
+  {
+   "kind": "items",
+   "id": "ring_ruby",
+   "name": "Coral ruby ring",
+   "group": "Jewellery",
+   "file": "items/ring_ruby.png",
+   "sha1": "4e8ac837ebcd58dd9101f0790d4bc3c4dc6ef75f",
+   "h": 0.418,
+   "w": 0.35
+  },
+  {
+   "kind": "items",
+   "id": "bracelet_ruby",
+   "name": "Coral ruby bracelet",
+   "group": "Jewellery",
+   "file": "items/bracelet_ruby.png",
+   "sha1": "b75743f07b75618c94309c4d304362e977c459dd",
+   "h": 0.257,
+   "w": 0.43
+  },
+  {
+   "kind": "items",
+   "id": "amulet_ruby",
+   "name": "Coral ruby amulet",
+   "group": "Jewellery",
+   "file": "items/amulet_ruby.png",
+   "sha1": "d28aa8ad71f301cf51f15b6ea2497b0132317a77",
+   "h": 0.608,
+   "w": 0.586
+  },
+  {
+   "kind": "items",
+   "id": "gem_diamond_rough",
+   "name": "Rough storm diamond",
+   "group": "Materials",
+   "file": "items/gem_diamond_rough.png",
+   "sha1": "91518559b32644c385e5b8f912a770e374b75690",
+   "h": 0.563,
+   "w": 0.535
+  },
+  {
+   "kind": "items",
+   "id": "gem_diamond",
+   "name": "Storm diamond",
+   "group": "Materials",
+   "file": "items/gem_diamond.png",
+   "sha1": "5b4d71efd38ad15274108d3cf1eefa9e90763743",
+   "h": 0.31,
+   "w": 0.524
+  },
+  {
+   "kind": "items",
+   "id": "ring_diamond",
+   "name": "Storm diamond ring",
+   "group": "Jewellery",
+   "file": "items/ring_diamond.png",
+   "sha1": "88e0cc8655e07fde795eaf11494cfd588a216b6c",
+   "h": 0.418,
+   "w": 0.35
+  },
+  {
+   "kind": "items",
+   "id": "bracelet_diamond",
+   "name": "Storm diamond bracelet",
+   "group": "Jewellery",
+   "file": "items/bracelet_diamond.png",
+   "sha1": "bfdebe6bccc1d7c1c8f2c2c29297256f19794be1",
+   "h": 0.257,
+   "w": 0.43
+  },
+  {
+   "kind": "items",
+   "id": "amulet_diamond",
+   "name": "Storm diamond amulet",
+   "group": "Jewellery",
+   "file": "items/amulet_diamond.png",
+   "sha1": "6a34c71f92bb5931de731494514333ccfad982e8",
+   "h": 0.608,
+   "w": 0.586
+  },
+  {
+   "kind": "items",
+   "id": "gem_eye_rough",
+   "name": "Rough leviathan's eye",
+   "group": "Materials",
+   "file": "items/gem_eye_rough.png",
+   "sha1": "62458d8e0d9f85e533454a2ea942328d4121b6ae",
+   "h": 0.563,
+   "w": 0.535
+  },
+  {
+   "kind": "items",
+   "id": "gem_eye",
+   "name": "Leviathan's eye",
+   "group": "Materials",
+   "file": "items/gem_eye.png",
+   "sha1": "b0d0ca0fe036f01acc98bf3284673d62e38b6401",
+   "h": 0.31,
+   "w": 0.524
+  },
+  {
+   "kind": "items",
+   "id": "ring_eye",
+   "name": "Leviathan's eye ring",
+   "group": "Jewellery",
+   "file": "items/ring_eye.png",
+   "sha1": "ad3a4d7ad1058add7f5fc3a52f9df8f9af7403c5",
+   "h": 0.418,
+   "w": 0.35
+  },
+  {
+   "kind": "items",
+   "id": "bracelet_eye",
+   "name": "Leviathan's eye bracelet",
+   "group": "Jewellery",
+   "file": "items/bracelet_eye.png",
+   "sha1": "e6c379b3d8650476bf0c3a58de6a9a4a200e392b",
+   "h": 0.257,
+   "w": 0.43
+  },
+  {
+   "kind": "items",
+   "id": "amulet_eye",
+   "name": "Leviathan's eye amulet",
+   "group": "Jewellery",
+   "file": "items/amulet_eye.png",
+   "sha1": "f5a83e5299e3c0ad319b89e78668d0f57d357bf2",
+   "h": 0.608,
+   "w": 0.586
+  },
+  {
+   "kind": "items",
    "id": "sig_lash",
    "name": "Undertow Lash",
    "group": "Melee weapons",

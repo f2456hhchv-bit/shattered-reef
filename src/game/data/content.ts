@@ -1,5 +1,6 @@
 import { ITEMS, METALS, WOODS, FISH, type SkillId, type CombatStyle } from './items';
 import { PERKS, perkText } from './perks';
+import { GEMS } from './drops';
 
 // Skills, resource nodes, recipes, shop, spells, enemies, loot. All tunable here.
 
@@ -229,6 +230,13 @@ function buildRecipes(): Recipe[] {
   craft('amulet_sunscale', 'furnace', 82, 360, [['bar_gold', 2], ['sunscale', 2]], 'amulet_sunscale');
   craft('body_sunscale', 'bench', 85, 480, [['sunscale', 5], ['leather', 3]], 'body_sunscale');
   craft('helm_sunscale', 'bench', 90, 300, [['sunscale', 2], ['leather', 1], ['crystal_geode', 1]], 'helm_sunscale');
+  // gems: polish at the bench (RuneScape's cutting levels and XP), then set in gold at the furnace
+  for (const g of GEMS) {
+    craft(`polish_${g.key}`, 'bench', g.cut, g.xp, [[`gem_${g.key}_rough`, 1]], `gem_${g.key}`, 1, false);
+    craft(`ring_${g.key}`, 'furnace', g.cut, g.xp * 0.8, [['bar_gold', 1], [`gem_${g.key}`, 1]], `ring_${g.key}`);
+    craft(`bracelet_${g.key}`, 'furnace', Math.min(99, g.cut + 3), g.xp * 0.9, [['bar_gold', 1], [`gem_${g.key}`, 1]], `bracelet_${g.key}`);
+    craft(`amulet_${g.key}`, 'furnace', Math.min(99, g.cut + 8), g.xp * 1.1, [['bar_gold', 2], [`gem_${g.key}`, 1]], `amulet_${g.key}`);
+  }
   return out;
 }
 export const RECIPES: Recipe[] = buildRecipes();
