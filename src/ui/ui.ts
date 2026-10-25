@@ -16,6 +16,7 @@ import { type Game, type GameEvent, type MsgKind } from '../game/sim/game';
 import type { GameRenderer } from '../render/renderer';
 import { itemIcon, rarityColour, TAB_ICONS, SKILL_ICONS, SLOT_ICONS } from './icons';
 import { LEVEL_GAIN } from '../game/data/perks';
+import { KEY, KEYS, KEY_CONFIG } from '../game/data/keys';
 
 type Tab = 'pack' | 'gear' | 'skills' | 'quests' | 'map' | 'settings';
 const TABS: { id: Tab; name: string; key: string }[] = [
@@ -28,6 +29,7 @@ const TABS: { id: Tab; name: string; key: string }[] = [
 ];
 /** Equipment grid, four across: head and jewellery on top, the hands in the middle, the rest below. */
 const SLOT_ORDER: Slot[] = ['head', 'neck', 'ammo', 'ring', 'weapon', 'body', 'offhand', 'ring2', 'hands', 'legs', 'feet', 'wrist'];
+const KEY_HINT: Record<string, string> = { any: 'anywhere at all', woodcutting: 'in trees', mining: 'in rock', fishing: 'on the line', melee: 'on foes you cut down', ranged: 'on foes you shoot', magic: 'on foes you spell down', sailing: 'fishing from your ship', explore: 'in places nobody has charted' };
 const SLOT_NAME: Record<Slot, string> = { weapon: 'weapon', offhand: 'off-hand', ammo: 'ammo', head: 'head', body: 'body', legs: 'legs', feet: 'feet', hands: 'hands', neck: 'neck', wrist: 'wrist', ring: 'ring', ring2: 'ring' };
 /** What an item is worn as, for the details panel. */
 const slotLabel = (d: ItemDef) => {
@@ -43,6 +45,8 @@ const KIND_TIPS: Record<WeaponKind, string> = {
   cutlass: 'Balanced blade', dagger: 'Fast, accurate, light', pike: 'Long reach, runs through a line', greatsword: 'Slow and heavy, cleaves the crowd',
   pistol: 'Fires shot', shortbow: 'Fast arrows', longbow: 'Longest reach of all', crossbow: 'Sure, heavy bolts', staff: 'Two-handed: casts your chosen spell', wand: 'One-handed: casts your chosen spell',
 };
+/** A brass key, for the Key button, the keyring and the find card. */
+const KEY_SVG = '<svg viewBox="0 0 32 32"><circle cx="10" cy="11" r="6" fill="none" stroke="#1a120a" stroke-width="5"/><circle cx="10" cy="11" r="6" fill="none" stroke="#d9b25a" stroke-width="2.6"/><path d="M14 15l12 12M21 22l3-3M24 25l3-3" stroke="#1a120a" stroke-width="5" stroke-linecap="round"/><path d="M14 15l12 12M21 22l3-3M24 25l3-3" stroke="#d9b25a" stroke-width="2.6" stroke-linecap="round"/></svg>';
 const ROLL = '<svg viewBox="0 0 32 32"><path d="M6 22c0-8 6-14 13-14 4 0 7 2 7 2" fill="none" stroke="#e9e5d5" stroke-width="3.2" stroke-linecap="round"/><path d="M22 4l5 6-7 2" fill="none" stroke="#e9e5d5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 27h12" stroke="#c9a050" stroke-width="3" stroke-linecap="round"/></svg>';
 const SQUALL = '<svg viewBox="0 0 32 32"><path d="M4 11c6-4 12 4 18 0M4 17c6-4 12 4 18 0M8 23c6-4 10 3 16 0" fill="none" stroke="#59d0c4" stroke-width="3" stroke-linecap="round"/><circle cx="26" cy="9" r="3" fill="#e9e5d5" stroke="#1a120a" stroke-width="1.5"/></svg>';
 const PISTOL = '<svg viewBox="0 0 32 32"><path d="M4 12h18l4-3h3v6h-3l-2 2h-6l-3 9H8l2-8H4z" fill="#9aa0a4" stroke="#1a120a" stroke-width="2" stroke-linejoin="round"/><path d="M12 17l-2 7" stroke="#8a6440" stroke-width="3"/></svg>';
@@ -142,13 +146,14 @@ export class UI {
     };
     const roll = mk('ab-roll', 'Dodge roll (Space)', ROLL, () => this.game.useRoll());
     const special = mk('ab-special', 'Special attack (R)', WHIRL, () => this.game.useSpecial());
+    const keyBtn = mk('ab-key', 'Turn your key (T)', KEY_SVG, () => this.game.useKey());
     const ctx = h('button', { id: 'ctx', class: 'round', 'aria-label': 'Interact (E)' }, '<span></span><small></small>');
     onTap(ctx, 'button', () => { const t = this.game.contextTarget(); if (t) this.game.interact(t.key); });
     const load = mk('ab-load', 'Weapon, ammo, spell and stance (L)', '<img alt="">', () => this.toggleLoadout());
     const eat = mk('ab-eat', 'Eat the best food (H)', '<img alt="">', () => this.game.quickEat());
     eat.insertAdjacentHTML('beforeend', '<b class="n"></b>');
     const abil = h('div', { id: 'abilities' });
-    abil.append(load, eat, roll, special);
+    abil.append(load, eat, roll, special, keyBtn);
     actions.append(abil, ctx);
     this.el.abilities = abil;
     this.el.ctx = ctx;
@@ -203,8 +208,27 @@ export class UI {
   }
 
   // ------------------------------------------------------------------ events
+  /** A key found: the same moment as a level-up, in brass. */
+  private showKeyCard(id: string) {
+    const k = KEY[id];
+    const el = document.createElement('div');
+    el.className = 'lvup';
+    el.style.setProperty('--c', '#d9b25a');
+    el.innerHTML = `<div class="lv-card"><i class="medal big" style="--c:#d9b25a">${KEY_SVG}</i>
+      <h3>A key!</h3><p>You found the <b>${esc(k.name)}</b>.</p>
+      <ul><li><span><b>In you:</b> ${esc(k.passive.text)}</span></li><li><span><b>${esc(k.power.name)}:</b> ${esc(k.power.text)}</span></li></ul>
+      <p class="lv-next">${esc(k.lore)}</p>
+      <p class="muted">It's on your keyring (Equipment). Slot it at a strongbox or bank, aboard your ship, or in the chapel.</p>
+      <div class="lv-tap">Tap to continue</div></div>`;
+    document.body.appendChild(el);
+    this.lvEl = el;
+    this.lvT = 9;
+    onTap(el, '.lv-card', () => this.hideLevelCard());
+  }
+
   private onEvent(e: GameEvent) {
     switch (e.type) {
+      case 'keyFound': this.lvQueue.push({ key: e.id }); if (!this.lvEl) this.showLevelCard(); break;
       case 'msg': this.log(e.text, e.kind); break;
       case 'xp': this.xpDrop(e.skill, e.amount); break;
       case 'level': this.levelUp(e.skill, e.level); break;
@@ -264,18 +288,19 @@ export class UI {
   }
 
   // ------------------------------------------------------------------ level up (RuneScape's congratulations)
-  private lvQueue: { skill: SkillId; level: number }[] = [];
+  private lvQueue: ({ skill: SkillId; level: number } | { key: string })[] = [];
   private lvEl: HTMLElement | null = null;
   private lvT = 0;
   /** A level up: the RuneScape moment. A card with the skill's medal, "Congratulations!" and what you can do now. */
   levelUp(skill: SkillId, level: number) {
-    const q = this.lvQueue.find((x) => x.skill === skill);
+    const q = this.lvQueue.find((x): x is { skill: SkillId; level: number } => 'skill' in x && x.skill === skill);
     if (q) q.level = level; else this.lvQueue.push({ skill, level }); // several levels at once: one card, the latest level
     if (!this.lvEl) this.showLevelCard();
   }
   private showLevelCard() {
     const next = this.lvQueue.shift();
     if (!next) return;
+    if ('key' in next) { this.showKeyCard(next.key); return; }
     const { skill, level } = next, sk = SKILLS.find((x) => x.id === skill)!;
     const now = UNLOCKS[skill].filter((u) => u.level === level);
     const things = now.filter((u) => !u.perk), perks = now.filter((u) => u.perk);
@@ -335,7 +360,12 @@ export class UI {
     }
     spBtn.title = `${sp.name} (R)${sp.block ? ' · ' + sp.block : ''}`;
     spBtn.setAttribute('aria-label', spBtn.title);
-    const abs: [HTMLElement, number, number, boolean][] = [[this.el['ab-roll'], g.rollCd, PLAYER_BASE.rollCooldown, false], [spBtn, g.specialCd, sp.cooldown, !!sp.block]];
+    // the Key button: the slotted key's power; grey while it sleeps or no foe is in reach
+    const kb = this.el['ab-key'], kd = g.s.key ? KEY[g.s.key] : null, kBlock = g.keyBlock();
+    kb.hidden = !kd;
+    if (kd) { kb.title = `${kd.power.name}: ${kd.power.text} (T)${kBlock ? ' · ' + kBlock : ''}`; kb.setAttribute('aria-label', kb.title); }
+    const abs: [HTMLElement, number, number, boolean][] = [[this.el['ab-roll'], g.rollCd, PLAYER_BASE.rollCooldown, false], [spBtn, g.specialCd, sp.cooldown, !!sp.block],
+      [kb, g.s.keyDormant > 0 ? KEY_CONFIG.dormantS : g.keyCd, g.s.keyDormant > 0 ? KEY_CONFIG.dormantS : kd?.power.cooldown ?? 1, !!kBlock]];
     for (const [b, cd, max, blocked] of abs) {
       b.classList.toggle('off', cd > 0 || blocked);
       (b.querySelector('.cd') as HTMLElement).style.setProperty('--cd', `${(cd / max) * 360}deg`);
@@ -552,7 +582,7 @@ export class UI {
   /** One set of handlers on the tab panel for its whole life (content is patched, never re-bound). */
   private bindContent(c: HTMLElement) {
     const g = this.game;
-    onTap(c, '[data-slot], [data-equip], [data-stance], [data-spell], [data-q], [data-dmg], [data-music], [data-sfx], [data-fps], [data-lv], [data-skill], [data-skillback], [data-gcat], [data-sort], [data-home], [data-mapview], #saveNow, #resetSave', (t, pointer) => {
+    onTap(c, '[data-slot], [data-equip], [data-stance], [data-spell], [data-q], [data-dmg], [data-music], [data-sfx], [data-fps], [data-lv], [data-skill], [data-skillback], [data-gcat], [data-sort], [data-home], [data-mapview], [data-key], [data-devkeys], #saveNow, #resetSave', (t, pointer) => {
       if (t.dataset.home) { g.teleportHome(); return; }
       if (t.dataset.sort) { this.closePop(); g.sortPack(t.dataset.sort as 'type' | 'value' | 'quality'); this.log(`Pack sorted by ${t.dataset.sort}.`); return; }
       if (t.dataset.gcat) { this.guideCat = t.dataset.gcat; this.lastRev = -1; this.renderTab(); return; }
@@ -571,6 +601,8 @@ export class UI {
       else if (t.dataset.spell) g.setSpell(t.dataset.spell);
       else if (t.dataset.q) { g.s.settings.quality = t.dataset.q as 'auto' | 'max' | 'low'; this.onQuality(g.s.settings.quality); this.lastRev = -1; }
       else if (t.dataset.fps) { g.s.settings.showFps = t.dataset.fps === '1'; this.lastRev = -1; }
+      else if (t.dataset.devkeys) { g.s.settings.devFreeKeys = t.dataset.devkeys === '1'; if (g.s.settings.devFreeKeys && g.s.keyDormant > 0) { g.s.keyDormant = 0; g.recalc(); } this.lastRev = -1; }
+      else if (t.dataset.key) { g.slotKey(t.dataset.key); this.lastRev = -1; }
       else if (t.dataset.dmg) { g.s.settings.showDamage = t.dataset.dmg === '1'; this.lastRev = -1; }
       else if (t.dataset.music) { g.s.settings.music = t.dataset.music === '1'; this.onAudio(); this.lastRev = -1; }
       else if (t.dataset.sfx) { g.s.settings.sfx = t.dataset.sfx === '1'; this.onAudio(); this.lastRev = -1; }
@@ -630,10 +662,26 @@ export class UI {
     if (st.gather) rows.push(['Gathering', `+${pct(st.gather)}`]);
     if (st.xpBonus) rows.push(['Skill XP', `+${pct(st.xpBonus)}`]);
     return `<div class="row" style="gap:10px;margin-bottom:6px"><img class="portrait small" alt="" src="${portrait('player', PLAYER_LOOK)}"><div><h2 class="title" style="margin:0">Equipment</h2><span class="muted" style="font-size:12px">Combat level ${st.combatLevel}</span></div></div><div class="equip twelve">${slots}</div>
+      ${this.keyringHtml()}
       <h2 class="title" style="font-size:13px">Stance</h2><div class="stances">${stances}</div>${spells}
       ${ammo ? `<p class="muted" style="margin:6px 0;font-size:13px">Ammo: ${ammo}</p>` : ''}
       <div class="brass-rule"></div><div class="stats">${rows.map(([a, b]) => `<span>${a}</span><span>${b}</span>`).join('')}</div>
       <p class="muted" style="font-size:12px;margin:8px 0 0">Every enemy is weak to one style: melee beats gunners, ranged beats brigands, magic beats crabs and the Guardian.</p>`;
+  }
+
+  /** The keyring: the key in you (and whether it sleeps), every key you've found, and silhouettes of the rest. */
+  private keyringHtml() {
+    const g = this.game, cur = g.s.key ? KEY[g.s.key] : null, block = g.keySwapBlock();
+    const sleep = g.s.keyDormant > 0 ? ` · <span class="miss">sleeps ${Math.ceil(g.s.keyDormant / 60)} more min</span>` : '';
+    const rows = KEYS.map((k) => {
+      const have = g.s.keyring.includes(k.id), on = g.s.key === k.id;
+      if (!have) return `<div class="keyrow unknown"><i class="kicon">${KEY_SVG}</i><div><b>???</b><small class="muted">Not found yet. Keys turn up anywhere, most often ${KEY_HINT[k.family]}.</small></div></div>`;
+      return `<div class="keyrow${on ? ' on' : ''}"><i class="kicon">${KEY_SVG}</i><div><b>${esc(k.name)}</b><small>In you: ${esc(k.passive.text)}</small><small>${esc(k.power.name)} (${k.power.cooldown} s): ${esc(k.power.text)}</small></div>
+        ${on ? '<span class="tag">Slotted</span>' : `<button class="btn" data-key="${k.id}" ${block ? `disabled title="${esc(block)}"` : ''}>Slot</button>`}</div>`;
+    }).join('');
+    return `<h2 class="title" style="font-size:13px">Keyring <span class="muted" style="font-size:12px">${g.s.keyring.length}/${KEYS.length}</span></h2>
+      <p class="muted" style="margin:0 0 6px;font-size:12px">${cur ? `In you: <b>${esc(cur.name)}</b>${sleep}` : 'No key in you.'}${block ? ` · ${esc(block)}.` : ''}</p>
+      <div class="keyring">${rows}</div>`;
   }
 
   /** The skill guide (RuneScape's: tap a skill): tabs of what it unlocks, each with its icon and level, locked ones
@@ -731,6 +779,7 @@ export class UI {
     return `<h2 class="title">Settings</h2>
       <div class="toggle"><span>Graphics<br><small class="muted">${s.quality === 'auto' ? 'Lowers detail on its own if your phone struggles' : s.quality === 'max' ? 'Full detail always, even if frames drop' : '30 fps, no shadows: longest battery'}</small></span><span class="seg"><button data-q="auto" class="${s.quality === 'auto' ? 'on' : ''}">Auto</button><button data-q="max" class="${s.quality === 'max' ? 'on' : ''}">Max</button><button data-q="low" class="${s.quality === 'low' ? 'on' : ''}">Saver</button></span></div>
       <div class="toggle"><span>Show frame rate</span><span class="seg"><button data-fps="1" class="${s.showFps ? 'on' : ''}">On</button><button data-fps="0" class="${!s.showFps ? 'on' : ''}">Off</button></span></div>
+      <div class="toggle"><span>Developer: free key swaps<small class="muted" style="display:block;font-size:11px">A new key wakes at once instead of after 30 minutes</small></span><span class="seg"><button data-devkeys="1" class="${s.devFreeKeys ? 'on' : ''}">On</button><button data-devkeys="0" class="${!s.devFreeKeys ? 'on' : ''}">Off</button></span></div>
       <div class="toggle"><span>Damage numbers</span><span class="seg"><button data-dmg="1" class="${s.showDamage ? 'on' : ''}">On</button><button data-dmg="0" class="${!s.showDamage ? 'on' : ''}">Off</button></span></div>
       <div class="toggle"><span>Level badges on skill spots</span><span class="seg"><button data-lv="1" class="${s.nodeLevels ? 'on' : ''}">On</button><button data-lv="0" class="${!s.nodeLevels ? 'on' : ''}">Off</button></span></div>
       <div class="toggle"><span>Music</span><span class="seg"><button data-music="1" class="${s.music ? 'on' : ''}">On</button><button data-music="0" class="${!s.music ? 'on' : ''}">Off</button></span></div>

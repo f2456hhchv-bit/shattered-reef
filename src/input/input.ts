@@ -158,6 +158,7 @@ export class Input {
       case 'h': g.quickEat(); break;
       case 'l': this.ui.toggleLoadout(); break;
       case 'r': case 'f': g.useSpecial(); break;
+      case 't': g.useKey(); break; // turn your key
       case 'i': case 'b': this.ui.selectTab('pack', true); break;
       case 'g': this.ui.selectTab('gear', true); break;
       case 'k': this.ui.selectTab('skills', true); break;

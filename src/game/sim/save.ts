@@ -5,11 +5,13 @@ import { MAX_XP, xpForLevel } from './xp';
 import type { Stance } from './gear';
 import { REGIONS, regionAt, type RegionId } from '../world/regions';
 import { SUN } from '../world/island';
+import { KEY, STARTER_KEY } from '../data/keys';
 
 // Versioned, validated save. Anything invalid is dropped or defaulted, never trusted.
 
-export const SAVE_VERSION = 6;
-export const BANK_MAX = 400; // distinct entries in the strongbox
+export const SAVE_VERSION = 7;
+export const BANK_MAX = 400;
+const KEY_DORMANT_MAX = 3600; // distinct entries in the strongbox
 export const SAVE_KEY = 'shattered-reef.save';
 
 export interface SaveData {
@@ -25,7 +27,11 @@ export interface SaveData {
   flags: Record<string, boolean>;
   discovered: string[];
   nextUid: number;
-  settings: { quality: 'auto' | 'max' | 'low'; showDamage: boolean; music: boolean; sfx: boolean; nodeLevels: boolean; showFps: boolean };
+  settings: { quality: 'auto' | 'max' | 'low'; showDamage: boolean; music: boolean; sfx: boolean; nodeLevels: boolean; showFps: boolean; devFreeKeys: boolean };
+  /** keys you've found (permanent), the one slotted in you, and how long it still sleeps after a swap (seconds of play) */
+  keyring: string[];
+  key: string | null;
+  keyDormant: number;
   combat: { stance: Stance; spell: string };
 }
 
@@ -79,7 +85,10 @@ export function defaultSave(spawn: { x: number; z: number }, ship: { x: number; 
     discovered: [],
     bank: [],
     nextUid: 1,
-    settings: { quality: 'auto', showDamage: true, music: true, sfx: true, nodeLevels: true, showFps: false },
+    settings: { quality: 'auto', showDamage: true, music: true, sfx: true, nodeLevels: true, showFps: false, devFreeKeys: false },
+    keyring: [STARTER_KEY],
+    key: STARTER_KEY,
+    keyDormant: 0,
     combat: { stance: 'accurate', spell: 'spray' },
   };
 }
@@ -138,6 +147,8 @@ const MIGRATIONS: Record<number, (d: Record<string, unknown>) => Record<string, 
     const bank2 = bank.map((b) => { const o = b as Record<string, unknown>; const to = o && single(o.id); return to ? { ...o, id: to, qty: (typeof o.qty === 'number' ? o.qty : 1) * 2 } : b; });
     return { ...d, version: 6, bank: bank2, player: { ...p, inv, equip: eq } };
   },
+  // v6 had no keys: everyone gets the starter key, slotted and awake
+  6: (d) => ({ ...d, version: 7, keyring: [STARTER_KEY], key: STARTER_KEY, keyDormant: 0 }),
 };
 
 /** Parse + validate untrusted JSON. Returns null when unusable (caller starts fresh). */
@@ -211,7 +222,12 @@ export function parseSave(json: string | null, fallback: SaveData): SaveData | n
   d.savedAt = num(raw.savedAt, 0, 0);
   const st = (raw.settings ?? {}) as Record<string, unknown>;
   // the old 'high' was everyone's default before Auto existed, so it becomes Auto; 'max' is a deliberate choice
-  d.settings = { quality: st.quality === 'low' ? 'low' : st.quality === 'max' ? 'max' : 'auto', showDamage: st.showDamage !== false, music: st.music !== false, sfx: st.sfx !== false, nodeLevels: st.nodeLevels !== false, showFps: st.showFps === true };
+  d.settings = { quality: st.quality === 'low' ? 'low' : st.quality === 'max' ? 'max' : 'auto', showDamage: st.showDamage !== false, music: st.music !== false, sfx: st.sfx !== false, nodeLevels: st.nodeLevels !== false, showFps: st.showFps === true, devFreeKeys: st.devFreeKeys === true };
+  // keys: only known ids; the starter is always on the ring; a slotted key must be on it
+  const ring = Array.isArray(raw.keyring) ? raw.keyring.filter((k): k is string => typeof k === 'string' && !!KEY[k]) : [];
+  d.keyring = [...new Set([STARTER_KEY, ...ring])];
+  d.key = typeof raw.key === 'string' && d.keyring.includes(raw.key) ? raw.key : raw.key === null ? null : STARTER_KEY;
+  d.keyDormant = num(raw.keyDormant, 0, 0, KEY_DORMANT_MAX);
   const cb = (raw.combat ?? {}) as Record<string, unknown>;
   d.combat = {
     stance: cb.stance === 'aggressive' || cb.stance === 'defensive' ? cb.stance : 'accurate',

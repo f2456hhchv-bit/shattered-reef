@@ -534,6 +534,7 @@ describe('the living island', () => {
     const bronze = RECIPES.filter((r) => r.station === 'anvil' && r.output.id.endsWith('_bronze')).map((r) => r.level).sort((a, b) => a - b);
     expect(bronze).toEqual([1, 2, 3, 3, 4, 5, 6, 7, 13, 15, 17, 19]);
     const g = fresh();
+    g.s.key = null; // the starter key's +3% is the only boost, and it's a key's
     g.addXp('woodcutting', 25);
     expect(g.p.xp.woodcutting).toBe(25); // RuneScape's normal log, no boost
     // every skill's guide is grouped into tabs, and the items in it carry their icons

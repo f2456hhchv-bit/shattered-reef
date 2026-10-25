@@ -794,6 +794,16 @@ export class GameRenderer {
         this.snapCamera();
         break;
       }
+      case 'keyTurn': {
+        // a brass keyhole flares on the foe, then the power's colour bursts out of it
+        const col = ({ lesson: 0xe9e3d0, root: 0x6f9a4a, shatter: 0xc9a050, hook: 0x4fa7c2, disarm: 0xd2d5d2, mark: 0xe05a3c, undertow: 0x59d0c4, drain: 0xa8203a, becalm: 0x9fc8e8, blink: 0xb8c6ff } as Record<string, number>)[e.power] ?? 0xd9b25a;
+        const y = g.world.standY(e.x, e.z) + 1.0;
+        this.particles.burst(e.x, y, e.z, 10, 0xd9b25a, { speed: 1.5, up: 0.5, size: 0.14, life: 0.45, grav: 0 });
+        this.particles.burst(e.x, y, e.z, 30, col, { speed: 6, up: 1.5, size: 0.11, life: 0.6, grav: 1, spread: 0.7 });
+        this.shake = Math.max(this.shake, 0.12);
+        break;
+      }
+      case 'keyFound': { const p = g.p; this.particles.burst(p.x, g.world.standY(p.x, p.z) + 1.4, p.z, 40, 0xd9b25a, { speed: 3, up: 4, size: 0.12, life: 1.0, grav: 2 }); break; }
       case 'alchemy': { const p = g.p; this.particles.burst(p.x, g.world.standY(p.x, p.z) + 1.2, p.z, 16, 0xf2cf5b, { speed: 2, up: 3, size: 0.09, life: 0.6, grav: 3 }); break; }
       case 'squall': {
         this.whirlT = 0.45;
