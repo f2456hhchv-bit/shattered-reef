@@ -1,4 +1,4 @@
-import { item, RARITY, AFFIXES, METALS, METAL_TRAITS, AMMO_NAME, ammoKind, type Slot, type SkillId, type WeaponKind } from '../game/data/items';
+import { item, RARITY, AFFIXES, METALS, METAL_TRAITS, AMMO_NAME, ammoKind, isTwoHanded, pairGroup, type ItemDef, type Slot, type SkillId, type WeaponKind } from '../game/data/items';
 import { morph, forget } from './morph';
 import { wears, condOf, WORN_OUT_EFFECT } from '../game/sim/inventory';
 import { onTap } from './tap';
@@ -26,13 +26,22 @@ const TABS: { id: Tab; name: string; key: string }[] = [
   { id: 'map', name: 'Map', key: 'M' },
   { id: 'settings', name: 'Settings', key: 'O' },
 ];
-const SLOT_ORDER: Slot[] = ['weapon', 'ammo', 'head', 'body', 'ring'];
+/** Equipment grid, four across: head and jewellery on top, the hands in the middle, the rest below. */
+const SLOT_ORDER: Slot[] = ['head', 'neck', 'ammo', 'ring', 'weapon', 'body', 'offhand', 'ring2', 'hands', 'legs', 'feet', 'wrist'];
+const SLOT_NAME: Record<Slot, string> = { weapon: 'weapon', offhand: 'off-hand', ammo: 'ammo', head: 'head', body: 'body', legs: 'legs', feet: 'feet', hands: 'hands', neck: 'neck', wrist: 'wrist', ring: 'ring', ring2: 'ring' };
+/** What an item is worn as, for the details panel. */
+const slotLabel = (d: ItemDef) => {
+  const e = d.equip!;
+  if (e.slot === 'weapon') return `${isTwoHanded(d) ? 'two-handed' : 'one-handed'} weapon`;
+  if (e.slot === 'offhand') return `off-hand ${e.off ?? ''}`.trim();
+  return SLOT_NAME[e.slot];
+};
 const signed = (n: number) => (n > 0 ? `+${n}` : String(n));
 const WHIRL = '<svg viewBox="0 0 32 32"><path d="M16 4a12 12 0 0 1 11 7l-5-1M28 16a12 12 0 0 1-7 11l1-5M16 28a12 12 0 0 1-11-7l5 1M4 16a12 12 0 0 1 7-11l-1 5" fill="none" stroke="#e9e5d5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="16" cy="16" r="4" fill="#c9a050" stroke="#1a120a" stroke-width="2"/></svg>';
 const OPEN_VERB: Record<string, string> = { geode: 'Crack open', bird_nest: 'Search', casket: 'Prise open' };
 const KIND_TIPS: Record<WeaponKind, string> = {
   cutlass: 'Balanced blade', dagger: 'Fast, accurate, light', pike: 'Long reach, runs through a line', greatsword: 'Slow and heavy, cleaves the crowd',
-  pistol: 'Fires shot', pistols: 'Two shots every volley', shortbow: 'Fast arrows', longbow: 'Longest reach of all', crossbow: 'Sure, heavy bolts', staff: 'Casts your chosen spell',
+  pistol: 'Fires shot', shortbow: 'Fast arrows', longbow: 'Longest reach of all', crossbow: 'Sure, heavy bolts', staff: 'Two-handed: casts your chosen spell', wand: 'One-handed: casts your chosen spell',
 };
 const ROLL = '<svg viewBox="0 0 32 32"><path d="M6 22c0-8 6-14 13-14 4 0 7 2 7 2" fill="none" stroke="#e9e5d5" stroke-width="3.2" stroke-linecap="round"/><path d="M22 4l5 6-7 2" fill="none" stroke="#e9e5d5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 27h12" stroke="#c9a050" stroke-width="3" stroke-linecap="round"/></svg>';
 const SQUALL = '<svg viewBox="0 0 32 32"><path d="M4 11c6-4 12 4 18 0M4 17c6-4 12 4 18 0M8 23c6-4 10 3 16 0" fill="none" stroke="#59d0c4" stroke-width="3" stroke-linecap="round"/><circle cx="26" cy="9" r="3" fill="#e9e5d5" stroke="#1a120a" stroke-width="1.5"/></svg>';
@@ -579,8 +588,8 @@ export class UI {
     });
   }
 
-  private slotHtml(s: Stack | null, attrs: string, label = '') {
-    if (!s) return `<button class="slot empty" ${attrs} aria-label="Empty ${label || 'slot'}">${label ? `${SLOT_ICONS[label] ?? ''}<span class="lbl">${label}</span>` : ''}</button>`;
+  private slotHtml(s: Stack | null, attrs: string, label = '', icon = label, closed = false) {
+    if (!s) return `<button class="slot empty${closed ? ' closed' : ''}" ${attrs} aria-label="${closed ? `${label}: closed by a two-handed weapon` : `Empty ${label || 'slot'}`}">${label ? `${SLOT_ICONS[icon] ?? ''}<span class="lbl">${label}</span>` : ''}</button>`;
     const rar = s.inst && s.inst.rarity !== 'common';
     const q = item(s.id).stackable && s.qty > 1 ? `<span class="q">${s.qty >= 100000 ? Math.floor(s.qty / 1000) + 'k' : s.qty}</span>` : '';
     const c = condOf(s);
@@ -601,14 +610,15 @@ export class UI {
 
   private gearHtml() {
     const g = this.game, st = g.stats;
-    const slots = SLOT_ORDER.map((sl) => this.slotHtml(g.p.equip[sl] ?? null, `data-equip="${sl}"`, sl)).join('');
+    const twoH = isTwoHanded(g.p.equip.weapon ? item(g.p.equip.weapon.id) : undefined);
+    const slots = SLOT_ORDER.map((sl) => this.slotHtml(g.p.equip[sl] ?? null, `data-equip="${sl}"`, SLOT_NAME[sl], sl, sl === 'offhand' && twoH)).join('');
     const stances = this.stanceButtons();
     const spells = st.style === 'magic' ? `<h2 class="title" style="font-size:13px">Spell</h2><div class="stances spells">${this.spellButtons()}</div>` : '';
     const ammo = st.style === 'ranged' ? (g.p.equip.ammo ? `${fmt(g.p.equip.ammo.qty)} × ${esc(item(g.p.equip.ammo.id).name)}` : `<span class="miss">No ${AMMO_NAME[st.needsAmmo ?? 'shot']} equipped</span>`)
       : st.style === 'magic' ? `${fmt(count(g.p.inv, 'charm_tide'))} tide charms (${st.spell?.charms ? `${st.spell.charms} per cast` : 'this spell is free'})` : '';
     const sp = g.specialInfo();
     const rows: [string, string][] = [
-      ['Combat level', String(st.combatLevel)], ['Style', cap(st.style)], ['Max hit', String(st.maxHit)], ['Attack speed', `${st.speed.toFixed(1)}s`],
+      ['Combat level', String(st.combatLevel)], ['Style', cap(st.style)], ['Max hit', st.dual ? `${st.maxHit} + ${st.dual.maxHit} off-hand` : String(st.maxHit)], ['Attack speed', `${st.speed.toFixed(1)}s`],
       ['Accuracy roll', fmt(st.attRoll)], ['Defence vs melee', signed(st.def.melee)], ['Defence vs ranged', signed(st.def.ranged)], ['Defence vs magic', signed(st.def.magic)],
       ['Special', `${sp.name}${sp.block ? ` (${sp.block.toLowerCase()})` : ''}`],
     ];
@@ -619,7 +629,7 @@ export class UI {
     if (st.leech) rows.push(['Leech', pct(st.leech)]);
     if (st.gather) rows.push(['Gathering', `+${pct(st.gather)}`]);
     if (st.xpBonus) rows.push(['Skill XP', `+${pct(st.xpBonus)}`]);
-    return `<div class="row" style="gap:10px;margin-bottom:6px"><img class="portrait small" alt="" src="${portrait('player', PLAYER_LOOK)}"><div><h2 class="title" style="margin:0">Equipment</h2><span class="muted" style="font-size:12px">Combat level ${st.combatLevel}</span></div></div><div class="equip five">${slots}</div>
+    return `<div class="row" style="gap:10px;margin-bottom:6px"><img class="portrait small" alt="" src="${portrait('player', PLAYER_LOOK)}"><div><h2 class="title" style="margin:0">Equipment</h2><span class="muted" style="font-size:12px">Combat level ${st.combatLevel}</span></div></div><div class="equip twelve">${slots}</div>
       <h2 class="title" style="font-size:13px">Stance</h2><div class="stances">${stances}</div>${spells}
       ${ammo ? `<p class="muted" style="margin:6px 0;font-size:13px">Ammo: ${ammo}</p>` : ''}
       <div class="brass-rule"></div><div class="stats">${rows.map(([a, b]) => `<span>${a}</span><span>${b}</span>`).join('')}</div>
@@ -632,7 +642,7 @@ export class UI {
   private skillDetailHtml(id: SkillId) {
     const g = this.game, sk = SKILLS.find((x) => x.id === id)!, cur = g.level(id);
     const list = UNLOCKS[id];
-    const ORDER = ['Trees', 'Rocks', 'Fish', 'Hatchets', 'Pickaxes', 'Gear', 'Bars', 'Weapons', 'Bows', 'Crossbows', 'Guns', 'Staffs', 'Armour', 'Ammo', 'Tools', 'Dishes', 'Jewellery', 'Spells', 'Foes', 'Other', 'Perks'];
+    const ORDER = ['Trees', 'Rocks', 'Fish', 'Hatchets', 'Pickaxes', 'Gear', 'Bars', 'Weapons', 'Bows', 'Crossbows', 'Guns', 'Magic', 'Armour', 'Ammo', 'Tools', 'Dishes', 'Jewellery', 'Spells', 'Foes', 'Other', 'Perks'];
     const cats = [...new Set(list.map((u) => u.cat))].sort((a, b) => ORDER.indexOf(a) - ORDER.indexOf(b));
     const tab = this.guideCat && (cats.includes(this.guideCat) || this.guideCat === 'All') ? this.guideCat : cats[0] ?? 'All';
     const tabs = [...cats, 'All'].map((c) => `<button data-gcat="${c}" class="${c === tab ? 'on' : ''}">${c === 'All' ? 'All levels' : c}</button>`).join('');
@@ -788,7 +798,9 @@ export class UI {
         const coins = Math.max(1, Math.floor(stackValue({ ...st, qty: 1 }) * UTILITY_SPELLS.alchemy.rate)), blk = g.utilityBlock('alchemy');
         acts.push(`<button class="btn" data-a="alch" ${blk ? `disabled title="${esc(blk)}"` : ''}>Alchemise ${coins}c</button>`);
       }
-      if (e) acts.push(`<button class="btn primary" data-a="use" ${g.equipBlock(st) ? 'disabled' : ''}>Equip</button>`);
+      if (e) acts.push(`<button class="btn primary" data-a="use" ${g.equipBlock(st) ? 'disabled' : ''}>${e.slot === 'offhand' ? 'Equip off-hand' : 'Equip'}</button>`);
+      // a one-handed weapon can also go in the off-hand beside a matching one
+      if (e && pairGroup(d) && g.p.equip.weapon && !g.offhandOk(st) && !g.equipBlock(st)) acts.push('<button class="btn" data-a="offhand">Off-hand</button>');
       if (this.shopOpen && !d.quest && st.id !== 'coins') {
         const each = g.sellPrice({ ...st, qty: 1 });
         acts.push(`<button class="btn" data-a="sell1">Sell 1 (${each}c)</button>`);
@@ -800,7 +812,7 @@ export class UI {
     const req = e && g.equipBlock(st);
     morph(el, `<button class="x" aria-label="Close" style="position:absolute;right:6px;top:6px;width:34px;height:34px;border-radius:8px;background:#2a1e14;border:1px solid #120b06">×</button>
       <div class="nm" style="color:${rar ? rar.color : '#efe3c4'};padding-right:36px">${esc(displayName(st))}${st.qty > 1 ? ` × ${fmt(st.qty)}` : ''}</div>
-      ${rar ? `<div class="rl" style="color:${rar.color}">${rar.label}${e ? ` ${e.slot}` : ''}</div>` : e ? `<div class="rl muted">${e.slot}</div>` : ''}
+      ${rar ? `<div class="rl" style="color:${rar.color}">${rar.label}${e ? ` ${slotLabel(d)}` : ''}</div>` : e ? `<div class="rl muted">${slotLabel(d)}</div>` : ''}
       <div class="muted" style="font-size:13px">${esc(d.desc)}</div>
       ${lines.length ? `<div style="font-size:13px;margin-top:6px">${lines.map(esc).join('<br>')}</div>` : ''}
       ${affixes ? `<ul>${affixes}</ul>` : ''}
@@ -817,6 +829,7 @@ export class UI {
       if (a === 'unequip') { g.unequip(this.pop.equip!); this.closePop(); return; }
       if (i === undefined) return;
       if (a === 'use') { g.useSlot(i); if (!g.p.inv[i] || item(g.p.inv[i]!.id).equip) this.closePop(); }
+      if (a === 'offhand') { g.equip(i, true); this.closePop(); }
       if (a === 'drop') { g.dropSlot(i); this.closePop(); }
       if (a === 'alch') { g.alchemy(i); if (!g.p.inv[i]) this.closePop(); else this.renderPop(); }
       if (a === 'deposit') { g.deposit(i); this.closePop(); }

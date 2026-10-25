@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { item, METALS, type IconShape } from '../../game/data/items';
 import { mulberry32 } from '../noise';
 import { m, nudge, shade, add } from './itemkit';
-import { buildHatchet, buildPickaxe, buildCutlass, buildHelm, buildPlate, buildPistol, buildStaff, buildDagger, buildGreatsword, buildPike, buildBow, buildCrossbow, buildArrows, buildPistolBrace } from './gear';
+import { buildHatchet, buildPickaxe, buildCutlass, buildHelm, buildPlate, buildPistol, buildStaff, buildDagger, buildGreatsword, buildPike, buildBow, buildCrossbow, buildArrows } from './gear';
 import { buildFish, buildSteak } from './fish';
 
 // Item models: one small, readable 3D object per item. Used for inventory icons (rendered on a
@@ -316,6 +316,64 @@ function builders(shape: IconShape, col: string, acc: string | undefined, seed: 
       add(g, new THREE.TorusGeometry(0.1, 0.01, 4, 16), m(acc ?? '#2a7f78'), [0, 0.05, 0], [1.2, 0, 0]);
       break;
     }
+    // ---- the new slots: wand, orb, book, shield, legs, boots, gloves, amulet, bracelet
+    case 'wand': {
+      add(g, new THREE.CylinderGeometry(0.014, 0.026, 0.56, 7), m(col), [0, -0.04, 0], [0, 0, 0.6]);
+      add(g, new THREE.CylinderGeometry(0.032, 0.032, 0.04, 8), m('#c9a050', 'metal'), [-0.15, 0.17, 0], [0, 0, 0.6]);
+      add(g, new THREE.OctahedronGeometry(0.05, 0), m(acc ?? '#59d0c4', 'glow'), [-0.18, 0.22, 0], [0, 0.4, 0.6], [0.8, 1.4, 0.8]);
+      break;
+    }
+    case 'orb': {
+      add(g, new THREE.SphereGeometry(0.19, 20, 14), m(col, 'glow'), [0, 0.06, 0]);
+      add(g, new THREE.SphereGeometry(0.06, 10, 8), m(acc ?? '#e9fbff', 'glow'), [-0.06, 0.12, 0.12]);
+      add(g, new THREE.CylinderGeometry(0.12, 0.15, 0.08, 10), m('#6a4a30'), [0, -0.15, 0]);
+      add(g, new THREE.TorusGeometry(0.13, 0.015, 5, 14), m('#c9a050', 'metal'), [0, -0.11, 0], [Math.PI / 2, 0, 0]);
+      break;
+    }
+    case 'book': {
+      add(g, new THREE.BoxGeometry(0.42, 0.09, 0.32), m(col), [0, 0, 0], [0, 0.35, 0]);
+      add(g, new THREE.BoxGeometry(0.4, 0.07, 0.3), m('#efe7d2'), [0.012, 0, 0.012], [0, 0.35, 0]);
+      add(g, new THREE.TorusGeometry(0.05, 0.012, 5, 12), m(acc ?? '#59d0c4', 'glow'), [0, 0.05, 0], [Math.PI / 2, 0, 0]);
+      add(g, new THREE.BoxGeometry(0.05, 0.1, 0.06), m('#c9a050', 'metal'), [0.17, 0, 0.12], [0, 0.35, 0]);
+      break;
+    }
+    case 'shield': {
+      add(g, new THREE.CylinderGeometry(0.27, 0.27, 0.05, 20), m(col, 'metal'), [0, 0, 0], [Math.PI / 2 - 0.35, 0, 0]);
+      add(g, new THREE.TorusGeometry(0.27, 0.022, 6, 24), m(shade(col, 0.7).getHex(), 'metal'), [0, 0, 0], [-0.35, 0, 0]);
+      add(g, new THREE.SphereGeometry(0.07, 12, 8), m('#c9a050', 'metal'), [0, 0.01, 0.03]);
+      break;
+    }
+    case 'legs': {
+      add(g, new THREE.BoxGeometry(0.34, 0.1, 0.16), m(col, 'metal'), [0, 0.22, 0]);
+      for (const x of [-0.09, 0.09]) add(g, new THREE.CylinderGeometry(0.075, 0.065, 0.42, 8), m(col, 'metal'), [x, -0.04, 0], [0, 0, x * 0.6]);
+      for (const x of [-0.1, 0.1]) add(g, new THREE.SphereGeometry(0.06, 8, 6), m(shade(col, 0.8).getHex(), 'metal'), [x, 0.02, 0.05]);
+      break;
+    }
+    case 'boots': {
+      for (const x of [-0.1, 0.1]) {
+        add(g, new THREE.CylinderGeometry(0.07, 0.075, 0.22, 8), m(col, 'metal'), [x, 0.06, -0.02]);
+        add(g, new THREE.BoxGeometry(0.13, 0.08, 0.26), m(col, 'metal'), [x, -0.08, 0.05]);
+      }
+      break;
+    }
+    case 'gloves': {
+      add(g, new THREE.BoxGeometry(0.22, 0.24, 0.08), m(col, 'metal'), [0, 0, 0]);
+      for (let k = 0; k < 4; k++) add(g, new THREE.CylinderGeometry(0.022, 0.022, 0.14, 6), m(col, 'metal'), [-0.08 + k * 0.053, 0.18, 0]);
+      add(g, new THREE.CylinderGeometry(0.025, 0.025, 0.11, 6), m(col, 'metal'), [0.14, 0.04, 0], [0, 0, -0.8]);
+      add(g, new THREE.CylinderGeometry(0.13, 0.12, 0.1, 10), m(shade(col, 0.8).getHex(), 'metal'), [0, -0.15, 0], [0, 0, 0], [1, 1, 0.6]);
+      break;
+    }
+    case 'amulet': {
+      add(g, new THREE.TorusGeometry(0.2, 0.012, 5, 24, Math.PI * 1.4), m(col, 'metal'), [0, 0.08, 0], [0, 0, -Math.PI * 0.2 - Math.PI]);
+      add(g, new THREE.CylinderGeometry(0.08, 0.08, 0.03, 12), m(col, 'metal'), [0, -0.16, 0], [Math.PI / 2, 0, 0]);
+      if (acc) add(g, new THREE.OctahedronGeometry(0.045, 0), m(acc, 'gloss'), [0, -0.16, 0.03]);
+      break;
+    }
+    case 'bracelet': {
+      add(g, new THREE.TorusGeometry(0.18, 0.035, 8, 24), m(col, 'metal'), [0, 0, 0], [1.1, 0, 0]);
+      if (acc) for (const a of [0, 2.1, 4.2]) add(g, new THREE.SphereGeometry(0.03, 8, 6), m(acc, 'gloss'), [Math.cos(a) * 0.18, Math.sin(a) * 0.18 * 0.45, Math.sin(a) * 0.18 * 0.9]);
+      break;
+    }
   }
   return g;
 }
@@ -346,7 +404,6 @@ function special(id: string, shape: IconShape, col: string, acc: string | undefi
     case 'crossbow': return buildCrossbow(col, acc ?? '#9aa0a4', Math.max(0, tierOf(id)));
     case 'arrow': return buildArrows(col, acc ?? '#e9e3d0', false, qty);
     case 'bolt': return buildArrows(col, '#8a6440', true, qty);
-    case 'pistols': return buildPistolBrace(col, acc ?? '#9aa0a4', Math.max(0, tier));
     case 'staff': return buildStaff(col, acc ?? '#59d0c4', id === 'staff_driftwood' ? 0 : id === 'staff_coral' ? 1 : id === 'staff_storm' ? 2 : 3);
     case 'fish': {
       const sp = /^fish_([a-z]+?)(_raw)?$/.exec(id)?.[1] ?? 'sprat', cooked = !id.endsWith('_raw');

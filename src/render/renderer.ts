@@ -16,9 +16,15 @@ import { NPC_LOOKS, PLAYER_LOOK, BRIGAND_LOOK, HUMAN_LOOKS, TOWNS_LOOKS } from '
 import { buildEnterable, buildStall, type EnterableView } from '../art/models/buildings';
 import { isInside, toLocal, WALL_H, type BuildingDef } from '../game/world/buildings';
 import { buildHumanoid, addOffhand, animateIdle, animateWalk, animateSwing, animateWork, animateFish, type HeldKind, type HumanoidRig } from '../art/models/character';
-import type { WeaponKind } from '../game/data/items';
+import { item, pairGroup, weaponKind, type WeaponKind } from '../game/data/items';
 
-const HELD_OF: Record<WeaponKind, HeldKind> = { cutlass: 'cutlass', dagger: 'dagger', pike: 'pike', greatsword: 'greatsword', pistol: 'pistol', pistols: 'pistol', shortbow: 'bow', longbow: 'longbow', crossbow: 'crossbow', staff: 'staff' };
+const HELD_OF: Record<WeaponKind, HeldKind> = { cutlass: 'cutlass', dagger: 'dagger', pike: 'pike', greatsword: 'greatsword', pistol: 'pistol', shortbow: 'bow', longbow: 'longbow', crossbow: 'crossbow', staff: 'staff', wand: 'wand' };
+/** What the left hand shows for the item in the off-hand slot. */
+function offHeld(id: string | undefined): HeldKind {
+  if (!id) return 'none';
+  const d = item(id);
+  return d.equip?.off ?? (pairGroup(d) ? HELD_OF[weaponKind(d)] : 'none');
+}
 import { buildCrab, animateCrab, type CrabRig } from '../art/models/crab';
 import { buildBoar, animateBoar, buildSpider, animateSpider, buildSnake, animateSnake, type BoarRig, type SpiderRig, type SnakeRig } from '../art/models/beasts';
 import { buildCaveMouth, buildRope, buildWeb, buildCrystal, buildCaveTorch, buildStalagmite, buildLava, buildGong } from '../art/models/cave';
@@ -28,7 +34,6 @@ import { BillboardBatch } from './billboards';
 import { buildPine, buildBroadleaf, buildRock, buildOreRock, buildCrate, buildLanternPost, buildDock, buildPalm, buildGrass, buildBush, buildKelp } from '../art/models/props';
 import { buildBench, buildFurnace, buildAnvil, buildCookfire, buildTent, buildSmithyShed, buildPillar, buildPlinth, buildStrongbox, buildDigSpot, buildGuardian, buildStump, buildRipples, type GuardianRig } from '../art/models/world';
 import { buildLootShard, buildItemModel, SHARD_TINT, type LootShard, type ShardKind } from '../art/models/items';
-import { item } from '../game/data/items';
 import { NODES, PLAYER_BASE, SKILLS } from '../game/data/content';
 import type { Game, GameEvent, Enemy, Telegraph } from '../game/sim/game';
 import { coastDist, nearestPathDist, BEACH, SUN, SUN_LAYOUT } from '../game/world/island';
@@ -96,13 +101,15 @@ export class GameRenderer {
   private quality: 'auto' | 'max' | 'low' = 'auto';
 
   private player: HumanoidRig;
-  private playerRigs = new Map<WeaponKind, HumanoidRig>();
-  private playerRig(kind: WeaponKind): HumanoidRig {
-    let rig = this.playerRigs.get(kind);
+  /** one rig per weapon + off-hand pairing, built the first time it's worn */
+  private playerRigs = new Map<string, HumanoidRig>();
+  private playerRig(kind: WeaponKind, off: HeldKind = 'none'): HumanoidRig {
+    const key = `${kind}|${off}`;
+    let rig = this.playerRigs.get(key);
     if (rig) return rig;
     const held: HeldKind = HELD_OF[kind];
     rig = buildHumanoid({ ...PLAYER_LOOK, held });
-    if (kind === 'pistols') addOffhand(rig, 'pistol');
+    if (off !== 'none') addOffhand(rig, off);
     rig.root.scale.setScalar(HERO);
     bakeRig(rig.root, addSurfaceDetail(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: false, roughness: 0.9 }), CHAR_SURFACE));
     humanoidShadow(rig);
@@ -110,7 +117,7 @@ export class GameRenderer {
     if (art) spriteSwap(rig.root, art);
     rig.root.visible = false;
     this.scene.add(rig.root);
-    this.playerRigs.set(kind, rig);
+    this.playerRigs.set(key, rig);
     return rig;
   }
   private playerSwing = 0;
@@ -947,7 +954,7 @@ export class GameRenderer {
     }
 
     // player
-    const want = this.playerRig(g.stats.kind);
+    const want = this.playerRig(g.stats.kind, offHeld(g.p.equip.offhand?.id));
     if (want !== this.player) { this.player.root.visible = false; this.player = want; }
     const pr = this.player;
     pr.root.visible = true;

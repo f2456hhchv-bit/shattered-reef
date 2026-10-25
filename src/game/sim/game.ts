@@ -1,5 +1,5 @@
 import { mulberry32 } from '../../art/noise';
-import { item, ammoKind, AMMO_NAME, type Slot, type SkillId, type CombatStyle } from '../data/items';
+import { item, ammoKind, AMMO_NAME, isTwoHanded, offhandBlock, pairGroup, type ItemDef, type Slot, type SkillId, type CombatStyle } from '../data/items';
 import { perkTotal } from '../data/perks';
 import { HP_SCALE, NODES, RECIPES, ENEMIES, LOOT, ELITE_AFFIXES, SHOPS, PLAYER_BASE, UTILITY_SPELLS, COMBAT_SKILLS, XP_PER_DAMAGE, type EnemyDef, type Recipe, type Station } from '../data/content';
 import { NPCS, QUESTS, type DialogueNode, type Effect } from '../data/quests';
@@ -11,6 +11,9 @@ import { add, canAdd, count, remove, displayName, stackValue, wears, condOf, sor
 import { computeStats, makeInstance, rollRarity, hitChance, reqBlock, type PlayerStats, type Stance } from './gear';
 import { levelForXp, MAX_XP } from './xp';
 import { defaultSave, SAVE_VERSION, BANK_MAX, type SaveData } from './save';
+
+/** Worn armour that takes wear when you're hit (the off-hand only when it's a shield). */
+const ARMOUR_SLOTS: Slot[] = ['head', 'body', 'legs', 'feet', 'hands', 'offhand'];
 
 // The whole game, minus pixels. Deterministic given a seed; driven by step(dt) and commands.
 
@@ -709,19 +712,50 @@ export class Game {
     return reqBlock(st.id, this.p.xp);
   }
 
-  equip(i: number) {
+  /** Can this pack item go in the off-hand right now (a one-handed weapon that pairs, a shield, orb or book)? */
+  offhandOk(st: Stack): string | null {
+    const d = item(st.id);
+    if (!d.equip || (d.equip.slot !== 'offhand' && !pairGroup(d))) return 'That doesn\'t fit in the off-hand';
+    const main = this.p.equip.weapon ? item(this.p.equip.weapon.id) : undefined;
+    // a shield can push a two-handed weapon back into the pack; anything else must fit beside the weapon held
+    if (d.equip.off === 'shield' && main && isTwoHanded(main)) return null;
+    return offhandBlock(main, d);
+  }
+
+  /** Wear a pack item. Rings fill the free ring slot; `offhand` puts a one-handed weapon in the off-hand.
+   * Two-handed weapons empty the off-hand, a shield empties two hands, and an off-hand that no longer fits
+   * beside a new weapon goes back to the pack. */
+  equip(i: number, offhand = false) {
     const st = this.p.inv[i];
     if (!st) return;
-    const e = item(st.id).equip;
+    const d = item(st.id), e = d.equip;
     if (!e) return;
     const block = this.equipBlock(st);
     if (block) { this.msg(`${block}.`, 'warn'); return; }
-    const old = this.p.equip[e.slot];
-    if (old && old.id === st.id && item(st.id).stackable) { old.qty += st.qty; this.p.inv[i] = null; }
-    else { this.p.inv[i] = old ?? null; this.p.equip[e.slot] = st; }
+    const eq = this.p.equip;
+    let slot: Slot = e.slot;
+    if (slot === 'ring') slot = !eq.ring ? 'ring' : !eq.ring2 ? 'ring2' : 'ring';
+    if ((offhand || slot === 'offhand') && !(pairGroup(d) && !eq.weapon)) { // a lone weapon always goes in the main hand
+      const why = this.offhandOk(st);
+      if (why) { this.msg(`${why}.`, 'warn'); return; }
+      slot = 'offhand';
+    }
+    // what has to come off as well, and where it goes
+    const bump: Slot[] = [];
+    const mainAfter: ItemDef | undefined = slot === 'weapon' ? d : eq.weapon ? item(eq.weapon.id) : undefined;
+    if (slot === 'weapon' && eq.offhand && offhandBlock(d, item(eq.offhand.id))) bump.push('offhand');
+    if (slot === 'offhand' && mainAfter && isTwoHanded(mainAfter)) bump.push('weapon');
+    const old = eq[slot];
+    const merge = !!old && old.id === st.id && d.stackable;
+    // room check: the swapped-out item takes the slot we free; anything bumped needs a free slot of its own
+    const free = this.p.inv.filter((x) => !x).length + (merge || !old ? 1 : 0);
+    if (bump.length > free) { this.msg(`Make room in your pack for your ${bump.map((b) => displayName(eq[b]!).toLowerCase()).join(' and ')}.`, 'warn'); return; }
+    if (merge) { old!.qty += st.qty; this.p.inv[i] = null; }
+    else { this.p.inv[i] = old ?? null; eq[slot] = st; }
+    for (const b of bump) { add(this.p.inv, eq[b]!); delete eq[b]; }
     this.recalc();
     this.p.hp = Math.min(this.p.hp, this.stats.maxHp);
-    this.msg(`You equip the ${displayName(st)}.`);
+    this.msg(`You ${slot === 'offhand' && pairGroup(d) ? 'take the' : 'equip the'} ${displayName(st)}${slot === 'offhand' && pairGroup(d) ? ' in your off-hand' : ''}.${bump.length ? ` (${bump.map((b) => b === 'offhand' ? 'Your off-hand went' : 'Your weapon went').join(', ')} back in your pack.)` : ''}`);
   }
 
   unequip(slot: Slot) {
@@ -1115,11 +1149,11 @@ export class Game {
   }
 
   /** Accuracy roll against an enemy's defence for the current style; damage 0..max on a hit. */
-  private rollAgainst(e: Enemy, maxHit = this.stats.maxHit): { dmg: number; crit: boolean } {
+  private rollAgainst(e: Enemy, maxHit = this.stats.maxHit, attRoll = this.stats.attRoll): { dmg: number; crit: boolean } {
     const st = this.stats;
     const defLvl = e.def.def + (e.elite === 'barnacled' ? 10 : 0);
     const defRoll = (defLvl + 9) * (e.def.defBonus[st.style] + 64);
-    if (this.rnd() >= hitChance(st.attRoll, defRoll)) return { dmg: 0, crit: false };
+    if (this.rnd() >= hitChance(attRoll, defRoll)) return { dmg: 0, crit: false };
     const crit = this.rnd() < st.crit;
     // a successful hit always lands at least 1, so a 0 always means a miss
     // a landed hit does HP_SCALE..max (RuneScape's 1..max, ×10), so average damage is exactly the unscaled game's
@@ -1170,19 +1204,21 @@ export class Game {
         return along > 0.3 && along <= st.range + e.def.radius + 0.6 && Math.abs(ax * uz - az * ux) < 0.7 + e.def.radius;
       }) : [];
       this.damageEnemy(t, r.dmg, r.crit, 'melee', st.kind === 'greatsword' ? 0.6 : 0.35);
+      // a blade in the off-hand follows up on the same target
+      if (st.dual && t.alive) { this.wear(this.p.equip.offhand, WEAR.weapon); const r2 = this.rollAgainst(t, st.dual.maxHit, st.dual.attRoll); this.damageEnemy(t, r2.dmg, r2.crit, 'melee', 0.15); }
       for (const e of pierced) { const rr = this.rollAgainst(e); this.damageEnemy(e, Math.round(rr.dmg * 0.6), false, 'melee', 0.3); }
       if (st.cleave > 0 && r.dmg > 0) {
         for (const e of this.enemies) if (e !== t && e.alive && !pierced.includes(e) && Math.hypot(e.x - tx, e.z - tz) < (st.kind === 'greatsword' ? 2.6 : 2.2)) this.damageEnemy(e, Math.max(1, Math.round(r.dmg * st.cleave)), false, 'melee', 0.2);
       }
       return true;
     }
-    // a pistol brace fires both barrels: two shots, each a little weaker
-    const shots = st.kind === 'pistols' ? 2 : 1;
+    // two pistols (or two wands) fire together: the off-hand's shot is weaker and costs its own shot or charms
+    const shots = st.dual ? 2 : 1;
     const block = this.ammoBlock(shots);
     if (block) { this.warnAmmo(block); return false; }
     this.consumeAmmo(shots);
-    if (shots === 2) for (const off of [-0.05, 0.05]) this.fireAt(t, this.rollAgainst(t, Math.max(1, Math.round(st.maxHit * 0.7))), 'ranged', 0, off);
-    else this.fireAt(t, this.rollAgainst(t), st.style, st.spell?.baseXp ?? 0);
+    this.fireAt(t, this.rollAgainst(t), st.style, st.spell?.baseXp ?? 0, st.dual ? -0.05 : 0);
+    if (st.dual) { this.wear(this.p.equip.offhand, WEAR.weapon); this.fireAt(t, this.rollAgainst(t, st.dual.maxHit, st.dual.attRoll), st.style, 0, 0.05); }
     return true;
   }
 
@@ -1401,7 +1437,7 @@ export class Game {
     if (dmg > 0 && this.stats.dr) dmg = Math.max(1, Math.round(dmg * (1 - this.stats.dr)));
     this.p.hp -= dmg;
     this.combatTimer = 0;
-    if (dmg > 0) { this.wear(this.p.equip.head, WEAR.armour); this.wear(this.p.equip.body, WEAR.armour); }
+    if (dmg > 0) for (const sl of ARMOUR_SLOTS) if (sl !== 'offhand' || (this.p.equip.offhand && item(this.p.equip.offhand.id).equip?.off === 'shield')) this.wear(this.p.equip[sl], WEAR.armour);
     this.emit({ type: 'hit', target: 'player', id: 0, amount: dmg, crit: false, x: this.p.x, z: this.p.z });
     if (this.p.hp <= 0) {
       this.p.hp = 0;

@@ -1,4 +1,4 @@
-import { ITEMS, AFFIXES, RARITY, type Slot, type SkillId } from '../data/items';
+import { ITEMS, AFFIXES, RARITY, pairGroup, offhandBlock, type Slot, type SkillId } from '../data/items';
 import { QUESTS } from '../data/quests';
 import { INV_SIZE, emptyInventory, type Inventory, type Stack } from './inventory';
 import { MAX_XP, xpForLevel } from './xp';
@@ -8,7 +8,7 @@ import { SUN } from '../world/island';
 
 // Versioned, validated save. Anything invalid is dropped or defaulted, never trusted.
 
-export const SAVE_VERSION = 5;
+export const SAVE_VERSION = 6;
 export const BANK_MAX = 400; // distinct entries in the strongbox
 export const SAVE_KEY = 'shattered-reef.save';
 
@@ -30,7 +30,7 @@ export interface SaveData {
 }
 
 export const SKILL_IDS: SkillId[] = ['attack', 'strength', 'defence', 'hitpoints', 'ranged', 'magic', 'woodcutting', 'mining', 'fishing', 'smithing', 'gunsmithing', 'fletching', 'cooking'];
-const SLOTS: Slot[] = ['weapon', 'ammo', 'head', 'body', 'ring'];
+const SLOTS: Slot[] = ['weapon', 'offhand', 'ammo', 'head', 'body', 'legs', 'feet', 'hands', 'neck', 'wrist', 'ring', 'ring2'];
 export const HP_START_XP = xpForLevel(10); // Hitpoints starts at 10, like RuneScape
 
 const num = (v: unknown, d: number, min = -Infinity, max = Infinity) =>
@@ -114,6 +114,30 @@ const MIGRATIONS: Record<number, (d: Record<string, unknown>) => Record<string, 
     if (typeof p.hp === 'number') p.hp = p.hp * 10;
     return { ...d, version: 5, player: p };
   },
+  // v5 had the pistol brace (one item, two pistols); v6 has a real off-hand, so each brace becomes two pistols:
+  // worn, one in each hand; in the pack, the second goes in a free slot (or the strongbox when the pack is full)
+  5: (d) => {
+    const PAIR: Record<string, string> = { bronze: 'pistol_flintlock', iron: 'pistol_iron' };
+    const single = (id: unknown) => (typeof id === 'string' && id.startsWith('pistols_') ? PAIR[id.slice(8)] ?? `pistol_${id.slice(8)}` : null);
+    const p = { ...((d.player ?? {}) as Record<string, unknown>) };
+    const inv = Array.isArray(p.inv) ? [...p.inv] : [];
+    const bank = Array.isArray(d.bank) ? [...d.bank] : [];
+    const spare: Record<string, unknown>[] = [];
+    const conv = (st: unknown): Record<string, unknown> | null => {
+      const o = st as Record<string, unknown> | null;
+      const to = o && single(o.id);
+      if (!o || !to) return null;
+      spare.push({ id: to, qty: 1 });
+      return { ...o, id: to };
+    };
+    const eq = { ...((p.equip ?? {}) as Record<string, unknown>) };
+    const w = conv(eq.weapon);
+    if (w) { eq.weapon = w; eq.offhand = spare.pop(); }
+    for (let i = 0; i < inv.length; i++) { const c = conv(inv[i]); if (c) inv[i] = c; }
+    for (const sp of spare) { const free = inv.findIndex((x, i) => !x && i < INV_SIZE); if (free >= 0) inv[free] = sp; else bank.push(sp); }
+    const bank2 = bank.map((b) => { const o = b as Record<string, unknown>; const to = o && single(o.id); return to ? { ...o, id: to, qty: (typeof o.qty === 'number' ? o.qty : 1) * 2 } : b; });
+    return { ...d, version: 6, bank: bank2, player: { ...p, inv, equip: eq } };
+  },
 };
 
 /** Parse + validate untrusted JSON. Returns null when unusable (caller starts fresh). */
@@ -154,7 +178,18 @@ export function parseSave(json: string | null, fallback: SaveData): SaveData | n
   d.player.equip = {};
   for (const sl of SLOTS) {
     const s = validStack(eq[sl]);
-    if (s && ITEMS[s.id].equip?.slot === sl) d.player.equip[sl] = sl === 'ammo' ? s : { ...s, qty: 1 };
+    const at = s && ITEMS[s.id].equip?.slot;
+    // rings fit either ring slot; the off-hand also takes a one-handed weapon (checked against the main hand below)
+    const fits = !!at && (at === sl || (sl === 'ring2' && at === 'ring') || (sl === 'offhand' && !!pairGroup(ITEMS[s!.id])));
+    if (fits) d.player.equip[sl] = sl === 'ammo' ? s! : { ...s!, qty: 1 };
+  }
+  // an off-hand that can't sit beside the weapon goes to the pack (or the strongbox): never lost
+  const off = d.player.equip.offhand, main = d.player.equip.weapon;
+  let offOut: Stack | null = null;
+  if (off && offhandBlock(main ? ITEMS[main.id] : undefined, ITEMS[off.id])) {
+    delete d.player.equip.offhand;
+    const free = d.player.inv.indexOf(null);
+    if (free >= 0) d.player.inv[free] = off; else offOut = off;
   }
   const sh = (raw.ship ?? {}) as Record<string, unknown>;
   d.ship = { x: num(sh.x, d.ship.x, -5000, 5000), z: num(sh.z, d.ship.z, -5000, 5000), heading: num(sh.heading, d.ship.heading), region: 'bellwether' };
@@ -165,6 +200,7 @@ export function parseSave(json: string | null, fallback: SaveData): SaveData | n
   if (Math.abs(d.player.x - rb.cx) > rb.half || Math.abs(d.player.z - rb.cz) > rb.half) { d.player.x = rb.cx; d.player.z = rb.cz; d.player.onShip = false; }
   if (REGIONS[d.region].kind === 'cave' || d.ship.region !== d.region) d.player.onShip = false;
   if (Array.isArray(raw.bank)) d.bank = raw.bank.map((b) => validStack(b, true)).filter((b): b is Stack => !!b).slice(0, BANK_MAX);
+  if (offOut) d.bank.push(offOut);
   const q = (raw.quests ?? {}) as Record<string, unknown>;
   for (const id of Object.keys(QUESTS)) d.quests[id] = Math.floor(num(q[id], 0, 0, QUESTS[id].stages.length - 1));
   const f = (raw.flags ?? {}) as Record<string, unknown>;

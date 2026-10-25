@@ -36,8 +36,7 @@ Pacing target with focused play: level 10 ≈ 20 min, 30 ≈ 4 h, 50 ≈ 25 h, 9
 | Foraging | Gathering | Herbs, kelp, sea-glass | Alchemy; tide charms | Second island |
 | Alchemy | Production | Potions, powders, oils | Combat buffs; gunpowder for Gunsmithing | Foraging |
 | Glasswork | Production | Melt sea-glass into charms and lenses | Magic charms; Navigation spyglasses | Foraging |
-| Jewelcrafting | Production | Rings and amulets from metal and pearls | Equipment with stat bonuses; uses Diving pearls | Diving |
-| Tailoring | Production | Leather and cloth armour | Ranged and Magic armour sets | Hides from hunting |
+| Crafting | Production | Leather, snakeskin and silk armour; jewellery; books and low orbs | Every new gear slot (legs, feet, hands, neck, wrist, rings, off-hand); uses boar hides, snakeskin, spider silk, sunscale, gold, gems | Next (Tom's queue; full list in PROJECT_LOG Next) |
 | Locksmithing | Utility | Pick locks, open the Locks, cut keys | Locked chests, doors, the Locks storyline (Keel's Tooth) | Next story chapter |
 | Thieving | Utility | Pickpocket, crack strongboxes | Coins, keys, rare components | Bigger towns |
 | Agility | Utility | Rigging courses, shortcuts | Run speed, climbing shortcuts, dodge recharge | Second island |

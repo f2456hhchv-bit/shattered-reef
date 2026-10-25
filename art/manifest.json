@@ -393,16 +393,6 @@
   },
   {
    "kind": "items",
-   "id": "helm_bronze",
-   "name": "Bronze helm",
-   "group": "Armour",
-   "file": "items/helm_bronze.png",
-   "sha1": "694e5ec0bafc0404fb38f170bde8547a8c5dfd7e",
-   "h": 0.389,
-   "w": 0.62
-  },
-  {
-   "kind": "items",
    "id": "cap_leather",
    "name": "Leather cap",
    "group": "Armour",
@@ -653,16 +643,6 @@
   },
   {
    "kind": "items",
-   "id": "pistols_bronze",
-   "name": "Bronze pistol brace",
-   "group": "Ranged weapons",
-   "file": "items/pistols_bronze.png",
-   "sha1": "61c5fd10de4ac3671c3f7e6aecd1f1ddc0576368",
-   "h": 0.63,
-   "w": 0.737
-  },
-  {
-   "kind": "items",
    "id": "crossbow_bronze",
    "name": "Bronze crossbow",
    "group": "Ranged weapons",
@@ -693,6 +673,16 @@
   },
   {
    "kind": "items",
+   "id": "helm_bronze",
+   "name": "Bronze helm",
+   "group": "Armour",
+   "file": "items/helm_bronze.png",
+   "sha1": "694e5ec0bafc0404fb38f170bde8547a8c5dfd7e",
+   "h": 0.389,
+   "w": 0.62
+  },
+  {
+   "kind": "items",
    "id": "plate_bronze",
    "name": "Bronze plate",
    "group": "Armour",
@@ -700,6 +690,46 @@
    "sha1": "076a33679fc8ab1e0c3b6271bb6a41cb471dd3b4",
    "h": 0.576,
    "w": 0.671
+  },
+  {
+   "kind": "items",
+   "id": "legs_bronze",
+   "name": "Bronze platelegs",
+   "group": "Materials",
+   "file": "items/legs_bronze.png",
+   "sha1": "54fd8e5e98443a75d434eb9c97524ed159505926",
+   "h": 0.524,
+   "w": 0.352
+  },
+  {
+   "kind": "items",
+   "id": "boots_bronze",
+   "name": "Bronze boots",
+   "group": "Materials",
+   "file": "items/boots_bronze.png",
+   "sha1": "f8e11a46b922878b93e82f0d40736a2c8f950bac",
+   "h": 0.29,
+   "w": 0.35
+  },
+  {
+   "kind": "items",
+   "id": "gloves_bronze",
+   "name": "Bronze gauntlets",
+   "group": "Materials",
+   "file": "items/gloves_bronze.png",
+   "sha1": "4a040a5937d16eaf0cc8696fd455a58bf985f790",
+   "h": 0.45,
+   "w": 0.318
+  },
+  {
+   "kind": "items",
+   "id": "shield_bronze",
+   "name": "Bronze shield",
+   "group": "Materials",
+   "file": "items/shield_bronze.png",
+   "sha1": "3a4405b806a458e92ec99f2d30ae4cb56a5b5df1",
+   "h": 0.562,
+   "w": 0.584
   },
   {
    "kind": "items",
@@ -730,16 +760,6 @@
    "sha1": "c97ad4882e2f5f3e9a20395fd4bfbb68605d07f8",
    "h": 0.945,
    "w": 0.954
-  },
-  {
-   "kind": "items",
-   "id": "pistols_iron",
-   "name": "Iron pistol brace",
-   "group": "Ranged weapons",
-   "file": "items/pistols_iron.png",
-   "sha1": "daba000f2c3080894c17b12f4f93b5462e07a067",
-   "h": 0.63,
-   "w": 0.737
   },
   {
    "kind": "items",
@@ -790,6 +810,46 @@
    "sha1": "e26c7f737cec7b4a74b2b634c938815c67f8e3fb",
    "h": 0.576,
    "w": 0.671
+  },
+  {
+   "kind": "items",
+   "id": "legs_iron",
+   "name": "Iron platelegs",
+   "group": "Materials",
+   "file": "items/legs_iron.png",
+   "sha1": "e03ea5e2ac6b08b819ba34e97c13b5497b577ed9",
+   "h": 0.524,
+   "w": 0.352
+  },
+  {
+   "kind": "items",
+   "id": "boots_iron",
+   "name": "Iron boots",
+   "group": "Materials",
+   "file": "items/boots_iron.png",
+   "sha1": "3af6f309748f1ee430593b829e22014f2c61cdd9",
+   "h": 0.29,
+   "w": 0.35
+  },
+  {
+   "kind": "items",
+   "id": "gloves_iron",
+   "name": "Iron gauntlets",
+   "group": "Materials",
+   "file": "items/gloves_iron.png",
+   "sha1": "c58fcba40e618ffacac7e82d36c2a02c723ad30c",
+   "h": 0.45,
+   "w": 0.318
+  },
+  {
+   "kind": "items",
+   "id": "shield_iron",
+   "name": "Iron shield",
+   "group": "Materials",
+   "file": "items/shield_iron.png",
+   "sha1": "f8b024013a58043c416835cd9d00c269d22c39a2",
+   "h": 0.562,
+   "w": 0.584
   },
   {
    "kind": "items",
@@ -883,16 +943,6 @@
   },
   {
    "kind": "items",
-   "id": "pistols_steel",
-   "name": "Steel pistol brace",
-   "group": "Ranged weapons",
-   "file": "items/pistols_steel.png",
-   "sha1": "5062652729f333931c7c116c56adf6ddf2475517",
-   "h": 0.63,
-   "w": 0.737
-  },
-  {
-   "kind": "items",
    "id": "crossbow_steel",
    "name": "Steel crossbow",
    "group": "Ranged weapons",
@@ -940,6 +990,46 @@
    "sha1": "252f2bf1bb488b682dd29f88a01ec4e0d94dd5ab",
    "h": 0.576,
    "w": 0.671
+  },
+  {
+   "kind": "items",
+   "id": "legs_steel",
+   "name": "Steel platelegs",
+   "group": "Materials",
+   "file": "items/legs_steel.png",
+   "sha1": "0fc080e80565de76bae119c0792a9df097b8b553",
+   "h": 0.524,
+   "w": 0.352
+  },
+  {
+   "kind": "items",
+   "id": "boots_steel",
+   "name": "Steel boots",
+   "group": "Materials",
+   "file": "items/boots_steel.png",
+   "sha1": "e89fdaa6b6e791ec71dde964ec222f365c7edd34",
+   "h": 0.29,
+   "w": 0.35
+  },
+  {
+   "kind": "items",
+   "id": "gloves_steel",
+   "name": "Steel gauntlets",
+   "group": "Materials",
+   "file": "items/gloves_steel.png",
+   "sha1": "491f336dfea96d64004e8b6a78ed5fb0a7b71767",
+   "h": 0.45,
+   "w": 0.318
+  },
+  {
+   "kind": "items",
+   "id": "shield_steel",
+   "name": "Steel shield",
+   "group": "Materials",
+   "file": "items/shield_steel.png",
+   "sha1": "42bf6a58b5fbae19d2e3cbaf36f920d47b3bea82",
+   "h": 0.562,
+   "w": 0.584
   },
   {
    "kind": "items",
@@ -1033,16 +1123,6 @@
   },
   {
    "kind": "items",
-   "id": "pistols_storm",
-   "name": "Stormsilver pistol brace",
-   "group": "Ranged weapons",
-   "file": "items/pistols_storm.png",
-   "sha1": "f72e79c63a45ca7937dfc08bb71d054a92c2b4e7",
-   "h": 0.63,
-   "w": 0.737
-  },
-  {
-   "kind": "items",
    "id": "crossbow_storm",
    "name": "Stormsilver crossbow",
    "group": "Ranged weapons",
@@ -1090,6 +1170,46 @@
    "sha1": "44e57301588540c0b1b77ea8061944f2c7cbf346",
    "h": 0.576,
    "w": 0.671
+  },
+  {
+   "kind": "items",
+   "id": "legs_storm",
+   "name": "Stormsilver platelegs",
+   "group": "Materials",
+   "file": "items/legs_storm.png",
+   "sha1": "99b4a23a0add9c1b74407593157b3dea61784653",
+   "h": 0.524,
+   "w": 0.352
+  },
+  {
+   "kind": "items",
+   "id": "boots_storm",
+   "name": "Stormsilver boots",
+   "group": "Materials",
+   "file": "items/boots_storm.png",
+   "sha1": "8f265076280d2f7843a2a09a5a02829015963981",
+   "h": 0.29,
+   "w": 0.35
+  },
+  {
+   "kind": "items",
+   "id": "gloves_storm",
+   "name": "Stormsilver gauntlets",
+   "group": "Materials",
+   "file": "items/gloves_storm.png",
+   "sha1": "81580626806546ec0175f77337c6d9db36488544",
+   "h": 0.45,
+   "w": 0.318
+  },
+  {
+   "kind": "items",
+   "id": "shield_storm",
+   "name": "Stormsilver shield",
+   "group": "Materials",
+   "file": "items/shield_storm.png",
+   "sha1": "bfe50d867da8c625a2776885ae0eeb8059f805b1",
+   "h": 0.562,
+   "w": 0.584
   },
   {
    "kind": "items",
@@ -1183,16 +1303,6 @@
   },
   {
    "kind": "items",
-   "id": "pistols_abyss",
-   "name": "Abyssite pistol brace",
-   "group": "Ranged weapons",
-   "file": "items/pistols_abyss.png",
-   "sha1": "701891ad56f18867a1f0577702dce2ea00f98b99",
-   "h": 0.63,
-   "w": 0.737
-  },
-  {
-   "kind": "items",
    "id": "crossbow_abyss",
    "name": "Abyssite crossbow",
    "group": "Ranged weapons",
@@ -1240,6 +1350,46 @@
    "sha1": "d659aad94e9fb8cb700b1629dda909ca14d7e036",
    "h": 0.576,
    "w": 0.671
+  },
+  {
+   "kind": "items",
+   "id": "legs_abyss",
+   "name": "Abyssite platelegs",
+   "group": "Materials",
+   "file": "items/legs_abyss.png",
+   "sha1": "23e7387d599d948f7aa83bebdac691900c81e336",
+   "h": 0.524,
+   "w": 0.352
+  },
+  {
+   "kind": "items",
+   "id": "boots_abyss",
+   "name": "Abyssite boots",
+   "group": "Materials",
+   "file": "items/boots_abyss.png",
+   "sha1": "cfb925a4e147cce267a1394bc05b44e55b5a7064",
+   "h": 0.29,
+   "w": 0.35
+  },
+  {
+   "kind": "items",
+   "id": "gloves_abyss",
+   "name": "Abyssite gauntlets",
+   "group": "Materials",
+   "file": "items/gloves_abyss.png",
+   "sha1": "e4d644ddc279346be50924c9418381cc51009748",
+   "h": 0.45,
+   "w": 0.318
+  },
+  {
+   "kind": "items",
+   "id": "shield_abyss",
+   "name": "Abyssite shield",
+   "group": "Materials",
+   "file": "items/shield_abyss.png",
+   "sha1": "521884e1d7d70af50522821c37e959fbd4b84e59",
+   "h": 0.562,
+   "w": 0.584
   },
   {
    "kind": "items",
@@ -1333,16 +1483,6 @@
   },
   {
    "kind": "items",
-   "id": "pistols_tide",
-   "name": "Tidecore pistol brace",
-   "group": "Ranged weapons",
-   "file": "items/pistols_tide.png",
-   "sha1": "243a596f7d8d9f05e34249982006c92019146da6",
-   "h": 0.63,
-   "w": 0.737
-  },
-  {
-   "kind": "items",
    "id": "crossbow_tide",
    "name": "Tidecore crossbow",
    "group": "Ranged weapons",
@@ -1390,6 +1530,46 @@
    "sha1": "625d81f55356cd340744279ae9852c662c160f7d",
    "h": 0.576,
    "w": 0.671
+  },
+  {
+   "kind": "items",
+   "id": "legs_tide",
+   "name": "Tidecore platelegs",
+   "group": "Materials",
+   "file": "items/legs_tide.png",
+   "sha1": "c2dfd6350f4e3d5dce6c465212f05f1fb43a83ec",
+   "h": 0.524,
+   "w": 0.352
+  },
+  {
+   "kind": "items",
+   "id": "boots_tide",
+   "name": "Tidecore boots",
+   "group": "Materials",
+   "file": "items/boots_tide.png",
+   "sha1": "357c9140a08642b3cfd32034be3d5686d8211451",
+   "h": 0.29,
+   "w": 0.35
+  },
+  {
+   "kind": "items",
+   "id": "gloves_tide",
+   "name": "Tidecore gauntlets",
+   "group": "Materials",
+   "file": "items/gloves_tide.png",
+   "sha1": "f31b1c51311ddedb30f9872e61be1496c9ef5402",
+   "h": 0.45,
+   "w": 0.318
+  },
+  {
+   "kind": "items",
+   "id": "shield_tide",
+   "name": "Tidecore shield",
+   "group": "Materials",
+   "file": "items/shield_tide.png",
+   "sha1": "50cfeb18b14a36bf15314ce88bca3a654856d670",
+   "h": 0.562,
+   "w": 0.584
   },
   {
    "kind": "items",
@@ -1483,16 +1663,6 @@
   },
   {
    "kind": "items",
-   "id": "pistols_cinder",
-   "name": "Cinderite pistol brace",
-   "group": "Ranged weapons",
-   "file": "items/pistols_cinder.png",
-   "sha1": "ef22078ccec389639204f833e355f5ba8aba6605",
-   "h": 0.63,
-   "w": 0.737
-  },
-  {
-   "kind": "items",
    "id": "crossbow_cinder",
    "name": "Cinderite crossbow",
    "group": "Ranged weapons",
@@ -1540,6 +1710,46 @@
    "sha1": "67a4ce85c24804900a448a6ab736389f0a34a5e0",
    "h": 0.576,
    "w": 0.671
+  },
+  {
+   "kind": "items",
+   "id": "legs_cinder",
+   "name": "Cinderite platelegs",
+   "group": "Materials",
+   "file": "items/legs_cinder.png",
+   "sha1": "66a927dca880e83c0508322c0780dad6089340df",
+   "h": 0.524,
+   "w": 0.352
+  },
+  {
+   "kind": "items",
+   "id": "boots_cinder",
+   "name": "Cinderite boots",
+   "group": "Materials",
+   "file": "items/boots_cinder.png",
+   "sha1": "ed885ec4d0c15d9ca8ec65e596a35edda579315d",
+   "h": 0.29,
+   "w": 0.35
+  },
+  {
+   "kind": "items",
+   "id": "gloves_cinder",
+   "name": "Cinderite gauntlets",
+   "group": "Materials",
+   "file": "items/gloves_cinder.png",
+   "sha1": "c9a0ecdd0f80743a31d5dc12ba2210633139e602",
+   "h": 0.45,
+   "w": 0.318
+  },
+  {
+   "kind": "items",
+   "id": "shield_cinder",
+   "name": "Cinderite shield",
+   "group": "Materials",
+   "file": "items/shield_cinder.png",
+   "sha1": "d558a5f02a29531a15135803ef6b55f6f6d7a239",
+   "h": 0.562,
+   "w": 0.584
   },
   {
    "kind": "items",
@@ -1633,16 +1843,6 @@
   },
   {
    "kind": "items",
-   "id": "pistols_sky",
-   "name": "Skyglass pistol brace",
-   "group": "Ranged weapons",
-   "file": "items/pistols_sky.png",
-   "sha1": "891c4e9fbcaa2051a1ccbc11199677fb83616d31",
-   "h": 0.63,
-   "w": 0.737
-  },
-  {
-   "kind": "items",
    "id": "crossbow_sky",
    "name": "Skyglass crossbow",
    "group": "Ranged weapons",
@@ -1690,6 +1890,46 @@
    "sha1": "8d2896f449c691728c8d3b58fb49bc5c39ec816e",
    "h": 0.576,
    "w": 0.671
+  },
+  {
+   "kind": "items",
+   "id": "legs_sky",
+   "name": "Skyglass platelegs",
+   "group": "Materials",
+   "file": "items/legs_sky.png",
+   "sha1": "f8dd9d8e71d84874ed342573ea2240f4e980af1b",
+   "h": 0.524,
+   "w": 0.352
+  },
+  {
+   "kind": "items",
+   "id": "boots_sky",
+   "name": "Skyglass boots",
+   "group": "Materials",
+   "file": "items/boots_sky.png",
+   "sha1": "537dcb1ac3bc1720cd3ab630657c02c4b3884799",
+   "h": 0.29,
+   "w": 0.35
+  },
+  {
+   "kind": "items",
+   "id": "gloves_sky",
+   "name": "Skyglass gauntlets",
+   "group": "Materials",
+   "file": "items/gloves_sky.png",
+   "sha1": "93526e8601ce3f6f1273bcf6fda95a306de74c60",
+   "h": 0.45,
+   "w": 0.318
+  },
+  {
+   "kind": "items",
+   "id": "shield_sky",
+   "name": "Skyglass shield",
+   "group": "Materials",
+   "file": "items/shield_sky.png",
+   "sha1": "a1d9395c0bcd0093e4a179fa6889d40c8171127d",
+   "h": 0.562,
+   "w": 0.584
   },
   {
    "kind": "items",
@@ -1783,16 +2023,6 @@
   },
   {
    "kind": "items",
-   "id": "pistols_levi",
-   "name": "Leviathite pistol brace",
-   "group": "Ranged weapons",
-   "file": "items/pistols_levi.png",
-   "sha1": "68c3c3c8859b5bebe1d1f6c7a1671277a80c0561",
-   "h": 0.63,
-   "w": 0.737
-  },
-  {
-   "kind": "items",
    "id": "crossbow_levi",
    "name": "Leviathite crossbow",
    "group": "Ranged weapons",
@@ -1840,6 +2070,46 @@
    "sha1": "267221a73b37cb7951bb243649d272c71b3fa028",
    "h": 0.576,
    "w": 0.671
+  },
+  {
+   "kind": "items",
+   "id": "legs_levi",
+   "name": "Leviathite platelegs",
+   "group": "Materials",
+   "file": "items/legs_levi.png",
+   "sha1": "5ceb32fe3141625a5cf6580504a47a61a5136a81",
+   "h": 0.524,
+   "w": 0.352
+  },
+  {
+   "kind": "items",
+   "id": "boots_levi",
+   "name": "Leviathite boots",
+   "group": "Materials",
+   "file": "items/boots_levi.png",
+   "sha1": "e214f0092994eb4a1896e8caba906ecede39ba99",
+   "h": 0.29,
+   "w": 0.35
+  },
+  {
+   "kind": "items",
+   "id": "gloves_levi",
+   "name": "Leviathite gauntlets",
+   "group": "Materials",
+   "file": "items/gloves_levi.png",
+   "sha1": "6c7ee1deadeda8bcbbcec2c37bfd8efeaa072e89",
+   "h": 0.45,
+   "w": 0.318
+  },
+  {
+   "kind": "items",
+   "id": "shield_levi",
+   "name": "Leviathite shield",
+   "group": "Materials",
+   "file": "items/shield_levi.png",
+   "sha1": "d34af0752339da36439238f04106906c4f89ff9d",
+   "h": 0.562,
+   "w": 0.584
   },
   {
    "kind": "items",
@@ -1933,16 +2203,6 @@
   },
   {
    "kind": "items",
-   "id": "pistols_ori",
-   "name": "Orichalcum pistol brace",
-   "group": "Ranged weapons",
-   "file": "items/pistols_ori.png",
-   "sha1": "a866bb1e6e1887d3c18c43364d49ca4bcbcb6374",
-   "h": 0.63,
-   "w": 0.737
-  },
-  {
-   "kind": "items",
    "id": "crossbow_ori",
    "name": "Orichalcum crossbow",
    "group": "Ranged weapons",
@@ -1990,6 +2250,46 @@
    "sha1": "0333c0c87c8f839d2640f640054ca4f0454936aa",
    "h": 0.576,
    "w": 0.671
+  },
+  {
+   "kind": "items",
+   "id": "legs_ori",
+   "name": "Orichalcum platelegs",
+   "group": "Materials",
+   "file": "items/legs_ori.png",
+   "sha1": "a5e63b28980d2f5b298722eba6dc6293751009c5",
+   "h": 0.524,
+   "w": 0.352
+  },
+  {
+   "kind": "items",
+   "id": "boots_ori",
+   "name": "Orichalcum boots",
+   "group": "Materials",
+   "file": "items/boots_ori.png",
+   "sha1": "af0aa05044bda43689abc14035c1c7ebd5da647d",
+   "h": 0.29,
+   "w": 0.35
+  },
+  {
+   "kind": "items",
+   "id": "gloves_ori",
+   "name": "Orichalcum gauntlets",
+   "group": "Materials",
+   "file": "items/gloves_ori.png",
+   "sha1": "7c573471ea00a4bd41b23c73b8f875814cec09f9",
+   "h": 0.45,
+   "w": 0.318
+  },
+  {
+   "kind": "items",
+   "id": "shield_ori",
+   "name": "Orichalcum shield",
+   "group": "Materials",
+   "file": "items/shield_ori.png",
+   "sha1": "13a47be47d642b6cadd6a0798916378dc57f4aba",
+   "h": 0.562,
+   "w": 0.584
   },
   {
    "kind": "items",
@@ -2600,6 +2900,196 @@
    "sha1": "3c5bb5941641bfb04bd2dedffb8951dd40d96e0b",
    "h": 0.932,
    "w": 0.467
+  },
+  {
+   "kind": "items",
+   "id": "wand_driftwood",
+   "name": "Driftwood wand",
+   "group": "Staffs",
+   "file": "items/wand_driftwood.png",
+   "sha1": "8a2041f2e1cdf07294aea4aa434b5a2cd973de81",
+   "h": 0.586,
+   "w": 0.441
+  },
+  {
+   "kind": "items",
+   "id": "orb_glass",
+   "name": "Sea-glass orb",
+   "group": "Materials",
+   "file": "items/orb_glass.png",
+   "sha1": "36bf567112ddf7a4f508efc56987a0bdb55d1c7b",
+   "h": 0.44,
+   "w": 0.38
+  },
+  {
+   "kind": "items",
+   "id": "book_almanac",
+   "name": "Sailor's almanac",
+   "group": "Materials",
+   "file": "items/book_almanac.png",
+   "sha1": "3f1abc84bdf01845ca48762b6a8e8ff90139bf20",
+   "h": 0.111,
+   "w": 0.504
+  },
+  {
+   "kind": "items",
+   "id": "wand_coral",
+   "name": "Coral wand",
+   "group": "Staffs",
+   "file": "items/wand_coral.png",
+   "sha1": "2631729989cd0efd9c2403cb1f754a76b83b7ed7",
+   "h": 0.586,
+   "w": 0.441
+  },
+  {
+   "kind": "items",
+   "id": "orb_coral",
+   "name": "Coral orb",
+   "group": "Materials",
+   "file": "items/orb_coral.png",
+   "sha1": "0de09dcc7901fe86e79e9f7671e5dc353d7cf6a2",
+   "h": 0.44,
+   "w": 0.38
+  },
+  {
+   "kind": "items",
+   "id": "book_coral",
+   "name": "Coral codex",
+   "group": "Materials",
+   "file": "items/book_coral.png",
+   "sha1": "cce90db418e29bd55ab268499d62b8930c5d2899",
+   "h": 0.111,
+   "w": 0.504
+  },
+  {
+   "kind": "items",
+   "id": "wand_storm",
+   "name": "Stormsilver wand",
+   "group": "Staffs",
+   "file": "items/wand_storm.png",
+   "sha1": "714a7b1938e20aa11fac81c416be700cca4d29cd",
+   "h": 0.586,
+   "w": 0.441
+  },
+  {
+   "kind": "items",
+   "id": "orb_storm",
+   "name": "Storm orb",
+   "group": "Materials",
+   "file": "items/orb_storm.png",
+   "sha1": "bdac588f983f4f03410e035f44f2bfde4373eb03",
+   "h": 0.44,
+   "w": 0.38
+  },
+  {
+   "kind": "items",
+   "id": "book_storm",
+   "name": "Storm log",
+   "group": "Materials",
+   "file": "items/book_storm.png",
+   "sha1": "75c4352f96a8ef97d1a355a0296c4962153d1ee9",
+   "h": 0.111,
+   "w": 0.504
+  },
+  {
+   "kind": "items",
+   "id": "wand_tide",
+   "name": "Tidecore wand",
+   "group": "Staffs",
+   "file": "items/wand_tide.png",
+   "sha1": "686146d6197c11ba891c2d0e5be04e0066b8cb5a",
+   "h": 0.586,
+   "w": 0.441
+  },
+  {
+   "kind": "items",
+   "id": "orb_tide",
+   "name": "Tidecore orb",
+   "group": "Materials",
+   "file": "items/orb_tide.png",
+   "sha1": "053c63d9aa512e9a8c1697c8f6020c55fc825a08",
+   "h": 0.44,
+   "w": 0.38
+  },
+  {
+   "kind": "items",
+   "id": "book_tide",
+   "name": "Tidecaller's grimoire",
+   "group": "Materials",
+   "file": "items/book_tide.png",
+   "sha1": "f2fbae5797d70d9be669e68e68034bc5ba58425b",
+   "h": 0.111,
+   "w": 0.504
+  },
+  {
+   "kind": "items",
+   "id": "amulet_brass",
+   "name": "Brass pendant",
+   "group": "Materials",
+   "file": "items/amulet_brass.png",
+   "sha1": "5537e657ccb60348554317c5a59e982529be0381",
+   "h": 0.608,
+   "w": 0.586
+  },
+  {
+   "kind": "items",
+   "id": "amulet_gold",
+   "name": "Gold amulet",
+   "group": "Materials",
+   "file": "items/amulet_gold.png",
+   "sha1": "d28aa8ad71f301cf51f15b6ea2497b0132317a77",
+   "h": 0.608,
+   "w": 0.586
+  },
+  {
+   "kind": "items",
+   "id": "bracelet_brass",
+   "name": "Brass bangle",
+   "group": "Materials",
+   "file": "items/bracelet_brass.png",
+   "sha1": "b2b80a6a65fa5f079c4233f569d84cbd5d66e255",
+   "h": 0.257,
+   "w": 0.43
+  },
+  {
+   "kind": "items",
+   "id": "bracelet_gold",
+   "name": "Gold bracelet",
+   "group": "Materials",
+   "file": "items/bracelet_gold.png",
+   "sha1": "ab92b91dd3ba0a1d7a533b61e30bf85bc59d2491",
+   "h": 0.257,
+   "w": 0.43
+  },
+  {
+   "kind": "items",
+   "id": "chaps_leather",
+   "name": "Leather chaps",
+   "group": "Materials",
+   "file": "items/chaps_leather.png",
+   "sha1": "55557b726e24bc870485ac914369d9eace7c3579",
+   "h": 0.524,
+   "w": 0.352
+  },
+  {
+   "kind": "items",
+   "id": "boots_leather",
+   "name": "Leather boots",
+   "group": "Materials",
+   "file": "items/boots_leather.png",
+   "sha1": "3d620ebd459f728c20c4f47f53f0d279d4642813",
+   "h": 0.29,
+   "w": 0.35
+  },
+  {
+   "kind": "items",
+   "id": "gloves_leather",
+   "name": "Leather gloves",
+   "group": "Materials",
+   "file": "items/gloves_leather.png",
+   "sha1": "220b1254391a6e6fc5c29831506d98ae906c58f0",
+   "h": 0.45,
+   "w": 0.318
   },
   {
    "kind": "creatures",

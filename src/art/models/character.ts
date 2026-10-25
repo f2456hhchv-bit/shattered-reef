@@ -7,7 +7,7 @@ import { buildLowPoly } from './lowpoly';
 // Built from turned (lathe) profiles, capsules and spheres so every silhouette is rounded:
 // tapered limbs, a shaped torso, a flared coat, a sculpted head and a real folded tricorn.
 
-export type HeldKind = 'cutlass' | 'musket' | 'hammer' | 'pistol' | 'staff' | 'dagger' | 'pike' | 'greatsword' | 'bow' | 'longbow' | 'crossbow' | 'none';
+export type HeldKind = 'cutlass' | 'musket' | 'hammer' | 'pistol' | 'staff' | 'dagger' | 'pike' | 'greatsword' | 'bow' | 'longbow' | 'crossbow' | 'wand' | 'shield' | 'orb' | 'book' | 'none';
 
 export interface HumanoidLook {
   skin: PalKey | number;
@@ -154,6 +154,35 @@ export function buildHeld(held: THREE.Group, body: THREE.Group, kind: HeldKind) 
     const bolt = mesh(cylr(0.01, 0.01, 0.34, 5), mat('wood'));
     put(bolt, 0, 0.075, 0.33, Math.PI / 2);
     held.add(stock, prod, bolt);
+  } else if (kind === 'wand') {
+    // a short tapered rod with a glowing tip
+    const rod = mesh(cylr(0.012, 0.02, 0.38, 7), mat('woodLight'));
+    put(rod, 0, 0, 0.13, Math.PI / 2);
+    const tip = mesh(sphere(0.032, 10, 8), mat(0x59d0c4, { emissive: 0x59d0c4, emissiveIntensity: 1.4 }), false);
+    put(tip, 0, 0, 0.33);
+    const ferrule = mesh(cylr(0.024, 0.024, 0.03, 8), mat('brass'));
+    put(ferrule, 0, 0, 0.3, Math.PI / 2);
+    held.add(rod, tip, ferrule);
+  } else if (kind === 'orb') {
+    // held up in the palm, glowing
+    const orb = mesh(sphere(0.075, 16, 12), mat(0x59d0c4, { emissive: 0x59d0c4, emissiveIntensity: 1.1 }), false);
+    put(orb, 0, 0.04, 0.08);
+    held.add(orb);
+  } else if (kind === 'book') {
+    const cover = mesh(new THREE.BoxGeometry(0.05, 0.24, 0.18), mat('leather'));
+    put(cover, 0, 0.02, 0.07);
+    const pages = mesh(new THREE.BoxGeometry(0.042, 0.22, 0.17), mat(0xefe7d2));
+    put(pages, 0.006, 0.02, 0.072);
+    const clasp = mesh(new THREE.BoxGeometry(0.056, 0.03, 0.03), mat('brass'));
+    put(clasp, 0, 0.02, 0.16);
+    held.add(cover, pages, clasp);
+  } else if (kind === 'shield') {
+    // a round shield on the forearm, its face turned forward and a little outward so the camera sees it
+    const sh = put(new THREE.Group(), -0.05, 0.14, 0.05, 0, -0.55, 0);
+    sh.add(put(mesh(cylr(0.26, 0.26, 0.04, 16), mat('iron')), 0, 0, 0, Math.PI / 2));
+    sh.add(mesh(new THREE.TorusGeometry(0.26, 0.018, 6, 20), mat('brass')));
+    sh.add(put(mesh(sphere(0.06, 10, 8), mat('brass')), 0, 0, 0.03));
+    held.add(sh);
   } else if (kind === 'hammer') {
     const haft = mesh(cylr(0.02, 0.024, 0.46, 8), mat('wood'));
     put(haft, 0, 0, 0.15, Math.PI / 2);
@@ -237,7 +266,7 @@ export function animateFish(r: HumanoidRig, t: number) {
   r.legR.rotation.x = 0;
 }
 
-/** A second weapon in the left hand (a brace of pistols), mirroring the right hand's grip. */
+/** Whatever is in the left hand: a second weapon, a shield, an orb or a book, mirroring the right hand's grip. */
 export function addOffhand(rig: HumanoidRig, kind: HeldKind) {
   const g = new THREE.Group();
   g.position.copy(rig.held.position);

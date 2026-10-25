@@ -1,4 +1,4 @@
-import { item, AFFIXES, RARITY, AMMO_FOR, weaponKind, ammoKind, type Rarity, type Slot, type SkillId, type CombatStyle, type WeaponKind, type AmmoKind } from '../data/items';
+import { item, AFFIXES, RARITY, AMMO_FOR, weaponKind, ammoKind, pairGroup, type Rarity, type Slot, type SkillId, type CombatStyle, type WeaponKind, type AmmoKind } from '../data/items';
 import { HP_SCALE, SPELLS } from '../data/content';
 import { condOf, WORN_OUT_EFFECT, type Inst, type Stack } from './inventory';
 import { levelForXp } from './xp';
@@ -58,11 +58,18 @@ export function combatLevel(l: Levels): number {
   return Math.floor(base + Math.max(melee, range, mage));
 }
 
+/** A second weapon in the off-hand strikes with every attack at this share of its own max hit. */
+export const OFFHAND_MUL = 0.5;
+/** ... and both hands together are a little slower than one. */
+export const DUAL_SLOW = 1.1;
+
 export interface PlayerStats {
   combatLevel: number;
   maxHp: number;
   style: CombatStyle;
   kind: WeaponKind; // weapon family
+  /** a second weapon in the off-hand: its own accuracy roll and max hit, used on every attack */
+  dual: { attRoll: number; maxHit: number } | null;
   needsAmmo: AmmoKind | null; // what the ammo slot must hold for this weapon
   speed: number; // seconds per attack
   range: number; // metres
@@ -95,18 +102,30 @@ export function computeStats(xp: Record<SkillId, number>, equip: Partial<Record<
   const L = levelsOf(xp);
   const weapon = equip.weapon ? item(equip.weapon.id).equip : undefined;
   const style: CombatStyle = weapon?.style ?? 'melee';
-  const kind = weaponKind(equip.weapon ? item(equip.weapon.id) : undefined), needsAmmo = AMMO_FOR[kind] ?? null;
+  const mainDef = equip.weapon ? item(equip.weapon.id) : undefined;
+  const kind = weaponKind(mainDef), needsAmmo = AMMO_FOR[kind] ?? null;
+  // a second weapon only counts if it pairs with the first (blade + blade, pistol + pistol, wand + wand)
+  const offDef = equip.offhand ? item(equip.offhand.id) : undefined;
+  const offWeapon = !!offDef && !!mainDef && !!pairGroup(offDef) && pairGroup(offDef) === pairGroup(mainDef);
+  let offAcc = 0, offStr = 0;
   let acc = 0, str = 0, rangedStr = 0, magicDmg = 0;
   const def: Record<CombatStyle, number> = { melee: 0, ranged: 0, magic: 0 };
+  let charmSaveGear = 0;
   let dmgPct = 0, speedPct = 0, crit = 0, cleave = 0, eliteDmg = 0, leech = 0, regen = 0, gather = 0, xpBonus = 0, hpBonus = 0, accAffix = 0, seaDmg = 0;
   for (const [slot, st] of Object.entries(equip) as [Slot, Stack][]) {
     const e = st && item(st.id).equip;
     if (!e) continue;
     const b = e.bonus;
     const k = condOf(st) <= 0 ? WORN_OUT_EFFECT : 1; // worn out: still works, less well
-    if (slot === 'weapon') { acc += sum(b.acc) * k; str += sum(b.str) * k; }
+    if (slot === 'offhand' && pairGroup(item(st.id))) {
+      // a second weapon makes its own attack; it isn't added to the first (and an unpaired one does nothing)
+      if (offWeapon) { offAcc = sum(b.acc) * k; offStr = sum(b.str) * k; }
+    } else if (slot !== 'ammo') {
+      // the weapon, and gauntlets, jewellery and orbs (their accuracy and strength apply to whatever you wield)
+      acc += sum(b.acc) * k; str += sum(b.str) * k;
+      magicDmg += sum(b.magicDmg) * k;
+    }
     if (slot === 'ammo' && style === 'ranged' && ammoKind(item(st.id)) === needsAmmo) rangedStr += sum(b.rangedStr); // wrong ammo adds nothing
-    magicDmg += sum(b.magicDmg) * k;
     def.melee += sum(b.defMelee) * k; def.ranged += sum(b.defRanged) * k; def.magic += sum(b.defMagic) * k;
     // the metal's signature trait counts like an affix (gathering traits only matter on tools, which aren't worn)
     for (const a of [...(item(st.id).innate ?? []), ...(st.inst?.affixes ?? [])]) {
@@ -124,6 +143,7 @@ export function computeStats(xp: Record<SkillId, number>, equip: Partial<Record<
         case 'regen': regen += a.v; break;
         case 'gather_speed': gather += a.v / 100; break;
         case 'xp_bonus': xpBonus += a.v / 100; break;
+        case 'charm_save': charmSaveGear += a.v / 100; break;
       }
     }
   }
@@ -131,38 +151,51 @@ export function computeStats(xp: Record<SkillId, number>, equip: Partial<Record<
   const stanceStr = stance === 'aggressive' ? 3 : 0;
   const stanceDef = stance === 'defensive' ? 3 : 0;
   let attRoll: number, maxHit: number, trains: SkillId[];
+  const mainB = mainDef?.equip?.bonus ?? {}, mainK = equip.weapon && condOf(equip.weapon) <= 0 ? WORN_OUT_EFFECT : 1;
+  // the off-hand weapon's rolls: everything but the main weapon's own accuracy (and, for blades, strength)
+  const offAccTotal = acc - sum(mainB.acc) * mainK + offAcc, offStrTotal = str - sum(mainB.str) * mainK + offStr;
+  let dualAtt = 0, dualMax = 0;
   let spell = null;
   let ammo: string | null = null;
   if (style === 'melee') {
     attRoll = attackRoll(L.attack + stanceAcc + 8, acc + accAffix);
     maxHit = maxHitFor(L.strength + stanceStr + 8, str);
+    dualAtt = attackRoll(L.attack + stanceAcc + 8, offAccTotal + accAffix);
+    dualMax = maxHitFor(L.strength + stanceStr + 8, offStrTotal);
     trains = stance === 'accurate' ? ['attack'] : stance === 'aggressive' ? ['strength'] : ['defence'];
   } else if (style === 'ranged') {
     ammo = equip.ammo?.id ?? null;
     attRoll = attackRoll(L.ranged + stanceAcc + 8, acc + accAffix);
     maxHit = maxHitFor(L.ranged + stanceStr + 8, rangedStr);
+    dualAtt = attackRoll(L.ranged + stanceAcc + 8, offAccTotal + accAffix);
+    dualMax = maxHit;
     trains = stance === 'defensive' ? ['ranged', 'defence'] : ['ranged'];
   } else {
     spell = [...SPELLS].reverse().find((s) => s.id === spellId && s.level <= L.magic) ?? SPELLS[0];
     attRoll = attackRoll(L.magic + 8 + stanceAcc, acc + accAffix);
     maxHit = Math.floor(spell.maxHit * (1 + magicDmg / 100) + (L.magic >= spell.level + 10 ? 1 : 0));
+    dualAtt = attackRoll(L.magic + 8 + stanceAcc, offAccTotal + accAffix);
+    dualMax = maxHit;
     trains = stance === 'defensive' ? ['magic', 'defence'] : ['magic'];
   }
   // perks from the skills this style uses
   const accSkill: SkillId = style === 'melee' ? 'attack' : style, dmgSkill: SkillId = style === 'melee' ? 'strength' : style;
-  attRoll = Math.round(attRoll * (1 + perkTotal(accSkill, L[accSkill], 'acc') / 100));
+  const accPerk = 1 + perkTotal(accSkill, L[accSkill], 'acc') / 100;
+  attRoll = Math.round(attRoll * accPerk);
   dmgPct += perkTotal(dmgSkill, L[dmgSkill], 'dmg');
   crit += perkTotal(accSkill, L[accSkill], 'crit') / 100;
   if (style === 'melee') cleave = Math.max(cleave, perkTotal('strength', L.strength, 'cleave') / 100, kind === 'greatsword' ? 0.4 : 0);
   regen += perkTotal('hitpoints', L.hitpoints, 'regen');
   hpBonus += perkTotal('hitpoints', L.hitpoints, 'hp');
   maxHit = Math.max(1, Math.floor(maxHit * (1 + dmgPct / 100))) * HP_SCALE;
-  const baseSpeed = weapon?.speed ?? 2.4;
+  const dual = offWeapon ? { attRoll: Math.round(dualAtt * accPerk), maxHit: Math.max(1, Math.floor(dualMax * (1 + dmgPct / 100) * OFFHAND_MUL)) * HP_SCALE } : null;
+  const baseSpeed = (weapon?.speed ?? 2.4) * (dual ? DUAL_SLOW : 1);
   return {
     combatLevel: combatLevel(L),
     maxHp: (L.hitpoints + hpBonus) * HP_SCALE,
     style,
     kind,
+    dual,
     needsAmmo,
     speed: (style === 'ranged' && stance === 'aggressive' ? baseSpeed * 0.75 : baseSpeed) / (1 + speedPct / 100), // "rapid"
     range: weapon?.range ?? 1.6,
@@ -183,7 +216,7 @@ export function computeStats(xp: Record<SkillId, number>, equip: Partial<Record<
     dr: perkTotal('defence', L.defence, 'dr') / 100,
     healBonus: (perkTotal('hitpoints', L.hitpoints, 'heal') + perkTotal('cooking', L.cooking, 'heal')) / 100,
     ammoSave: perkTotal('ranged', L.ranged, 'ammo') / 100,
-    charmSave: perkTotal('magic', L.magic, 'charms') / 100,
+    charmSave: Math.min(0.75, perkTotal('magic', L.magic, 'charms') / 100 + charmSaveGear),
     specCut: Math.min(0.5, (perkTotal(accSkill, L[accSkill], 'spec') + (dmgSkill !== accSkill ? perkTotal(dmgSkill, L[dmgSkill], 'spec') : 0)) / 100),
     trains,
   };
