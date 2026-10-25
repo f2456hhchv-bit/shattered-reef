@@ -258,17 +258,38 @@ describe('content placement', () => {
     expect(placed.filter((id) => !NPC_LOOKS[id] || !NPCS[id])).toEqual([]);
   });
 
-  it('three islands in level order: every foe and every gathering spot sits inside its region\'s band', () => {
+  it('islands in level order (Tom: 1-20, 15-30, 25-50, then 50+ mixed): every foe and gathering spot sits in its band', () => {
+    expect(REGIONS.bellwether.band).toEqual([1, 20]);
+    expect(REGIONS.sunreach.band).toEqual([15, 30]);
+    expect(REGIONS.amberhold.band).toEqual([25, 50]);
+    expect(REGIONS.wrack.band![0]).toBeGreaterThanOrEqual(50);
     for (const id of IDS) {
       const L = regionLayout(id), [lo, hi] = REGIONS[id].band!;
-      const foes = [...L.spawns.map((s) => ENEMIES[s.enemy].level), ...L.arenas.map((a) => ENEMIES[a.boss].level)];
+      const foes = L.spawns.map((s) => ENEMIES[s.enemy].level);
       expect(Math.max(...foes), `${id} hardest foe`).toBeLessThanOrEqual(hi);
+      if (lo >= 50) expect(Math.min(...foes), `${id} easiest foe`).toBeGreaterThanOrEqual(lo); // past 50 there's no easy corner
+      // a boss is its island's finale: a couple of levels past the band at most
+      for (const a of L.arenas) expect(ENEMIES[a.boss].level, `${id} boss`).toBeLessThanOrEqual(hi + 2);
       const gather = L.nodes.filter((n) => !n.scenery).map((n) => NODES[n.def].level);
-      expect(Math.max(...gather), `${id} highest node`).toBeLessThanOrEqual(hi + 2); // gloom shoals (62) off Sunreach
-      if (REGIONS[id].kind === 'island') expect(Math.max(...gather), `${id} reaches its band`).toBeGreaterThanOrEqual(lo);
+      expect(Math.max(...gather), `${id} highest node`).toBeLessThanOrEqual(hi);
+      if (REGIONS[id].kind === 'island') expect(Math.max(...gather), `${id} reaches its band`).toBeGreaterThanOrEqual(Math.min(hi, lo + 15));
     }
-    expect(REGIONS.bellwether.band![0]).toBe(1);
-    expect(REGIONS.wrack.band![1]).toBe(99);
+  });
+
+  it('Amberhold: Sefa sails you there, Jory keeps the board and the outpost has its stations', () => {
+    const f = inRegion('sunreach');
+    f.give('coins', 100);
+    const sefa = f.layout.npcs.find((n) => n.id === 'sefa')!;
+    const q = f.world.nearestWalkable(sefa.x, sefa.z, 3)!; f.p.x = q[0]; f.p.z = q[1];
+    const before = count(f.p.inv, 'coins');
+    f.takeFerry('sefa', 'amberhold');
+    expect(f.s.region).toBe('amberhold');
+    expect(count(f.p.inv, 'coins')).toBe(before - 40);
+    expect(f.layout.npcs.some((n) => n.id === 'jory')).toBe(true);
+    for (const st of ['furnace', 'anvil', 'fire', 'bench'] as const) expect(f.layout.stations.some((s) => s.id === st), st).toBe(true);
+    expect(f.layout.banks.length).toBeGreaterThan(0);
+    // sailing east off Amberhold's chart reaches Stormwrack
+    expect(REGIONS.amberhold.exits.map((e) => e.to).sort()).toEqual(['sunreach', 'wrack']);
   });
 
   it('Stormwrack: Wynn sails you there, Mercy Gale keeps the board, and dying wakes you at Gallows Landing', () => {
@@ -464,7 +485,7 @@ describe('end-game content works end to end', () => {
   });
 
   it('a fishing spot refuses the wrong tool', () => {
-    const g = maxed('sunreach');
+    const g = maxed('amberhold');
     const n = g.nodes.find((x) => x.def === 'spot_lobster')!;
     goTo(g, n.x, n.z);
     g.interact(`node:${n.uid}`);

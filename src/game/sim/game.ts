@@ -1998,7 +1998,7 @@ export class Game {
       this.stopAction();
       this.target = null;
       this.emit({ type: 'playerDeath' });
-      this.msg(`Oh dear, you are dead. You wake at ${this.region.home === 'sunreach' ? 'Port Halyard' : this.region.home === 'wrack' ? 'Gallows Landing' : 'the quay'}.`, 'warn');
+      this.msg(`Oh dear, you are dead. You wake at ${({ bellwether: 'the quay', sunreach: 'Port Halyard', amberhold: 'Tollhouse Landing', wrack: 'Gallows Landing' } as const)[this.region.home]}.`, 'warn');
       if (this.boss) this.resetBoss();
     }
   }
@@ -2211,7 +2211,7 @@ export class Game {
     // summons at 66% and 33%: crabs boil up round the Guardian, snakes drop from the temple's vines
     if (e.fx.bite <= 0 && ((this.bossSummons === 0 && frac < 0.66) || (this.bossSummons === 1 && frac < 0.33))) {
       this.bossSummons++;
-      for (let k = 0; k < 2; k++) {
+      for (let k = 0; k < (serpent ? 1 : 2); k++) { // one snake a wave: they're level 30, the crabs level 2
         const a = (k / 2) * Math.PI * 2 + this.rnd();
         const x = R.x + Math.cos(a) * 4.5, z = R.z + Math.sin(a) * 4.5;
         const c = this.spawnEnemy(serpent ? ENEMIES.jungle_snake : ENEMIES.reef_crab, x, z, true);
@@ -2229,9 +2229,10 @@ export class Game {
     if (this.telegraphs.some((t) => t.source === e.id) || e.fx.disarm > 0 || e.fx.bite > 0) { if (dP > 3.2) this.enemyMove(e, px, pz, e.def.speed * enrage * 0.6, dt, 3.0); return; }
     if (this.bossCast <= 0) {
       if (serpent) {
+        // (telegraph damage is set for the Sunscale's level 32: Sunreach's finale, Tom's 15-30 band)
         // Venom spit: a long line toward where you stand, then a second, quicker cast soon after
         this.bossCast = this.bossSummons % 2 ? 4.5 : 6;
-        this.telegraphs.push({ id: this.nextId++, kind: 'line', x: e.x, z: e.z, r: 13, angle: e.facing, width: 1.8, t: 0, dur: 1.1 / enrage, damage: 9, source: e.id });
+        this.telegraphs.push({ id: this.nextId++, kind: 'line', x: e.x, z: e.z, r: 13, angle: e.facing, width: 1.8, t: 0, dur: 1.1 / enrage, damage: 6, source: e.id });
       } else {
         // Slam: telegraphed circle where the player stands
         this.bossCast = 7;
@@ -2245,11 +2246,11 @@ export class Game {
       e.cd = serpent ? 3.4 : 4;
       if (serpent && this.rnd() < 0.45) {
         // Coil crush: the whole ground round the serpent, roll out or take it
-        this.telegraphs.push({ id: this.nextId++, kind: 'circle', x: e.x, z: e.z, r: 4.2, angle: 0, width: 0, t: 0, dur: 1.2 / enrage, damage: 11, source: e.id });
+        this.telegraphs.push({ id: this.nextId++, kind: 'circle', x: e.x, z: e.z, r: 4.2, angle: 0, width: 0, t: 0, dur: 1.2 / enrage, damage: 7, source: e.id });
         e.state = 'windup'; e.t = 1.2 / enrage;
       } else {
         // Sweep (Guardian) / tail lash (serpent): cone in front
-        this.telegraphs.push({ id: this.nextId++, kind: 'cone', x: e.x, z: e.z, r: serpent ? 5.2 : 4.8, angle: e.facing, width: serpent ? 2.3 : 1.9, t: 0, dur: 0.9 / enrage, damage: serpent ? 8 : 3, source: e.id });
+        this.telegraphs.push({ id: this.nextId++, kind: 'cone', x: e.x, z: e.z, r: serpent ? 5.2 : 4.8, angle: e.facing, width: serpent ? 2.3 : 1.9, t: 0, dur: 0.9 / enrage, damage: serpent ? 5 : 3, source: e.id });
         e.state = 'windup'; e.t = 0.9 / enrage;
       }
       this.emit({ type: 'enemyAttack', id: e.id });
