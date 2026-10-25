@@ -3,6 +3,7 @@ import { HP_SCALE, SPELLS } from '../data/content';
 import { condOf, WORN_OUT_EFFECT, type Inst, type Stack } from './inventory';
 import { levelForXp } from './xp';
 import { perkTotal } from '../data/perks';
+import type { KeyDef } from '../data/keys';
 
 export function rollRarity(weights: Partial<Record<Rarity, number>>, rnd: () => number): Rarity {
   const entries = Object.entries(weights) as [Rarity, number][];
@@ -98,7 +99,7 @@ export interface PlayerStats {
 
 const sum = (a: number | undefined) => a ?? 0;
 
-export function computeStats(xp: Record<SkillId, number>, equip: Partial<Record<Slot, Stack>>, stance: Stance, spellId: string): PlayerStats {
+export function computeStats(xp: Record<SkillId, number>, equip: Partial<Record<Slot, Stack>>, stance: Stance, spellId: string, key: KeyDef | null = null): PlayerStats {
   const L = levelsOf(xp);
   const weapon = equip.weapon ? item(equip.weapon.id).equip : undefined;
   const style: CombatStyle = weapon?.style ?? 'melee';
@@ -147,6 +148,12 @@ export function computeStats(xp: Record<SkillId, number>, equip: Partial<Record<
       }
     }
   }
+  // the key slotted in you (combat passives only; the rest act where they happen)
+  const kp = key?.passive;
+  if (kp?.kind === 'melee_acc' && style === 'melee') accAffix += kp.v;
+  if (kp?.kind === 'ranged_acc' && style === 'ranged') accAffix += kp.v;
+  if (kp?.kind === 'charm_save') charmSaveGear += kp.v / 100;
+  if (kp?.kind === 'leech') leech += kp.v / 100;
   const stanceAcc = stance === 'accurate' ? 3 : 0;
   const stanceStr = stance === 'aggressive' ? 3 : 0;
   const stanceDef = stance === 'defensive' ? 3 : 0;
@@ -198,7 +205,7 @@ export function computeStats(xp: Record<SkillId, number>, equip: Partial<Record<
     dual,
     needsAmmo,
     speed: (style === 'ranged' && stance === 'aggressive' ? baseSpeed * 0.75 : baseSpeed) / (1 + speedPct / 100), // "rapid"
-    range: weapon?.range ?? 1.6,
+    range: (weapon?.range ?? 1.6) + (kp?.kind === 'ranged_acc' && style === 'ranged' ? 1 : 0),
     attRoll,
     maxHit,
     def,

@@ -7,6 +7,7 @@ import { parseSave, defaultSave, SAVE_VERSION, HP_START_XP } from './save';
 import { hitChance, combatLevel, levelsOf } from './gear';
 import { NODES } from '../data/content';
 import { ITEMS } from '../data/items';
+import { KEY_CONFIG } from '../data/keys';
 import { LAYOUT } from '../world/island';
 
 // One shared island (building it is the slow part); fresh Game state per test via the save.
@@ -250,7 +251,7 @@ describe('gameplay loop', () => {
     run(g, 5, () => count(g.p.inv, 'bar_bronze') >= 1);
     expect(count(g.p.inv, 'bar_bronze')).toBe(1);
     expect(count(g.p.inv, 'ore_copper')).toBe(0);
-    expect(g.p.xp.smithing).toBeCloseTo(6.25, 1); // RuneScape's bronze bar
+    expect(g.p.xp.smithing).toBeCloseTo(6.4, 1); // RuneScape's bronze bar (6.25) + the starter key's 3%
   });
 
   it('refuses to craft without ingredients and consumes nothing', () => {
@@ -687,5 +688,110 @@ describe('gear slots and the off-hand (Tom, 2026-10-25)', () => {
     expect(out.player.equip.offhand?.id).toBe('pistol_steel');
     expect(count(out.player.inv, 'pistol_flintlock')).toBe(2);
     expect(out.bank.find((b) => b.id === 'pistol_iron')?.qty).toBe(4);
+  });
+});
+
+describe('keys and keyholes (docs/KEYS.md)', () => {
+  const atBank = (g: Game) => { const b = g.layout.banks[0]; g.p.x = b.x + 1.5; g.p.z = b.z + 1.5; };
+  const crabNear = (g: Game) => {
+    const c = g.enemies.find((e) => e.def.id === 'reef_crab' && !e.elite && e.alive)!;
+    g.p.x = c.x + 2; g.p.z = c.z; g.combatTimer = 99;
+    return c;
+  };
+
+  it('everyone starts with Quick Study slotted and awake: +3% skilling XP, combat XP untouched', () => {
+    const g = fresh(60);
+    expect(g.s.keyring).toEqual(['quick_study']);
+    expect(g.activeKey()?.id).toBe('quick_study');
+    g.addXp('woodcutting', 100); g.addXp('attack', 100);
+    expect(g.p.xp.woodcutting).toBeCloseTo(103, 5);
+    expect(g.p.xp.attack).toBeCloseTo(100, 5);
+  });
+
+  it('swapping: only at a safe spot and never mid-fight; a new key sleeps 30 minutes unless free swaps are on', () => {
+    const g = fresh(61);
+    g.giveKey('duellist');
+    const c = crabNear(g);
+    g.slotKey('duellist');
+    expect(g.s.key).toBe('quick_study'); // not a safe spot
+    atBank(g); g.combatTimer = 0;
+    g.slotKey('duellist');
+    expect(g.s.key).toBe('quick_study'); // fighting
+    g.combatTimer = 99;
+    g.slotKey('duellist');
+    expect(g.s.key).toBe('duellist');
+    expect(g.s.keyDormant).toBe(KEY_CONFIG.dormantS);
+    expect(g.activeKey()).toBeNull(); // asleep: no passive, no power
+    g.p.equip.weapon = { id: 'cutlass_bronze', qty: 1 }; g.recalc();
+    const sleeping = g.stats.attRoll;
+    g.s.keyDormant = 0.05; run(g, 0.2);
+    expect(g.activeKey()?.id).toBe('duellist');
+    expect(g.stats.attRoll).toBeGreaterThan(sleeping); // +6 melee accuracy once awake
+    g.s.settings.devFreeKeys = true; g.combatTimer = 99;
+    g.slotKey('quick_study');
+    expect(g.s.keyDormant).toBe(0);
+    expect(c.alive).toBe(true);
+  });
+
+  it('powers: Root holds a foe, Disarm stops its attacks, Mark lands two max hits, Drain heals you, bosses take half', () => {
+    const g = fresh(62);
+    g.s.settings.devFreeKeys = true;
+    for (const k of ['woodsman', 'duellist', 'marksman', 'leech']) g.giveKey(k);
+    const slot = (id: string) => { atBank(g); g.combatTimer = 99; g.slotKey(id); g.keyCd = 0; };
+    // Root
+    slot('woodsman');
+    let c = crabNear(g); g.p.x = c.x + 1.5;
+    g.useKey();
+    expect(c.fx.root).toBeGreaterThan(3.9);
+    const x0 = c.x; run(g, 1.5);
+    expect(Math.abs(c.x - x0)).toBeLessThan(0.05);
+    // Disarm: no attack while it lasts
+    slot('duellist'); c = crabNear(g); g.p.x = c.x + 1.2;
+    const hp0 = g.p.hp; g.useKey();
+    expect(c.fx.disarm).toBeGreaterThan(3.9);
+    run(g, 3.5);
+    expect(g.p.hp).toBe(hp0);
+    // Mark: the next two landed hits are max hits
+    slot('marksman'); c = crabNear(g); g.p.x = c.x + 1.2;
+    g.useKey();
+    expect(c.fx.marks).toBe(2);
+    // Drain: takes 15% of its health and gives it to you
+    slot('leech'); c = crabNear(g); g.p.x = c.x + 1.2; g.p.hp = 50;
+    const before = c.hp; g.useKey();
+    expect(c.hp).toBeLessThan(before);
+    expect(g.p.hp).toBeGreaterThan(50);
+    // cooldown blocks a second turn
+    expect(g.keyBlock()).toMatch(/Ready in/);
+  });
+
+  it('keys turn up anywhere: a kill or a gather can find one you lack, most often from its own line of work', () => {
+    const g = fresh(63);
+    const kc = KEY_CONFIG.killChance;
+    KEY_CONFIG.killChance = 1; // force the roll
+    let found = '';
+    g.on((e) => { if (e.type === 'keyFound') found = e.id; });
+    const c = crabNear(g); g.p.x = c.x + 1.2;
+    g.p.equip.weapon = { id: 'cutlass_steel', qty: 1 }; (g.p.xp as Record<string, number>).attack = 2e5; (g.p.xp as Record<string, number>).strength = 2e5; g.recalc();
+    g.interact(`enemy:${c.id}`);
+    run(g, 30, () => !c.alive);
+    KEY_CONFIG.killChance = kc;
+    expect(c.alive).toBe(false);
+    expect(found).not.toBe('');
+    expect(g.s.keyring).toContain(found);
+    expect(g.s.keyring.length).toBe(2);
+  });
+
+  it('saves keep the keyring: unknown ids dropped, the starter always there, v6 saves get Quick Study', () => {
+    const d = defaultSave(base.layout.respawn, base.layout.mooring!) as unknown as Record<string, unknown>;
+    const v6 = { ...d, version: 6 } as Record<string, unknown>;
+    delete v6.keyring; delete v6.key; delete v6.keyDormant;
+    const a = parseSave(JSON.stringify(v6), defaultSave(base.layout.respawn, base.layout.mooring!))!;
+    expect([a.keyring, a.key, a.keyDormant]).toEqual([['quick_study'], 'quick_study', 0]);
+    const b = parseSave(JSON.stringify({ ...d, keyring: ['leech', 'nonsense', 7], key: 'leech', keyDormant: 99999 }), defaultSave(base.layout.respawn, base.layout.mooring!))!;
+    expect(b.keyring).toEqual(['quick_study', 'leech']);
+    expect(b.key).toBe('leech');
+    expect(b.keyDormant).toBeLessThanOrEqual(3600);
+    const c = parseSave(JSON.stringify({ ...d, keyring: [], key: 'wanderer' }), defaultSave(base.layout.respawn, base.layout.mooring!))!;
+    expect(c.key).toBe('quick_study'); // can't slot a key you don't have
   });
 });

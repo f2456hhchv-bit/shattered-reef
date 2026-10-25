@@ -1,13 +1,13 @@
 # Keys and keyholes
 
-Design for Shattered Reef's signature system: One Piece's fruits and Locke & Key's keys in one. **Not built yet.**
-It's built after the Crafting skill (Tom, 2026-10-25). Started from Tom's idea and a 100-key brainstorm; see
+Design for Shattered Reef's signature system: One Piece's fruits and Locke & Key's keys in one. **The first 10 keys
+are built** (2026-10-25: `src/game/data/keys.ts`, every number in `KEY_CONFIG`); the other 11 are still design. Started from Tom's idea and a 100-key brainstorm; see
 "What was cut" at the end for what was kept from that list.
 
 ## The rules
 
 - **Every human and creature has a keyhole.** Keys are turned in yourself or in a foe.
-- **One key slot**, a new 13th equipment slot. The key in it does two things:
+- **One key slot** (the keyring, in the Equipment tab). The key in it does two things:
   1. **Slotted in you (passive):** one steady bonus.
   2. **Turned in a foe's keyhole (power):** an active ability on a cooldown, used from a new Key button beside the
      special attack. You have to be within 3 m to turn it, so ranged and magic users must step in close to use it.
@@ -20,6 +20,11 @@ It's built after the Crafting skill (Tom, 2026-10-25). Started from Tom's idea a
     Off by default in the release build.
 - **Bosses** take half effect from powers that control them (Root, Disarm, Becalm, Turncoat doesn't work).
 - **Starter key:** Quick Study, given on day one.
+- **Keys are found anywhere (Tom, 2026-10-25):** extremely rare from any gathered item (1 in 12,000), any kill
+  (1 in 1,500 × (1 + level/40); elites ×3, bosses ×20) and any newly discovered place (1 in 40). It's always a key
+  you don't have yet, and 6× likelier to be one from that line of work. The "Where it's found" column below is
+  where each key turns up most often. Finds roll on their own random stream, so they never change a fight.
+- **Key button** on the HUD (keyboard T); turning a key in someone is an attack, so passive creatures fight back.
 
 ## The catalogue (21 keys)
 

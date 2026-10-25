@@ -1,6 +1,7 @@
 import { mulberry32 } from '../../art/noise';
 import { item, ammoKind, AMMO_NAME, isTwoHanded, offhandBlock, pairGroup, type ItemDef, type Slot, type SkillId, type CombatStyle } from '../data/items';
 import { perkTotal } from '../data/perks';
+import { KEY, KEYS, KEY_CONFIG, type KeyDef, type KeyFamily } from '../data/keys';
 import { HP_SCALE, NODES, RECIPES, ENEMIES, LOOT, ELITE_AFFIXES, SHOPS, PLAYER_BASE, UTILITY_SPELLS, COMBAT_SKILLS, XP_PER_DAMAGE, type EnemyDef, type Recipe, type Station } from '../data/content';
 import { NPCS, QUESTS, type DialogueNode, type Effect } from '../data/quests';
 import { PLACES, placeRegion } from '../world/places';
@@ -31,6 +32,8 @@ export type GameEvent =
   | { type: 'squall' }
   | { type: 'teleport'; fromX: number; fromZ: number; x: number; z: number }
   | { type: 'alchemy' }
+  | { type: 'keyFound'; id: string }
+  | { type: 'keyTurn'; x: number; z: number; power: string }
   | { type: 'ferryOffer'; npc: string; to: string; price: number }
   | { type: 'roll' }
   | { type: 'dodge'; x: number; z: number }
@@ -75,6 +78,8 @@ export interface Enemy {
   wander: { x: number; z: number } | null;
   hitFlash: number;
   moving: boolean;
+  /** key powers on this foe: seconds left of each, and marked hits left */
+  fx: { root: number; disarm: number; slow: number; shatter: number; lesson: number; marks: number };
 }
 
 
@@ -112,6 +117,8 @@ export class Game {
   deferTravel = false;
   s: SaveData;
   rnd: () => number;
+  /** key finds roll on their own stream, so adding them never reshuffles fights or gathering */
+  private keyRnd: () => number;
   time = 0;
   /** increments on any change the UI should redraw (inventory, skills, quests, equipment) */
   rev = 0;
@@ -133,6 +140,8 @@ export class Game {
   action: Action = null;
   attackCd = 0;
   specialCd = 0;
+  /** seconds until the slotted key's power can be turned again */
+  keyCd = 0;
   rollCd = 0;
   rollT = 0; // > 0 while rolling (invulnerable)
   private rollDir = { x: 0, z: 1 };
@@ -159,6 +168,7 @@ export class Game {
 
   constructor(opts: { seed?: number; save?: SaveData | null } = {}) {
     this.rnd = mulberry32(opts.seed ?? (Date.now() & 0xffffffff));
+    this.keyRnd = mulberry32(((opts.seed ?? Date.now()) ^ 0x6b657973) >>> 0);
     const home = regionLayout('bellwether');
     this.s = opts.save ?? defaultSave(home.respawn, home.mooring!);
     // layouts are read-only after their build, so every Game shares them (a build takes up to ~0.6 s)
@@ -258,11 +268,12 @@ export class Game {
   get p() { return this.s.player; }
   get ship() { return this.s.ship; }
   level(skill: SkillId) { return levelForXp(this.p.xp[skill]); }
-  recalc() { this.stats = computeStats(this.p.xp, this.p.equip, this.s.combat.stance, this.s.combat.spell); this.rev++; }
+  recalc() { this.stats = computeStats(this.p.xp, this.p.equip, this.s.combat.stance, this.s.combat.spell, this.activeKey()); this.rev++; }
 
   // ------------------------------------------------------------------ xp + items
   addXp(skill: SkillId, amount: number) {
-    const amt = Math.round(amount * (1 + (COMBAT_SKILLS.includes(skill) ? 0 : this.stats.xpBonus) + perkTotal(skill, this.level(skill), 'xp') / 100) * 10) / 10;
+    const keyXp = !COMBAT_SKILLS.includes(skill) && this.activeKey()?.passive.kind === 'skill_xp' ? this.activeKey()!.passive.v / 100 : 0;
+    const amt = Math.round(amount * (1 + (COMBAT_SKILLS.includes(skill) ? 0 : this.stats.xpBonus) + keyXp + perkTotal(skill, this.level(skill), 'xp') / 100) * 10) / 10;
     if (amt <= 0) return;
     const before = this.level(skill);
     this.p.xp[skill] = Math.min(MAX_XP, this.p.xp[skill] + amt);
@@ -495,7 +506,8 @@ export class Game {
     const toolK = d.skill === 'fishing' ? 1 : Math.min(1.6, Math.max(0.45, 1 + 0.15 * (toolPower - Math.min(10, d.tier + 1))));
     const perk = perkTotal(d.skill, lvl, 'speed') / 100;
     // like RuneScape, every level past the requirement makes success likelier (+1.6% of the base rate per level)
-    return Math.min(0.85, d.rate * (1 + Math.max(0, lvl - d.level) * 0.016) * toolK * (1 + this.stats.gather + perk));
+    const key = d.skill === 'fishing' && this.activeKey()?.passive.kind === 'fish_success' ? this.activeKey()!.passive.v / 100 : 0;
+    return Math.min(0.85, d.rate * (1 + Math.max(0, lvl - d.level) * 0.016) * toolK * (1 + this.stats.gather + perk + key));
   }
 
   /** Interaction range for a node (ship spots are fished from deck; kelp and fish lie just offshore). */
@@ -534,6 +546,11 @@ export class Game {
         if (this.rnd() < perkTotal(d.skill, lvl, 'double') / 100 && canAdd(this.p.inv, got)) { this.give(got, 1); this.msg(`Lucky haul: a second ${item(got).name.toLowerCase()}.`, 'good'); }
         const find = FINDS[d.skill];
         if (find && this.rnd() < perkTotal(d.skill, lvl, 'find') / 100 && canAdd(this.p.inv, find)) { this.give(find, 1); this.msg(`You find a ${item(find).name.toLowerCase()}!`, 'loot'); }
+        const kp = this.activeKey()?.passive;
+        if (kp && ((kp.kind === 'extra_log' && d.skill === 'woodcutting') || (kp.kind === 'extra_ore' && d.skill === 'mining')) && this.rnd() < kp.v / 100 && canAdd(this.p.inv, got)) {
+          this.give(got, 1); this.msg(`Your ${this.activeKey()!.name} turns up a second ${item(got).name.toLowerCase()}.`, 'good');
+        }
+        this.rollKeyFind(d.fromShip ? 'sailing' : d.skill as KeyFamily, KEY_CONFIG.gatherChance);
       }
     }
     if (d.skill) this.addXp(d.skill, catchOf?.xp ?? d.xp);
@@ -1053,7 +1070,7 @@ export class Game {
       sh.heading += Math.max(-1, Math.min(1, diff * 2.2)) * 1.25 * dt;
       throttle *= Math.max(0.25, Math.cos(diff) * 0.5 + 0.5);
     }
-    const maxSpeed = 7.5;
+    const maxSpeed = 7.5 * (this.activeKey()?.passive.kind === 'ship_speed' ? 1 + this.activeKey()!.passive.v / 100 : 1);
     const targetSpeed = throttle * maxSpeed;
     this.shipSpeed += (targetSpeed - this.shipSpeed) * Math.min(1, dt * (targetSpeed > this.shipSpeed ? 0.7 : 1.2));
     if (this.shipSpeed > 0.01) {
@@ -1097,6 +1114,7 @@ export class Game {
     const e: Enemy = {
       id: this.nextId++, def, x, z, facing: this.rnd() * Math.PI * 2, spawnX: x, spawnZ: z,
       hp: def.hp * HP_SCALE, maxHp: def.hp * HP_SCALE, alive: true, state: 'idle', t: 0, cd: 0, aim: null, elite: null, respawnAt: 0, summoned, wander: null, hitFlash: 0, moving: false,
+      fx: { root: 0, disarm: 0, slow: 0, shatter: 0, lesson: 0, marks: 0 },
     };
     this.rollElite(e);
     this.enemies.push(e);
@@ -1112,6 +1130,135 @@ export class Game {
       e.maxHp = Math.round(e.def.hp * HP_SCALE * (e.elite === 'barnacled' ? 3 : 2));
     }
     e.hp = e.maxHp;
+  }
+
+  // ---- keys and keyholes (docs/KEYS.md) -------------------------------------------
+  /** The key slotted in you, if it's awake. */
+  activeKey(): KeyDef | null {
+    const k = this.s.key ? KEY[this.s.key] : undefined;
+    return k && this.s.keyDormant <= 0 ? k : null;
+  }
+
+  /** Walking pace: the Wanderer's Key quickens it out of combat. */
+  walkSpeed() {
+    const k = this.activeKey()?.passive;
+    return PLAYER_BASE.speed * (k?.kind === 'walk_speed' && this.combatTimer > 6 ? 1 + k.v / 100 : 1);
+  }
+
+  /** Why you can't swap keys here, or null: only at a strongbox or bank, aboard your ship, or in the chapel, and
+   * never mid-fight. */
+  keySwapBlock(): string | null {
+    if (this.combatTimer < 6) return 'Not while fighting';
+    if (this.p.onShip) return null;
+    const near = (x: number, z: number, r: number) => Math.hypot(x - this.p.x, z - this.p.z) < r;
+    if (this.layout.banks.some((b) => near(b.x, b.z, 4))) return null;
+    if (this.layout.npcs.some((n) => n.id === 'maren' && near(n.x, n.z, 6))) return null;
+    if (this.layout.mooring && near(this.layout.mooring.x, this.layout.mooring.z, 6)) return null;
+    return 'Swap keys at a strongbox or bank, aboard your ship, or in the chapel';
+  }
+
+  /** Slot a key from your keyring into yourself (or take it out with null). A new key sleeps a while unless the
+   * developer setting for free swaps is on. */
+  slotKey(id: string | null) {
+    if (id !== null && !this.s.keyring.includes(id)) return;
+    if (id === this.s.key) return;
+    const block = this.keySwapBlock();
+    if (block) { this.msg(`${block}.`, 'warn'); return; }
+    this.s.key = id;
+    this.s.keyDormant = id && !this.s.settings.devFreeKeys ? KEY_CONFIG.dormantS : 0;
+    this.keyCd = 0;
+    this.recalc();
+    if (id) this.msg(this.s.keyDormant ? `You turn the ${KEY[id].name} in your own keyhole. It sleeps for ${Math.round(KEY_CONFIG.dormantS / 60)} minutes before it wakes.` : `You turn the ${KEY[id].name} in your own keyhole.`, 'good');
+    else this.msg('You take your key out.');
+  }
+
+  /** Add a key to the keyring (a find, a reward, or a test). */
+  giveKey(id: string) {
+    if (!KEY[id] || this.s.keyring.includes(id)) return false;
+    this.s.keyring.push(id);
+    this.emit({ type: 'keyFound', id });
+    this.msg(`You found a key: the ${KEY[id].name}! It's on your keyring (Equipment).`, 'loot');
+    this.rev++;
+    return true;
+  }
+
+  /** Keys are found anywhere, extremely rarely: a key you don't have yet, most often one from this line of work. */
+  private rollKeyFind(family: KeyFamily, chance: number) {
+    if (this.keyRnd() >= chance) return;
+    const left = KEYS.filter((k) => !this.s.keyring.includes(k.id));
+    if (!left.length) return;
+    const w = left.map((k) => (k.family === family ? KEY_CONFIG.themeWeight : 1));
+    let r = this.keyRnd() * w.reduce((a, b) => a + b, 0);
+    const pick = left.find((_, i) => (r -= w[i]) <= 0) ?? left[left.length - 1];
+    this.giveKey(pick.id);
+  }
+
+  /** The foe a key would turn in right now: the nearest within reach. */
+  keyTarget(): Enemy | null { return this.nearestEnemy(KEY_CONFIG.reach); }
+
+  /** Why the key's power can't be used now, or null. */
+  keyBlock(): string | null {
+    if (!this.s.key) return 'No key slotted';
+    if (this.s.keyDormant > 0) return `Your key sleeps for ${Math.ceil(this.s.keyDormant / 60)} more min`;
+    if (this.keyCd > 0) return `Ready in ${Math.ceil(this.keyCd)} s`;
+    if (this.p.onShip || this.dead) return 'Not now';
+    if (!this.keyTarget()) return 'Get within 3 m of a foe';
+    return null;
+  }
+
+  /** Turn your key in the nearest foe's keyhole. */
+  useKey() {
+    const block = this.keyBlock();
+    const k = this.activeKey();
+    if (block || !k) { this.msg(`${block ?? 'No key'}.`, 'warn'); return; }
+    const e = this.keyTarget()!, P = k.power, boss = !!e.def.boss, bm = boss ? KEY_CONFIG.bossMul : 1;
+    this.keyCd = P.cooldown;
+    this.combatTimer = 0;
+    this.facing = Math.atan2(e.z - this.p.z, e.x - this.p.x);
+    if (e.state === 'idle' || e.state === 'return') e.state = 'chase'; // turning a key in someone is an attack
+    switch (P.id) {
+      case 'lesson': e.fx.lesson = P.dur!; this.msg(`${e.def.name}: weak to ${e.def.weakness}. Your ${e.def.weakness} hits do +${P.v}% for ${P.dur} s.`, 'combat'); break;
+      case 'root': e.fx.root = P.dur! * bm; break;
+      case 'shatter': e.fx.shatter = P.dur!; break;
+      case 'disarm':
+        e.fx.disarm = P.dur! * bm;
+        if (e.state === 'windup') { e.state = 'chase'; e.aim = null; }
+        this.telegraphs = this.telegraphs.filter((t) => t.source !== e.id || boss); // a boss's slam already falling still falls
+        break;
+      case 'mark': e.fx.marks = P.v!; break;
+      case 'becalm': e.fx.slow = P.dur! * bm; break;
+      case 'hook': case 'undertow': {
+        // drag foes toward a point (the player, or the keyed foe); bosses are too heavy to move
+        const pullTo = (f: Enemy, tx: number, tz: number, stop: number) => {
+          if (f.def.boss) return;
+          const dx = tx - f.x, dz = tz - f.z, d = Math.hypot(dx, dz);
+          if (d <= stop) return;
+          for (let t = 1; t > 0; t -= 0.1) {
+            const nx = f.x + (dx / d) * (d - stop) * t, nz = f.z + (dz / d) * (d - stop) * t;
+            if (this.world.walkable(nx, nz)) { f.x = nx; f.z = nz; return; }
+          }
+        };
+        if (P.id === 'hook') { if (boss) this.msg('Too heavy to drag.', 'warn'); pullTo(e, this.p.x, this.p.z, 1.4 + e.def.radius); }
+        else for (const f of this.enemies) if (f.alive && Math.hypot(f.x - e.x, f.z - e.z) <= P.v!) { if (f !== e) pullTo(f, e.x, e.z, f.def.radius + e.def.radius + 0.2); f.fx.slow = Math.max(f.fx.slow, P.dur! * (f.def.boss ? bm : 1)); if (f.state === 'idle') f.state = 'chase'; }
+        break;
+      }
+      case 'drain': {
+        const amt = Math.max(HP_SCALE, Math.round(e.maxHp * (P.v! / 100) * (boss ? 1 / 3 : 1)));
+        this.damageEnemy(e, Math.min(amt, e.hp), false, this.stats.style, 0);
+        this.p.hp = Math.min(this.stats.maxHp, this.p.hp + amt);
+        break;
+      }
+      case 'blink': {
+        // step through the keyhole: out on the far side of the foe
+        const dx = e.x - this.p.x, dz = e.z - this.p.z, d = Math.hypot(dx, dz) || 1;
+        const to = { x: e.x + (dx / d) * (e.def.radius + 1.2), z: e.z + (dz / d) * (e.def.radius + 1.2) };
+        if (this.world.walkable(to.x, to.z)) { this.p.x = to.x; this.p.z = to.z; this.path = []; this.facing = Math.atan2(-dz, -dx); }
+        else this.msg('No room on the other side.', 'warn');
+        break;
+      }
+    }
+    this.emit({ type: 'keyTurn', x: e.x, z: e.z, power: P.id });
+    this.rev++;
   }
 
   // ---- stances, ammo, specials -------------------------------------------------
@@ -1152,14 +1299,18 @@ export class Game {
   private rollAgainst(e: Enemy, maxHit = this.stats.maxHit, attRoll = this.stats.attRoll): { dmg: number; crit: boolean } {
     const st = this.stats;
     const defLvl = e.def.def + (e.elite === 'barnacled' ? 10 : 0);
-    const defRoll = (defLvl + 9) * (e.def.defBonus[st.style] + 64);
-    if (this.rnd() >= hitChance(attRoll, defRoll)) return { dmg: 0, crit: false };
-    const crit = this.rnd() < st.crit;
+    const defRoll = (defLvl + 9) * (e.def.defBonus[st.style] + 64) * (e.fx.shatter > 0 ? 1 - (KEY.prospector.power.v ?? 40) / 100 : 1); // Shatter
+    // Mark: the next hits land at their maximum, no roll
+    const marked = e.fx.marks > 0;
+    if (marked) e.fx.marks--;
+    if (!marked && this.rnd() >= hitChance(attRoll, defRoll)) return { dmg: 0, crit: false };
+    const crit = marked || this.rnd() < st.crit;
     // a successful hit always lands at least 1, so a 0 always means a miss
     // a landed hit does HP_SCALE..max (RuneScape's 1..max, ×10), so average damage is exactly the unscaled game's
     maxHit = Math.max(HP_SCALE, maxHit);
     let dmg = crit ? maxHit : HP_SCALE + Math.floor(this.rnd() * (maxHit - HP_SCALE + 1));
     if ((e.elite || e.def.boss) && dmg > 0) dmg = Math.round(dmg * (1 + st.eliteDmg));
+    if (e.fx.lesson > 0 && e.def.weakness === st.style) dmg = Math.round(dmg * (1 + (KEY.quick_study.power.v ?? 15) / 100)); // Lesson
     if (st.seaDmg && (e.def.model === 'crab' || e.def.look === 'drowned' || e.def.look === 'captain')) dmg = Math.round(dmg * (1 + st.seaDmg));
     return { dmg, crit };
   }
@@ -1388,6 +1539,7 @@ export class Game {
     if (e.elite) this.rollLoot(LOOT.elite, e.x, e.z);
     for (let i = before; i < this.drops.length; i++) this.drops[i].home = true; // shot from range, it still reaches you
     if (e.def.boss) this.bossDefeated(e);
+    if (!e.summoned) this.rollKeyFind(this.stats.style, KEY_CONFIG.killChance * (1 + e.def.level / 40) * (e.def.boss ? 20 : e.elite ? 3 : 1));
   }
 
   private rollLoot(table: (typeof LOOT)[string], x: number, z: number) {
@@ -1502,7 +1654,7 @@ export class Game {
   private chase(x: number, z: number, dt: number) {
     const dx = x - this.p.x, dz = z - this.p.z, d = Math.hypot(dx, dz);
     if (d < 0.01) return;
-    if (this.walkStep(dx / d, dz / d, PLAYER_BASE.speed * dt)) { this.moving = true; return; }
+    if (this.walkStep(dx / d, dz / d, this.walkSpeed() * dt)) { this.moving = true; return; }
     // blocked: path around the obstacle (throttled)
     if (this.time > this.chaseRepath) {
       this.chaseRepath = this.time + 0.5;
@@ -1517,6 +1669,8 @@ export class Game {
     for (const e of this.enemies) {
       e.hitFlash = Math.max(0, e.hitFlash - dt);
       e.moving = false;
+      const f = e.fx;
+      f.root = Math.max(0, f.root - dt); f.disarm = Math.max(0, f.disarm - dt); f.slow = Math.max(0, f.slow - dt); f.shatter = Math.max(0, f.shatter - dt); f.lesson = Math.max(0, f.lesson - dt);
       if (!e.alive) {
         if (!e.summoned && !e.def.boss && this.time >= e.respawnAt) {
           e.alive = true; e.x = e.spawnX; e.z = e.spawnZ; e.state = 'idle'; e.cd = 0; this.rollElite(e);
@@ -1524,7 +1678,7 @@ export class Game {
         continue;
       }
       if (e.def.boss) { this.stepBoss(e, dt); continue; }
-      const fr = e.elite === 'frenzied' ? 1.4 : 1;
+      const fr = (e.elite === 'frenzied' ? 1.4 : 1) * (e.fx.slow > 0 ? 0.6 : 1); // Becalm / Undertow slow everything they do
       e.cd = Math.max(0, e.cd - dt * fr);
       const dP = Math.hypot(px - e.x, pz - e.z);
       const dS = Math.hypot(e.spawnX - e.x, e.spawnZ - e.z);
@@ -1549,13 +1703,13 @@ export class Game {
             if (dP < atk.keepAway) this.enemyMove(e, e.x - (px - e.x), e.z - (pz - e.z), speed * 0.8, dt, 0);
             else if (dP > atk.range * 0.9) this.enemyMove(e, px, pz, speed, dt, atk.range * 0.8);
             e.facing = Math.atan2(pz - e.z, px - e.x);
-            if (dP <= atk.range && e.cd <= 0) {
+            if (dP <= atk.range && e.cd <= 0 && e.fx.disarm <= 0) {
               e.state = 'windup'; e.t = atk.windup / fr; e.aim = { x: px, z: pz };
               this.telegraphs.push({ id: this.nextId++, kind: 'line', x: e.x, z: e.z, r: atk.range + 2, angle: Math.atan2(pz - e.z, px - e.x), width: 0.7, t: 0, dur: atk.windup / fr, damage: 0, source: e.id });
             }
           } else {
             if (dP > atk.range + e.def.radius * 0.5) this.enemyMove(e, px, pz, speed, dt, atk.range * 0.8);
-            else if (e.cd <= 0) { e.state = 'windup'; e.t = atk.windup / fr; this.emit({ type: 'enemyAttack', id: e.id }); }
+            else if (e.cd <= 0 && e.fx.disarm <= 0) { e.state = 'windup'; e.t = atk.windup / fr; this.emit({ type: 'enemyAttack', id: e.id }); }
             e.facing = Math.atan2(pz - e.z, px - e.x);
           }
           break;
@@ -1603,6 +1757,7 @@ export class Game {
 
 
   private enemyMove(e: Enemy, tx: number, tz: number, speed: number, dt: number, stopAt: number) {
+    if (e.fx.root > 0) return; // Root: held fast
     const dx = tx - e.x, dz = tz - e.z, d = Math.hypot(dx, dz);
     if (d <= stopAt || d < 0.01) return;
     const step = Math.min(d - stopAt, speed * dt);
@@ -1642,7 +1797,7 @@ export class Game {
     if (this.dead || this.p.onShip || Math.hypot(px - R.x, pz - R.z) > 24) { this.resetBoss(); return; }
     const serpent = e.def.id === 'temple_serpent';
     const frac = e.hp / e.maxHp;
-    const enrage = frac < 0.25 ? 1.35 : 1;
+    const enrage = (frac < 0.25 ? 1.35 : 1) * (e.fx.slow > 0 ? 0.6 : 1);
     // summons at 66% and 33%: crabs boil up round the Guardian, snakes drop from the temple's vines
     if ((this.bossSummons === 0 && frac < 0.66) || (this.bossSummons === 1 && frac < 0.33)) {
       this.bossSummons++;
@@ -1661,7 +1816,7 @@ export class Game {
     if (e.state === 'windup') { e.t -= dt; if (e.t <= 0) e.state = 'chase'; return; }
     e.facing = Math.atan2(pz - e.z, px - e.x);
     // one telegraph at a time: never stack two attacks to land together
-    if (this.telegraphs.some((t) => t.source === e.id)) { if (dP > 3.2) this.enemyMove(e, px, pz, e.def.speed * enrage * 0.6, dt, 3.0); return; }
+    if (this.telegraphs.some((t) => t.source === e.id) || e.fx.disarm > 0) { if (dP > 3.2) this.enemyMove(e, px, pz, e.def.speed * enrage * 0.6, dt, 3.0); return; }
     if (this.bossCast <= 0) {
       if (serpent) {
         // Venom spit: a long line toward where you stand, then a second, quicker cast soon after
@@ -1784,9 +1939,9 @@ export class Game {
       return;
     }
     if (m > 0.05) {
-      this.moving = this.walkStep(this.moveDir.x / m, this.moveDir.z / m, PLAYER_BASE.speed * Math.min(1, m) * dt);
+      this.moving = this.walkStep(this.moveDir.x / m, this.moveDir.z / m, this.walkSpeed() * Math.min(1, m) * dt);
     } else if (this.path.length) {
-      let budget = PLAYER_BASE.speed * dt;
+      let budget = this.walkSpeed() * dt;
       while (budget > 0 && this.path.length) {
         const [tx, tz] = this.path[0];
         const dx = tx - this.p.x, dz = tz - this.p.z, d = Math.hypot(dx, dz);
@@ -1838,6 +1993,7 @@ export class Game {
         this.s.discovered.push(pl.id);
         this.emit({ type: 'discover', id: pl.id, name: pl.name });
         this.msg(`Discovered: ${pl.name}`, 'quest');
+        this.rollKeyFind('explore', KEY_CONFIG.placeChance);
         this.rev++;
       }
     }
@@ -1850,6 +2006,8 @@ export class Game {
     this.time += dt;
     this.s.playTime += dt;
     this.specialCd = Math.max(0, this.specialCd - dt);
+    this.keyCd = Math.max(0, this.keyCd - dt);
+    if (this.s.keyDormant > 0) { this.s.keyDormant = Math.max(0, this.s.keyDormant - dt); if (this.s.keyDormant === 0) { this.recalc(); this.msg(`Your ${KEY[this.s.key ?? '']?.name ?? 'key'} wakes.`, 'good'); } }
     this.utilityCd = Math.max(0, this.utilityCd - dt);
     this.rollCd = Math.max(0, this.rollCd - dt);
     this.eatCd = Math.max(0, this.eatCd - dt);
