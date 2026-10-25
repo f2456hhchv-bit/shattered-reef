@@ -316,6 +316,13 @@ function builders(shape: IconShape, col: string, acc: string | undefined, seed: 
       add(g, new THREE.TorusGeometry(0.1, 0.01, 4, 16), m(acc ?? '#2a7f78'), [0, 0.05, 0], [1.2, 0, 0]);
       break;
     }
+    case 'hide': {
+      // a stretched, folded hide with a rolled edge
+      const geo = nudge(new THREE.BoxGeometry(0.5, 0.05, 0.38, 6, 1, 5), 0.03, seed);
+      add(g, geo, m(col), [0, 0, 0], [0.15, 0.3, 0]);
+      add(g, new THREE.CylinderGeometry(0.05, 0.05, 0.38, 10), m(acc ?? shade(col, 0.75).getHex()), [0.24, 0.04, 0.05], [Math.PI / 2, 0, 0.3]);
+      break;
+    }
     // ---- the new slots: wand, orb, book, shield, legs, boots, gloves, amulet, bracelet
     case 'wand': {
       add(g, new THREE.CylinderGeometry(0.014, 0.026, 0.56, 7), m(col), [0, -0.04, 0], [0, 0, 0.6]);

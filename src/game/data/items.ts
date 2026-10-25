@@ -3,7 +3,7 @@
 export type SkillId =
   | 'attack' | 'strength' | 'defence' | 'hitpoints' | 'ranged' | 'magic'
   | 'woodcutting' | 'mining' | 'fishing'
-  | 'smithing' | 'gunsmithing' | 'fletching' | 'cooking';
+  | 'smithing' | 'gunsmithing' | 'fletching' | 'cooking' | 'crafting';
 export type CombatStyle = 'melee' | 'ranged' | 'magic';
 /** Where an item is worn. Rings fit either ring slot (`ring` / `ring2`); one-handed weapons also fit the off-hand. */
 export type Slot = 'weapon' | 'offhand' | 'ammo' | 'head' | 'body' | 'legs' | 'feet' | 'hands' | 'neck' | 'wrist' | 'ring' | 'ring2';
@@ -18,7 +18,7 @@ export const PAIR_GROUP: Partial<Record<WeaponKind, string>> = { cutlass: 'blade
 export type AmmoKind = 'shot' | 'arrow' | 'bolt';
 export const AMMO_FOR: Partial<Record<WeaponKind, AmmoKind>> = { pistol: 'shot', shortbow: 'arrow', longbow: 'arrow', crossbow: 'bolt' };
 export const AMMO_NAME: Record<AmmoKind, string> = { shot: 'shot', arrow: 'arrows', bolt: 'bolts' };
-export type IconShape = 'log' | 'ore' | 'bar' | 'fish' | 'meat' | 'coins' | 'bread' | 'hatchet' | 'pickaxe' | 'rod' | 'cutlass' | 'helm' | 'cap' | 'coat' | 'plate' | 'ring' | 'bell' | 'tooth' | 'shell' | 'burnt' | 'pistol' | 'shot' | 'staff' | 'charm' | 'harpoon' | 'pot' | 'lobster' | 'berries' | 'kelp' | 'geode' | 'spade' | 'parcel' | 'ash' | 'salt' | 'crystal' | 'nest' | 'casket' | 'mug' | 'bowl' | 'pie' | 'dagger' | 'pike' | 'greatsword' | 'bow' | 'crossbow' | 'arrow' | 'bolt' | 'coconut' | 'wand' | 'orb' | 'book' | 'shield' | 'legs' | 'boots' | 'gloves' | 'amulet' | 'bracelet';
+export type IconShape = 'log' | 'ore' | 'bar' | 'fish' | 'meat' | 'coins' | 'bread' | 'hatchet' | 'pickaxe' | 'rod' | 'cutlass' | 'helm' | 'cap' | 'coat' | 'plate' | 'ring' | 'bell' | 'tooth' | 'shell' | 'burnt' | 'pistol' | 'shot' | 'staff' | 'charm' | 'harpoon' | 'pot' | 'lobster' | 'berries' | 'kelp' | 'geode' | 'spade' | 'parcel' | 'ash' | 'salt' | 'crystal' | 'nest' | 'casket' | 'mug' | 'bowl' | 'pie' | 'dagger' | 'pike' | 'greatsword' | 'bow' | 'crossbow' | 'arrow' | 'bolt' | 'coconut' | 'wand' | 'orb' | 'book' | 'shield' | 'legs' | 'boots' | 'gloves' | 'amulet' | 'bracelet' | 'hide';
 
 /** RuneScape-style equipment bonuses. Accuracy applies to the weapon's own style. */
 export interface Bonuses {
@@ -309,6 +309,37 @@ function tierItems(): ItemDef[] {
     equip: { slot: 'feet', reqs: {}, bonus: { defMelee: 1, defRanged: 2, defMagic: 1 }, affixPool: [...ARMOUR_AFFIX, 'gather_speed'] } }));
   out.push(I({ id: 'gloves_leather', name: 'Leather gloves', desc: 'Supple gloves. A surer grip on a trigger or a blade.', icon: { shape: 'gloves', color: '#7a5534' }, stackable: false, value: 12,
     equip: { slot: 'hands', reqs: {}, bonus: { acc: 2, defMelee: 1, defRanged: 1, defMagic: 1 }, affixPool: [...ARMOUR_AFFIX, 'gather_speed'] } }));
+  // ---- Crafting (Tom, 2026-10-25): leather, snakeskin, spider silk, sunscale and jewellery for the new slots
+  out.push(I({ id: 'boar_hide', name: 'Boar hide', desc: 'A bristly Greenheart hide. Tan it at a workbench with sea salt.', icon: { shape: 'hide', color: '#8a5a3a', accent: '#5a3a24' }, stackable: true, value: 14 }));
+  out.push(I({ id: 'leather', name: 'Leather', desc: 'Tanned hide, ready to cut and stitch.', icon: { shape: 'hide', color: '#a8784a', accent: '#7a5534' }, stackable: true, value: 24 }));
+  // a whole set per material: [id, name, slot, shape, defMelee, defRanged, defMagic, extra bonus]
+  type Piece = [string, string, Slot, IconShape, number, number, number, Bonuses?];
+  const set = (pieces: Piece[], col: string, acc: string, reqs: (k: number) => Partial<Record<SkillId, number>>, desc: string, pool: string[], value: number) =>
+    pieces.forEach(([id, name, slot, shape, dm, dr, dg, extra], k) => out.push(I({ id, name, desc, icon: { shape, color: col, accent: acc }, stackable: false, value: value * (k + 2),
+      equip: { slot, off: slot === 'offhand' ? 'shield' : undefined, reqs: reqs(k), bonus: { defMelee: dm, defRanged: dr, defMagic: dg, ...extra }, affixPool: pool } })));
+  // snakeskin: archers' armour, tough against shot and spells, light against blades (Ranged 30-45)
+  set([
+    ['vambraces_snake', 'Snakeskin vambraces', 'hands', 'gloves', 2, 4, 2, { acc: 6 }], ['boots_snake', 'Snakeskin boots', 'feet', 'boots', 3, 5, 2],
+    ['chaps_snake', 'Snakeskin chaps', 'legs', 'legs', 10, 18, 7], ['cowl_snake', 'Snakeskin cowl', 'head', 'cap', 5, 9, 4], ['body_snake', 'Snakeskin body', 'body', 'coat', 18, 30, 12],
+  ], '#7a9a3a', '#d8b84a', (k) => ({ ranged: [30, 33, 37, 40, 45][k], defence: 20 }), 'Gold-and-green jungle snakeskin. Light, supple, hard for shot to pierce.', [...ARMOUR_AFFIX, 'accuracy', 'crit'], 60);
+  // spider silk: casters' robes, no penalty to magic, every piece adds spell damage (Magic 25-55)
+  set([
+    ['hood_silk', 'Silk hood', 'head', 'cap', 2, 2, 6, { magicDmg: 1 }], ['gloves_silk', 'Silk gloves', 'hands', 'gloves', 1, 1, 4, { acc: 3 }], ['boots_silk', 'Silk boots', 'feet', 'boots', 1, 1, 4, { magicDmg: 1 }],
+    ['skirt_silk', 'Silk robe bottom', 'legs', 'legs', 4, 4, 12, { magicDmg: 2 }], ['robe_silk', 'Silk robe top', 'body', 'coat', 6, 6, 20, { magicDmg: 3 }],
+  ], '#e8e6dc', '#59d0c4', (k) => ({ magic: [25, 30, 35, 45, 55][k] }), 'Woven from cave-spider silk. Spells pass through it as if it were water.', [...ARMOUR_AFFIX, 'dmg_pct', 'xp_bonus'], 70);
+  // sunscale: the temple serpent's scales; heavy armour with no weakness to magic (Defence 60)
+  set([
+    ['shield_sunscale', 'Sunscale shield', 'offhand', 'shield', 30, 30, 20], ['legs_sunscale', 'Sunscale legs', 'legs', 'legs', 34, 34, 20],
+    ['body_sunscale', 'Sunscale body', 'body', 'plate', 70, 70, 40], ['helm_sunscale', 'Sunscale helm', 'head', 'helm', 20, 20, 12],
+  ], '#e8b83a', '#a86a1a', () => ({ defence: 60 }), 'Scales from the temple serpent, bright as hammered gold. Spells slide off it.', [...ARMOUR_AFFIX, 'elite_dmg'], 500);
+  // jewellery: gold set with a geode crystal, then sunscale (plain gold ones are above)
+  const jewel = (id: string, name: string, slot: Slot, shape: IconShape, col: string, acc: string, bonus: Bonuses, value: number, desc: string) =>
+    out.push(I({ id, name, desc, icon: { shape, color: col, accent: acc }, stackable: false, value, equip: { slot, reqs: {}, bonus, affixPool: JEWEL_AFFIX } }));
+  jewel('ring_crystal', 'Crystal ring', 'ring', 'ring', '#e3c25e', '#9fe8ff', { acc: 4, defMagic: 3 }, 420, 'Gold set with a geode crystal. It hums faintly.');
+  jewel('bracelet_crystal', 'Crystal bracelet', 'wrist', 'bracelet', '#e3c25e', '#9fe8ff', { acc: 4, defMelee: 3, defRanged: 3, defMagic: 3 }, 460, 'Gold set with geode crystals.');
+  jewel('amulet_crystal', 'Crystal amulet', 'neck', 'amulet', '#e3c25e', '#9fe8ff', { acc: 6, str: 6, defMelee: 3, defRanged: 3, defMagic: 4 }, 600, 'A geode crystal in a gold cage. It throws light on the deck.');
+  jewel('ring_sunscale', 'Sunscale ring', 'ring', 'ring', '#e8b83a', '#d8442a', { acc: 6, str: 4, defMagic: 3 }, 1400, 'A band cut from one of the serpent\'s scales.');
+  jewel('amulet_sunscale', 'Sunscale amulet', 'neck', 'amulet', '#e8b83a', '#d8442a', { acc: 10, str: 10, defMelee: 5, defRanged: 5, defMagic: 5 }, 2400, 'The serpent\'s brightest scale, on a gold chain. Warm against the skin.');
   return out;
 }
 

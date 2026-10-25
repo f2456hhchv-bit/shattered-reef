@@ -3092,6 +3092,216 @@
    "w": 0.318
   },
   {
+   "kind": "items",
+   "id": "boar_hide",
+   "name": "Boar hide",
+   "group": "Materials",
+   "file": "items/boar_hide.png",
+   "sha1": "e1e2d5db183cff12df9e531a42af8368dd111fc8",
+   "h": 0.17,
+   "w": 0.654
+  },
+  {
+   "kind": "items",
+   "id": "leather",
+   "name": "Leather",
+   "group": "Materials",
+   "file": "items/leather.png",
+   "sha1": "65655af4c37e2f8be948a5721f65af7cbb66a49b",
+   "h": 0.169,
+   "w": 0.651
+  },
+  {
+   "kind": "items",
+   "id": "vambraces_snake",
+   "name": "Snakeskin vambraces",
+   "group": "Armour",
+   "file": "items/vambraces_snake.png",
+   "sha1": "8ec2e80b6b106c49fdfc96b6fa363705d6000965",
+   "h": 0.45,
+   "w": 0.318
+  },
+  {
+   "kind": "items",
+   "id": "boots_snake",
+   "name": "Snakeskin boots",
+   "group": "Armour",
+   "file": "items/boots_snake.png",
+   "sha1": "8cd3d81fa1ba367f00f3a7f022535235a49b30a6",
+   "h": 0.29,
+   "w": 0.35
+  },
+  {
+   "kind": "items",
+   "id": "chaps_snake",
+   "name": "Snakeskin chaps",
+   "group": "Armour",
+   "file": "items/chaps_snake.png",
+   "sha1": "6dce5f519d6d3e678614498ff75894c47a19d5fb",
+   "h": 0.524,
+   "w": 0.352
+  },
+  {
+   "kind": "items",
+   "id": "cowl_snake",
+   "name": "Snakeskin cowl",
+   "group": "Armour",
+   "file": "items/cowl_snake.png",
+   "sha1": "cd9eee36093148ca8a095ecea97ef28abb1e8a44",
+   "h": 0.201,
+   "w": 0.427
+  },
+  {
+   "kind": "items",
+   "id": "body_snake",
+   "name": "Snakeskin body",
+   "group": "Armour",
+   "file": "items/body_snake.png",
+   "sha1": "83e9354a2af5a58c8196f8d0e364a6b413aac14d",
+   "h": 0.53,
+   "w": 0.52
+  },
+  {
+   "kind": "items",
+   "id": "hood_silk",
+   "name": "Silk hood",
+   "group": "Armour",
+   "file": "items/hood_silk.png",
+   "sha1": "bac5175d7cb511d132a3e96981cdbd6b6c1d39bd",
+   "h": 0.2,
+   "w": 0.43
+  },
+  {
+   "kind": "items",
+   "id": "gloves_silk",
+   "name": "Silk gloves",
+   "group": "Armour",
+   "file": "items/gloves_silk.png",
+   "sha1": "7f9559e58ccaf6be3aae666509630b76559b2674",
+   "h": 0.45,
+   "w": 0.318
+  },
+  {
+   "kind": "items",
+   "id": "boots_silk",
+   "name": "Silk boots",
+   "group": "Armour",
+   "file": "items/boots_silk.png",
+   "sha1": "412272a9489f4241b0cc9d66ad8bb04400093230",
+   "h": 0.29,
+   "w": 0.35
+  },
+  {
+   "kind": "items",
+   "id": "skirt_silk",
+   "name": "Silk robe bottom",
+   "group": "Armour",
+   "file": "items/skirt_silk.png",
+   "sha1": "5ae15d1246ff49fe5db14d337f7aadd387aa45a7",
+   "h": 0.524,
+   "w": 0.352
+  },
+  {
+   "kind": "items",
+   "id": "robe_silk",
+   "name": "Silk robe top",
+   "group": "Armour",
+   "file": "items/robe_silk.png",
+   "sha1": "d534fbd4965f18c3b922dddc8c70512009d5b24b",
+   "h": 0.53,
+   "w": 0.52
+  },
+  {
+   "kind": "items",
+   "id": "shield_sunscale",
+   "name": "Sunscale shield",
+   "group": "Shields",
+   "file": "items/shield_sunscale.png",
+   "sha1": "7b5b6f16b6e652397b722a5ddbe2b8ed33cd9c06",
+   "h": 0.562,
+   "w": 0.584
+  },
+  {
+   "kind": "items",
+   "id": "legs_sunscale",
+   "name": "Sunscale legs",
+   "group": "Armour",
+   "file": "items/legs_sunscale.png",
+   "sha1": "544d73ce78c06992dc031dcfa4554c18cdfaa9d2",
+   "h": 0.524,
+   "w": 0.352
+  },
+  {
+   "kind": "items",
+   "id": "body_sunscale",
+   "name": "Sunscale body",
+   "group": "Armour",
+   "file": "items/body_sunscale.png",
+   "sha1": "1c054592b4dabfa8e93e19bf41fec48f13acdc05",
+   "h": 0.576,
+   "w": 0.671
+  },
+  {
+   "kind": "items",
+   "id": "helm_sunscale",
+   "name": "Sunscale helm",
+   "group": "Armour",
+   "file": "items/helm_sunscale.png",
+   "sha1": "bff0f8a2a83986b5f92f870cde77b0e9d51995ff",
+   "h": 0.389,
+   "w": 0.62
+  },
+  {
+   "kind": "items",
+   "id": "ring_crystal",
+   "name": "Crystal ring",
+   "group": "Jewellery",
+   "file": "items/ring_crystal.png",
+   "sha1": "7be3720155166e9f7fa1336fa023119d7e78a2ed",
+   "h": 0.418,
+   "w": 0.35
+  },
+  {
+   "kind": "items",
+   "id": "bracelet_crystal",
+   "name": "Crystal bracelet",
+   "group": "Jewellery",
+   "file": "items/bracelet_crystal.png",
+   "sha1": "b83dc6dbb6e9e71c1f50968c4cbd32d353563ee5",
+   "h": 0.257,
+   "w": 0.43
+  },
+  {
+   "kind": "items",
+   "id": "amulet_crystal",
+   "name": "Crystal amulet",
+   "group": "Jewellery",
+   "file": "items/amulet_crystal.png",
+   "sha1": "26ec7cbdf3a21a2b1970c5899fc6c84065a77c08",
+   "h": 0.608,
+   "w": 0.586
+  },
+  {
+   "kind": "items",
+   "id": "ring_sunscale",
+   "name": "Sunscale ring",
+   "group": "Jewellery",
+   "file": "items/ring_sunscale.png",
+   "sha1": "29c89ca23a14be30babeaca1a8f0b0f032fadae3",
+   "h": 0.418,
+   "w": 0.35
+  },
+  {
+   "kind": "items",
+   "id": "amulet_sunscale",
+   "name": "Sunscale amulet",
+   "group": "Jewellery",
+   "file": "items/amulet_sunscale.png",
+   "sha1": "e32030634e8c696638cac481df2957e2873d56f0",
+   "h": 0.608,
+   "w": 0.586
+  },
+  {
    "kind": "creatures",
    "id": "reef_crab",
    "name": "Reef crab",

@@ -850,8 +850,9 @@ export class UI {
       el = h('div', { id, class: 'win panel', role: 'dialog', 'aria-label': title });
       document.body.appendChild(el);
       const g = this.game;
-      onTap(el, '.x, [data-r], [data-buy], [data-c], [data-wd], [data-dep], [data-rep], [data-sell], [data-shoptab]', (b) => {
+      onTap(el, '.x, [data-r], [data-buy], [data-c], [data-wd], [data-dep], [data-rep], [data-sell], [data-shoptab], [data-sskill]', (b) => {
         if (b.classList.contains('x')) { this.closeWindows(); return; }
+        if (b.dataset.sskill && this.station) { this.stationSkill[this.station] = b.dataset.sskill; this.renderStation(); return; }
         if (b.dataset.shoptab) { this.shopTab = b.dataset.shoptab as 'buy' | 'sell'; this.renderShop(); return; }
         if (b.dataset.sell) { const [i, n] = b.dataset.sell.split(':'); g.sell(Number(i), n === 'all'); this.renderShop(); return; }
         if (b.dataset.rep) { const i = b.dataset.rep.lastIndexOf(':'); g.repair(b.dataset.rep.slice(0, i), b.dataset.rep.slice(i + 1) === 'self'); this.lastRev = -1; return; }
@@ -880,6 +881,8 @@ export class UI {
 
   anyWindowOpen() { return !!(this.station || this.shopOpen || this.bankOpen || this.dialog || document.getElementById('confirm')); }
 
+  /** the skill tab last chosen at each station */
+  private stationSkill: Partial<Record<Station, string>> = {};
   private openStation(st: Station) {
     this.closeWindows();
     this.station = st;
@@ -888,8 +891,12 @@ export class UI {
 
   private renderStation() {
     const g = this.game, st = this.station!;
-    const title = st === 'furnace' ? 'Furnace: smelt bars' : st === 'anvil' ? 'Anvil: forge' : st === 'bench' ? 'Gunsmith\'s bench' : 'Cookfire: cook';
-    const rows = RECIPES.filter((r) => r.station === st).map((r) => {
+    const title = st === 'furnace' ? 'Furnace: smelt and cast' : st === 'anvil' ? 'Anvil: forge' : st === 'bench' ? 'Workbench' : st === 'vent' ? 'Vent forge' : 'Cookfire: cook';
+    // a station that serves several skills (the workbench: gunsmithing, fletching, crafting) gets a tab per skill
+    const skills = [...new Set(RECIPES.filter((r) => r.station === st).map((r) => r.skill))];
+    const pick = skills.includes(this.stationSkill[st] as SkillId) ? this.stationSkill[st]! : skills[0];
+    const tabs = skills.length > 1 ? `<div class="seg shoptabs" style="margin-bottom:8px">${skills.map((k) => `<button data-sskill="${k}" class="${k === pick ? 'on' : ''}">${cap(k)}</button>`).join('')}</div>` : '';
+    const rows = RECIPES.filter((r) => r.station === st && r.skill === pick).map((r) => {
       const block = g.recipeBlock(r);
       const max = Math.min(...r.inputs.map((i) => Math.floor(count(g.p.inv, i.id) / i.qty)));
       const needs = r.inputs.map((i) => { const have = count(g.p.inv, i.id); return `<span class="${have < i.qty ? 'miss' : ''}">${i.qty}× ${esc(item(i.id).name)} (${have})</span>`; }).join(', ');
@@ -902,7 +909,7 @@ export class UI {
     const worn = st === 'anvil' ? g.repairList() : [];
     const repairs = worn.length ? `<h2 class="title" style="font-size:14px;margin-top:10px">Repairs</h2>${worn.map((r) => `<div class="recipe"><img src="${itemIcon(r.st.id)}" alt=""><div><b>${esc(displayName(r.st))}</b><div class="need">Condition ${Math.round(condOf(r.st))}%</div></div>
       <div class="btns"><button class="btn primary" data-rep="${r.key}:smith" ${g.nearSmith() ? '' : 'disabled'}>Bram · ${r.coins}c</button>${r.bar ? `<button class="btn" data-rep="${r.key}:self" ${count(g.p.inv, r.bar) ? '' : 'disabled'}>1 ${esc(item(r.bar).name.replace(' bar', ''))} bar · +${r.xp} XP</button>` : ''}</div></div>`).join('')}` : '';
-    this.win('stationwin', title, repairs + rows + busy);
+    this.win('stationwin', title, tabs + repairs + rows + busy);
   }
 
   private bankOpen = false;
