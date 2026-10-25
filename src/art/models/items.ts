@@ -316,6 +316,12 @@ function builders(shape: IconShape, col: string, acc: string | undefined, seed: 
       add(g, new THREE.TorusGeometry(0.1, 0.01, 4, 16), m(acc ?? '#2a7f78'), [0, 0.05, 0], [1.2, 0, 0]);
       break;
     }
+    case 'gem': {
+      // a cut stone: a faceted octahedron with a bright table on top
+      add(g, new THREE.OctahedronGeometry(0.2, 0), m(col, 'gloss'), [0, 0, 0], [0, 0.4, 0], [1, 0.75, 1]);
+      add(g, new THREE.CylinderGeometry(0.11, 0.11, 0.02, 8), m(shade(col, 1.25).getHex(), 'gloss'), [0, 0.15, 0]);
+      break;
+    }
     case 'hide': {
       // a stretched, folded hide with a rolled edge
       const geo = nudge(new THREE.BoxGeometry(0.5, 0.05, 0.38, 6, 1, 5), 0.03, seed);

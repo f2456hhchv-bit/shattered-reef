@@ -1,4 +1,5 @@
 // Item definitions. Content only: game logic reads these, UI renders them.
+import { GEMS } from './drops';
 
 export type SkillId =
   | 'attack' | 'strength' | 'defence' | 'hitpoints' | 'ranged' | 'magic'
@@ -18,7 +19,7 @@ export const PAIR_GROUP: Partial<Record<WeaponKind, string>> = { cutlass: 'blade
 export type AmmoKind = 'shot' | 'arrow' | 'bolt';
 export const AMMO_FOR: Partial<Record<WeaponKind, AmmoKind>> = { pistol: 'shot', shortbow: 'arrow', longbow: 'arrow', crossbow: 'bolt' };
 export const AMMO_NAME: Record<AmmoKind, string> = { shot: 'shot', arrow: 'arrows', bolt: 'bolts' };
-export type IconShape = 'log' | 'ore' | 'bar' | 'fish' | 'meat' | 'coins' | 'bread' | 'hatchet' | 'pickaxe' | 'rod' | 'cutlass' | 'helm' | 'cap' | 'coat' | 'plate' | 'ring' | 'bell' | 'tooth' | 'shell' | 'burnt' | 'pistol' | 'shot' | 'staff' | 'charm' | 'harpoon' | 'pot' | 'lobster' | 'berries' | 'kelp' | 'geode' | 'spade' | 'parcel' | 'ash' | 'salt' | 'crystal' | 'nest' | 'casket' | 'mug' | 'bowl' | 'pie' | 'dagger' | 'pike' | 'greatsword' | 'bow' | 'crossbow' | 'arrow' | 'bolt' | 'coconut' | 'wand' | 'orb' | 'book' | 'shield' | 'legs' | 'boots' | 'gloves' | 'amulet' | 'bracelet' | 'hide';
+export type IconShape = 'log' | 'ore' | 'bar' | 'fish' | 'meat' | 'coins' | 'bread' | 'hatchet' | 'pickaxe' | 'rod' | 'cutlass' | 'helm' | 'cap' | 'coat' | 'plate' | 'ring' | 'bell' | 'tooth' | 'shell' | 'burnt' | 'pistol' | 'shot' | 'staff' | 'charm' | 'harpoon' | 'pot' | 'lobster' | 'berries' | 'kelp' | 'geode' | 'spade' | 'parcel' | 'ash' | 'salt' | 'crystal' | 'nest' | 'casket' | 'mug' | 'bowl' | 'pie' | 'dagger' | 'pike' | 'greatsword' | 'bow' | 'crossbow' | 'arrow' | 'bolt' | 'coconut' | 'wand' | 'orb' | 'book' | 'shield' | 'legs' | 'boots' | 'gloves' | 'amulet' | 'bracelet' | 'hide' | 'gem';
 
 /** RuneScape-style equipment bonuses. Accuracy applies to the weapon's own style. */
 export interface Bonuses {
@@ -344,6 +345,19 @@ function tierItems(): ItemDef[] {
   jewel('amulet_crystal', 'Crystal amulet', 'neck', 'amulet', '#e3c25e', '#9fe8ff', { acc: 6, str: 6, defMelee: 3, defRanged: 3, defMagic: 4 }, 600, 'A geode crystal in a gold cage. It throws light on the deck.');
   jewel('ring_sunscale', 'Sunscale ring', 'ring', 'ring', '#e8b83a', '#d8442a', { acc: 6, str: 4, defMagic: 3 }, 1400, 'A band cut from one of the serpent\'s scales.');
   jewel('amulet_sunscale', 'Sunscale amulet', 'neck', 'amulet', '#e8b83a', '#d8442a', { acc: 10, str: 10, defMelee: 5, defRanged: 5, defMagic: 5 }, 2400, 'The serpent\'s brightest scale, on a gold chain. Warm against the skin.');
+  // ---- gems (drops.ts): rough from any creature's gem table or from mining; polished at the bench; set in gold at
+  // the furnace as a ring, bracelet or amulet (better gem, better piece)
+  GEMS.forEach((g, t) => {
+    out.push(I({ id: `gem_${g.key}_rough`, name: `Rough ${g.name.toLowerCase()}`, desc: 'Uncut and dull. Polish it at a workbench (Crafting).', icon: { shape: 'crystal', color: g.colour }, stackable: true, value: 30 * (t + 1) ** 2 }));
+    out.push(I({ id: `gem_${g.key}`, name: g.name, desc: 'Polished. Set it in gold at a furnace.', icon: { shape: 'gem', color: g.colour }, stackable: true, value: 60 * (t + 1) ** 2 }));
+    const v = 200 * (t + 1) ** 2;
+    out.push(I({ id: `ring_${g.key}`, name: `${g.name} ring`, desc: `A gold ring set with a ${g.name.toLowerCase()}.`, icon: { shape: 'ring', color: '#e3c25e', accent: g.colour }, stackable: false, value: v,
+      equip: { slot: 'ring', reqs: {}, bonus: { acc: 3 + 2 * t, str: 2 + 2 * t, defMagic: 1 + t }, affixPool: JEWEL_AFFIX } }));
+    out.push(I({ id: `bracelet_${g.key}`, name: `${g.name} bracelet`, desc: `Gold and ${g.name.toLowerCase()}.`, icon: { shape: 'bracelet', color: '#e3c25e', accent: g.colour }, stackable: false, value: v,
+      equip: { slot: 'wrist', reqs: {}, bonus: { acc: 2 + 2 * t, defMelee: 2 + 2 * t, defRanged: 2 + 2 * t, defMagic: 2 + 2 * t }, affixPool: JEWEL_AFFIX } }));
+    out.push(I({ id: `amulet_${g.key}`, name: `${g.name} amulet`, desc: `A ${g.name.toLowerCase()} on a gold chain.`, icon: { shape: 'amulet', color: '#e3c25e', accent: g.colour }, stackable: false, value: v * 1.5,
+      equip: { slot: 'neck', reqs: {}, bonus: { acc: 4 + 3 * t, str: 4 + 3 * t, defMelee: 2 + t, defRanged: 2 + t, defMagic: 2 + t }, affixPool: JEWEL_AFFIX } }));
+  });
   // ---- signature weapons: very rare drops from late foes, each with one rule that changes how it fights
   const SIG_AFFIX = { melee: [...MELEE_AFFIX, 'leech'], ranged: RANGED_AFFIX, magic: MAGIC_AFFIX };
   const sig = (id: string, name: string, desc: string, shape: IconShape, col: string, acc: string, style: CombatStyle, kind: WeaponKind, reqs: Partial<Record<SkillId, number>>, speed: number, range: number | undefined, bonus: Bonuses, s: { id: SigId; text: string }) =>

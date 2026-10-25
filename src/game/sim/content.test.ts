@@ -662,3 +662,39 @@ describe('the living island', () => {
     expect(g.drops.length).toBeGreaterThan(before);
   });
 });
+
+describe('drop tables (drops.ts)', () => {
+  it('every creature reaches the common and gem tables; only level 15+ reach the rare table; bosses always hit gems and rares', () => {
+    const g = fresh();
+    const roll = (id: string, n: number) => {
+      const e = g.enemies.find((x) => x.def.id === id) ?? g.enemies[0];
+      const def = id in ENEMIES ? ENEMIES[id] : e.def;
+      const fake = { ...e, def, elite: null } as typeof e;
+      g.drops = [];
+      for (let k = 0; k < n; k++) (g as unknown as { rollShared: (e: unknown) => void }).rollShared(fake);
+      const ids = g.drops.map((d) => d.stack.id);
+      return { gems: ids.filter((i) => i.startsWith('gem_')).length, rares: ids.filter((i) => i === 'casket' || i === 'crystal_geode' || i === 'bar_gold').length, total: ids.length };
+    };
+    const crab = roll('reef_crab', 4800);
+    expect(crab.gems).toBeGreaterThan(60); expect(crab.gems).toBeLessThan(150); // ~1/48
+    expect(crab.rares).toBe(0); // level 2: no rare table
+    expect(crab.total).toBeGreaterThan(1000); // the common table, ~1/4
+    const drowned = roll('drowned', 9600);
+    expect(drowned.rares).toBeGreaterThan(20); // ~1/96 × the rare table's gold, crystals and caskets
+  });
+
+  it('gems: rough to polished at the bench, then a ring at the furnace', () => {
+    const g = fresh();
+    const goTo = (gg: Game, x: number, z: number) => { const q = gg.world.nearestWalkable(x, z, 4)!; gg.p.x = q[0]; gg.p.z = q[1]; };
+    (g.p.xp as Record<string, number>).crafting = 13034431;
+    g.give('gem_ruby_rough', 1); g.give('bar_gold', 1);
+    const bench = g.layout.stations.find((s) => s.id === 'bench')!;
+    goTo(g, bench.x + 1.2, bench.z + 1.2);
+    g.craft('craft_polish_ruby', 1); run(g, 10, () => count(g.p.inv, 'gem_ruby') > 0);
+    expect(count(g.p.inv, 'gem_ruby')).toBe(1);
+    const furnace = g.layout.stations.find((s) => s.id === 'furnace')!;
+    goTo(g, furnace.x + 1.6, furnace.z + 1.6);
+    g.craft('craft_ring_ruby', 1); run(g, 10, () => g.p.inv.some((s) => s?.id === 'ring_ruby'));
+    expect(g.p.inv.some((s) => s?.id === 'ring_ruby')).toBe(true);
+  });
+});

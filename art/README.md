@@ -4,7 +4,7 @@ Every asset in the game as a PNG you can edit. Change a file, save it, and the g
 
 | Folder | What | In the game, your PNG becomes |
 |---|---|---|
-| `items/` | weapons, armour, tools, food, materials (339) | the icon in the pack, shop, bank and equipment |
+| `items/` | weapons, armour, tools, food, materials (364) | the icon in the pack, shop, bank and equipment |
 | `creatures/` | every enemy and boss (25) | a cut-out standing where the creature is |
 | `characters/` | you (`player.png`), named people, townsfolk (22) | a cut-out in place of the 3D person |
 | `resources/` | trees, rocks, fishing spots, bushes (35) | a cut-out on every one of them in the world |
