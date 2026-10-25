@@ -246,6 +246,7 @@ export class UI {
       case 'ferryOffer': { const n = NPCS[e.npc]; this.confirm(`${n.idle[0]}`, `Sail (${e.price} coins)`, () => this.game.takeFerry(e.npc)); break; }
       case 'openBank': this.openBank(); break;
       case 'openBoard': this.openBoard(e.board); break;
+      case 'sigDrop': this.banner('A signature weapon!', item(e.id).name); break;
       case 'rank': this.banner('Wanted!', `Bounty ${e.bounty.toLocaleString('en-GB')} · ${e.rank}`); break;
       case 'hunters': this.banner('Bounty hunters!', 'They\'ve come to collect'); break;
       case 'hit': this.damageNumber(e.x, e.z, e.amount, e.target === 'player', e.crit); break;
@@ -841,7 +842,8 @@ export class UI {
       const reqs = Object.entries(e.reqs).filter(([, v]) => (v ?? 0) > 1).map(([k, v]) => `${cap(k)} ${v}`);
       if (reqs.length) lines.push(`Requires ${reqs.join(', ')}`);
     }
-    if (wears(st.id)) { const c = condOf(st); lines.push(c <= 0 ? `Condition: worn out (works at ${Math.round(WORN_OUT_EFFECT * 100)}%). Repair at an anvil.` : `Condition ${Math.round(c)}%`); }
+    if (d.sig) lines.push(`Signature: ${d.sig.text}`);
+        if (wears(st.id)) { const c = condOf(st); lines.push(c <= 0 ? `Condition: worn out (works at ${Math.round(WORN_OUT_EFFECT * 100)}%). Repair at an anvil.` : `Condition ${Math.round(c)}%`); }
     if (d.heal) lines.push(`Heals ${this.game.healOf(d.id)}`);
     if (d.tool) lines.push(`${cap(d.tool.skill)} tool, power ${d.tool.power}${d.tool.level > 1 ? `, needs level ${d.tool.level}` : ''}`);
     // the metal's signature trait first (every copy has it), then the rolled affixes

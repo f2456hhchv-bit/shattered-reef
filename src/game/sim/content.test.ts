@@ -61,8 +61,38 @@ describe('content data', () => {
     const made = new Set(RECIPES.map((r) => r.output.id));
     const sold = new Set(Object.values(SHOPS).flatMap((sh) => sh.stock.map((s) => s.id)));
     const TROPHY = new Set(['lockplate', 'cutlass_rusty', 'cutlass_brigand', 'ring_brass']); // boss/starter/flavour pieces with crafted equivalents
-    const dropOnly = Object.values(ITEMS).filter((d) => d.equip && !made.has(d.id) && !sold.has(d.id) && !TROPHY.has(d.id)).map((d) => d.id);
+    // signature weapons are drop-only on purpose (the abyssal whip of each style); each must have a source
+    const dropOnly = Object.values(ITEMS).filter((d) => d.equip && !d.sig && !made.has(d.id) && !sold.has(d.id) && !TROPHY.has(d.id)).map((d) => d.id);
     expect(dropOnly).toEqual([]);
+    const sigSources = new Set([...Object.values(LOOT).flatMap((l) => (l.sig ? [l.sig.item] : [])), 'sig_locksmith']); // the Blade comes from wanted targets
+    expect(Object.values(ITEMS).filter((d) => d.sig && !sigSources.has(d.id)).map((d) => d.id)).toEqual([]);
+  });
+
+  it('signature weapons: each has its rule; the lash drags, the fang poisons, the flintlock ricochets, the maelstrom pulls', () => {
+    const g = fresh();
+    for (const k of ['attack', 'strength', 'ranged', 'magic', 'hitpoints', 'defence'] as const) g.p.xp[k] = 13034431;
+    const crabs = () => g.enemies.filter((e) => e.def.id === 'reef_crab' && e.alive);
+    // the lash, from 2.8 m
+    g.p.equip.weapon = { id: 'sig_lash', qty: 1 }; g.recalc();
+    expect(g.stats.sig).toBe('lash'); expect(g.stats.range).toBe(3);
+    let c = crabs()[0]; c.hp = c.maxHp = 100000; g.p.x = c.x + 2.8; g.p.z = c.z;
+    g.interact(`enemy:${c.id}`); run(g, 6, () => c.fx.slow > 0);
+    expect(c.fx.slow).toBeGreaterThan(0);
+    // the fang poisons
+    g.p.equip.weapon = { id: 'sig_fang', qty: 1 }; g.recalc(); g.p.x = c.x + 1.2;
+    run(g, 6, () => c.fx.spoil > 0);
+    expect(c.fx.spoil).toBeGreaterThan(0);
+    // the flintlock's shots skip to a second foe; the maelstrom drags foes near the target in
+    const d = crabs().find((x) => x !== c)!; d.hp = d.maxHp = 100000; d.x = c.x; d.z = c.z + 2; d.state = 'chase';
+    g.p.equip.weapon = { id: 'sig_flintlock', qty: 1 }; g.p.equip.ammo = { id: 'shot_steel', qty: 200 }; g.recalc();
+    g.p.x = c.x + 6; g.p.z = c.z; g.target = c.id;
+    run(g, 8, () => d.hp < d.maxHp);
+    expect(d.hp).toBeLessThan(d.maxHp);
+    d.hp = d.maxHp; d.x = c.x; d.z = c.z + 2.2;
+    g.p.equip.weapon = { id: 'sig_maelstrom', qty: 1 }; g.s.combat.spell = 'spray'; g.recalc();
+    run(g, 8, () => d.hp < d.maxHp);
+    expect(d.hp).toBeLessThan(d.maxHp);
+    expect(Math.hypot(d.x - c.x, d.z - c.z)).toBeLessThan(2.2);
   });
 
   it('starter foes (below level 9) never roll as elites', () => {

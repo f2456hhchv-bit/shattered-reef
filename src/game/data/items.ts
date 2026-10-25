@@ -55,7 +55,11 @@ export interface ItemDef {
   quest?: boolean;
   opens?: string; // using it rolls this loot table (geodes)
   innate?: { id: string; v: number }[]; // traits every copy has (the metal's signature), on top of rolled affixes
+  /** a signature weapon's one rule, and what it says about it */
+  sig?: { id: SigId; text: string };
 }
+/** Signature late-game weapons (Tom, 2026-10-25: "unique late weapons like the abyssal whip, but our own"). */
+export type SigId = 'lash' | 'jaw' | 'bell' | 'venom' | 'locksmith' | 'ricochet' | 'storm' | 'pierce' | 'maelstrom';
 
 // food descriptions quote health in the game's ×10 scale ("Heals 5." in the data reads "Heals 50.")
 const I = (d: ItemDef) => (d.heal ? { ...d, desc: d.desc.replace(/Heals (\d+)/, (_, n) => `Heals ${Number(n) * 10}`) } : d);
@@ -340,6 +344,29 @@ function tierItems(): ItemDef[] {
   jewel('amulet_crystal', 'Crystal amulet', 'neck', 'amulet', '#e3c25e', '#9fe8ff', { acc: 6, str: 6, defMelee: 3, defRanged: 3, defMagic: 4 }, 600, 'A geode crystal in a gold cage. It throws light on the deck.');
   jewel('ring_sunscale', 'Sunscale ring', 'ring', 'ring', '#e8b83a', '#d8442a', { acc: 6, str: 4, defMagic: 3 }, 1400, 'A band cut from one of the serpent\'s scales.');
   jewel('amulet_sunscale', 'Sunscale amulet', 'neck', 'amulet', '#e8b83a', '#d8442a', { acc: 10, str: 10, defMelee: 5, defRanged: 5, defMagic: 5 }, 2400, 'The serpent\'s brightest scale, on a gold chain. Warm against the skin.');
+  // ---- signature weapons: very rare drops from late foes, each with one rule that changes how it fights
+  const SIG_AFFIX = { melee: [...MELEE_AFFIX, 'leech'], ranged: RANGED_AFFIX, magic: MAGIC_AFFIX };
+  const sig = (id: string, name: string, desc: string, shape: IconShape, col: string, acc: string, style: CombatStyle, kind: WeaponKind, reqs: Partial<Record<SkillId, number>>, speed: number, range: number | undefined, bonus: Bonuses, s: { id: SigId; text: string }) =>
+    out.push(I({ id, name, desc, icon: { shape, color: col, accent: acc }, stackable: false, value: 60000, sig: s,
+      equip: { slot: 'weapon', reqs, style, kind, speed, range, bonus, affixPool: SIG_AFFIX[style] } }));
+  sig('sig_lash', 'Undertow Lash', 'A whip of living kelp with a barbed tip. It never quite stops moving.', 'cutlass', '#3e7a3a', '#59d0c4', 'melee', 'cutlass', { attack: 70 }, 2.4, 3.0, { acc: 112, str: 90 },
+    { id: 'lash', text: 'Reaches 3 m; every hit drags the foe toward you and slows it for 2 s' });
+  sig('sig_jaw', 'Leviathan\'s Jaw', 'A greatsword ground from a leviathan\'s jawbone, teeth still in it.', 'greatsword', '#efe6cf', '#a8203a', 'melee', 'greatsword', { attack: 80, strength: 80 }, 3.6, 1.9, { acc: 104, str: 180 },
+    { id: 'jaw', text: 'Every fourth swing bites twice and heals you 5% of the damage' });
+  sig('sig_bell', 'Bellbreaker', 'A boarding pike capped with a cracked bronze bell. It rings when it hits.', 'pike', '#c08a4a', '#e3c25e', 'melee', 'pike', { attack: 75 }, 3.0, 2.8, { acc: 100, str: 124 },
+    { id: 'bell', text: 'Hits have a 25% chance to stun the foe for 1.5 s' });
+  sig('sig_fang', 'Sunscale Fang', 'A dagger made from the temple serpent\'s fang. Its venom never dried.', 'dagger', '#e8b83a', '#4f9a52', 'melee', 'dagger', { attack: 72 }, 1.8, 1.4, { acc: 128, str: 74 },
+    { id: 'venom', text: 'Hits poison: the foe loses 1% of its health a second for 4 s and can\'t heal' });
+  sig('sig_locksmith', 'Locksmith\'s Blade', 'A cutlass with a keyhole through the blade. Whatever it cuts, it opens.', 'cutlass', '#d9b25a', '#59d0c4', 'melee', 'cutlass', { attack: 85 }, 2.4, undefined, { acc: 118, str: 116 },
+    { id: 'locksmith', text: '+25% damage to foes under a key power; every kill takes 5 s off your key\'s cooldown' });
+  sig('sig_flintlock', 'Drowned Man\'s Flintlock', 'Barnacled, wet, and it still fires. Shots skip like stones on water.', 'pistol', '#3a4a44', '#bfeee4', 'ranged', 'pistol', { ranged: 75 }, 2.4, 14, { acc: 140 },
+    { id: 'ricochet', text: 'Shots ricochet to a second foe within 5 m for half damage' });
+  sig('sig_stormcaller', 'Stormcaller', 'A crossbow with a stormsilver prod. The air smells of rain around it.', 'crossbow', '#2a3a5a', '#b8c6ff', 'ranged', 'crossbow', { ranged: 85 }, 3.0, 14, { acc: 172 },
+    { id: 'storm', text: 'Every bolt arcs lightning to 2 more foes within 5 m for 30%' });
+  sig('sig_skypiercer', 'Skypiercer', 'A longbow strung with weaver silk. Its arrows don\'t stop at the first thing they hit.', 'bow', '#46486a', '#e8e6dc', 'ranged', 'longbow', { ranged: 85 }, 3.0, 18, { acc: 152 },
+    { id: 'pierce', text: 'Arrows pierce every foe in a line behind the target (70%)' });
+  sig('sig_maelstrom', 'Maelstrom Staff', 'Driftwood wrapped round a whirlpool trapped in glass.', 'staff', '#2a4a5a', '#3cc6c4', 'magic', 'staff', { magic: 80 }, 2.4, 11, { acc: 46, magicDmg: 20, defMagic: 20 },
+    { id: 'maelstrom', text: 'Spells open a whirlpool: foes within 2.5 m are dragged in and take half the hit' });
   return out;
 }
 

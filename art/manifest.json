@@ -3302,6 +3302,96 @@
    "w": 0.586
   },
   {
+   "kind": "items",
+   "id": "sig_lash",
+   "name": "Undertow Lash",
+   "group": "Melee weapons",
+   "file": "items/sig_lash.png",
+   "sha1": "4f5a2e8433ab59aabf39327dacab7cbe39c8a182",
+   "h": 0.592,
+   "w": 0.654
+  },
+  {
+   "kind": "items",
+   "id": "sig_jaw",
+   "name": "Leviathan's Jaw",
+   "group": "Melee weapons",
+   "file": "items/sig_jaw.png",
+   "sha1": "a22d189c523b744a8564a6ad6e446be908d0b66e",
+   "h": 0.945,
+   "w": 0.954
+  },
+  {
+   "kind": "items",
+   "id": "sig_bell",
+   "name": "Bellbreaker",
+   "group": "Melee weapons",
+   "file": "items/sig_bell.png",
+   "sha1": "06187e6093f0f254a541a056e8fa23cb70042638",
+   "h": 1.001,
+   "w": 0.74
+  },
+  {
+   "kind": "items",
+   "id": "sig_fang",
+   "name": "Sunscale Fang",
+   "group": "Melee weapons",
+   "file": "items/sig_fang.png",
+   "sha1": "57fc56381eab155f48082685f9b4e1a37872b6fc",
+   "h": 0.393,
+   "w": 0.399
+  },
+  {
+   "kind": "items",
+   "id": "sig_locksmith",
+   "name": "Locksmith's Blade",
+   "group": "Melee weapons",
+   "file": "items/sig_locksmith.png",
+   "sha1": "bd2bd0b1390c92aee6c46cbbee9e7ecdd0c5f513",
+   "h": 0.592,
+   "w": 0.654
+  },
+  {
+   "kind": "items",
+   "id": "sig_flintlock",
+   "name": "Drowned Man's Flintlock",
+   "group": "Ranged weapons",
+   "file": "items/sig_flintlock.png",
+   "sha1": "c646135283c787bbe41f325b3f5c27bea1ef677a",
+   "h": 0.44,
+   "w": 0.644
+  },
+  {
+   "kind": "items",
+   "id": "sig_stormcaller",
+   "name": "Stormcaller",
+   "group": "Ranged weapons",
+   "file": "items/sig_stormcaller.png",
+   "sha1": "7a452162200ede7cf5062d09b891b5db12221b13",
+   "h": 0.414,
+   "w": 0.51
+  },
+  {
+   "kind": "items",
+   "id": "sig_skypiercer",
+   "name": "Skypiercer",
+   "group": "Ranged weapons",
+   "file": "items/sig_skypiercer.png",
+   "sha1": "3a4c84a76bd5456a773712f2953394b6317c6b8b",
+   "h": 0.638,
+   "w": 0.611
+  },
+  {
+   "kind": "items",
+   "id": "sig_maelstrom",
+   "name": "Maelstrom Staff",
+   "group": "Magic",
+   "file": "items/sig_maelstrom.png",
+   "sha1": "2d346f31c2800c835f7ea6138851fa0513ce8545",
+   "h": 0.932,
+   "w": 0.467
+  },
+  {
    "kind": "creatures",
    "id": "reef_crab",
    "name": "Reef crab",
@@ -3490,6 +3580,66 @@
    "sha1": "66eee38600dc95df06d3a90653954760a33ff74b",
    "h": 0.839,
    "w": 2.697
+  },
+  {
+   "kind": "creatures",
+   "id": "bounty_hunter_1",
+   "name": "Bounty hunter",
+   "group": "Mid game",
+   "file": "creatures/bounty_hunter_1.png",
+   "sha1": "00518f871cc33b8ad81f473589675d4b644a94fb",
+   "h": 2.135,
+   "w": 0.776
+  },
+  {
+   "kind": "creatures",
+   "id": "bounty_gunman_1",
+   "name": "Bounty gunman",
+   "group": "Mid game",
+   "file": "creatures/bounty_gunman_1.png",
+   "sha1": "5984015d92049eaa19811fa9f79a33c287c12c0a",
+   "h": 2.135,
+   "w": 1.31
+  },
+  {
+   "kind": "creatures",
+   "id": "bounty_hunter_2",
+   "name": "Veteran bounty hunter",
+   "group": "Mid game",
+   "file": "creatures/bounty_hunter_2.png",
+   "sha1": "00518f871cc33b8ad81f473589675d4b644a94fb",
+   "h": 2.135,
+   "w": 0.776
+  },
+  {
+   "kind": "creatures",
+   "id": "bounty_gunman_2",
+   "name": "Veteran bounty gunman",
+   "group": "Mid game",
+   "file": "creatures/bounty_gunman_2.png",
+   "sha1": "5984015d92049eaa19811fa9f79a33c287c12c0a",
+   "h": 2.135,
+   "w": 1.31
+  },
+  {
+   "kind": "creatures",
+   "id": "bounty_hunter_3",
+   "name": "Famed bounty hunter",
+   "group": "Late game",
+   "file": "creatures/bounty_hunter_3.png",
+   "sha1": "00518f871cc33b8ad81f473589675d4b644a94fb",
+   "h": 2.135,
+   "w": 0.776
+  },
+  {
+   "kind": "creatures",
+   "id": "bounty_gunman_3",
+   "name": "Famed bounty gunman",
+   "group": "Late game",
+   "file": "creatures/bounty_gunman_3.png",
+   "sha1": "5984015d92049eaa19811fa9f79a33c287c12c0a",
+   "h": 2.135,
+   "w": 1.31
   },
   {
    "kind": "characters",
