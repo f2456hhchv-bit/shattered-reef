@@ -2,51 +2,22 @@ import * as THREE from 'three';
 import { mat, mesh, jitter } from '../materials';
 import { mulberry32 } from '../noise';
 
-// The islands' stranger folk (Tom, 2026-10-25: "not all just humans, think fantasy"): wisps, golems, hounds, bats
-// and wraiths. Five bodies, each with looks; every moving part is its own pivot so bakeRig keeps it animatable.
-// Faces +z. One rig shape for all five keeps the renderer to a single case.
+// The islands' stranger folk (Tom, 2026-10-25: "creatures, bugs, fantasy"; docs/ISLANDS.md): golems (spriggans,
+// trolls), hounds, winged things (bats, gulls) and beetles. Four bodies, each with looks; every moving part is its own
+// pivot so bakeRig keeps it animatable. Faces +z. One rig shape for all of them keeps the renderer to a single case.
 
-export type FantasyModel = 'wisp' | 'golem' | 'hound' | 'bat' | 'wraith';
+export type FantasyModel = 'golem' | 'hound' | 'bat' | 'beetle';
 export interface FantasyRig { model: FantasyModel; root: THREE.Group; body: THREE.Group; a: THREE.Group[]; b: THREE.Group[] }
 
 const glow = (c: number, k = 1) => mat(c, { emissive: c, emissiveIntensity: k });
-
-// ---- wisps: a glowing core with motes circling it; they drift a man's height off the ground
-const WISP: Record<string, { core: number; halo: number }> = {
-  bog: { core: 0xb8f07a, halo: 0x4f8a3a },
-  storm: { core: 0xbfe6ff, halo: 0x3a6a9a },
-};
-function wisp(look: string, seed: number): FantasyRig {
-  const L = WISP[look] ?? WISP.bog;
-  const root = new THREE.Group(), body = new THREE.Group();
-  body.position.y = 1.3;
-  root.add(body);
-  const core = mesh(jitter(new THREE.IcosahedronGeometry(0.28, 1), 0.04, seed), glow(L.core, 1.4));
-  const halo = mesh(new THREE.IcosahedronGeometry(0.42, 1), glow(L.halo, 0.5));
-  halo.scale.set(1, 1.25, 1);
-  // a trailing tail that tapers to nothing below it
-  const tail = mesh(new THREE.ConeGeometry(0.22, 0.8, 6), glow(L.halo, 0.6));
-  tail.rotation.x = Math.PI;
-  tail.position.y = -0.55;
-  body.add(core, halo, tail);
-  const motes: THREE.Group[] = [];
-  for (let k = 0; k < 4; k++) {
-    const g = new THREE.Group();
-    const m = mesh(new THREE.IcosahedronGeometry(0.07, 0), glow(L.core, 1.2));
-    m.position.x = 0.62;
-    g.add(m);
-    g.rotation.y = (k / 4) * Math.PI * 2;
-    body.add(g);
-    motes.push(g);
-  }
-  return { model: 'wisp', root, body, a: motes, b: [] };
-}
 
 // ---- golems: a lumbering body of whatever the island is made of, with glowing eyes
 const GOLEM: Record<string, { body: number; dark: number; accent: number; eye: number; spikes?: boolean; leaves?: boolean }> = {
   drift: { body: 0x8a6a4a, dark: 0x5a4430, accent: 0x6a8a4a, eye: 0xb8f07a }, // driftwood lashed with weed
   amber: { body: 0x7a6a58, dark: 0x4e4438, accent: 0xe8a83a, eye: 0xffc04a, spikes: true }, // rock grown with amber
   oak: { body: 0x4a3a2a, dark: 0x2e241a, accent: 0x3e6a2a, eye: 0xd8f070, leaves: true }, // the Old Wood's heart
+  thorn: { body: 0x5a4a2e, dark: 0x3a2e1c, accent: 0x6a8a3a, eye: 0xe8d84a, leaves: true }, // a bramble spriggan: roots, thorns, leaves
+  troll: { body: 0x6a7060, dark: 0x4a5044, accent: 0x5a7a3a, eye: 0xe8b84a, leaves: true }, // grey hide grown with moss
 };
 function golem(look: string, seed: number): FantasyRig {
   const L = GOLEM[look] ?? GOLEM.drift;
@@ -166,9 +137,10 @@ function hound(look: string, seed: number): FantasyRig {
 }
 
 // ---- bats: leathery wings, flitting above head height
-const BAT: Record<string, { fur: number; wing: number; eye: number }> = {
+const BAT: Record<string, { fur: number; wing: number; eye: number; beak?: number }> = {
   cave: { fur: 0x3a2e2a, wing: 0x5a443a, eye: 0xe8402a },
   ember: { fur: 0x2a1a14, wing: 0x9a3a1a, eye: 0xffb040 },
+  gull: { fur: 0xeeeeea, wing: 0xb8bcc2, eye: 0x1a1a1a, beak: 0xe8b83a }, // a herring gull: white, grey wings, yellow bill
 };
 function bat(look: string, seed: number): FantasyRig {
   const L = BAT[look] ?? BAT.cave;
@@ -180,12 +152,21 @@ function bat(look: string, seed: number): FantasyRig {
   const head = mesh(jitter(new THREE.IcosahedronGeometry(0.15, 0), 0.02, seed + 1), mat(L.fur));
   head.position.set(0, 0.06, 0.28);
   body.add(torso, head);
+  if (L.beak) {
+    const beak = mesh(new THREE.ConeGeometry(0.05, 0.2, 4), mat(L.beak));
+    beak.rotation.x = Math.PI / 2;
+    beak.position.set(0, 0.04, 0.5);
+    body.add(beak);
+  }
   for (const s of [-1, 1]) {
-    const ear = mesh(new THREE.ConeGeometry(0.06, 0.2, 3), mat(L.wing));
-    ear.position.set(0.08 * s, 0.22, 0.26);
-    const eye = mesh(new THREE.IcosahedronGeometry(0.03, 0), glow(L.eye, 1));
+    if (!L.beak) {
+      const ear = mesh(new THREE.ConeGeometry(0.06, 0.2, 3), mat(L.wing));
+      ear.position.set(0.08 * s, 0.22, 0.26);
+      body.add(ear);
+    }
+    const eye = mesh(new THREE.IcosahedronGeometry(0.03, 0), L.beak ? mat(L.eye) : glow(L.eye, 1));
     eye.position.set(0.06 * s, 0.09, 0.42);
-    body.add(ear, eye);
+    body.add(eye);
   }
   const wings: THREE.Group[] = [];
   for (const s of [-1, 1]) {
@@ -205,65 +186,68 @@ function bat(look: string, seed: number): FantasyRig {
   return { model: 'bat', root, body, a: wings, b: [] };
 }
 
-// ---- wraiths: a hooded cloak with nothing in it but two eyes, hands of mist
-const WRAITH: Record<string, { cloak: number; trim: number; eye: number }> = {
-  brine: { cloak: 0x24403e, trim: 0x5ab8a8, eye: 0x8affe8 },
+// ---- beetles: a domed shell over six jointed legs, mandibles in front
+const BEETLE: Record<string, { shell: number; dark: number; leg: number; eye: number }> = {
+  shore: { shell: 0xb89a6a, dark: 0x6a5a3e, leg: 0x4a3e2a, eye: 0x1a1a1a }, // sand-coloured, on Bellwether's beaches
 };
-function wraith(look: string, seed: number): FantasyRig {
-  const L = WRAITH[look] ?? WRAITH.brine;
+function beetle(look: string, seed: number): FantasyRig {
+  const L = BEETLE[look] ?? BEETLE.shore;
   const root = new THREE.Group(), body = new THREE.Group();
-  body.position.y = 0.3;
+  body.position.y = 0.32;
   root.add(body);
-  const robe = mesh(jitter(new THREE.ConeGeometry(0.5, 1.6, 7, 2, true), 0.05, seed), mat(L.cloak, { side: THREE.DoubleSide }));
-  robe.position.y = 0.8;
-  const hem = mesh(new THREE.TorusGeometry(0.44, 0.05, 4, 10), glow(L.trim, 0.5));
-  hem.rotation.x = Math.PI / 2;
-  hem.position.y = 0.06;
-  const hood = mesh(jitter(new THREE.IcosahedronGeometry(0.3, 1), 0.03, seed + 1), mat(L.cloak));
-  hood.scale.set(1, 1.15, 1.05);
-  hood.position.set(0, 1.62, -0.02);
-  const face = mesh(new THREE.IcosahedronGeometry(0.2, 1), mat(0x0a0e10));
-  face.position.set(0, 1.58, 0.1);
-  body.add(robe, hem, hood, face);
+  const shell = mesh(jitter(new THREE.IcosahedronGeometry(0.42, 1), 0.03, seed), mat(L.shell));
+  shell.scale.set(0.85, 0.55, 1.2);
+  shell.position.z = -0.08;
+  // the seam down the wing-cases
+  const seam = mesh(new THREE.BoxGeometry(0.03, 0.04, 0.9), mat(L.dark));
+  seam.position.set(0, 0.22, -0.08);
+  const head = mesh(jitter(new THREE.IcosahedronGeometry(0.18, 0), 0.02, seed + 1), mat(L.dark));
+  head.scale.set(1.1, 0.7, 0.9);
+  head.position.set(0, 0, 0.46);
+  body.add(shell, seam, head);
+  const jaws = new THREE.Group();
+  jaws.position.set(0, -0.02, 0.6);
   for (const s of [-1, 1]) {
-    const eye = mesh(new THREE.IcosahedronGeometry(0.045, 0), glow(L.eye, 1.6));
-    eye.position.set(0.08 * s, 1.62, 0.28);
+    const m = mesh(new THREE.ConeGeometry(0.04, 0.2, 4), mat(L.dark));
+    m.rotation.set(Math.PI / 2, 0, 0);
+    m.rotation.y = s * 0.5;
+    m.position.set(0.06 * s, 0, 0.05);
+    const eye = mesh(new THREE.IcosahedronGeometry(0.035, 0), mat(L.eye));
+    eye.position.set(0.12 * s, 0.07, 0.52);
+    jaws.add(m);
     body.add(eye);
   }
-  const arms: THREE.Group[] = [];
-  for (const s of [-1, 1]) {
-    const arm = new THREE.Group();
-    arm.position.set(0.36 * s, 1.3, 0.05);
-    const sleeve = mesh(new THREE.ConeGeometry(0.13, 0.7, 6, 1, true), mat(L.cloak, { side: THREE.DoubleSide }));
-    sleeve.position.y = -0.3;
-    sleeve.rotation.x = Math.PI;
-    const hand = mesh(new THREE.IcosahedronGeometry(0.09, 0), glow(L.trim, 0.9));
-    hand.position.y = -0.7;
-    arm.add(sleeve, hand);
-    body.add(arm);
-    arms.push(arm);
+  body.add(jaws);
+  const legs: THREE.Group[] = [];
+  for (const s of [-1, 1]) for (let i = 0; i < 3; i++) {
+    const leg = new THREE.Group();
+    leg.position.set(0.24 * s, -0.08, 0.22 - i * 0.24);
+    leg.rotation.y = s > 0 ? -0.3 + i * 0.3 : Math.PI + 0.3 - i * 0.3;
+    const up = mesh(new THREE.CylinderGeometry(0.025, 0.03, 0.3, 4), mat(L.leg));
+    up.rotation.z = -1.1;
+    up.position.set(0.13, 0.05, 0);
+    const low = mesh(new THREE.ConeGeometry(0.025, 0.32, 4), mat(L.leg));
+    low.rotation.z = Math.PI + 0.4;
+    low.position.set(0.3, -0.12, 0);
+    leg.add(up, low);
+    body.add(leg);
+    legs.push(leg);
   }
-  return { model: 'wraith', root, body, a: arms, b: [] };
+  return { model: 'beetle', root, body, a: [jaws], b: legs };
 }
 
 export function buildFantasy(model: FantasyModel, look = '', seed = 7): FantasyRig {
   switch (model) {
-    case 'wisp': return wisp(look, seed);
     case 'golem': return golem(look, seed);
     case 'hound': return hound(look, seed);
     case 'bat': return bat(look, seed);
-    default: return wraith(look, seed);
+    default: return beetle(look, seed);
   }
 }
 
 /** Idle, moving and wind-up poses for any of the five bodies. */
 export function animateFantasy(r: FantasyRig, t: number, moving: boolean, windup: boolean) {
   switch (r.model) {
-    case 'wisp':
-      r.body.position.y = 1.3 + Math.sin(t * 2.2) * 0.12;
-      r.a.forEach((g, i) => { g.rotation.y = t * (moving ? 3 : 1.6) + (i / r.a.length) * Math.PI * 2; g.position.y = Math.sin(t * 3 + i) * 0.12; });
-      r.body.scale.setScalar(windup ? 1.25 + Math.sin(t * 30) * 0.05 : 1);
-      break;
     case 'golem': {
       const f = 5;
       r.b.forEach((leg, i) => { leg.rotation.x = moving ? Math.sin(t * f + i * Math.PI) * 0.45 : 0; });
@@ -286,9 +270,12 @@ export function animateFantasy(r: FantasyRig, t: number, moving: boolean, windup
       r.body.rotation.x = windup ? 0.5 : 0;
       break;
     }
-    default:
-      r.body.position.y = 0.3 + Math.sin(t * 1.8) * 0.1;
-      r.body.rotation.z = Math.sin(t * 1.1) * 0.05;
-      r.a.forEach((arm, i) => { arm.rotation.x = windup ? -2.0 : -0.3 + Math.sin(t * 1.5 + i) * 0.15; });
+    default: {
+      // scuttle: alternating tripods, jaws working before a bite
+      r.b.forEach((leg, i) => { leg.rotation.x = moving ? Math.sin(t * 20 + (i % 2) * Math.PI) * 0.35 : 0; });
+      r.body.position.y = 0.32 + (moving ? Math.abs(Math.sin(t * 20)) * 0.02 : 0);
+      r.a[0].scale.x = windup ? 1.6 : 1 + Math.max(0, Math.sin(t * 3)) ** 6 * 0.3;
+      r.body.rotation.x = windup ? -0.25 : 0;
+    }
   }
 }

@@ -369,7 +369,7 @@ function buildIslandRegion(region: IslandId): IslandLayout {
   // ---- vegetation and rocks (solid, every one usable): woods are dense, open country is sparse
   const centre = bell ? { x: 0, z: 0 } : sun ? SUN : amb ? AMBER : WRACK;
   const keepClear = bell
-    ? [{ x: R.x, z: R.z, r: 11 }, { x: C.x, z: C.z, r: 9 }, { x: LAYOUT.cove.x, z: LAYOUT.cove.z, r: 9 }, { x: X.x, z: X.z, r: 6 }]
+    ? [{ x: R.x, z: R.z, r: 11 }, { x: C.x, z: C.z, r: 9 }, { x: LAYOUT.cove.x, z: LAYOUT.cove.z, r: 9 }, { x: X.x, z: X.z, r: 6 }, { x: LAYOUT.barrows.x, z: LAYOUT.barrows.z, r: 11 }]
     : sun ? [{ x: SL.temple.x, z: SL.temple.z, r: 11 }, { x: SL.plaza.x, z: SL.plaza.z, r: 12 }, { x: SL.port.x, z: SL.port.z, r: 16 }]
     : amb ? [{ x: AL.landing.x, z: AL.landing.z, r: 14 }, { x: AL.camp.x, z: AL.camp.z, r: 9 }, { x: AL.hollow.x, z: AL.hollow.z, r: 11 }]
     : [{ x: WL.starfall.x, z: WL.starfall.z, r: 10 }, { x: WL.landing.x, z: WL.landing.z, r: 14 }, { x: WL.crag.x, z: WL.crag.z - 6, r: 7 }];
@@ -511,6 +511,12 @@ function buildIslandRegion(region: IslandId): IslandLayout {
       ['campfire', C.x, C.z], ['crate', C.x + 1.8, C.z - 1.5], ['barrel', C.x - 2, C.z + 1.2],
     ]);
     decor('netrack', DB.x - 6.5, DB.z - 1.5, 1.3, 0.15, true);
+    // standing stones round the Barrows
+    for (let k = 0; k < 5; k++) {
+      const a = (k / 5) * Math.PI * 2 + 0.4, BW = LAYOUT.barrows;
+      props.push({ kind: 'pillar', x: BW.x + Math.cos(a) * 10, z: BW.z + Math.sin(a) * 10, rot: a, s: 0.55 + rnd() * 0.3, seed: 1200 + k });
+      world.solids.push({ x: BW.x + Math.cos(a) * 10, z: BW.z + Math.sin(a) * 10, r: 0.6 });
+    }
     decor('pots', DB.x + 5.5, DB.z - 1.2, 0.8, -0.3, true);
     decor('cannon', DB.x - 9, DB.z - 3.5, 0.7, -0.2, true); // muzzles out to sea (+z)
     decor('cannon', DB.x + 9, DB.z - 3.5, 0.7, 0.2, true);
@@ -611,22 +617,29 @@ function buildIslandRegion(region: IslandId): IslandLayout {
     spawn('brigand', C.x - 2.5, C.z + 2); spawn('brigand', C.x + 2.5, C.z + 1.5); spawn('brigand', C.x, C.z - 2.5);
     spawn('gunner', C.x + 4, C.z - 3); spawn('gunner', C.x - 5, C.z - 1);
     for (let k = 0; k < 5; k++) { const a = (k / 5) * Math.PI * 2 + 0.7; spawn('mire_crab', LAGOON.x + Math.cos(a) * (LAGOON.r + 2.5), LAGOON.z + Math.sin(a) * (LAGOON.r + 2.5)); }
-    // bog wisps drift over the fen
-    for (let k = 0; k < 3; k++) { const a = (k / 3) * Math.PI * 2 + 0.2; spawn('bog_wisp', LAGOON.x + Math.cos(a) * (LAGOON.r + 9), LAGOON.z + Math.sin(a) * (LAGOON.r + 9)); }
+    // bog leeches in the fen's shallows; beetles on the strand; spriggans in the oak grove; knockers in Ironcrag
+    for (let k = 0; k < 3; k++) { const a = (k / 3) * Math.PI * 2 + 0.2; spawn('bog_leech', LAGOON.x + Math.cos(a) * (LAGOON.r + 4), LAGOON.z + Math.sin(a) * (LAGOON.r + 4)); }
+    for (let k = 0; k < 4; k++) { const [x, z] = coastPoint(150 + k * 8, 3.5); spawn('shore_beetle', x, z); }
+    for (const [dx, dz] of [[-8, -3], [-6, -9], [-12, 2]]) spawn('spriggan', GV.x + dx, GV.z + dz); // the grove's far side, away from Saltpine Wood
+    for (const [dx, dz] of [[-7, 10], [6, 12], [-3, 2]]) spawn('knocker', M.x + dx, M.z + dz);
+    // the Barrows: the dead keep their grave goods
+    const BW = LAYOUT.barrows;
+    for (const [dx, dz] of [[-6, 1], [6, 0], [-2, -6], [3, 8]]) spawn('barrow_dead', BW.x + dx, BW.z + dz);
     const SC = LAYOUT.cove;
     spawn('smuggler', SC.x - 3, SC.z - 2); spawn('smuggler', SC.x + 2, SC.z - 4); spawn('smuggler', SC.x - 5, SC.z - 6);
     spawn('smuggler_gunner', SC.x + 4, SC.z - 1); spawn('smuggler_gunner', SC.x - 1, SC.z - 8);
-    // Wreckers' Point: driftlings, bundles of sea-wrack off the wreck that got up and walked
+    // Wreckers' Point: gulls over the wreck, beetles picking at it
     const W = LAYOUT.wreck;
-    for (const [dx, dz] of [[-4, 2], [2, 4], [-6, 7], [3, 9]]) spawn('driftling', W.x + dx, W.z + dz);
+    for (const [dx, dz] of [[-4, 2], [2, 4], [-6, 7]]) spawn('gull', W.x + dx, W.z + dz);
+    for (const [dx, dz] of [[3, 9], [-8, 3]]) spawn('shore_beetle', W.x + dx, W.z + dz);
   } else if (wrack) {
     const W = WL.wreck, CR = WL.crag, OW = WL.oldwood;
-    spawn('drowned', W.x - 4, W.z + 2); spawn('drowned', W.x + 2, W.z + 4); spawn('brine_wraith', W.x - 8, W.z + 6); spawn('brine_wraith', W.x - 2, W.z + 9);
+    spawn('drowned', W.x - 4, W.z + 2); spawn('drowned', W.x + 2, W.z + 4); spawn('sea_draugr', W.x - 8, W.z + 6); spawn('sea_draugr', W.x - 2, W.z + 9);
     spawn('wreck_captain', W.x - 5, W.z + 5);
     spawn('stone_sentinel', CR.x - 5, CR.z + 2); spawn('stone_sentinel', CR.x + 7, CR.z + 3);
-    spawn('storm_wisp', CR.x - 9, CR.z - 4); spawn('storm_wisp', CR.x + 9, CR.z - 6);
-    // the Old Wood's own: oakhearts, and a wraith among the trees (islands past 50 mix their levels)
-    spawn('oakheart', OW.x + 2, OW.z + 4); spawn('oakheart', OW.x - 6, OW.z - 2); spawn('brine_wraith', OW.x + 6, OW.z - 5);
+    spawn('crag_troll', CR.x - 9, CR.z - 4); spawn('crag_troll', CR.x + 9, CR.z - 6);
+    // the Old Wood's own: oakhearts, and a sea-draugr walked up from the Wrack (islands past 50 mix their levels)
+    spawn('oakheart', OW.x + 2, OW.z + 4); spawn('oakheart', OW.x - 6, OW.z - 2); spawn('sea_draugr', OW.x + 6, OW.z - 5);
   } else if (amb) {
     // boars at the amberwood's edge, ironshells on the shore, poachers on the headland, weavers in the hollow
     const AW = AL.amberwood, CP = AL.camp, HO = AL.hollow;
@@ -740,6 +753,7 @@ function buildCave(region: RegionId): IslandLayout {
     for (const [dx, dz] of [[-3, 2], [3, -2], [0, -5], [4, 3]]) spawns.push({ enemy: 'cave_spider', x: pool.x + dx, z: pool.z + dz });
     spawns.push({ enemy: 'cave_spider', x: hall.x - 6, z: hall.z - 6 });
     for (const [dx, dz] of [[3, 3], [-3, 4], [5, -2]]) spawns.push({ enemy: 'cave_bat', x: hall.x + dx, z: hall.z + dz });
+    for (const [dx, dz] of [[-3, 3], [3, -2]]) spawns.push({ enemy: 'knocker', x: grotto.x + dx, z: grotto.z + dz }); // tapping at the veins
   } else {
     const hall = ch('hall'), nest = ch('nest'), vein = ch('vein'), magma = ch('magma');
     scatter('rock_coal', hall, 5); scatter('rock_iron', hall, 3);

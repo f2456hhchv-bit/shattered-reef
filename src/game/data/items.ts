@@ -322,6 +322,11 @@ function tierItems(): ItemDef[] {
   const set = (pieces: Piece[], col: string, acc: string, reqs: (k: number) => Partial<Record<SkillId, number>>, desc: string, pool: string[], value: number) =>
     pieces.forEach(([id, name, slot, shape, dm, dr, dg, extra], k) => out.push(I({ id, name, desc, icon: { shape, color: col, accent: acc }, stackable: false, value: value * (k + 2),
       equip: { slot, off: slot === 'offhand' ? 'shield' : undefined, reqs: reqs(k), bonus: { defMelee: dm, defRanged: dr, defMagic: dg, ...extra }, affixPool: pool } })));
+  out.push(I({ id: 'chitin', name: 'Chitin', desc: 'A plate of shore-beetle shell. Light and hard; lace it into armour at a workbench.', icon: { shape: 'shell', color: '#7a6a4a', accent: '#c8b088' }, stackable: true, value: 9 }));
+  // chitin: shore-beetle shell on leather; turns blades, light enough to run in (Defence 10-15)
+  set([
+    ['helm_chitin', 'Chitin helm', 'head', 'helm', 5, 3, 1], ['legs_chitin', 'Chitin legs', 'legs', 'legs', 8, 5, 2], ['body_chitin', 'Chitin body', 'body', 'plate', 12, 8, 3],
+  ], '#7a6a4a', '#c8b088', (k) => ({ defence: [10, 12, 15][k] }), 'Shore-beetle shell laced on leather. It turns a blade and weighs next to nothing.', ARMOUR_AFFIX, 30);
   // snakeskin: archers' armour, tough against shot and spells, light against blades (Ranged 30-45)
   set([
     ['vambraces_snake', 'Snakeskin vambraces', 'hands', 'gloves', 2, 4, 2, { acc: 6 }], ['boots_snake', 'Snakeskin boots', 'feet', 'boots', 3, 5, 2],
