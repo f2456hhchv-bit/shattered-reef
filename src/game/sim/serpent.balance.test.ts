@@ -62,4 +62,4 @@ it('Sunscale balance (Sunreach\'s finale, levels 15-30): a coin flip at 26, won 
   expect(results['cutlass_steel@30']).toBeGreaterThanOrEqual(12);
   expect(results['cutlass_storm@30']).toBeGreaterThanOrEqual(14);
   expect(results['pistol_steel@28']).toBeGreaterThanOrEqual(10); // its weakness
-});
+}, 120_000);

@@ -200,6 +200,7 @@ export const FLATS: Flat[] = [
   { x: AL.landing.x, z: AL.landing.z, r: 11, h: 1.1 },
   { x: AL.dockBase.x, z: AL.dockBase.z - 1, r: 3, h: 1.0 },
   { x: AL.camp.x, z: AL.camp.z, r: 6, h: 'auto' },
+  { x: AL.hollow.x, z: AL.hollow.z, r: 8, h: 'auto' }, // the Broodmother's ring
   // Stormwrack: the landing yard, the dock, the crag's summit (the vent forge)
   { x: WL.landing.x, z: WL.landing.z, r: 11, h: 1.1 },
   { x: WL.dockBase.x, z: WL.dockBase.z - 1, r: 3, h: 1.0 },
