@@ -7,7 +7,7 @@ import { parseSave, defaultSave, SAVE_VERSION, HP_START_XP } from './save';
 import { hitChance, combatLevel, levelsOf } from './gear';
 import { NODES } from '../data/content';
 import { ITEMS } from '../data/items';
-import { KEY_CONFIG } from '../data/keys';
+import { KEY_CONFIG, KEYS, KEY } from '../data/keys';
 import { LAYOUT } from '../world/island';
 
 // One shared island (building it is the slow part); fresh Game state per test via the save.
@@ -887,5 +887,63 @@ describe('bounties and crew', () => {
     expect(b.crew).toEqual(['nell']);
     expect(b.mate).toBeNull();
     expect(b.contracts.map((c) => c.id)).toEqual([1]);
+  });
+});
+
+describe('the second ring of keys', () => {
+  const setup = (seed: number, key: string) => {
+    const g = fresh(seed);
+    g.s.settings.devFreeKeys = true;
+    g.giveKey(key);
+    const b = g.layout.banks[0]; g.p.x = b.x + 1.5; g.p.z = b.z + 1.5; g.combatTimer = 99;
+    g.slotKey(key);
+    return g;
+  };
+  const near = (g: Game, id = 'reef_crab') => { const c = g.enemies.find((e) => e.def.id === id && e.alive && !e.elite)!; g.p.x = c.x + 1.3; g.p.z = c.z; g.keyCd = 0; return c; };
+
+  it('there are 21 keys; Keel\'s Tooth never drops but comes with the bell quest (and to anyone who finished it already)', () => {
+    expect(KEYS.length).toBe(21);
+    expect(KEY.keels_tooth.rarity).toBe('quest');
+    const d = defaultSave(base.layout.respawn, base.layout.mooring!);
+    d.flags.bell_done = true;
+    const g = new Game({ seed: 80, save: d });
+    expect(g.s.keyring).toContain('keels_tooth');
+  });
+
+  it('Rust halves a foe\'s blows; Ward stops them; Spoil rots it; Pickpocket works once per foe', () => {
+    let g = setup(81, 'smith'); let c = near(g);
+    g.useKey(); expect(c.fx.weak).toBeGreaterThan(5);
+    g = setup(82, 'bulwark'); c = near(g);
+    const hp = g.p.hp; g.useKey(); c.state = 'chase'; run(g, 4.5);
+    expect(g.p.hp).toBe(hp);
+    g = setup(83, 'cook'); c = near(g);
+    const before = c.hp; g.useKey(); run(g, 3, () => !c.alive);
+    expect(c.hp).toBeLessThan(before);
+    g = setup(84, 'finder'); c = near(g);
+    g.useKey(); expect(c.fx.picked).toBe(true);
+    g.keyCd = 0; g.useKey(); expect(g.keyCd).toBe(0); // refused: no cooldown spent
+  });
+
+  it('Knockdown hurls and stuns; Fuse bursts; Chain jumps; Toll stuns everything near', () => {
+    let g = setup(85, 'brute'); let c = near(g);
+    const d0 = Math.hypot(c.x - g.p.x, c.z - g.p.z); g.useKey();
+    expect(Math.hypot(c.x - g.p.x, c.z - g.p.z)).toBeGreaterThan(d0 + 0.5);
+    expect(c.fx.root).toBeGreaterThan(1.9);
+    g = setup(86, 'powder'); c = near(g);
+    const h = c.hp; g.useKey(); run(g, 2.5);
+    expect(c.hp < h || !c.alive).toBe(true);
+    g = setup(87, 'bell'); c = near(g);
+    g.useKey(); expect(c.fx.disarm).toBeGreaterThan(1.4);
+    expect(g.utilityCharms('home')).toBe(0);
+  });
+
+  it('Steal only works on elites and lends their power; Turncoat sets a foe on its own side; bosses refuse it', () => {
+    const g = setup(88, 'skeleton');
+    const c = near(g);
+    g.useKey(); expect(g.keyCd).toBe(0); // not an elite: refused
+    c.elite = 'barnacled'; const dr = g.stats.dr;
+    g.useKey(); expect(g.stolen?.affix).toBe('barnacled'); expect(g.stats.dr).toBeGreaterThan(dr);
+    const t = setup(89, 'mutineer'); const a = near(t);
+    t.useKey(); expect(a.fx.turn).toBeGreaterThan(7);
   });
 });

@@ -1,7 +1,7 @@
 # Keys and keyholes
 
-Design for Shattered Reef's signature system: One Piece's fruits and Locke & Key's keys in one. **The first 10 keys
-are built** (2026-10-25: `src/game/data/keys.ts`, every number in `KEY_CONFIG`); the other 11 are still design. Started from Tom's idea and a 100-key brainstorm; see
+Design for Shattered Reef's signature system: One Piece's fruits and Locke & Key's keys in one. **All 21 keys
+are built** (2026-10-25: `src/game/data/keys.ts`, every number in `KEY_CONFIG`). Started from Tom's idea and a 100-key brainstorm; see
 "What was cut" at the end for what was kept from that list.
 
 ## The rules
@@ -55,7 +55,7 @@ data table (`KEYS` in `content.ts`, planned) so balance is tuned in one place.
 | **Mutineer's Key** | Legendary | +10% damage while below half health | **Turncoat** (90 s): the foe fights for you for 8 s (not bosses) | Temple serpent (rare) |
 | **Keel's Tooth** | Legendary | Crabs and the Drowned never attack first | **Bite** (45 s): the foe's keyhole snaps shut. It can't use powers, telegraphs or summons for 10 s | Quest key already in the game; becomes slottable at the end of the bell quest |
 
-**First batch to build (10):** Quick Study, Woodsman's, Prospector's, Angler's, Duellist's, Marksman's, Tide,
+**Built first (10):** Quick Study, Woodsman's, Prospector's, Angler's, Duellist's, Marksman's, Tide,
 Leech, Helmsman's and Wanderer's. Together they cover gathering, the three combat styles, sailing and exploring.
 Every effect uses systems the game already has, except Root, Becalm and Blink. Those need enemy status timers,
 one small mechanic that later keys reuse.
@@ -100,3 +100,17 @@ Settings: `devFreeKeySwap: boolean`. Constants: `KEY_DORMANT_S = 1800`, `KEY_REA
   systems are ever built.
 - **Kept from it:** one slot, permanent unlocks, swapping only at safe spots and never in a fight, names that say
   what the key does, Quick Study as the +3% XP starter.
+
+## Built as designed, with these changes (second ring)
+
+- Keys also turn up from anything you make at a station (1 in 8,000 per item). Rare keys are 0.6× as likely as
+  common ones, legendary 0.25×. Keel's Tooth never drops: it's given at the end of the bell quest (and to anyone
+  who had already finished it).
+- **Skeleton Key**'s passive became "nests, geodes and caskets you open give their loot twice" (caskets always
+  opened already). **Steal** on Barnacled: take a third less damage; Frenzied: attack 40% faster; Volatile: your
+  kills explode for your max hit around them.
+- **Fuse** deals 2.5× your max hit to the foe and 60% of that to everything within 3 m. **Chain** strikes the foe
+  and three more at 60% of your max hit. **Turncoat**: the foe attacks its nearest ally at 80% of its own max hit.
+- **Keel's Tooth**: Bite stops a foe's attacks for 10 s (5 s and no summons for bosses); crabs and the Drowned
+  never start a fight with you while it's slotted.
+- Pickpocket, Steal and Turncoat refuse a foe they can't work on without spending the cooldown.
