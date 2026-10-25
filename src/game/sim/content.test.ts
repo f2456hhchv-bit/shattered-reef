@@ -451,6 +451,19 @@ describe('end-game content works end to end', () => {
     expect(g.p.xp.crafting).toBeGreaterThan(600);
   });
 
+  it('Bellwether\'s shore beetles drop chitin, and chitin laces into a helm at the workbench', () => {
+    expect(LOOT.shore_beetle.drops.some((d) => d.item === 'chitin')).toBe(true);
+    expect(regionLayout('bellwether').spawns.some((sp) => sp.enemy === 'shore_beetle')).toBe(true);
+    const g = fresh();
+    g.give('chitin', 3); g.give('leather', 1);
+    (g.p.xp as Record<string, number>).crafting = xpForLevel(12);
+    const bench = g.layout.stations.find((st) => st.id === 'bench')!;
+    goTo(g, bench.x + 1.2, bench.z + 1.2);
+    g.craft('craft_helm_chitin', 1);
+    run(g, 10, () => g.p.inv.some((st) => st?.id === 'helm_chitin'));
+    expect(g.p.inv.some((st) => st?.id === 'helm_chitin')).toBe(true);
+  });
+
   it('smelts tidecore and forges tidecore plate at the Ironcrag forge', () => {
     const g = maxed();
     g.give('ore_tide', 5); g.give('ore_coal', 40); g.give('sea_salt', 5);

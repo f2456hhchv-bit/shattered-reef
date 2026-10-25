@@ -126,7 +126,7 @@ export async function renderAll(mode: 'sheet' | 'files' = 'sheet') {
     else if (e.model === 'boar') o = buildBoar(3).root;
     else if (e.model === 'spider') o = buildSpider(e.look, 5).root;
     else if (e.model === 'snake') o = buildSnake(e.look, 9).root;
-    else if (e.model === 'wisp' || e.model === 'golem' || e.model === 'hound' || e.model === 'bat' || e.model === 'wraith') o = buildFantasy(e.model as FantasyModel, e.look, 7).root;
+    else if (e.model === 'golem' || e.model === 'hound' || e.model === 'bat' || e.model === 'beetle') o = buildFantasy(e.model as FantasyModel, e.look, 7).root;
     else { const look = HUMAN_LOOKS[e.look ?? e.model] ?? BRIGAND_LOOK; o = buildHumanoid(e.model === 'gunner' ? { ...look, held: 'musket' } : look).root; }
     const where = e.boss ? 'Boss' : e.level >= 50 ? 'Late game' : e.level >= 20 ? 'Mid game' : 'Early game';
     const loot = LOOT[e.loot];

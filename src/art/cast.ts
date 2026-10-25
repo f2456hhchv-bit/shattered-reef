@@ -43,5 +43,9 @@ export const HUMAN_LOOKS: Record<string, HumanoidLook> = {
   smuggler: { skin: 0xc8946a, coat: 0x23364a, coatTrim: 0xb8b0a0, shirt: 0xd8ccb0, trousers: 0x2e2a26, boots: 'leather', hat: 0x161616, hair: 0x2a1a12, hatStyle: 'tricorn', held: 'cutlass' },
   poacher: { skin: 0xb98058, coat: 0x445228, coatTrim: 0x7a5a30, shirt: 0x9a8a62, trousers: 0x3a3424, boots: 'leather', hat: 0x5a4024, hair: 0x6a4a2a, hatStyle: 'cap', held: 'cutlass' },
   drowned: { skin: DROWNED_SKIN, coat: 0x2c3b3a, coatTrim: 0x5a6a5a, shirt: 0x7a8a7a, trousers: 0x2a3030, boots: 0x1e2424, hat: 0x2a3a34, hair: 0x3a4a44, hatStyle: 'bandana', held: 'cutlass', eyes: 0xbfeee4 },
+  // Bellwether's folk under the hill and in the barrows; Stormwrack's drowned dead (docs/ISLANDS.md)
+  knocker: { skin: 0x8a9a7a, coat: 0x5a4a36, coatTrim: 0x3a2e22, shirt: 0x7a6a50, trousers: 0x3a3028, boots: 0x2a2018, hat: 0xc9a050, hair: 0xd8d0c0, hatStyle: 'cap', beard: true, held: 'hammer', eyes: 0xf2d04a },
+  barrow: { skin: 0xc8c2a4, coat: 0x5a4a3a, coatTrim: 0x8a5a2a, shirt: 0x6a6050, trousers: 0x3a342a, boots: 0x2a241c, hat: 0x6a6a6a, hair: 0x8a8478, hatStyle: 'none', held: 'greatsword', eyes: 0x9ad8ff },
+  seadraugr: { skin: DROWNED_SKIN, coat: 0x2a4a3a, coatTrim: 0x6ac8a8, shirt: 0x4a5a4a, trousers: 0x22302a, boots: 0x1a2420, hat: 0x2a3a34, hair: 0x2a4a3a, hatStyle: 'none', held: 'pike', eyes: 0x8affe8 },
   captain: { skin: DROWNED_SKIN, coat: 0x3a1828, coatTrim: 'brass', shirt: 0x8a9a8a, trousers: 0x22201e, boots: 0x1e2424, hat: 0x141414, hair: 0x3a4a44, hatStyle: 'tricorn', held: 'cutlass', eyes: 0xbfeee4 },
 };

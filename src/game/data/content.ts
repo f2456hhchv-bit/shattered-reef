@@ -204,6 +204,10 @@ function buildRecipes(): Recipe[] {
   craft('bracelet_gold', 'furnace', 7, 25, [['bar_gold', 1]], 'bracelet_gold');
   craft('amulet_gold', 'furnace', 8, 30, [['bar_gold', 2]], 'amulet_gold');
   craft('cap_leather', 'bench', 9, 18, [['leather', 1]], 'cap_leather');
+  // chitin: shore-beetle shell, laced with leather; light armour that turns blades (Bellwether, Crafting 12-18)
+  craft('helm_chitin', 'bench', 12, 30, [['chitin', 3], ['leather', 1]], 'helm_chitin');
+  craft('legs_chitin', 'bench', 15, 40, [['chitin', 4], ['leather', 1]], 'legs_chitin');
+  craft('body_chitin', 'bench', 18, 55, [['chitin', 6], ['leather', 2]], 'body_chitin');
   craft('orb_glass', 'furnace', 10, 30, [['charm_tide', 20], ['sea_salt', 1]], 'orb_glass');
   craft('chaps_leather', 'bench', 11, 27, [['leather', 2]], 'chaps_leather');
   craft('coat_padded', 'bench', 14, 35, [['leather', 3]], 'coat_padded');
@@ -380,9 +384,9 @@ export const PLAYER_BASE = {
 };
 
 // ---- enemies -------------------------------------------------------------------
-export type EnemyModel = 'crab' | 'brigand' | 'gunner' | 'guardian' | 'boar' | 'spider' | 'snake' | 'wisp' | 'golem' | 'hound' | 'bat' | 'wraith';
+export type EnemyModel = 'crab' | 'brigand' | 'gunner' | 'guardian' | 'boar' | 'spider' | 'snake' | 'golem' | 'hound' | 'bat' | 'beetle';
 /** Visual variant: crab shell / humanoid outfit / stone tint, chosen by the renderer. */
-export type EnemyLook = 'reef' | 'mire' | 'ironshell' | 'brigand' | 'gunner' | 'smuggler' | 'poacher' | 'drowned' | 'captain' | 'sentinel' | 'cave' | 'giant' | 'jungle' | 'ember' | 'sunscale' | 'hunter' | 'drift' | 'bog' | 'stalker' | 'moon' | 'amber' | 'storm' | 'brine' | 'oak' | 'queen';
+export type EnemyLook = 'reef' | 'mire' | 'ironshell' | 'brigand' | 'gunner' | 'smuggler' | 'poacher' | 'drowned' | 'captain' | 'sentinel' | 'cave' | 'giant' | 'jungle' | 'ember' | 'sunscale' | 'hunter' | 'stalker' | 'moon' | 'amber' | 'oak' | 'queen' | 'shore' | 'gull' | 'thorn' | 'knocker' | 'leech' | 'barrow' | 'troll' | 'seadraugr';
 
 export interface EnemyDef {
   id: string;
@@ -454,11 +458,21 @@ export const ENEMIES: Record<string, EnemyDef> = {
     speed: 2.6, radius: 0.6, aggro: 11, attack: { kind: 'shot', range: 9, windup: 0.7, cooldown: 3.0 }, loot: 'ember', respawn: 50, scale: 1.7 },
   temple_serpent: { id: 'temple_serpent', name: 'The Sunscale', model: 'snake', look: 'sunscale', boss: true, level: 32, hp: 50, att: 30, def: 22, defBonus: { melee: 25, ranged: 5, magic: 20 }, weakness: 'ranged', style: 'melee', accBonus: 26, maxHit: 5,
     speed: 2.7, radius: 1.5, aggro: 20, attack: { kind: 'melee', range: 3.5, windup: 0.6, cooldown: 3 }, loot: 'serpent', respawn: 0, scale: 3.0 },
-  // ---- the islands' stranger folk (Tom, 2026-10-25: "think fantasy"; plain fighters, no special attacks)
-  driftling: { id: 'driftling', name: 'Driftling', model: 'golem', look: 'drift', level: 6, hp: 12, att: 5, def: 5, defBonus: { melee: 10, ranged: 15, magic: -15 }, weakness: 'magic', style: 'melee', accBonus: 4, maxHit: 2,
-    speed: 2.2, radius: 0.6, aggro: 6, attack: { kind: 'melee', range: 1.7, windup: 0.6, cooldown: 2.8 }, loot: 'driftling', respawn: 25, scale: 0.7 },
-  bog_wisp: { hostile: true, id: 'bog_wisp', name: 'Bog wisp', model: 'wisp', look: 'bog', level: 13, hp: 14, att: 12, def: 8, defBonus: { melee: -10, ranged: 15, magic: 20 }, weakness: 'melee', style: 'magic', accBonus: 10, maxHit: 3,
-    speed: 2.6, radius: 0.5, aggro: 9, attack: { kind: 'shot', range: 9, windup: 0.8, cooldown: 3.4 }, loot: 'bog_wisp', respawn: 30, scale: 0.9 },
+  // ---- the islands' stranger folk (Tom, 2026-10-25: "creatures, bugs, fantasy"; plain fighters, no special attacks)
+  // Bellwether (1-20): Celtic shore folklore (docs/ISLANDS.md)
+  shore_beetle: { id: 'shore_beetle', name: 'Shore beetle', model: 'beetle', look: 'shore', level: 2, hp: 5, att: 1, def: 2, defBonus: { melee: 5, ranged: 15, magic: -10 }, weakness: 'magic', style: 'melee', accBonus: 0, maxHit: 1,
+    speed: 2.6, radius: 0.55, aggro: 5, attack: { kind: 'melee', range: 1.4, windup: 0.5, cooldown: 2.4 }, loot: 'shore_beetle', respawn: 20, scale: 0.8 },
+  gull: { id: 'gull', name: 'Herring gull', model: 'bat', look: 'gull', level: 5, hp: 8, att: 4, def: 3, defBonus: { melee: 5, ranged: -10, magic: 5 }, weakness: 'ranged', style: 'melee', accBonus: 3, maxHit: 1,
+    speed: 4.0, radius: 0.45, aggro: 6, attack: { kind: 'melee', range: 1.5, windup: 0.3, cooldown: 2.0 }, loot: 'gull', respawn: 20, scale: 0.8 },
+  spriggan: { id: 'spriggan', name: 'Bramble spriggan', model: 'golem', look: 'thorn', level: 9, hp: 15, att: 8, def: 7, defBonus: { melee: 15, ranged: 10, magic: -10 }, weakness: 'magic', style: 'melee', accBonus: 7, maxHit: 2,
+    speed: 2.8, radius: 0.5, aggro: 7, attack: { kind: 'melee', range: 1.6, windup: 0.45, cooldown: 2.4 }, loot: 'spriggan', respawn: 25, scale: 0.85 },
+  knocker: { hostile: true, id: 'knocker', name: 'Knocker', model: 'brigand', look: 'knocker', level: 12, hp: 15, att: 11, def: 9, defBonus: { melee: 15, ranged: -10, magic: 10 }, weakness: 'ranged', style: 'melee', accBonus: 9, maxHit: 3,
+    speed: 3.0, radius: 0.4, aggro: 7, attack: { kind: 'melee', range: 1.5, windup: 0.4, cooldown: 2.4 }, loot: 'knocker', respawn: 25, scale: 0.7 },
+  bog_leech: { hostile: true, id: 'bog_leech', name: 'Bog leech', model: 'snake', look: 'leech', level: 14, hp: 17, att: 12, def: 9, defBonus: { melee: -10, ranged: 15, magic: 10 }, weakness: 'melee', style: 'melee', accBonus: 10, maxHit: 3,
+    speed: 2.4, radius: 0.5, aggro: 5, attack: { kind: 'melee', range: 1.5, windup: 0.4, cooldown: 2.2 }, loot: 'bog_leech', respawn: 25, scale: 0.9 },
+  barrow_dead: { hostile: true, id: 'barrow_dead', name: 'Barrow-dead', model: 'brigand', look: 'barrow', level: 18, hp: 22, att: 17, def: 14, defBonus: { melee: 20, ranged: 15, magic: -10 }, weakness: 'magic', style: 'melee', accBonus: 13, maxHit: 4,
+    speed: 2.6, radius: 0.45, aggro: 8, attack: { kind: 'melee', range: 1.7, windup: 0.5, cooldown: 2.6 }, loot: 'barrow_dead', respawn: 35, scale: 1.15 },
+  // further out (their islands' slices replace the rest of this list)
   cave_bat: { hostile: true, id: 'cave_bat', name: 'Cave bat', model: 'bat', look: 'cave', level: 17, hp: 16, att: 16, def: 10, defBonus: { melee: 10, ranged: -10, magic: 5 }, weakness: 'ranged', style: 'melee', accBonus: 12, maxHit: 3,
     speed: 4.2, radius: 0.5, aggro: 8, attack: { kind: 'melee', range: 1.6, windup: 0.3, cooldown: 2.0 }, loot: 'cave_bat', respawn: 25, scale: 0.9 },
   stalker: { hostile: true, id: 'stalker', name: 'Greenheart stalker', model: 'hound', look: 'stalker', level: 22, hp: 26, att: 21, def: 15, defBonus: { melee: 15, ranged: 10, magic: -10 }, weakness: 'magic', style: 'melee', accBonus: 16, maxHit: 4,
@@ -469,10 +483,10 @@ export const ENEMIES: Record<string, EnemyDef> = {
     speed: 4.6, radius: 0.6, aggro: 10, attack: { kind: 'melee', range: 1.8, windup: 0.35, cooldown: 2.2 }, loot: 'moonhound', respawn: 35, scale: 1.2 },
   amber_golem: { hostile: true, id: 'amber_golem', name: 'Amber golem', model: 'golem', look: 'amber', level: 44, hp: 60, att: 40, def: 40, defBonus: { melee: -10, ranged: 45, magic: 35 }, weakness: 'melee', style: 'melee', accBonus: 30, maxHit: 7,
     speed: 2.2, radius: 0.9, aggro: 8, attack: { kind: 'melee', range: 2.2, windup: 0.7, cooldown: 3.0 }, loot: 'amber_golem', respawn: 45, scale: 1.1 },
-  storm_wisp: { hostile: true, id: 'storm_wisp', name: 'Storm wisp', model: 'wisp', look: 'storm', level: 58, hp: 55, att: 56, def: 40, defBonus: { melee: -10, ranged: 45, magic: 50 }, weakness: 'melee', style: 'magic', accBonus: 46, maxHit: 9,
-    speed: 3.0, radius: 0.5, aggro: 11, attack: { kind: 'shot', range: 10, windup: 0.7, cooldown: 3.0 }, loot: 'storm_wisp', respawn: 45, scale: 1.1 },
-  brine_wraith: { hostile: true, id: 'brine_wraith', name: 'Brine wraith', model: 'wraith', look: 'brine', level: 66, hp: 72, att: 64, def: 50, defBonus: { melee: 50, ranged: -10, magic: 50 }, weakness: 'ranged', style: 'magic', accBonus: 55, maxHit: 11,
-    speed: 3.1, radius: 0.55, aggro: 10, attack: { kind: 'melee', range: 2.0, windup: 0.5, cooldown: 2.6 }, loot: 'brine_wraith', respawn: 60, scale: 1.1 },
+  crag_troll: { hostile: true, id: 'crag_troll', name: 'Crag troll', model: 'golem', look: 'troll', level: 58, hp: 70, att: 56, def: 46, defBonus: { melee: 45, ranged: 45, magic: -10 }, weakness: 'magic', style: 'melee', accBonus: 46, maxHit: 9,
+    speed: 2.4, radius: 1.0, aggro: 9, attack: { kind: 'melee', range: 2.4, windup: 0.7, cooldown: 3.0 }, loot: 'crag_troll', respawn: 60, scale: 1.3 },
+  sea_draugr: { hostile: true, id: 'sea_draugr', name: 'Sea-draugr', model: 'brigand', look: 'seadraugr', level: 66, hp: 72, att: 64, def: 50, defBonus: { melee: 50, ranged: -10, magic: 50 }, weakness: 'ranged', style: 'melee', accBonus: 55, maxHit: 11,
+    speed: 3.0, radius: 0.5, aggro: 10, attack: { kind: 'melee', range: 2.0, windup: 0.5, cooldown: 2.6 }, loot: 'sea_draugr', respawn: 60, scale: 1.25 },
   oakheart: { hostile: true, id: 'oakheart', name: 'Oakheart', model: 'golem', look: 'oak', level: 76, hp: 100, att: 70, def: 72, defBonus: { melee: 65, ranged: 70, magic: -15 }, weakness: 'magic', style: 'melee', accBonus: 64, maxHit: 13,
     speed: 2.0, radius: 1.1, aggro: 8, attack: { kind: 'melee', range: 2.6, windup: 0.8, cooldown: 3.2 }, loot: 'oakheart', respawn: 90, scale: 1.45 },
   // Amberhold's finale: the giant weavers' mother, under Weaver Hollow
@@ -546,9 +560,19 @@ export const LOOT: Record<string, LootTable> = {
   weaver_young: { coins: [12, 30], drops: [{ item: 'spider_silk', chance: 0.6, qty: [1, 2] }, { item: 'charm_tide', chance: 0.4, qty: [5, 10] }], gear: { chance: 0.06, items: ['ring_gold', 'dagger_steel', 'wand_storm'], weights: { common: 50, fine: 38, rare: 12 } } },
   serpent: { sig: { item: 'sig_fang', chance: 1 / 40 }, coins: [150, 300], drops: [{ item: 'sunscale', chance: 1, qty: [1, 3] }, { item: 'snake_skin', chance: 1, qty: [3, 6] }, { item: 'bar_storm', chance: 0.5, qty: [1, 3] }, { item: 'charm_tide', chance: 1, qty: [40, 80] }],
     gear: { chance: 1, items: ['cutlass_storm', 'pistol_storm', 'staff_storm', 'helm_storm', 'plate_storm', 'longbow_amber'], weights: { rare: 65, relic: 35 } } },
-  driftling: { coins: [2, 8], drops: [{ item: 'logs_pine', chance: 0.6, qty: [1, 3] }, { item: 'kelp', chance: 0.3, qty: [1, 2] }] },
-  bog_wisp: { coins: [4, 14], drops: [{ item: 'charm_tide', chance: 0.8, qty: [4, 9] }, { item: 'kelp', chance: 0.25, qty: [1, 3] }],
-    gear: { chance: 0.05, items: ['wand_coral', 'ring_brass', 'staff_coral'], weights: { common: 55, fine: 37, rare: 8 } } },
+  shore_beetle: { coins: [1, 3], drops: [{ item: 'chitin', chance: 0.6 }, { item: 'shell_fragment', chance: 0.2 }] },
+  gull: { coins: [1, 5], drops: [{ item: 'fish_sprat_raw', chance: 0.5 }, { item: 'charm_tide', chance: 0.2, qty: [2, 4] }] }, // the fish it stole off someone
+  spriggan: { coins: [3, 10], drops: [{ item: 'logs_oak', chance: 0.5, qty: [1, 2] }, { item: 'berries', chance: 0.5, qty: [2, 4] }],
+    gear: { chance: 0.05, items: ['staff_driftwood', 'wand_driftwood', 'ring_brass'], weights: { common: 55, fine: 37, rare: 8 } } },
+  knocker: { coins: [4, 14], drops: [{ item: 'ore_copper', chance: 0.3, qty: [1, 2] }, { item: 'ore_tin', chance: 0.3, qty: [1, 2] }, { item: 'ore_iron', chance: 0.3 }],
+    gear: { chance: 0.06, items: ['pickaxe_bronze', 'pickaxe_iron', 'helm_bronze'], weights: { common: 55, fine: 37, rare: 8 } } },
+  bog_leech: { coins: [3, 12], drops: [{ item: 'kelp', chance: 0.4, qty: [1, 3] }, { item: 'charm_tide', chance: 0.5, qty: [3, 7] }] },
+  barrow_dead: { coins: [12, 30], drops: [{ item: 'charm_tide', chance: 0.5, qty: [5, 10] }, { item: 'bar_iron', chance: 0.15 }],
+    gear: { chance: 0.14, items: ['cutlass_iron', 'helm_iron', 'shield_iron', 'amulet_brass', 'bracelet_brass', 'ring_brass', 'greatsword_iron'], weights: { common: 45, fine: 40, rare: 15 } } }, // grave goods
+  crag_troll: { coins: [40, 90], drops: [{ item: 'ore_abyss', chance: 0.3 }, { item: 'ore_coal', chance: 0.5, qty: [2, 4] }, { item: 'crystal_geode', chance: 0.05 }],
+    gear: { chance: 0.07, items: ['pike_abyss', 'helm_abyss', 'shield_abyss'], weights: { common: 45, fine: 40, rare: 13, relic: 2 } } },
+  sea_draugr: { coins: [50, 110], drops: [{ item: 'charm_tide', chance: 0.6, qty: [12, 24] }, { item: 'sea_salt', chance: 0.4, qty: [2, 4] }, { item: 'ore_tide', chance: 0.15 }],
+    gear: { chance: 0.08, items: ['cutlass_tide', 'helm_tide', 'book_storm'], weights: { common: 45, fine: 40, rare: 13, relic: 2 } } },
   cave_bat: { coins: [5, 16], drops: [{ item: 'charm_tide', chance: 0.35, qty: [3, 7] }, { item: 'ore_iron', chance: 0.2 }] },
   stalker: { coins: [8, 24], drops: [{ item: 'boar_hide', chance: 0.5 }, { item: 'logs_willow', chance: 0.2, qty: [1, 2] }],
     gear: { chance: 0.06, items: ['dagger_steel', 'boots_steel', 'ring_gold'], weights: { common: 52, fine: 38, rare: 10 } } },
@@ -557,10 +581,6 @@ export const LOOT: Record<string, LootTable> = {
     gear: { chance: 0.08, items: ['dagger_storm', 'boots_storm', 'gloves_storm', 'amulet_gold'], weights: { common: 48, fine: 38, rare: 14 } } },
   amber_golem: { coins: [25, 60], drops: [{ item: 'ore_gold', chance: 0.5, qty: [1, 3] }, { item: 'ore_storm', chance: 0.2 }, { item: 'crystal_geode', chance: 0.06 }],
     gear: { chance: 0.08, items: ['helm_storm', 'shield_storm', 'orb_storm', 'pike_storm'], weights: { common: 46, fine: 40, rare: 14 } } },
-  storm_wisp: { coins: [40, 90], drops: [{ item: 'charm_tide', chance: 0.9, qty: [15, 30] }, { item: 'crystal_geode', chance: 0.05 }],
-    gear: { chance: 0.07, items: ['wand_tide', 'orb_tide', 'staff_tide'], weights: { common: 45, fine: 40, rare: 13, relic: 2 } } },
-  brine_wraith: { coins: [50, 110], drops: [{ item: 'charm_tide', chance: 0.6, qty: [12, 24] }, { item: 'sea_salt', chance: 0.4, qty: [2, 4] }, { item: 'ore_tide', chance: 0.15 }],
-    gear: { chance: 0.08, items: ['cutlass_tide', 'helm_tide', 'book_storm'], weights: { common: 45, fine: 40, rare: 13, relic: 2 } } },
   oakheart: { coins: [60, 140], drops: [{ item: 'logs_cedar', chance: 0.35 }, { item: 'logs_star', chance: 0.25, qty: [1, 2] }, { item: 'logs_yew', chance: 0.5, qty: [2, 4] }],
     gear: { chance: 0.08, items: ['staff_tide', 'longbow_amber', 'shield_tide'], weights: { common: 45, fine: 40, rare: 13, relic: 2 } } },
   broodmother: { sig: { item: 'sig_skypiercer', chance: 1 / 30 }, coins: [300, 600], drops: [{ item: 'spider_silk', chance: 1, qty: [6, 12] }, { item: 'bar_storm', chance: 0.6, qty: [2, 4] }, { item: 'crystal_geode', chance: 0.5 }, { item: 'charm_tide', chance: 1, qty: [60, 120] }],
