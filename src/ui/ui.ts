@@ -7,7 +7,7 @@ import { NPC_LOOKS, PLAYER_LOOK } from '../art/cast';
 import { NODES, SKILLS, UNLOCKS, RECIPES, UTILITY_SPELLS, ELITE_AFFIXES, ENEMIES, PLAYER_BASE, SPELLS, type Station } from '../game/data/content';
 import type { Stance } from '../game/sim/gear';
 import { NPCS, QUESTS } from '../game/data/quests';
-import { coastDist, nearestPathDist, FLATS, SUN, WRACK, coastR, sunCoastR, wrackCoastR, LAYOUT, SUN_LAYOUT } from '../game/world/island';
+import { coastDist, nearestPathDist, FLATS, SUN, WRACK, AMBER, coastR, sunCoastR, wrackCoastR, amberCoastR, LAYOUT, SUN_LAYOUT } from '../game/world/island';
 import { PLACES, placeRegion } from '../game/world/places';
 import { REGIONS } from '../game/world/regions';
 import { count, displayName, stackValue, INV_SIZE, type Stack } from '../game/sim/inventory';
@@ -1261,6 +1261,7 @@ export class UI {
     const g = this.game, r = g.region;
     if (r.id === 'sunreach') return { cx: SUN.x, cz: SUN.z, span: 170 };
     if (r.id === 'wrack') return { cx: WRACK.x, cz: WRACK.z, span: 150 };
+    if (r.id === 'amberhold') return { cx: AMBER.x, cz: AMBER.z, span: 160 };
     if (r.id === 'bellwether') return { cx: 0, cz: 0, span: 216 };
     return { cx: r.bounds.cx, cz: r.bounds.cz, span: r.bounds.half * 2 };
   }
@@ -1333,42 +1334,59 @@ export class UI {
     });
   }
 
-  /** The sea chart: both islands drawn from their coastlines, the lane between them, the caves beneath. */
+  /** The sea chart: the islands drawn from their coastlines (drawn larger than life so four fit), the lanes
+   * between them, the caves beneath. */
   private drawChart(c: CanvasRenderingContext2D, W: number) {
     const g = this.game;
     c.fillStyle = '#d9c9a0'; c.fillRect(0, 0, W, W); // parchment
     c.fillStyle = '#9cc4c4'; c.fillRect(14, 14, W - 28, W - 28);
-    const span = 1240, cx = WRACK.x / 2, cz = -10, ox = cx - span / 2, oz = cz - span / 2;
-    const toPx = (x: number, z: number): [number, number] => [((x - ox) / span) * W, ((z - oz) / span) * W];
-    const isle = (x0: number, z0: number, r: (t: number) => number, here: boolean) => {
-      c.beginPath();
-      for (let k = 0; k <= 96; k++) { const t = (k / 96) * Math.PI * 2 - Math.PI, rr = r(t); const [px, py] = toPx(x0 + Math.cos(t) * rr, z0 + Math.sin(t) * rr); if (k) c.lineTo(px, py); else c.moveTo(px, py); }
-      c.closePath(); c.fillStyle = '#e8d9a8'; c.fill(); c.lineWidth = 3; c.strokeStyle = '#8a6a3a'; c.stroke();
-      c.save(); c.clip(); c.fillStyle = here ? '#7fa65a' : '#93ab6c'; const [px, py] = toPx(x0, z0); c.beginPath(); c.arc(px, py, (r(0) - 10) / span * W, 0, 7); c.fill(); c.restore();
+    const ISLES = [
+      { id: 'bellwether', x: 0, z: 0, coast: coastR, name: 'Bellwether Isle', zoom: 1.25 },
+      { id: 'sunreach', x: SUN.x, z: SUN.z, coast: sunCoastR, name: 'Sunreach Isle', zoom: 1.8 },
+      { id: 'amberhold', x: AMBER.x, z: AMBER.z, coast: amberCoastR, name: 'Amberhold Isle', zoom: 1.8 },
+      { id: 'wrack', x: WRACK.x, z: WRACK.z, coast: wrackCoastR, name: 'Stormwrack Isle', zoom: 1.8 },
+    ] as const;
+    const span = 1600, cx = WRACK.x / 2, cz = 10, ox = cx - span / 2, oz = cz - span / 2;
+    // a point near an island is pushed out from its centre by that island's zoom, so the chart stays true to where you are
+    const toPx = (x: number, z: number): [number, number] => {
+      const is = ISLES.reduce((a, b) => (Math.hypot(x - b.x, z - b.z) < Math.hypot(x - a.x, z - a.z) ? b : a));
+      const d = Math.hypot(x - is.x, z - is.z), k = d < 150 ? is.zoom : 1;
+      return [((is.x + (x - is.x) * k - ox) / span) * W, ((is.z + (z - is.z) * k - oz) / span) * W];
     };
-    isle(0, 0, coastR, g.s.region === 'bellwether' || g.region.home === 'bellwether' && g.region.kind === 'cave');
-    isle(SUN.x, SUN.z, sunCoastR, g.s.region === 'sunreach' || g.region.home === 'sunreach' && g.region.kind === 'cave');
-    isle(WRACK.x, WRACK.z, wrackCoastR, g.s.region === 'wrack');
-    // the sea lane: the edge of each island's waters, dashed
+    const here = (id: string) => g.s.region === id || (g.region.home === id && g.region.kind === 'cave');
+    for (const is of ISLES) {
+      c.beginPath();
+      for (let k = 0; k <= 96; k++) { const t = (k / 96) * Math.PI * 2 - Math.PI, rr = is.coast(t); const [px, py] = toPx(is.x + Math.cos(t) * rr, is.z + Math.sin(t) * rr); if (k) c.lineTo(px, py); else c.moveTo(px, py); }
+      c.closePath(); c.fillStyle = '#e8d9a8'; c.fill(); c.lineWidth = 3; c.strokeStyle = '#8a6a3a'; c.stroke();
+      c.save(); c.clip(); c.fillStyle = here(is.id) ? '#7fa65a' : '#93ab6c'; const [px, py] = toPx(is.x, is.z); c.beginPath(); c.arc(px, py, ((is.coast(0) - 10) * is.zoom) / span * W, 0, 7); c.fill(); c.restore();
+    }
+    // labels are kept inside the parchment's frame
+    const label = (text: string, px: number, py: number, size = 20, colour = '#3a2a1e') => {
+      c.font = `600 ${size}px Georgia, serif`; c.textAlign = 'center';
+      const half = c.measureText(text).width / 2 + 4; px = Math.max(20 + half, Math.min(W - 20 - half, px));
+      c.lineWidth = 4; c.strokeStyle = '#f2e6c8'; c.strokeText(text, px, py); c.fillStyle = colour; c.fillText(text, px, py);
+    };
+    // the sea lanes between neighbours, dashed and named
+    const LANES = ['Halyard Channel', 'The Tollway', 'The Gale Reach'];
     c.setLineDash([10, 8]); c.lineWidth = 2.5; c.strokeStyle = '#2f5a6a';
-    const [ax, ay] = toPx(REGIONS.bellwether.bounds.cx + REGIONS.bellwether.bounds.half - 16, 0), [bx, by] = toPx(REGIONS.sunreach.bounds.cx - REGIONS.sunreach.bounds.half + 16, SUN.z);
-    c.beginPath(); c.moveTo(toPx(70, 40)[0], toPx(70, 40)[1]); c.lineTo(ax, ay); c.lineTo(bx, by); c.lineTo(toPx(SUN.x - 60, SUN.z + 30)[0], toPx(SUN.x - 60, SUN.z + 30)[1]); c.stroke();
-    const [cx2, cy2] = toPx(REGIONS.sunreach.bounds.cx + REGIONS.sunreach.bounds.half - 16, SUN.z), [dx2, dy2] = toPx(REGIONS.wrack.bounds.cx - REGIONS.wrack.bounds.half + 16, WRACK.z);
-    c.beginPath(); c.moveTo(toPx(SUN.x + 60, SUN.z)[0], toPx(SUN.x + 60, SUN.z)[1]); c.lineTo(cx2, cy2); c.lineTo(dx2, dy2); c.lineTo(toPx(WRACK.x - 55, WRACK.z)[0], toPx(WRACK.x - 55, WRACK.z)[1]); c.stroke();
+    for (let i = 0; i < ISLES.length - 1; i++) {
+      const a = ISLES[i], b = ISLES[i + 1], [ax, ay] = toPx(a.x + a.coast(0) + 8, a.z), [bx, by] = toPx(b.x - b.coast(Math.PI) - 8, b.z);
+      c.lineWidth = 2.5; c.strokeStyle = '#2f5a6a'; c.beginPath(); c.moveTo(ax, ay); c.lineTo(bx, by); c.stroke();
+      c.setLineDash([]); label(LANES[i], (ax + bx) / 2, (ay + by) / 2 + (i % 2 ? 26 : -12), 15, '#2f5a6a'); c.setLineDash([10, 8]);
+    }
     c.setLineDash([]);
-    c.font = '600 20px Georgia, serif'; c.textAlign = 'center';
-    const label = (text: string, x: number, z: number, size = 20, colour = '#3a2a1e') => { const [px, py] = toPx(x, z); c.font = `600 ${size}px Georgia, serif`; c.lineWidth = 4; c.strokeStyle = '#f2e6c8'; c.strokeText(text, px, py); c.fillStyle = colour; c.fillText(text, px, py); };
-    label('Bellwether Isle', 0, 122, 26);
-    label('Sunreach Isle', SUN.x, SUN.z + 92, 26);
-    label('Stormwrack Isle', WRACK.x - 20, WRACK.z + 80, 26);
-    label('Halyard Channel', (ax + bx) / 2 / W * span + ox, -40, 22, '#2f5a6a');
-    label('The Gale Reach', (cx2 + dx2) / 2 / W * span + ox, WRACK.z - 50, 22, '#2f5a6a');
-    label('levels 1–30', 0, 150, 18, '#5a4a2e'); label('levels 25–60', SUN.x, SUN.z + 118, 18, '#5a4a2e'); label('levels 55–99', WRACK.x - 20, WRACK.z + 104, 18, '#5a4a2e');
+    // names alternate below and above, so neighbours' labels never meet
+    ISLES.forEach((is, i) => {
+      const [px, py] = toPx(is.x, is.z), r = ((is.coast(Math.PI / 2) + 14) * is.zoom) / span * W, band = REGIONS[is.id].band!;
+      const y = i % 2 ? py - r - 30 : py + r + 18;
+      label(is.name, px, y, 19);
+      label(band[0] >= 50 ? `levels ${band[0]}+ (mixed)` : `levels ${band[0]}–${band[1]}`, px, y + 18, 14, '#5a4a2e');
+    });
     // cave mouths, named once found
     for (const [x, z, id, name] of [[LAYOUT.cove.x + 6.5, LAYOUT.cove.z - 7.5, 'smugglers_caves', 'Smugglers\' Caves'], [SUN_LAYOUT.ember.x - 9, SUN_LAYOUT.ember.z + 9, 'ember_deep', 'The Ember Deep']] as const) {
       const [px, py] = toPx(x, z);
-      c.beginPath(); c.arc(px, py, 9, 0, 7); c.fillStyle = '#1a120a'; c.fill(); c.lineWidth = 2; c.strokeStyle = '#e8c27a'; c.stroke();
-      if (PLACES.some((p) => p.region === id && g.s.discovered.includes(p.id))) label(name, x, z - 14, 20);
+      c.beginPath(); c.arc(px, py, 8, 0, 7); c.fillStyle = '#1a120a'; c.fill(); c.lineWidth = 2; c.strokeStyle = '#e8c27a'; c.stroke();
+      if (PLACES.some((p) => p.region === id && g.s.discovered.includes(p.id))) label(name, px, py - 14, 16);
     }
     // you are here
     const at = g.region.kind === 'cave' ? (g.region.home === 'sunreach' ? SUN_LAYOUT.ember : LAYOUT.cove) : g.p;

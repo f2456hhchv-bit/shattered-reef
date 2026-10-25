@@ -59,8 +59,25 @@ export function sunPoint(thetaDeg: number, inset: number): [number, number] {
   return [SUN.x + Math.cos(t) * r, SUN.z + Math.sin(t) * r];
 }
 const sunAt = (thetaDeg: number, inset: number) => { const [x, z] = sunPoint(thetaDeg, inset); return { x, z }; };
-// ---- Stormwrack Isle: the third island, far east of Sunreach: wrecks, storm crags and the high metals ---------
-export const WRACK = { x: 840, z: -20 };
+// ---- Amberhold Isle: the third island (levels 25-50): amberwood, Goldvein Hill, the poachers' camp ---------
+export const AMBER = { x: 840, z: -20 };
+export const AMBER_RADIUS = 56;
+export function amberCoastR(theta: number): number {
+  const c = Math.cos(theta), s = Math.sin(theta);
+  return AMBER_RADIUS + (fbm(c * 2.4 + 71, s * 2.4 + 71, 4, 37) - 0.5) * 20
+    - lobe(theta, 90, 9, 8) // Tollhouse Landing's bay
+    + lobe(theta, 262, 11, 10) // the northern headland under the poachers' camp
+    + lobe(theta, 10, 9, 6) // the Ironshell Shore's spit
+    - lobe(theta, 160, 8, 6); // a cove under the amberwood
+}
+/** Point on Amberhold at angle `thetaDeg` round its centre, `inset` metres inside its coast. */
+export function amberPoint(thetaDeg: number, inset: number): [number, number] {
+  const t = deg(thetaDeg), r = amberCoastR(t) - inset;
+  return [AMBER.x + Math.cos(t) * r, AMBER.z + Math.sin(t) * r];
+}
+const amberAt = (thetaDeg: number, inset: number) => { const [x, z] = amberPoint(thetaDeg, inset); return { x, z }; };
+// ---- Stormwrack Isle: the first island past 50 (mixed levels), far east: wrecks, storm crags, the high metals --
+export const WRACK = { x: 1260, z: -20 };
 export const WRACK_RADIUS = 58;
 export function wrackCoastR(theta: number): number {
   const c = Math.cos(theta), s = Math.sin(theta);
@@ -119,6 +136,17 @@ export const LAYOUT = {
 };
 const sunQuay = sunAt(90, 0);
 const wrackQuay = wrackAt(90, 0);
+const amberQuay = amberAt(90, 0);
+/** Amberhold: an outpost at the landing; the amberwood west, Goldvein Hill east, the poachers north. */
+export const AMBER_LAYOUT = {
+  dockBase: { x: AMBER.x, z: amberQuay.z - 2.5 },
+  landing: { x: AMBER.x, z: amberQuay.z - 12 }, // Tollhouse Landing
+  amberwood: { x: AMBER.x - 22, z: AMBER.z - 4 }, // amber and willow; boars root at its edge
+  goldhill: { x: AMBER.x + 17, z: AMBER.z - 14 }, // gold, stormsilver and coal
+  camp: { x: AMBER.x - 4, z: AMBER.z - 34 }, // the poachers' camp on the northern headland
+  ironshore: amberAt(10, 6), // ironshell crabs and lobster pots
+  hollow: { x: AMBER.x + 24, z: AMBER.z + 10 }, // Weaver Hollow
+};
 /** Stormwrack: an outpost at the landing, the island climbing north to Thunder Crag. */
 export const WRACK_LAYOUT = {
   dockBase: { x: WRACK.x, z: wrackQuay.z - 2.5 },
@@ -146,7 +174,7 @@ const L = LAYOUT;
 export const BELL_TOWN = townPlan(L.village, L.crossroads);
 export const PORT_TOWN = portPlan(SUN_LAYOUT.port);
 export const TOWN = mergePlans(BELL_TOWN, PORT_TOWN);
-const SL = SUN_LAYOUT, WL = WRACK_LAYOUT;
+const SL = SUN_LAYOUT, WL = WRACK_LAYOUT, AL = AMBER_LAYOUT;
 /** Offshore islets: land you reach by ship. */
 export const ISLETS = [{ x: L.islet.x, z: L.islet.z, r: 13 }, { x: WL.islet.x, z: WL.islet.z, r: 13 }];
 export const LAGOON = { x: -34, z: -22, r: 9 };
@@ -168,6 +196,10 @@ export const FLATS: Flat[] = [
   { x: SL.plaza.x, z: SL.plaza.z, r: 9, h: 'pad', soft: 3 }, // levelled from the quay square's height, so the forge between them sits flat
   { x: SL.dockBase.x, z: SL.dockBase.z - 1, r: 3, h: 1.0 },
   { x: SL.temple.x, z: SL.temple.z, r: 8, h: 'auto' },
+  // Amberhold: the landing yard, the dock, the poachers' camp
+  { x: AL.landing.x, z: AL.landing.z, r: 11, h: 1.1 },
+  { x: AL.dockBase.x, z: AL.dockBase.z - 1, r: 3, h: 1.0 },
+  { x: AL.camp.x, z: AL.camp.z, r: 6, h: 'auto' },
   // Stormwrack: the landing yard, the dock, the crag's summit (the vent forge)
   { x: WL.landing.x, z: WL.landing.z, r: 11, h: 1.1 },
   { x: WL.dockBase.x, z: WL.dockBase.z - 1, r: 3, h: 1.0 },
@@ -188,6 +220,10 @@ export const HILLS: Hill[] = [
   { x: SL.ember.x, z: SL.ember.z, r: 15, h: 9 },
   { x: SL.ember.x + 8, z: SL.ember.z + 10, r: 9, h: 4 },
   { x: SL.jungle.x - 4, z: SL.jungle.z - 6, r: 16, h: 3 },
+  { x: AL.goldhill.x, z: AL.goldhill.z, r: 14, h: 8 },
+  { x: AL.goldhill.x - 8, z: AL.goldhill.z + 9, r: 8, h: 3.5 },
+  { x: AL.amberwood.x - 4, z: AL.amberwood.z - 5, r: 13, h: 3 },
+  { x: AL.camp.x + 6, z: AL.camp.z + 8, r: 9, h: 3 },
   { x: WL.crag.x, z: WL.crag.z - 4, r: 17, h: 12 },
   { x: WL.crag.x + 14, z: WL.crag.z + 6, r: 9, h: 5 },
   { x: WL.oldwood.x - 4, z: WL.oldwood.z - 4, r: 14, h: 3.5 },
@@ -220,6 +256,12 @@ export const PATHS: PathDef[] = [
   { width: 1.1, pts: [[SL.jungle.x, SL.jungle.z], [SL.temple.x - 2, SL.temple.z + 12], [SL.temple.x, SL.temple.z + 6]] },
   { width: 1.1, pts: [[SL.port.x - 6, SL.port.z + 2], [SL.palms.x + 10, SL.palms.z + 2], [SL.palms.x, SL.palms.z]] },
   { width: 1.1, pts: [[SL.ember.x - 2, SL.ember.z + 6], [SL.reefshore.x - 8, SL.reefshore.z], [SL.reefshore.x, SL.reefshore.z]] },
+  // Amberhold: the landing north through the island's middle to the poachers' camp; branches west, east, south-east
+  { width: 1.4, pts: [[AL.dockBase.x, AL.dockBase.z], [AL.landing.x, AL.landing.z], [AMBER.x + 2, AMBER.z + 2], [AL.camp.x + 3, AL.camp.z + 10], [AL.camp.x, AL.camp.z]] },
+  { width: 1.1, pts: [[AMBER.x + 2, AMBER.z + 2], [AL.amberwood.x + 10, AL.amberwood.z + 4], [AL.amberwood.x, AL.amberwood.z]] },
+  { width: 1.1, pts: [[AMBER.x + 2, AMBER.z + 2], [AL.goldhill.x - 8, AL.goldhill.z + 12], [AL.goldhill.x - 4, AL.goldhill.z + 6]] },
+  { width: 1.1, pts: [[AL.goldhill.x - 8, AL.goldhill.z + 12], [AL.ironshore.x - 10, AL.ironshore.z - 2], [AL.ironshore.x - 3, AL.ironshore.z]] },
+  { width: 1.1, pts: [[AL.landing.x + 4, AL.landing.z - 3], [AL.hollow.x - 8, AL.hollow.z + 4], [AL.hollow.x, AL.hollow.z]] },
   // Stormwrack: the landing up to the crag's foot; branches to the Wrack, the Old Wood and Starfall
   { width: 1.4, pts: [[WL.dockBase.x, WL.dockBase.z], [WL.landing.x, WL.landing.z], [WL.crag.x - 2, WL.crag.z + 16], [WL.crag.x - 1, WL.crag.z + 9]] },
   { width: 1.1, pts: [[WL.crag.x - 2, WL.crag.z + 16], [WL.oldwood.x + 10, WL.oldwood.z + 6], [WL.oldwood.x, WL.oldwood.z]] },
@@ -250,7 +292,7 @@ export function nearestPathDist(x: number, z: number): { d: number; width: numbe
 // The coastlines depend only on the angle, so they're tabulated once (the world build asks ~10^6 times)
 const COAST_STEPS = 2048;
 const tabulate = (f: (t: number) => number) => Float32Array.from({ length: COAST_STEPS + 1 }, (_, i) => f((i / COAST_STEPS) * Math.PI * 2 - Math.PI));
-let bellTable: Float32Array | null = null, sunTable: Float32Array | null = null, wrackTable: Float32Array | null = null;
+let bellTable: Float32Array | null = null, sunTable: Float32Array | null = null, wrackTable: Float32Array | null = null, amberTable: Float32Array | null = null;
 function fromTable(t: Float32Array, theta: number): number {
   const f = ((theta + Math.PI) / (Math.PI * 2)) * COAST_STEPS, i = Math.max(0, Math.min(COAST_STEPS - 1, Math.floor(f)));
   return t[i] + (t[i + 1] - t[i]) * (f - i);
@@ -261,8 +303,10 @@ export function coastDist(x: number, z: number): number {
   sunTable ??= tabulate(sunCoastR);
   const b = fromTable(bellTable, Math.atan2(z, x)) - Math.hypot(x, z);
   wrackTable ??= tabulate(wrackCoastR);
-  const dx = x - SUN.x, dz = z - SUN.z, wx = x - WRACK.x, wz = z - WRACK.z;
-  return Math.max(b, fromTable(sunTable, Math.atan2(dz, dx)) - Math.hypot(dx, dz), fromTable(wrackTable, Math.atan2(wz, wx)) - Math.hypot(wx, wz));
+  amberTable ??= tabulate(amberCoastR);
+  const dx = x - SUN.x, dz = z - SUN.z, wx = x - WRACK.x, wz = z - WRACK.z, ax = x - AMBER.x, az = z - AMBER.z;
+  return Math.max(b, fromTable(sunTable, Math.atan2(dz, dx)) - Math.hypot(dx, dz), fromTable(wrackTable, Math.atan2(wz, wx)) - Math.hypot(wx, wz),
+    fromTable(amberTable, Math.atan2(az, ax)) - Math.hypot(ax, az));
 }
 
 export function rawHeight(x: number, z: number): number {
@@ -317,7 +361,11 @@ function shapedHeight(x: number, z: number, levelled: boolean, upto = FLATS.leng
 // Offshore fishing grounds (ship only), as [angle in degrees, metres out from the coast].
 /** Ship-only fishing grounds off Sunreach (world x, z). */
 export const SUN_SEA_SPOTS: Record<string, [number, number][]> = {
-  spot_sword: [sunPoint(150, -18), sunPoint(60, -20)],
+  spot_bell: [sunPoint(150, -18), sunPoint(60, -20)],
+};
+/** Ship-only fishing grounds off Amberhold (world x, z). */
+export const AMBER_SEA_SPOTS: Record<string, [number, number][]> = {
+  spot_sword: [amberPoint(150, -18), amberPoint(40, -20)],
 };
 export const SEA_SPOTS: Record<string, [number, number][]> = {
   spot_bell: [[20, -16], [200, -16], [295, -17]],
@@ -356,7 +404,16 @@ export const ISLAND_PLACES: Place[] = [
   { id: 'palmcove', name: 'Palm Cove', x: SL.palms.x, z: SL.palms.z, r: 13, region: 'sunreach' },
   { id: 'reefshore', name: 'The Reef Shore', x: SL.reefshore.x, z: SL.reefshore.z, r: 13, region: 'sunreach' },
   { id: 'channel', name: 'Halyard Channel', x: SUN.x - 75, z: 10, r: 18, sea: true, region: 'sunreach' },
-  // Stormwrack Isle (levels 55 and up)
+  // Amberhold Isle (levels 25-50)
+  { id: 'tollhouse', name: 'Tollhouse Landing', x: AL.landing.x, z: AL.landing.z - 2, r: 16, region: 'amberhold' },
+  { id: 'amberwood', name: 'The Amberwood', x: AL.amberwood.x, z: AL.amberwood.z, r: 16, region: 'amberhold' },
+  { id: 'goldhill', name: 'Goldvein Hill', x: AL.goldhill.x, z: AL.goldhill.z, r: 15, region: 'amberhold' },
+  { id: 'poachcamp', name: 'The Poachers\' Camp', x: AL.camp.x, z: AL.camp.z, r: 12, region: 'amberhold' },
+  { id: 'ironshore', name: 'Ironshell Shore', x: AL.ironshore.x, z: AL.ironshore.z, r: 13, region: 'amberhold' },
+  { id: 'hollow', name: 'Weaver Hollow', x: AL.hollow.x, z: AL.hollow.z, r: 12, region: 'amberhold' },
+  ...([['a_swordrun', 'Amber Sound', 150, -18]] as const)
+    .map(([id, name, a, i]) => { const [x, z] = amberPoint(a, i); return { id, name, x, z, r: 16, sea: true, region: 'amberhold' as RegionId }; }),
+  // Stormwrack Isle (levels 50 and up, mixed)
   { id: 'gallows', name: 'Gallows Landing', x: WL.landing.x, z: WL.landing.z - 2, r: 16, region: 'wrack' },
   { id: 'thewrack', name: 'The Wrack', x: WL.wreck.x, z: WL.wreck.z, r: 13, region: 'wrack' },
   { id: 'thundercrag', name: 'Thunder Crag', x: WL.crag.x, z: WL.crag.z, r: 16, region: 'wrack' },

@@ -1,5 +1,5 @@
 import { mulberry32 } from '../../art/noise';
-import { BELL_TOWN, PORT_TOWN, LAYOUT, LAGOON, SEA_SPOTS, PATHS, BEACH, coastPoint, coastDist, nearestPathDist, FLATS, SUN, SUN_LAYOUT, SUN_RADIUS, SUN_SEA_SPOTS, sunPoint, WRACK, WRACK_LAYOUT, WRACK_RADIUS, WRACK_SEA_SPOTS, wrackPoint, rawHeight } from './island';
+import { BELL_TOWN, PORT_TOWN, LAYOUT, LAGOON, SEA_SPOTS, PATHS, BEACH, coastPoint, coastDist, nearestPathDist, FLATS, SUN, SUN_LAYOUT, SUN_RADIUS, SUN_SEA_SPOTS, sunPoint, WRACK, WRACK_LAYOUT, WRACK_RADIUS, WRACK_SEA_SPOTS, wrackPoint, AMBER, AMBER_LAYOUT, AMBER_RADIUS, AMBER_SEA_SPOTS, amberPoint, rawHeight } from './island';
 import { World } from './world';
 import { buildingSolids, doorPoints, toLocal, toWorld, type BuildingDef } from './buildings';
 import type { TownPlan } from './town';
@@ -65,22 +65,22 @@ const CAVE_MOUTHS: { id: string; island: RegionId; cave: RegionId; at: () => { x
   { id: 'mouth_ember', island: 'sunreach', cave: 'ember_deep', at: () => ({ x: SUN_LAYOUT.ember.x - 9, z: SUN_LAYOUT.ember.z + 9, facing: Math.PI * 0.6 }) },
 ];
 
-/** Stormwrack has no town: an outpost of stations, a strongbox and the harbourmaster. */
+/** Amberhold and Stormwrack have no town: an outpost of stations, a strongbox and the harbourmaster. */
 const NO_TOWN: TownPlan = { buildings: [], npcs: [], stalls: [], squares: [] };
 
 function buildIslandRegion(region: IslandId): IslandLayout {
-  const bell = region === 'bellwether', sun = region === 'sunreach', wrack = region === 'wrack';
-  const rnd = mulberry32(bell ? 1 : sun ? 2 : 3);
+  const bell = region === 'bellwether', sun = region === 'sunreach', amb = region === 'amberhold', wrack = region === 'wrack';
+  const rnd = mulberry32(bell ? 1 : sun ? 2 : wrack ? 3 : 4);
   const world = new World(REGIONS[region].bounds, rawHeight);
   const T: TownPlan = bell ? BELL_TOWN : sun ? PORT_TOWN : NO_TOWN;
-  const SL = SUN_LAYOUT, WL = WRACK_LAYOUT;
+  const SL = SUN_LAYOUT, WL = WRACK_LAYOUT, AL = AMBER_LAYOUT;
   /** a point `inset` metres inside this island's coast at angle `deg` (negative: out at sea) */
-  const cp = (deg: number, inset: number): [number, number] => (bell ? coastPoint : sun ? sunPoint : wrackPoint)(deg, inset);
+  const cp = (deg: number, inset: number): [number, number] => (bell ? coastPoint : sun ? sunPoint : amb ? amberPoint : wrackPoint)(deg, inset);
   const V = LAYOUT.village;
 
   // ---- the harbour's pier: walk out from the beach until the water is deep enough for the ship
   const deckY = 1.0, headWidth = 9;
-  const base = bell ? LAYOUT.dockBase : sun ? SL.dockBase : WL.dockBase;
+  const base = bell ? LAYOUT.dockBase : sun ? SL.dockBase : amb ? AL.dockBase : WL.dockBase;
   const dock: Dock = (() => {
     const x = base.x, zs = base.z - 1.5;
     let n = 8;
@@ -90,7 +90,7 @@ function buildIslandRegion(region: IslandId): IslandLayout {
     return { x, zStart: zs, len: n, headWidth, deckY, headZ: zs + n };
   })();
   const mooring = { x: dock.x + 0.6, z: dock.headZ + 2.1 + 1.45 + 1.1, heading: 0 };
-  const port = { name: bell ? 'Bellwether' : sun ? 'Port Halyard' : 'Gallows Landing', ship: mooring, land: { x: dock.x, z: dock.headZ + 0.4 } };
+  const port = { name: bell ? 'Bellwether' : sun ? 'Port Halyard' : amb ? 'Tollhouse Landing' : 'Gallows Landing', ship: mooring, land: { x: dock.x, z: dock.headZ + 0.4 } };
 
   const buildings: Building[] = [];
   const stations: IslandLayout['stations'] = [];
@@ -116,6 +116,11 @@ function buildIslandRegion(region: IslandId): IslandLayout {
       { id: 'furnace', x: M.x + 9, z: M.z + 19 }, { id: 'anvil', x: M.x + 6, z: M.z + 20.5 },
       { id: 'fire', x: LAYOUT.fen.x + 2.5, z: LAYOUT.fen.z + 3 }, { id: 'fire', x: LAYOUT.cove.x - 2.5, z: LAYOUT.cove.z + 1.5 },
     );
+  } else if (amb) {
+    // Tollhouse Landing's open-air outpost
+    const LD = AL.landing;
+    stations.push({ id: 'furnace', x: LD.x + 5.5, z: LD.z - 3 }, { id: 'anvil', x: LD.x + 3, z: LD.z - 5.5 }, { id: 'bench', x: LD.x - 5.5, z: LD.z - 4 },
+      { id: 'fire', x: LD.x - 4, z: LD.z + 2.5 });
   } else if (wrack) {
     // Gallows Landing's open-air outpost, and the vent forge on Thunder Crag (the only heat that melts Cinderite)
     const LD = WL.landing;
@@ -130,7 +135,7 @@ function buildIslandRegion(region: IslandId): IslandLayout {
 
   // strongboxes (the quay, the Ironcrag camp) and a counter in front of every bank's grille
   const booths = T.buildings.filter((x) => x.id === 'bank' || x.id === 'p_bank').map((bb) => { const [x, z] = toWorld(bb, 0, 0.1); return { x, z, booth: true }; });
-  const banks: IslandLayout['banks'] = [...(bell ? [{ x: V.x + 4.6, z: V.z + 2.2 }, { x: M.x + 2.5, z: M.z + 21 }] : wrack ? [{ x: WL.landing.x + 1.5, z: WL.landing.z - 6.5 }] : []), ...booths];
+  const banks: IslandLayout['banks'] = [...(bell ? [{ x: V.x + 4.6, z: V.z + 2.2 }, { x: M.x + 2.5, z: M.z + 21 }] : wrack ? [{ x: WL.landing.x + 1.5, z: WL.landing.z - 6.5 }] : amb ? [{ x: AL.landing.x + 1.5, z: AL.landing.z - 6.5 }] : []), ...booths];
   for (const b of banks) if (!b.booth) world.solids.push({ x: b.x, z: b.z, w: 1.2, d: 0.8 });
   const solidOf = { furnace: 1.0, anvil: 0.45, fire: 0.7, vent: 1.2 } as const;
   for (const st of stations) world.solids.push(st.id === 'bench' ? { x: st.x, z: st.z, w: 1.8, d: 0.9 } : { x: st.x, z: st.z, r: solidOf[st.id] });
@@ -147,6 +152,7 @@ function buildIslandRegion(region: IslandId): IslandLayout {
     { id: 'bram', x: S.x - 1.4, z: S.z + 1.9, facing: Math.PI / 2 },
   );
   else if (sun) npcs.push({ id: 'halyard_watch', x: SL.plaza.x + 3, z: SL.plaza.z - 7, facing: Math.PI / 2 });
+  else if (amb) npcs.push({ id: 'jory', x: AL.dockBase.x + 3.2, z: AL.dockBase.z - 1.0, facing: Math.PI / 2 });
   else npcs.push({ id: 'mercy', x: WL.dockBase.x + 3.2, z: WL.dockBase.z - 1.0, facing: Math.PI / 2 });
   for (const n of npcs) world.solids.push({ x: n.x, z: n.z, r: 0.35 });
 
@@ -236,17 +242,17 @@ function buildIslandRegion(region: IslandId): IslandLayout {
     scatter('rock_copper', H.x - 6, H.z + 5, 6, 5, 2.4);
     scatter('rock_tin', H.x - 2, H.z + 8, 6, 5, 2.4);
     scatter('rock_iron', H.x + 3, H.z - 2, 5, 3, 2.6);
-    // Mirewater Fen: willows ring the lagoon
+    // Mirewater Fen: sea-oaks ring the lagoon
     for (let k = 0; k < 8; k++) {
       const a = (k / 8) * Math.PI * 2 + 0.3;
-      scatter('tree_willow', LAGOON.x + Math.cos(a) * (LAGOON.r + 6), LAGOON.z + Math.sin(a) * (LAGOON.r + 6), 3, 1, 3.4);
+      scatter('tree_oak', LAGOON.x + Math.cos(a) * (LAGOON.r + 6), LAGOON.z + Math.sin(a) * (LAGOON.r + 6), 3, 1, 3.4);
     }
-    // Heartwood (Bellwether is the starter island, levels 1-30: Tom, 2026-10-25): willows and sea-oaks
-    scatter('tree_willow', HW.x + 4, HW.z + 6, 10, 5, 3.6);
+    // Heartwood (Bellwether is the first island, levels 1-20: Tom, 2026-10-25): sea-oaks and saltpine
+    scatter('tree_oak', HW.x + 4, HW.z + 6, 10, 5, 3.6);
     scatter('tree_oak', HW.x - 6, HW.z - 4, 9, 4, 3.6);
-    // Ironcrag: coal at the foot, and more iron up the slopes
-    scatter('rock_coal', M.x - 8, M.z + 15, 7, 6, 2.6);
-    scatter('rock_coal', M.x + 13, M.z + 12, 5, 3, 2.6);
+    // Ironcrag: iron all the way up (coal starts on Sunreach)
+    scatter('rock_iron', M.x - 8, M.z + 15, 7, 5, 2.6);
+    scatter('rock_iron', M.x + 13, M.z + 12, 5, 3, 2.6);
     scatter('rock_iron', M.x - 6, M.z + 5, 6, 4, 2.8);
   } else if (wrack) {
     // Stormwrack (levels 55 and up): the Old Wood's ancient trees, the crag's high metals, the fallen star,
@@ -268,14 +274,21 @@ function buildIslandRegion(region: IslandId): IslandLayout {
       world.solids.push({ x, z, r: 0.75 });
       made++;
     }
+  } else if (amb) {
+    // Amberhold (levels 25-50): amber and willow in the amberwood, Goldvein Hill's ores
+    const AW = AL.amberwood, GH = AL.goldhill;
+    scatter('tree_amber', AW.x - 3, AW.z - 3, 9, 6, 3.6);
+    scatter('tree_willow', AW.x + 6, AW.z + 7, 7, 4, 3.6);
+    scatter('rock_coal', GH.x - 7, GH.z + 9, 7, 5, 2.6);
+    scatter('rock_gold', GH.x + 4, GH.z + 4, 6, 4, 2.8);
+    scatter('rock_storm', GH.x, GH.z - 4, 6, 3, 2.8);
   } else {
-    // the Greenheart's old trees, Ember Hill's ores
-    scatter('tree_amber', SL.jungle.x, SL.jungle.z, 11, 6, 3.6);
-    scatter('tree_yew', SL.jungle.x - 6, SL.jungle.z - 8, 8, 4, 4);
+    // Sunreach (levels 15-30): the Greenheart's willows and sea-oaks, Ember Hill's coal and iron
+    scatter('tree_willow', SL.jungle.x, SL.jungle.z, 11, 6, 3.6);
+    scatter('tree_oak', SL.jungle.x - 6, SL.jungle.z - 8, 8, 4, 3.6);
     scatter('rock_coal', SL.ember.x - 4, SL.ember.z + 8, 7, 5, 2.6);
-    scatter('rock_gold', SL.ember.x + 6, SL.ember.z + 6, 5, 3, 2.8);
-    scatter('rock_storm', SL.ember.x, SL.ember.z - 2, 6, 3, 2.8);
-    scatter('rock_abyss', SL.ember.x + 4, SL.ember.z - 6, 5, 2, 3);
+    scatter('rock_iron', SL.ember.x + 6, SL.ember.z + 6, 5, 4, 2.8);
+    scatter('rock_coal', SL.ember.x + 2, SL.ember.z - 4, 6, 3, 2.8);
   }
 
   // fishing: shore spots found by walking from land into water
@@ -313,9 +326,16 @@ function buildIslandRegion(region: IslandId): IslandLayout {
     placeShore('spot_gloom', WL.wreck.x, WL.wreck.z, [wOut - 0.6, wOut + 0.6]);
     nodes.push({ uid: `n${uid++}`, def: 'rock_ori', x: WL.spire.x, z: WL.spire.z, seed: 77 });
     for (const [def, list] of Object.entries(WRACK_SEA_SPOTS)) for (const [x, z] of list) nodes.push({ uid: `n${uid++}`, def, x, z, seed: Math.round(x + z) });
+  } else if (amb) {
+    // lobster pots along the Ironshell Shore, swordfish out in the sound
+    for (const [def, th] of [['spot_lobster', 0], ['spot_lobster', 22], ['spot_salmon', 200]] as const) {
+      const [fx, fz] = amberPoint(th, 8), p = shoreSpot(fx, fz, sunOut(th));
+      if (p && !nodes.some((n) => Math.hypot(n.x - p[0], n.z - p[1]) < 5)) nodes.push({ uid: `n${uid++}`, def, x: p[0], z: p[1], seed: th });
+    }
+    for (const [def, list] of Object.entries(AMBER_SEA_SPOTS)) for (const [x, z] of list) nodes.push({ uid: `n${uid++}`, def, x, z, seed: Math.round(x + z) });
   } else {
-    // sprat & mackerel by the harbour, lobster pots on the reef shore, gloomfish & barracuda off the north-west rocks
-    for (const [def, th] of [['spot_sprat', 120], ['spot_sprat', 150], ['spot_lobster', 15], ['spot_lobster', 35], ['spot_gloom', 240]] as const) {
+    // sprat by the harbour, trout and salmon off the reef shore and the north-west rocks
+    for (const [def, th] of [['spot_sprat', 120], ['spot_sprat', 150], ['spot_trout', 15], ['spot_salmon', 35], ['spot_salmon', 240]] as const) {
       const [fx, fz] = sunPoint(th, 8), p = shoreSpot(fx, fz, sunOut(th));
       if (p && !nodes.some((n) => Math.hypot(n.x - p[0], n.z - p[1]) < 5)) nodes.push({ uid: `n${uid++}`, def, x: p[0], z: p[1], seed: th });
     }
@@ -324,12 +344,13 @@ function buildIslandRegion(region: IslandId): IslandLayout {
 
   // ---- reefs / sea stacks
   const reefs: IslandLayout['reefs'] = [];
-  for (let tries = 0, made = 0; tries < 600 && made < (bell ? 22 : sun ? 9 : 14); tries++) {
+  for (let tries = 0, made = 0; tries < 600 && made < (bell ? 22 : sun ? 9 : amb ? 10 : 14); tries++) {
     const [x, z] = bell ? coastPoint(rnd() * 360, -(4 + rnd() * 26)) : cp(rnd() * 360, -(5 + rnd() * 16));
     if (Math.hypot(x - mooring.x, z - mooring.z) < (bell ? 18 : 22)) continue; // keep the harbour mouth clear
     if (nodes.some((n) => (n.def.startsWith('spot_') || n.def === 'rock_ori') && Math.hypot(n.x - x, n.z - z) < 9)) continue;
     if (bell && Math.hypot(x - LAYOUT.islet.x, z - LAYOUT.islet.z) < 24) continue; // keep the islet's landing clear
     if (sun && (x < SUN.x - SUN_RADIUS - 4 || x > SUN.x + SUN_RADIUS + 4)) continue; // both sea lanes stay open
+    if (amb && (x < AMBER.x - AMBER_RADIUS - 4 || x > AMBER.x + AMBER_RADIUS + 4)) continue;
     if (wrack && x < WRACK.x - WRACK_RADIUS - 4) continue; // the western approach (from Sunreach) stays open
     if (wrack && Math.hypot(x - WRACK_LAYOUT.islet.x, z - WRACK_LAYOUT.islet.z) < 24) continue;
     if (world.ground(x, z) > -0.6) continue;
@@ -339,10 +360,11 @@ function buildIslandRegion(region: IslandId): IslandLayout {
   world.reefs.push(...reefs);
 
   // ---- vegetation and rocks (solid, every one usable): woods are dense, open country is sparse
-  const centre = bell ? { x: 0, z: 0 } : sun ? SUN : WRACK;
+  const centre = bell ? { x: 0, z: 0 } : sun ? SUN : amb ? AMBER : WRACK;
   const keepClear = bell
     ? [{ x: R.x, z: R.z, r: 11 }, { x: C.x, z: C.z, r: 9 }, { x: LAYOUT.cove.x, z: LAYOUT.cove.z, r: 9 }, { x: X.x, z: X.z, r: 6 }]
     : sun ? [{ x: SL.temple.x, z: SL.temple.z, r: 11 }, { x: SL.plaza.x, z: SL.plaza.z, r: 12 }, { x: SL.port.x, z: SL.port.z, r: 16 }]
+    : amb ? [{ x: AL.landing.x, z: AL.landing.z, r: 14 }, { x: AL.camp.x, z: AL.camp.z, r: 9 }, { x: AL.hollow.x, z: AL.hollow.z, r: 5 }]
     : [{ x: WL.starfall.x, z: WL.starfall.z, r: 10 }, { x: WL.landing.x, z: WL.landing.z, r: 14 }, { x: WL.crag.x, z: WL.crag.z - 6, r: 7 }];
   if (bell) {
     const woods = [{ x: F.x, z: F.z, r: 20 }, { x: GV.x, z: GV.z, r: 13 }, { x: HW.x, z: HW.z, r: 20 }, { x: LAYOUT.fen.x, z: LAYOUT.fen.z, r: 16 }];
@@ -359,6 +381,19 @@ function buildIslandRegion(region: IslandId): IslandLayout {
       const kind = inWood || rnd() < 0.6 ? 'pine' : 'broadleaf';
       // every tree on the island can be felled: pines are saltpine, broadleafs sea-oak
       nodes.push({ uid: `n${uid++}`, def: kind === 'pine' ? 'tree_pine' : 'tree_oak', x, z, seed: Math.floor(rnd() * 1e6), scenery: true, s: 0.85 + rnd() * 0.35, rot: rnd() * Math.PI * 2 });
+      world.solids.push({ x, z, r: 0.45 });
+      made++;
+    }
+  } else if (amb) {
+    // mixed woods, thickest in the amberwood; Goldvein Hill's top bare
+    for (let tries = 0, made = 0; tries < 6000 && made < 120; tries++) {
+      const a = rnd() * Math.PI * 2, r = Math.sqrt(rnd()) * (AMBER_RADIUS + 6), x = AMBER.x + Math.cos(a) * r, z = AMBER.z + Math.sin(a) * r;
+      const inWood = Math.hypot(x - AL.amberwood.x, z - AL.amberwood.z) < 17;
+      if (!inWood && rnd() < 0.5) continue;
+      if (!free(x, z, BEACH + 1, 2.6) || keepClear.some((k) => Math.hypot(x - k.x, z - k.z) < k.r)) continue;
+      const gy = world.ground(x, z);
+      if (gy < 0.5 || gy > 7) continue;
+      nodes.push({ uid: `n${uid++}`, def: rnd() < 0.55 ? 'tree_oak' : 'tree_pine', x, z, seed: Math.floor(rnd() * 1e6), scenery: true, s: 0.85 + rnd() * 0.4, rot: rnd() * Math.PI * 2 });
       world.solids.push({ x, z, r: 0.45 });
       made++;
     }
@@ -395,7 +430,7 @@ function buildIslandRegion(region: IslandId): IslandLayout {
     }
   }
   for (let tries = 0, made = 0; tries < (bell ? 2400 : 900) && made < (bell ? 80 : sun ? 22 : 40); tries++) {
-    const a = rnd() * Math.PI * 2, r = bell ? 15 + rnd() * 75 : Math.sqrt(rnd()) * (sun ? SUN_RADIUS : WRACK_RADIUS);
+    const a = rnd() * Math.PI * 2, r = bell ? 15 + rnd() * 75 : Math.sqrt(rnd()) * (sun ? SUN_RADIUS : amb ? AMBER_RADIUS : WRACK_RADIUS);
     const x = centre.x + Math.cos(a) * r, z = centre.z + Math.sin(a) * r;
     if (!free(x, z, 1, 2) || (!bell && keepClear.some((k) => Math.hypot(x - k.x, z - k.z) < k.r))) continue;
     const s = 0.35 + rnd() * 0.7;
@@ -420,7 +455,7 @@ function buildIslandRegion(region: IslandId): IslandLayout {
     const [lx, lz] = cp(deg + rnd() * 6, 6);
     const p = shoreSpot(lx, lz, bell ? Math.atan2(lz, lx) : sunOut(deg), -0.04); // kelp likes the shallows
     if (p && Math.hypot(p[0] - mooring.x, p[1] - mooring.z) > 14 && !nodes.some((n) => Math.hypot(n.x - p[0], n.z - p[1]) < 6))
-      nodes.push({ uid: `n${uid++}`, def: 'kelp_bed', x: p[0], z: p[1], seed: deg + (bell ? 0 : sun ? 1000 : 2000), scenery: true, s: 0.9 + rnd() * 0.3, rot: rnd() * 6.28 });
+      nodes.push({ uid: `n${uid++}`, def: 'kelp_bed', x: p[0], z: p[1], seed: deg + (bell ? 0 : sun ? 1000 : amb ? 3000 : 2000), scenery: true, s: 0.9 + rnd() * 0.3, rot: rnd() * 6.28 });
   }
   // disturbed sand: candidate dig spots on beaches and dirt tracks (only a few are active at a time)
   const paths = PATHS.filter((pth) => pth.pts.every(([x, z]) => world.inside(x, z, 4)));
@@ -513,6 +548,15 @@ function buildIslandRegion(region: IslandId): IslandLayout {
       if (coastDist(x, z) < BEACH + 2 || world.ground(x, z) > 6) continue;
       if (decor('flowers', x, z, 0.4, 0, false)) made++;
     }
+  } else if (amb) {
+    const D = AL.dockBase, LD = AL.landing;
+    dress([['crate', D.x - 2.6, D.z - 1.8], ['barrel', D.x + 2.6, D.z - 2.4], ['lantern', D.x + 2, D.z - 1.0], ['lantern', LD.x - 3, LD.z + 4], ['lantern', LD.x + 4, LD.z - 7], ['crate', LD.x - 7, LD.z - 6], ['barrel', LD.x + 7.5, LD.z + 1],
+      ['campfire', AL.camp.x, AL.camp.z], ['crate', AL.camp.x + 2, AL.camp.z - 1.5], ['barrel', AL.camp.x - 2, AL.camp.z + 1.2]]);
+    decor('netrack', D.x - 7, D.z - 1.5, 1.3, -0.1, true);
+    decor('pots', D.x + 6, D.z - 1.2, 0.8, 0.3, true);
+    decor('woodpile', AL.amberwood.x + 9, AL.amberwood.z + 9, 0.8, 0.4, true);
+    for (let k = 0; k < 14; k++) { const [x, z] = amberPoint(k * 25.7 + rnd() * 8, 1.5 + rnd() * 5); if (Math.hypot(x - D.x, z - D.z) > 20) decor('shells', x, z, 0.5, rnd() * 6.28, false); }
+    for (let k = 0; k < 10; k++) { const [x, z] = amberPoint(k * 36 + 12 + rnd() * 8, 2.5 + rnd() * 4); if (Math.hypot(x - D.x, z - D.z) > 20) decor('driftwood', x, z, 0.6, rnd() * 6.28, false); }
   } else if (wrack) {
     const D = WL.dockBase, LD = WL.landing;
     dress([['crate', D.x - 2.6, D.z - 1.8], ['barrel', D.x + 2.6, D.z - 2.4], ['lantern', D.x + 2, D.z - 1.0], ['lantern', LD.x - 3, LD.z + 4], ['lantern', LD.x + 4, LD.z - 7], ['crate', LD.x - 7, LD.z - 6], ['barrel', LD.x + 7.5, LD.z + 1]]);
@@ -571,19 +615,27 @@ function buildIslandRegion(region: IslandId): IslandLayout {
     spawn('drowned', W.x - 4, W.z + 2); spawn('drowned', W.x + 2, W.z + 4); spawn('drowned', W.x - 8, W.z + 6); spawn('drowned', W.x - 2, W.z + 9);
     spawn('wreck_captain', W.x - 5, W.z + 5);
     spawn('stone_sentinel', CR.x - 5, CR.z + 2); spawn('stone_sentinel', CR.x + 7, CR.z + 3);
-    spawn('giant_spider', OW.x + 2, OW.z + 4); spawn('giant_spider', OW.x - 6, OW.z); spawn('giant_spider', OW.x + 6, OW.z - 5);
+    // the Old Wood's guardians walk among the drowned's trees (islands past 50 mix their levels)
+    spawn('wreck_captain', OW.x + 2, OW.z + 4); spawn('drowned', OW.x - 6, OW.z); spawn('drowned', OW.x + 6, OW.z - 5);
+  } else if (amb) {
+    // boars at the amberwood's edge, ironshells on the shore, poachers on the headland, weavers in the hollow
+    const AW = AL.amberwood, CP = AL.camp, HO = AL.hollow;
+    for (const [dx, dz] of [[10, 8], [12, -6], [4, 12]]) spawn('boar', AW.x + dx, AW.z + dz);
+    for (let k = 0; k < 4; k++) { const [x, z] = amberPoint(-4 + k * 10, 3.5); spawn('ironshell_crab', x, z); }
+    spawn('poacher', CP.x - 3, CP.z + 2); spawn('poacher', CP.x + 3, CP.z + 1.5); spawn('poacher', CP.x, CP.z - 3);
+    spawn('poacher_gunner', CP.x + 5, CP.z - 3); spawn('poacher_gunner', CP.x - 5, CP.z - 1);
+    for (const [dx, dz] of [[-2, 2], [3, -3], [4, 3]]) spawn('giant_spider', HO.x + dx, HO.z + dz);
   } else {
-    // boars root along the jungle's edge, snakes coil in the Greenheart, poachers hunt them both
+    // boars root along the jungle's edge, snakes coil in the Greenheart, mire crabs work the reef shore
     for (const [dx, dz] of [[-30, 0], [-26, 12], [-20, -14], [-34, -10], [-10, -30]]) spawn('boar', SUN.x + dx, SUN.z + dz); // the jungle's west edge, away from town
     for (const [dx, dz] of [[-4, 2], [-10, -10], [-18, -6], [2, -12]]) spawn('jungle_snake', SL.jungle.x + dx, SL.jungle.z + dz);
-    spawn('poacher', SL.jungle.x + 3, SL.jungle.z + 2); spawn('poacher', SL.jungle.x - 7, SL.jungle.z - 3); spawn('poacher_gunner', SL.jungle.x - 2, SL.jungle.z - 10);
-    for (let k = 0; k < 3; k++) { const [x, z] = sunPoint(10 + k * 14, 3.5); spawn('ironshell_crab', x, z); }
+    for (let k = 0; k < 4; k++) { const [x, z] = sunPoint(8 + k * 11, 3.5); spawn('mire_crab', x, z); }
   }
 
   // townsfolk walking their rounds between the squares and front doors (paths found once, on the baked grid)
   const door = (id: string) => doorPoints(T.buildings.find((b) => b.id === id)!).out;
   const P = SL.plaza;
-  const rounds: { look: string; stops: [number, number][] }[] = wrack ? [] : bell ? [
+  const rounds: { look: string; stops: [number, number][] }[] = wrack || amb ? [] : bell ? [
     { look: 'towns_a', stops: [[X.x - 4, X.z + 2], door('inn'), [X.x - 22, X.z + 1], door('house_2'), [X.x - 6, X.z + 8]] },
     { look: 'towns_b', stops: [[X.x + 4, X.z - 2], door('bank'), door('chapel'), [X.x + 25, X.z + 1], door('house_3')] },
     { look: 'towns_c', stops: [[V.x + 2, V.z + 1], door('chart'), [V.x + 2, V.z - 10], [X.x + 1.5, X.z + 6], door('store')] },
@@ -604,7 +656,7 @@ function buildIslandRegion(region: IslandId): IslandLayout {
     if (path.length > 4) wanderers.push({ look: rd.look, path });
   }
 
-  const home = bell ? { x: 0, z: V.z + 6 } : sun ? { x: P.x, z: P.z + 2 } : { x: WL.landing.x, z: WL.landing.z + 2 };
+  const home = bell ? { x: 0, z: V.z + 6 } : sun ? { x: P.x, z: P.z + 2 } : amb ? { x: AL.landing.x, z: AL.landing.z + 2 } : { x: WL.landing.x, z: WL.landing.z + 2 };
   const respawnPt = world.nearestWalkable(home.x, home.z, 6) ?? [home.x, home.z];
   return {
     region, world, dock, port, mooring, buildings, nodes, props, reefs, stations, banks,
@@ -667,8 +719,8 @@ function buildCave(region: RegionId): IslandLayout {
     stations.push({ id: 'fire', x: hold.x + 1, z: hold.z + 1 });
     world.solids.push({ x: hold.x + 1, z: hold.z + 1, r: 0.7 });
     spawns.push({ enemy: 'smuggler', x: hold.x - 3, z: hold.z - 2 }, { enemy: 'smuggler', x: hold.x + 3, z: hold.z - 3 }, { enemy: 'smuggler_gunner', x: hold.x - 1, z: hold.z + 4 });
-    // Glimmer Grotto: crystals light it; iron, coal and silver veins
-    scatter('rock_iron', grotto, 4); scatter('rock_coal', grotto, 4); scatter('rock_tin', hall, 3); scatter('rock_copper', hall, 3);
+    // Glimmer Grotto: crystals light it; iron veins
+    scatter('rock_iron', grotto, 7); scatter('rock_tin', hall, 3); scatter('rock_copper', hall, 3);
     for (let k = 0; k < 6; k++) { const a = rnd() * 6.28, r = 2 + rnd() * (grotto.r - 3); put('crystal', grotto.x + Math.cos(a) * r, grotto.z + Math.sin(a) * r, 0.5, true, 0.7 + rnd() * 0.6); }
     // the Drip Pool: cave spiders under the webs
     for (let k = 0; k < 5; k++) { const a = rnd() * 6.28, r = 2 + rnd() * (pool.r - 3); put('web', pool.x + Math.cos(a) * r, pool.z + Math.sin(a) * r, 0.9, false, 0.8 + rnd() * 0.5); }
@@ -676,20 +728,19 @@ function buildCave(region: RegionId): IslandLayout {
     spawns.push({ enemy: 'cave_spider', x: hall.x - 6, z: hall.z - 6 });
   } else {
     const hall = ch('hall'), nest = ch('nest'), vein = ch('vein'), magma = ch('magma');
-    scatter('rock_coal', hall, 5); scatter('rock_gold', hall, 3); scatter('rock_storm', hall, 3);
-    scatter('rock_abyss', vein, 6);
+    scatter('rock_coal', hall, 5); scatter('rock_iron', hall, 3);
+    scatter('rock_coal', vein, 4); scatter('rock_iron', vein, 3);
     for (let k = 0; k < 4; k++) { const a = rnd() * 6.28, r = 2 + rnd() * (vein.r - 3); put('crystal', vein.x + Math.cos(a) * r, vein.z + Math.sin(a) * r, 0.5, true, 0.8 + rnd() * 0.6); }
-    // the Weaver's Nest: webs everywhere, giant spiders
+    // the Weaver's Nest: webs everywhere, the giant weavers' young
     for (let k = 0; k < 9; k++) { const a = rnd() * 6.28, r = 1.5 + rnd() * (nest.r - 2.5); put('web', nest.x + Math.cos(a) * r, nest.z + Math.sin(a) * r, 0.9, false, 0.9 + rnd() * 0.6); }
-    for (const [dx, dz] of [[-3, 2], [3, -3], [0, 4], [-4, -4], [5, 2]]) spawns.push({ enemy: 'giant_spider', x: nest.x + dx, z: nest.z + dz });
-    // the Magma Pool: lava you can't cross, Cinderite vents and a vent forge, ember snakes
+    for (const [dx, dz] of [[-3, 2], [3, -3], [0, 4], [-4, -4], [5, 2]]) spawns.push({ enemy: 'weaver_young', x: nest.x + dx, z: nest.z + dz });
+    // the Magma Pool: lava you can't cross, a vent forge, ember asps
     props.push({ kind: 'lava', x: magma.x + 2, z: magma.z - 3, rot: 0, s: 3.2, seed: 9 });
     world.solids.push({ x: magma.x + 2, z: magma.z - 3, r: 3.4 });
-    scatter('rock_storm', magma, 3); // tidecore and cinderite are Stormwrack's now (Mining 70+)
     stations.push({ id: 'vent', x: magma.x - 4.5, z: magma.z + 4 });
     world.solids.push({ x: magma.x - 4.5, z: magma.z + 4, r: 1.2 });
     for (const [dx, dz] of [[4, 4], [-5, -2], [6, -6]]) spawns.push({ enemy: 'ember_snake', x: magma.x + dx, z: magma.z + dz });
-    spawns.push({ enemy: 'giant_spider', x: hall.x - 7, z: hall.z - 4 });
+    spawns.push({ enemy: 'weaver_young', x: hall.x - 7, z: hall.z - 4 });
   }
 
   world.bake();

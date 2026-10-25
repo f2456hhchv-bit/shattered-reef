@@ -43,10 +43,10 @@ data table (`KEYS` in `content.ts`, planned) so balance is tuned in one place.
 | **Duellist's Key** | Common | +6 melee accuracy | **Disarm** (35 s): the foe can't attack for 4 s | Brigand camp chief (elite brigand) |
 | **Brute's Key** | Rare | +4% melee max hit | **Knockdown** (30 s): hurls the foe back and stuns it 2 s | Ironshell crabs (rare) |
 | **Bulwark Key** | Rare | 5% less damage from everything | **Ward** (40 s): this foe can't hurt you for 5 s | Stone sentinels |
-| **Marksman's Key** | Common | +6 ranged accuracy, +1 m range | **Mark** (30 s): your next 2 hits on the foe land at max | Poacher camp (elite gunner) |
+| **Marksman's Key** | Common | +6 ranged accuracy, +1 m range | **Mark** (30 s): your next 2 hits on the foe land at max | The Poachers' Camp, Amberhold (elite gunner) |
 | **Powder Key** | Rare | 10% chance shot, arrows and bolts aren't used | **Fuse** (40 s): the foe bursts after 2 s, hurting everything near it | Smugglers' Caves hold |
 | **Tide Key** | Common | 10% chance a spell burns no charms | **Undertow** (35 s): pulls every foe within 6 m onto this one and slows them | Drip Pool (cave spiders) |
-| **Storm Key** | Rare | +4% spell damage | **Chain** (30 s): lightning arcs from the foe to 3 more | Giant weavers, Ember Deep |
+| **Storm Key** | Rare | +4% spell damage | **Chain** (30 s): lightning arcs from the foe to 3 more | Giant weavers, Weaver Hollow (Amberhold) |
 | **Leech Key** | Rare | Heal 3% of damage you deal | **Drain** (35 s): takes 15% of the foe's health as your own | Wreck captain |
 | **Helmsman's Key** | Common | Your ship sails 15% faster | **Becalm** (30 s): the foe moves and attacks 40% slower for 8 s | Wynn Harrow, harbourmaster, after your first voyage to Sunreach |
 | **Wanderer's Key** | Common | Walk 8% faster out of combat | **Blink** (20 s): step through the keyhole to the far side of the foe | Discover 20 of the 34 places |
