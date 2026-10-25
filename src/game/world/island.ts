@@ -59,6 +59,24 @@ export function sunPoint(thetaDeg: number, inset: number): [number, number] {
   return [SUN.x + Math.cos(t) * r, SUN.z + Math.sin(t) * r];
 }
 const sunAt = (thetaDeg: number, inset: number) => { const [x, z] = sunPoint(thetaDeg, inset); return { x, z }; };
+// ---- Stormwrack Isle: the third island, far east of Sunreach: wrecks, storm crags and the high metals ---------
+export const WRACK = { x: 840, z: -20 };
+export const WRACK_RADIUS = 58;
+export function wrackCoastR(theta: number): number {
+  const c = Math.cos(theta), s = Math.sin(theta);
+  return WRACK_RADIUS + (fbm(c * 2.2 + 53, s * 2.2 + 53, 4, 29) - 0.5) * 24
+    - lobe(theta, 90, 9, 8) // Gallows Landing's bay
+    + lobe(theta, 316, 9, 16) // the Wrack, a ship-killing point to the north-east
+    + lobe(theta, 196, 12, 9) // the Old Wood's shoulder, west
+    - lobe(theta, 20, 8, 7); // an inlet on the east shore
+}
+/** Point on Stormwrack at angle `thetaDeg` round its centre, `inset` metres inside its coast. */
+export function wrackPoint(thetaDeg: number, inset: number): [number, number] {
+  const t = deg(thetaDeg), r = wrackCoastR(t) - inset;
+  return [WRACK.x + Math.cos(t) * r, WRACK.z + Math.sin(t) * r];
+}
+const wrackAt = (thetaDeg: number, inset: number) => { const [x, z] = wrackPoint(thetaDeg, inset); return { x, z }; };
+
 /** Which island a point belongs to (the nearer coast). */
 export function islandOf(x: number, z: number): 'bellwether' | 'sunreach' {
   return Math.hypot(x - SUN.x, z - SUN.z) - SUN_RADIUS < Math.hypot(x, z) - ISLAND_RADIUS ? 'sunreach' : 'bellwether';
@@ -100,6 +118,18 @@ export const LAYOUT = {
   spire: at(240, -34), // the Drowned Spire, mined from the deck
 };
 const sunQuay = sunAt(90, 0);
+const wrackQuay = wrackAt(90, 0);
+/** Stormwrack: an outpost at the landing, the island climbing north to Thunder Crag. */
+export const WRACK_LAYOUT = {
+  dockBase: { x: WRACK.x, z: wrackQuay.z - 2.5 },
+  landing: { x: WRACK.x, z: wrackQuay.z - 12 }, // Gallows Landing: the outpost's yard
+  wreck: wrackAt(316, 10), // the Wrack: the drowned and their captain
+  crag: { x: WRACK.x + 3, z: WRACK.z - 24 }, // Thunder Crag: sentinels, Cinderite, the vent forge on top
+  starfall: { x: WRACK.x + 24, z: WRACK.z - 2 }, // where the star came down
+  oldwood: { x: WRACK.x - 24, z: WRACK.z - 4 }, // the Old Wood: ghost yew, starbark, leviathan cedar
+  islet: { x: WRACK.x + Math.cos(deg(232)) * 98, z: WRACK.z + Math.sin(deg(232)) * 98 }, // Leviathan's Rest
+  spire: { x: WRACK.x + Math.cos(deg(290)) * 92, z: WRACK.z + Math.sin(deg(290)) * 92 }, // the Drowned Spire
+};
 export const SUN_LAYOUT = {
   dockBase: { x: SUN.x, z: sunQuay.z - 2.5 },
   port: { x: SUN.x, z: sunQuay.z - 13 }, // Port Halyard's quay square
@@ -116,9 +146,9 @@ const L = LAYOUT;
 export const BELL_TOWN = townPlan(L.village, L.crossroads);
 export const PORT_TOWN = portPlan(SUN_LAYOUT.port);
 export const TOWN = mergePlans(BELL_TOWN, PORT_TOWN);
-const SL = SUN_LAYOUT;
+const SL = SUN_LAYOUT, WL = WRACK_LAYOUT;
 /** Offshore islets: land you reach by ship. */
-export const ISLETS = [{ x: L.islet.x, z: L.islet.z, r: 13 }];
+export const ISLETS = [{ x: L.islet.x, z: L.islet.z, r: 13 }, { x: WL.islet.x, z: WL.islet.z, r: 13 }];
 export const LAGOON = { x: -34, z: -22, r: 9 };
 
 export const FLATS: Flat[] = [
@@ -138,6 +168,10 @@ export const FLATS: Flat[] = [
   { x: SL.plaza.x, z: SL.plaza.z, r: 9, h: 'pad', soft: 3 }, // levelled from the quay square's height, so the forge between them sits flat
   { x: SL.dockBase.x, z: SL.dockBase.z - 1, r: 3, h: 1.0 },
   { x: SL.temple.x, z: SL.temple.z, r: 8, h: 'auto' },
+  // Stormwrack: the landing yard, the dock, the crag's summit (the vent forge)
+  { x: WL.landing.x, z: WL.landing.z, r: 11, h: 1.1 },
+  { x: WL.dockBase.x, z: WL.dockBase.z - 1, r: 3, h: 1.0 },
+  { x: WL.crag.x, z: WL.crag.z - 6, r: 4.5, h: 'auto' },
   // a level pad under every town building, at the height of the ground already there (so the quay's stay on the quay)
   ...TOWN.buildings.map((b) => ({ x: b.x, z: b.z, r: Math.hypot(b.w, b.d) / 2 + 0.6, h: 'pad' as const, soft: 2.5 })),
 ];
@@ -154,6 +188,9 @@ export const HILLS: Hill[] = [
   { x: SL.ember.x, z: SL.ember.z, r: 15, h: 9 },
   { x: SL.ember.x + 8, z: SL.ember.z + 10, r: 9, h: 4 },
   { x: SL.jungle.x - 4, z: SL.jungle.z - 6, r: 16, h: 3 },
+  { x: WL.crag.x, z: WL.crag.z - 4, r: 17, h: 12 },
+  { x: WL.crag.x + 14, z: WL.crag.z + 6, r: 9, h: 5 },
+  { x: WL.oldwood.x - 4, z: WL.oldwood.z - 4, r: 14, h: 3.5 },
 ];
 
 export const DIPS: Dip[] = [{ x: LAGOON.x, z: LAGOON.z, r: LAGOON.r, floor: -1.8 }];
@@ -183,6 +220,11 @@ export const PATHS: PathDef[] = [
   { width: 1.1, pts: [[SL.jungle.x, SL.jungle.z], [SL.temple.x - 2, SL.temple.z + 12], [SL.temple.x, SL.temple.z + 6]] },
   { width: 1.1, pts: [[SL.port.x - 6, SL.port.z + 2], [SL.palms.x + 10, SL.palms.z + 2], [SL.palms.x, SL.palms.z]] },
   { width: 1.1, pts: [[SL.ember.x - 2, SL.ember.z + 6], [SL.reefshore.x - 8, SL.reefshore.z], [SL.reefshore.x, SL.reefshore.z]] },
+  // Stormwrack: the landing up to the crag's foot; branches to the Wrack, the Old Wood and Starfall
+  { width: 1.4, pts: [[WL.dockBase.x, WL.dockBase.z], [WL.landing.x, WL.landing.z], [WL.crag.x - 2, WL.crag.z + 16], [WL.crag.x - 1, WL.crag.z + 9]] },
+  { width: 1.1, pts: [[WL.crag.x - 2, WL.crag.z + 16], [WL.oldwood.x + 10, WL.oldwood.z + 6], [WL.oldwood.x, WL.oldwood.z]] },
+  { width: 1.1, pts: [[WL.landing.x + 4, WL.landing.z - 4], [WL.starfall.x - 8, WL.starfall.z + 8], [WL.starfall.x, WL.starfall.z + 5]] },
+  { width: 1.1, pts: [[WL.crag.x + 6, WL.crag.z + 10], [WL.wreck.x - 8, WL.wreck.z + 8], [WL.wreck.x, WL.wreck.z]] },
 ];
 
 function pathDist(p: PathDef, x: number, z: number): number {
@@ -208,7 +250,7 @@ export function nearestPathDist(x: number, z: number): { d: number; width: numbe
 // The coastlines depend only on the angle, so they're tabulated once (the world build asks ~10^6 times)
 const COAST_STEPS = 2048;
 const tabulate = (f: (t: number) => number) => Float32Array.from({ length: COAST_STEPS + 1 }, (_, i) => f((i / COAST_STEPS) * Math.PI * 2 - Math.PI));
-let bellTable: Float32Array | null = null, sunTable: Float32Array | null = null;
+let bellTable: Float32Array | null = null, sunTable: Float32Array | null = null, wrackTable: Float32Array | null = null;
 function fromTable(t: Float32Array, theta: number): number {
   const f = ((theta + Math.PI) / (Math.PI * 2)) * COAST_STEPS, i = Math.max(0, Math.min(COAST_STEPS - 1, Math.floor(f)));
   return t[i] + (t[i + 1] - t[i]) * (f - i);
@@ -218,8 +260,9 @@ export function coastDist(x: number, z: number): number {
   bellTable ??= tabulate(coastR);
   sunTable ??= tabulate(sunCoastR);
   const b = fromTable(bellTable, Math.atan2(z, x)) - Math.hypot(x, z);
-  const dx = x - SUN.x, dz = z - SUN.z;
-  return Math.max(b, fromTable(sunTable, Math.atan2(dz, dx)) - Math.hypot(dx, dz));
+  wrackTable ??= tabulate(wrackCoastR);
+  const dx = x - SUN.x, dz = z - SUN.z, wx = x - WRACK.x, wz = z - WRACK.z;
+  return Math.max(b, fromTable(sunTable, Math.atan2(dz, dx)) - Math.hypot(dx, dz), fromTable(wrackTable, Math.atan2(wz, wx)) - Math.hypot(wx, wz));
 }
 
 export function rawHeight(x: number, z: number): number {
@@ -275,13 +318,15 @@ function shapedHeight(x: number, z: number, levelled: boolean, upto = FLATS.leng
 /** Ship-only fishing grounds off Sunreach (world x, z). */
 export const SUN_SEA_SPOTS: Record<string, [number, number][]> = {
   spot_sword: [sunPoint(150, -18), sunPoint(60, -20)],
-  spot_shark: [sunPoint(300, -24)],
 };
 export const SEA_SPOTS: Record<string, [number, number][]> = {
   spot_bell: [[20, -16], [200, -16], [295, -17]],
-  spot_sword: [[52, -22], [70, -24]],
-  spot_shark: [[262, -26], [248, -27]],
-  spot_angler: [[165, -28]],
+};
+/** Ship-only fishing grounds off Stormwrack (world x, z): the deep water's big fish. */
+export const WRACK_SEA_SPOTS: Record<string, [number, number][]> = {
+  spot_sword: [wrackPoint(140, -18)],
+  spot_shark: [wrackPoint(30, -24), wrackPoint(350, -26)],
+  spot_angler: [wrackPoint(180, -26)],
 };
 
 // ---- named places (discovery) ------------------------------------------------
@@ -302,11 +347,7 @@ export const ISLAND_PLACES: Place[] = [
   { id: 'peak', name: 'Ironcrag', x: M.x, z: M.z + 6, r: 20 },
   { id: 'cove', name: 'Smugglers\' Cove', x: SC.x, z: SC.z, r: 12 },
   { id: 'wreck', name: 'Wreckers\' Point', x: W.x, z: W.z, r: 13 },
-  { id: 'summit', name: 'Ironcrag Summit', x: L.summit.x, z: L.summit.z, r: 7 },
-  { id: 'starfall', name: 'Starfall', x: L.starfall.x, z: L.starfall.z, r: 9 },
-  { id: 'islet', name: 'Leviathan\'s Rest', x: L.islet.x, z: L.islet.z, r: 16 },
-  { id: 'spire', name: 'The Drowned Spire', x: L.spire.x, z: L.spire.z, r: 14, sea: true },
-  ...([['shallows', 'Bellfish Shallows', 20, -16], ['swordrun', 'Swordfish Run', 60, -23], ['deeps', 'Shark Deeps', 255, -26], ['trench', 'Angler\'s Trench', 165, -28]] as const)
+  ...([['shallows', 'Bellfish Shallows', 20, -16]] as const)
     .map(([id, name, a, i]) => { const [x, z] = coastPoint(a, i); return { id, name, x, z, r: 16, sea: true }; }),
   // Sunreach Isle
   { id: 'halyard', name: 'Port Halyard', x: SL.port.x, z: SL.port.z - 6, r: 18, region: 'sunreach' },
@@ -315,4 +356,14 @@ export const ISLAND_PLACES: Place[] = [
   { id: 'palmcove', name: 'Palm Cove', x: SL.palms.x, z: SL.palms.z, r: 13, region: 'sunreach' },
   { id: 'reefshore', name: 'The Reef Shore', x: SL.reefshore.x, z: SL.reefshore.z, r: 13, region: 'sunreach' },
   { id: 'channel', name: 'Halyard Channel', x: SUN.x - 75, z: 10, r: 18, sea: true, region: 'sunreach' },
+  // Stormwrack Isle (levels 55 and up)
+  { id: 'gallows', name: 'Gallows Landing', x: WL.landing.x, z: WL.landing.z - 2, r: 16, region: 'wrack' },
+  { id: 'thewrack', name: 'The Wrack', x: WL.wreck.x, z: WL.wreck.z, r: 13, region: 'wrack' },
+  { id: 'thundercrag', name: 'Thunder Crag', x: WL.crag.x, z: WL.crag.z, r: 16, region: 'wrack' },
+  { id: 'w_starfall', name: 'Starfall', x: WL.starfall.x, z: WL.starfall.z, r: 10, region: 'wrack' },
+  { id: 'oldwood', name: 'The Old Wood', x: WL.oldwood.x, z: WL.oldwood.z, r: 16, region: 'wrack' },
+  { id: 'w_islet', name: 'Leviathan\'s Rest', x: WL.islet.x, z: WL.islet.z, r: 16, region: 'wrack' },
+  { id: 'w_spire', name: 'The Drowned Spire', x: WL.spire.x, z: WL.spire.z, r: 14, sea: true, region: 'wrack' },
+  ...([['w_swordrun', 'Swordfish Run', 140, -18], ['w_deeps', 'Shark Deeps', 30, -24], ['w_trench', 'Angler\'s Trench', 180, -26]] as const)
+    .map(([id, name, a, i]) => { const [x, z] = wrackPoint(a, i); return { id, name, x, z, r: 16, sea: true, region: 'wrack' as RegionId }; }),
 ];

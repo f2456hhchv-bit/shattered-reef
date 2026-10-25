@@ -24,6 +24,7 @@ export const BOUNTY_CONFIG = {
 export const BOARDS: Record<string, { npc: string; island: RegionId; regions: RegionId[] }> = {
   bellwether: { npc: 'wynn', island: 'bellwether', regions: ['bellwether', 'smugglers_caves'] },
   sunreach: { npc: 'sefa', island: 'sunreach', regions: ['sunreach', 'ember_deep'] },
+  wrack: { npc: 'mercy', island: 'wrack', regions: ['wrack'] },
 };
 
 /** Your bounty's standing: the title on your wanted poster. */

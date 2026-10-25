@@ -13,6 +13,7 @@ Reflects the actual repository, not the roadmap.
 | `node scripts/e2e.cjs` (browser, laptop + phone) | passes, no console errors |
 | `node scripts/tour.cjs` (12 places) | renders, no errors |
 | Real phone | combat build tested by Tom (smooth, no heat); art pass 1 + big island **not yet tested** on a phone |
+| Three islands (2026-10-25) | tsc, 110 vitest tests (every region's foes and nodes inside its level band; ferry to Stormwrack, its board, stations and Gallows Landing respawn; every placed NPC has a look; high-level tests moved to Stormwrack), e2e laptop + phone, touch-e2e 3/3, Guardian bot re-checked across seed sets (pistol@10 threshold widened, see Playtest log), phone screenshots of Gallows Landing, Thunder Crag and the sea chart |
 | Signature weapons (2026-10-25) | tsc, 106 vitest tests (every signature weapon has a source; lash drags/slows at 3 m, fang poisons, flintlock ricochets, maelstrom pulls and splashes), e2e laptop + phone, pack screenshot |
 | Keys 11-21 (2026-10-25) | tsc, 105 vitest tests (21 keys, Keel's Tooth from the bell quest, Rust/Ward/Spoil/Pickpocket, Knockdown/Fuse/Toll/Bell, Steal/Turncoat), e2e laptop + phone, Guardian balance unchanged |
 | Bounties + crew (2026-10-25) | tsc, 101 vitest tests (hunt contract pays, wanted target spawns named and never returns, hunters at 5,000+, crew signing + passive + mate fights, save v7→v8 and junk), e2e laptop + phone, touch-e2e 3/3, Guardian balance unchanged, phone screenshots of the board, crew tab and mate in a fight |
@@ -36,7 +37,12 @@ Reflects the actual repository, not the roadmap.
 - **Combat skills (RuneScape model):** Attack, Strength, Defence, Hitpoints, Ranged, Magic. Hit chance and max hit use the OSRS formulas; successful hits always do at least 1 (a 0 means a miss). Stances choose the trained skill. Combat triangle via per-style defence: crabs and the Guardian are weak to magic, brigands to ranged, gunners to melee. Combat level uses the OSRS formula (new character = 3).
 - **Skills roadmap:** `docs/SKILLS.md` (12 in game, 22 planned). A skill ships only with real content.
 - **Combat:** auto-attack anything in reach (Survivor.io feel), tap/click an enemy to chase it. Three active skills: dodge roll (3 s, no damage while rolling), whirl (6 s, hits everything within 3.2 m, knockback), flintlock (7 s, ranged). Enemy attacks are telegraphed; rolling through them is the skill play.
-- **Starter island holds every skill's level range** (Tom, 2026-10-23). Easy content near the quay, harder toward the far coasts and Ironcrag. Skill-specific islands come later. A zone joins the Places list only when it has content.
+- ~~Starter island holds every skill's level range~~ (Tom, 2026-10-23; **reversed 2026-10-25**).
+- **Three islands in level order** (Tom, 2026-10-25: "first 3 islands need to progress with levels and feel like starters"). Bands live on each region (`REGIONS[id].band`) and a test holds every foe and gathering node inside them:
+  - Bellwether 1-30 (+ Smugglers' Caves 15-30): copper to coal, pine/oak/willow, crabs to smugglers, the Guardian (22).
+  - Sunreach 25-60 (+ Ember Deep 45-60): gold, stormsilver, abyssite, amber and yew, boars to poachers, the temple serpent (60).
+  - Stormwrack 55-99 (new, region `wrack`, Gallows Landing outpost with Mercy Gale's board and ferry): tidecore, cinderite, fallen star, Leviathan bones, the drowned spire; yew/starwood/Leviathan cedar; the drowned, wreck captain, stone sentinels; shark, angler and gloom fishing.
+  - Ferries now list routes: Wynn (Bellwether) to Sunreach 30 or Stormwrack 120; Sefa to Bellwether 30 or Stormwrack 90; Mercy to Sunreach 90 or Bellwether 120. Sailing is east-west along the chain.
 - **Art standard (art pass 1, approved by Tom 2026-10-23):** smooth shading, blended vertex-colour terrain with speckle, cobbles and cloud shadows; item models rendered to slate-tile icons; loot as rarity-tinted sea-glass shards. Characters and buildings get the same treatment next.
 - **No boxes in characters, UI or effects** (Tom, 2026-10-23: "boxy, like Minecraft"). Humanoids are turned profiles, capsules and spheres; UI panels are framed with brass filigree, tabs are medallions, orbs are round; particles are round.
 - **Graphics pass 2 (2026-10-23):** image-based lighting from a painted sky (PMREM), baked terrain AO (horizon + contact shadows under every solid), world-space procedural surface detail (tonal grain + micro-bump) on props/buildings/characters, warm rim light on characters, bloom on emissives only. Battery saver turns detail and bloom off. Brightness measured against the previous build: +6–15%.
@@ -138,6 +144,10 @@ Reflects the actual repository, not the roadmap.
 
 - **2026-10-24, Tom (phone screenshot):** swarmed and killed too easily; health 100 to 990; map cut off; plus a long list (gear slots, wands and off-hands, unique late weapons, every One Piece / Locke & Key idea, skill depth). Batch 1 shipped: passive enemies, health ×10, map fits the sheet. The rest is queued in Next.
 
+- **2026-10-25, Tom:** "first 3 islands need to progress with levels and feel like starters... nothing rare really getting dropped... think RuneScape drop table". Shared drop tables shipped (PR #41). Then the three islands: Bellwether 1-30, Sunreach 25-60, the new Stormwrack 55-99; Bellwether's high zones (summit, Starfall, islet, spire, deeps, trench, drowned, sentinels) moved to Stormwrack; cave ores trimmed to their bands (cinderite and tidecore left the Ember Deep).
+  - Guardian bot [certain]: pistol@10 moved from 10 to 13 wins because removing Bellwether spawns shifts the shared random stream. The old code gives 11 and 13 on other seed sets, so the ≤10 limit was noise-tight; widened to ≤13. The Guardian itself is unchanged.
+  - Found while testing [certain]: Mercy had no character look, which crashed the region build in the browser (tests don't draw). Added her look and a test that every placed NPC has one.
+
 ## Known issues / limitations
 - `touch-e2e` failed once (0/3 slot taps) right after a laptop e2e run on 2026-10-24 and passed on two reruns; failed the same way once on 2026-10-25 with the player at 4/100 health (something was hitting them during the test), then passed twice. Not root-caused.
 - Armour doesn't show on the player model (helm, plate, legs, boots, gloves); weapons and off-hand items do.
@@ -145,7 +155,9 @@ Reflects the actual repository, not the roadmap.
 - Visual pass 1 (done): RuneScape-style outlined item icons (lathed items no longer vanish), skill medallions + XP bars, empty-slot silhouettes, hit splats, per-stone cobbles, cloth tents with ropes, smooth shoreline (beach toe slope + per-pixel water depth), less phone haze.
 - No naval combat; sea is for travel, fishing and discovery only.
 - Buildings and the Guardian are still blocky; next art target after characters/UI.
-- Regions: two islands, two caves. Terrain chunks and grass (40 m buckets) are frustum-culled; camera far plane follows the fog. One region is built at a time (0.01-0.31 s in Node); a trip's loading screen in software rendering takes 2-12 s, mostly shader compiling, and is much quicker on a real GPU (unmeasured).
+- Stormwrack has **no boss and no foe above 80** yet (sentinels top out); its band says 99. It also has no town, no shops and no quests: an outpost of stations, a strongbox and the harbourmaster. Giant spiders (46) there sit under its band.
+- Players who saved standing in a Bellwether high zone (Ironcrag summit, Starfall, the islet) load into what is now plain Bellwether ground; their high-level gathering moved to Stormwrack.
+- Regions: three islands, two caves. Terrain chunks and grass (40 m buckets) are frustum-culled; camera far plane follows the fog. One region is built at a time (0.01-0.31 s in Node); a trip's loading screen in software rendering takes 2-12 s, mostly shader compiling, and is much quicker on a real GPU (unmeasured).
 - Performance measured only in software rendering; big-island frame rate on a real phone unmeasured.
 - Frame cost (phone 390×844@2x, Max quality, shadows on; `scripts/perf-budget.cjs`): 200-345 draw calls, 0.27-0.54M triangles everywhere (market square was 560 / 0.93M before the shadow stand-ins and low-poly characters). Real-phone frame rate still unmeasured: turn on Settings > Show frame rate.
 - Gathering pace: 99 takes 200–250 h of pure gathering (RuneScape-like; brief target ~400 h incl. travel). Early levels are RuneScape-quick, faster than the brief's provisional 4 h to level 30.

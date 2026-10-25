@@ -7,7 +7,7 @@ import { NPC_LOOKS, PLAYER_LOOK } from '../art/cast';
 import { NODES, SKILLS, UNLOCKS, RECIPES, UTILITY_SPELLS, ELITE_AFFIXES, ENEMIES, PLAYER_BASE, SPELLS, type Station } from '../game/data/content';
 import type { Stance } from '../game/sim/gear';
 import { NPCS, QUESTS } from '../game/data/quests';
-import { coastDist, nearestPathDist, FLATS, SUN, coastR, sunCoastR, LAYOUT, SUN_LAYOUT } from '../game/world/island';
+import { coastDist, nearestPathDist, FLATS, SUN, WRACK, coastR, sunCoastR, wrackCoastR, LAYOUT, SUN_LAYOUT } from '../game/world/island';
 import { PLACES, placeRegion } from '../game/world/places';
 import { REGIONS } from '../game/world/regions';
 import { count, displayName, stackValue, INV_SIZE, type Stack } from '../game/sim/inventory';
@@ -918,7 +918,7 @@ export class UI {
         if (b.dataset.dropC) { g.abandonContract(Number(b.dataset.dropC)); return; }
         if (b.dataset.recruit) { g.recruit(b.dataset.recruit); return; }
         if (b.dataset.mate !== undefined) { g.setMate(b.dataset.mate || null); return; }
-        if (b.dataset.ferry) { const n = b.dataset.ferry; this.closeWindows(); g.takeFerry(n); return; }
+        if (b.dataset.ferry) { const [n, to] = b.dataset.ferry.split(':'); this.closeWindows(); g.takeFerry(n, to); return; }
         if (b.dataset.sskill && this.station) { this.stationSkill[this.station] = b.dataset.sskill; this.renderStation(); return; }
         if (b.dataset.shoptab) { this.shopTab = b.dataset.shoptab as 'buy' | 'sell'; this.renderShop(); return; }
         if (b.dataset.sell) { const [i, n] = b.dataset.sell.split(':'); g.sell(Number(i), n === 'all'); this.renderShop(); return; }
@@ -990,7 +990,7 @@ export class UI {
       body = `${poster}<p class="muted" style="font-size:12px;margin:0 0 6px">Everyone you sign gives their bonus from aboard. Your first mate comes ashore and fights beside you.${g.s.mate ? ' <button class="btn" data-mate="">Leave everyone aboard</button>' : ''}</p>${rows}`;
     } else {
       const npc = NPCS[B.npc], f = npc.ferry;
-      body = f ? `<p>${esc(npc.idle[0])}</p><button class="btn primary" data-ferry="${B.npc}">Sail to ${esc(REGIONS[f.to].name)} (${f.price} coins)</button>` : '<p class="muted">No passage from here.</p>';
+      body = f ? `<p>${esc(npc.idle[0])}</p>${f.map((r) => `<div class="recipe brow"><div><b>${esc(REGIONS[r.to].name)}</b><div class="need">levels ${REGIONS[r.to].band?.join('–') ?? '?'}</div></div><div class="btns"><button class="btn primary" data-ferry="${B.npc}:${r.to}">Sail (${r.price} coins)</button></div></div>`).join('')}` : '<p class="muted">No passage from here.</p>';
     }
     this.win('boardwin', `${NPCS[B.npc].name}'s board`, tabs + body);
   }
@@ -1260,6 +1260,7 @@ export class UI {
   private mapFrame(): { cx: number; cz: number; span: number } {
     const g = this.game, r = g.region;
     if (r.id === 'sunreach') return { cx: SUN.x, cz: SUN.z, span: 170 };
+    if (r.id === 'wrack') return { cx: WRACK.x, cz: WRACK.z, span: 150 };
     if (r.id === 'bellwether') return { cx: 0, cz: 0, span: 216 };
     return { cx: r.bounds.cx, cz: r.bounds.cz, span: r.bounds.half * 2 };
   }
@@ -1337,7 +1338,7 @@ export class UI {
     const g = this.game;
     c.fillStyle = '#d9c9a0'; c.fillRect(0, 0, W, W); // parchment
     c.fillStyle = '#9cc4c4'; c.fillRect(14, 14, W - 28, W - 28);
-    const span = 540, cx = SUN.x / 2, cz = -10, ox = cx - span / 2, oz = cz - span / 2;
+    const span = 1240, cx = WRACK.x / 2, cz = -10, ox = cx - span / 2, oz = cz - span / 2;
     const toPx = (x: number, z: number): [number, number] => [((x - ox) / span) * W, ((z - oz) / span) * W];
     const isle = (x0: number, z0: number, r: (t: number) => number, here: boolean) => {
       c.beginPath();
@@ -1347,16 +1348,22 @@ export class UI {
     };
     isle(0, 0, coastR, g.s.region === 'bellwether' || g.region.home === 'bellwether' && g.region.kind === 'cave');
     isle(SUN.x, SUN.z, sunCoastR, g.s.region === 'sunreach' || g.region.home === 'sunreach' && g.region.kind === 'cave');
+    isle(WRACK.x, WRACK.z, wrackCoastR, g.s.region === 'wrack');
     // the sea lane: the edge of each island's waters, dashed
     c.setLineDash([10, 8]); c.lineWidth = 2.5; c.strokeStyle = '#2f5a6a';
     const [ax, ay] = toPx(REGIONS.bellwether.bounds.cx + REGIONS.bellwether.bounds.half - 16, 0), [bx, by] = toPx(REGIONS.sunreach.bounds.cx - REGIONS.sunreach.bounds.half + 16, SUN.z);
     c.beginPath(); c.moveTo(toPx(70, 40)[0], toPx(70, 40)[1]); c.lineTo(ax, ay); c.lineTo(bx, by); c.lineTo(toPx(SUN.x - 60, SUN.z + 30)[0], toPx(SUN.x - 60, SUN.z + 30)[1]); c.stroke();
+    const [cx2, cy2] = toPx(REGIONS.sunreach.bounds.cx + REGIONS.sunreach.bounds.half - 16, SUN.z), [dx2, dy2] = toPx(REGIONS.wrack.bounds.cx - REGIONS.wrack.bounds.half + 16, WRACK.z);
+    c.beginPath(); c.moveTo(toPx(SUN.x + 60, SUN.z)[0], toPx(SUN.x + 60, SUN.z)[1]); c.lineTo(cx2, cy2); c.lineTo(dx2, dy2); c.lineTo(toPx(WRACK.x - 55, WRACK.z)[0], toPx(WRACK.x - 55, WRACK.z)[1]); c.stroke();
     c.setLineDash([]);
     c.font = '600 20px Georgia, serif'; c.textAlign = 'center';
     const label = (text: string, x: number, z: number, size = 20, colour = '#3a2a1e') => { const [px, py] = toPx(x, z); c.font = `600 ${size}px Georgia, serif`; c.lineWidth = 4; c.strokeStyle = '#f2e6c8'; c.strokeText(text, px, py); c.fillStyle = colour; c.fillText(text, px, py); };
-    label('Bellwether Isle', 0, 122, 30);
-    label('Sunreach Isle', SUN.x, SUN.z + 92, 30);
+    label('Bellwether Isle', 0, 122, 26);
+    label('Sunreach Isle', SUN.x, SUN.z + 92, 26);
+    label('Stormwrack Isle', WRACK.x - 20, WRACK.z + 80, 26);
     label('Halyard Channel', (ax + bx) / 2 / W * span + ox, -40, 22, '#2f5a6a');
+    label('The Gale Reach', (cx2 + dx2) / 2 / W * span + ox, WRACK.z - 50, 22, '#2f5a6a');
+    label('levels 1–30', 0, 150, 18, '#5a4a2e'); label('levels 25–60', SUN.x, SUN.z + 118, 18, '#5a4a2e'); label('levels 55–99', WRACK.x - 20, WRACK.z + 104, 18, '#5a4a2e');
     // cave mouths, named once found
     for (const [x, z, id, name] of [[LAYOUT.cove.x + 6.5, LAYOUT.cove.z - 7.5, 'smugglers_caves', 'Smugglers\' Caves'], [SUN_LAYOUT.ember.x - 9, SUN_LAYOUT.ember.z + 9, 'ember_deep', 'The Ember Deep']] as const) {
       const [px, py] = toPx(x, z);

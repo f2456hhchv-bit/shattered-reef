@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { fbm, smooth } from '../art/noise';
 import type { Look } from '../art/looks';
-import { coastDist, nearestPathDist, FLATS, LAYOUT, BEACH, SUN_LAYOUT, SUN, SUN_RADIUS } from '../game/world/island';
+import { coastDist, nearestPathDist, FLATS, LAYOUT, BEACH, SUN_LAYOUT, SUN, SUN_RADIUS, WRACK, WRACK_RADIUS, WRACK_LAYOUT } from '../game/world/island';
 import { World, HCELL } from '../game/world/world';
 import { CAVE_FLOOR } from '../game/world/caves';
 
@@ -25,10 +25,12 @@ export function buildTerrainMesh(world: World, look: Look, cave = false): Terrai
   const col = new Float32Array(R * R * 3);
   const cob = new Float32Array(R * R); // cobblestone mask for the village square
   // cobbled squares (Bellwether's quay, Port Halyard's) and paved ruins (the Broken Ring, the Sunken Temple)
-  const squares = [FLATS[0], FLATS.find((f) => f.x === SUN_LAYOUT.port.x && f.z === SUN_LAYOUT.port.z)!];
+  const squares = [FLATS[0], FLATS.find((f) => f.x === SUN_LAYOUT.port.x && f.z === SUN_LAYOUT.port.z)!, FLATS.find((f) => f.x === WRACK_LAYOUT.landing.x && f.z === WRACK_LAYOUT.landing.z)!];
   const paved = [LAYOUT.ruin, SUN_LAYOUT.temple];
   // Sunreach is warmer: paler sand, lusher jungle green
   const jungle = C(0x3f7a34), jungleD = C(0x2c5a2c), palmSand = C(0xeedcab);
+  // Stormwrack is wind-scoured: grey-green heath and dark shingle
+  const heath = C(0x66704f), heathD = C(0x4c5440), shingle = C(0x9a9484);
   const tmp = new THREE.Color();
   // underground: packed earth and wet stone underfoot, the walls darkening into a black crown
   const caveFloor = C(0x7a6a58), caveFloorD = C(0x5a4e42), caveWall = C(0x4a423a), caveTop = C(0x1c1916), ember = C(0x8a4228);
@@ -60,12 +62,14 @@ export function buildTerrainMesh(world: World, look: Look, cave = false): Terrai
       const n2 = fbm(x * 0.22 + 9, z * 0.22 + 9, 2, 6); // small variation
       const slope = slopeAt(i, j);
       const sunny = 1 - smooth(Math.hypot(x - SUN.x, z - SUN.z), SUN_RADIUS + 10, SUN_RADIUS + 30);
+      const stormy = 1 - smooth(Math.hypot(x - WRACK.x, z - WRACK.z), WRACK_RADIUS + 10, WRACK_RADIUS + 30);
       {
         // grass with meadow / moss patches, easing into sand near the shore
         tmp.copy(grass).lerp(meadow, smooth(n, 0.45, 0.7) * 0.7).lerp(grassD, smooth(n2, 0.45, 0.8) * 0.45).lerp(moss, smooth(1 - n, 0.55, 0.8) * 0.35);
         if (sunny > 0) tmp.lerp(jungle.clone().lerp(jungleD, smooth(n2, 0.4, 0.8) * 0.6), sunny * 0.7);
+        if (stormy > 0) tmp.lerp(heath.clone().lerp(heathD, smooth(n2, 0.4, 0.8) * 0.6), stormy * 0.75);
         const shore = 1 - smooth(d, BEACH - 2.5 + n * 3, BEACH + 1.5 + n * 3); // the beach belt, edge wandering
-        tmp.lerp(sunny > 0 ? sand.clone().lerp(palmSand, sunny) : sand, shore);
+        tmp.lerp(sunny > 0 ? sand.clone().lerp(palmSand, sunny) : stormy > 0 ? sand.clone().lerp(shingle, stormy) : sand, shore);
         tmp.lerp(wet, 1 - smooth(y, 0.05, 0.35));
         let cw = 0;
         for (const sq of squares) cw = Math.max(cw, 1 - smooth(Math.hypot(x - sq.x, z - sq.z), sq.r - 3, sq.r + 0.5));

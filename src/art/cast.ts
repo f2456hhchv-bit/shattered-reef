@@ -19,6 +19,7 @@ export const NPC_LOOKS: Record<string, HumanoidLook> = {
   tamsin: { skin: 0xb98058, coat: 0xb8862a, coatTrim: 0x5a3a20, shirt: 0xf0e8d8, trousers: 0x4a3a30, boots: 'leather', hat: 0x2a1a12, hair: 0x2a1a12, hatStyle: 'bandana', hairStyle: 'bun', beard: false },
   rell: { skin: 0x8a5a3a, coat: 0x6a3a2a, coatTrim: 0xc9a050, shirt: 0xeee4cc, trousers: 0x2e2a26, boots: 'leather', hat: 0x1a1414, hair: 0x2a2420, hatStyle: 'none', beard: true, apron: 0xe6dcc0 },
   ines: { skin: 0x9a6a48, coat: 0x2f3a5a, coatTrim: 'brass', shirt: 0xf0e8d8, trousers: 0x22222a, boots: 0x1a1a1e, hat: 0x1a1210, hair: 0x1a1210, hatStyle: 'none', hairStyle: 'bun', beard: false, spectacles: true },
+  mercy: { skin: 0xc8946a, coat: 0x3a3e44, coatTrim: 0x8a8a82, shirt: 0xd8d4c8, trousers: 0x26282c, boots: 'leather', hat: 0x1e2226, hair: 0x9a9a92, hatStyle: 'tricorn', hairStyle: 'queue', beard: false },
   halyard_watch: { skin: 0x6a4028, coat: 0x2f6a4a, coatTrim: 0xc9a050, shirt: 0xd8ccb0, trousers: 0x2e2a26, boots: 0x1e1a18, hat: 0x2f6a4a, hair: 0x1a1210, hatStyle: 'tricorn', held: 'musket' },
 };
 /** Townsfolk who walk Bellwether's streets (no dialogue: they're busy). */
