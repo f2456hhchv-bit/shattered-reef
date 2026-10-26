@@ -87,6 +87,7 @@ export class UI {
   private playerBar!: HTMLElement;
   private gatherBar!: HTMLElement;
   private cueBar!: HTMLElement;
+  private stormHud!: HTMLElement;
   private cuePop!: HTMLElement;
   private cuePopT = 0;
   private bannerT = 0;
@@ -178,6 +179,10 @@ export class UI {
     this.cueBar = h('div', { class: 'cuebar' }, '<b></b><i></i>');
     this.cueBar.style.display = 'none';
     this.el.overlay.appendChild(this.cueBar);
+    // the Storm Tide: the serpent's strength and the pier's, while it runs
+    this.stormHud = h('div', { id: 'stormhud' }, '<div><b>Tide-serpent</b><span><i></i></span></div><div><b>The pier</b><span><i></i></span></div>');
+    this.stormHud.hidden = true;
+    this.el.overlay.appendChild(this.stormHud);
     this.cuePop = h('div', { class: 'cuepop' });
     this.el.overlay.appendChild(this.cuePop);
     mm.addEventListener('pointerdown', (e) => this.minimapTap(e));
@@ -392,6 +397,13 @@ export class UI {
       (b.querySelector('.cd') as HTMLElement).style.setProperty('--cd', `${(cd / max) * 360}deg`);
     }
     if (this.cuePopT > 0 && (this.cuePopT -= dt) <= 0) this.cuePop.className = 'cuepop';
+    const storm = g.storm;
+    this.stormHud.hidden = !storm.running;
+    if (storm.running) {
+      const bars = this.stormHud.querySelectorAll('i');
+      (bars[0] as HTMLElement).style.width = `${storm.serpent}%`;
+      (bars[1] as HTMLElement).style.width = `${storm.dock}%`;
+    }
     // frame-rate readout (settings): what Auto is doing on this phone
     this.fpsT -= dt;
     if (this.fpsT <= 0) {

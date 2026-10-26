@@ -106,7 +106,7 @@ export class Naval {
     const a = AMMO[this.ammo], sh = this.g.ship;
     if (a.item) remove(this.g.p.inv, a.item, 1);
     this.reloadCd = this.reloadTime(a.kind);
-    const dmg = a.damage * (1 + (this.g.level('sailing') - 1) * 0.04); // your crew's gunnery grows with Sailing
+    const dmg = a.damage * (1 + (this.g.level('sailing') - 1) * 0.04) * (this.g.s.flags.swivel_gun ? 1.15 : 1); // gunnery grows with Sailing; the Wreckers' Lantern swivel gun
     if (a.kind === 'charge') {
       // over the stern: it sinks, then bursts
       this.charges.push({ id: this.g.nextId++, x: sh.x - Math.cos(sh.heading) * 4.2, z: sh.z - Math.sin(sh.heading) * 4.2, t: NAVAL.charge.fuse, damage: dmg });
@@ -174,6 +174,7 @@ export class Naval {
     f.alive = false;
     f.respawnAt = g.time + f.def.respawn;
     g.addXp('sailing', f.def.xp);
+    g.questKill(f.def.id);
     g.emit({ type: 'enemyDeath', id: f.id, x: f.x, z: f.z, elite: false, boss: !!f.def.boss });
     // the haul comes aboard: nothing to fish out of the water
     const got: string[] = [];

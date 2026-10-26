@@ -11,7 +11,7 @@ import { toWorld, toLocal, doorPoints, isInside } from '../world/buildings';
 import { regionLayout } from '../world/layout';
 import { AMMO } from '../data/sea';
 import { NPC_LOOKS } from '../../art/cast';
-import { NPCS } from '../data/quests';
+import { NPCS, QUESTS } from '../data/quests';
 import { REGIONS, type RegionId } from '../world/regions';
 
 const base = new Game({ seed: 3 });
@@ -64,7 +64,9 @@ describe('content data', () => {
   it('no gear is drop-only: every weapon and armour piece is craftable, sold, or a quest/boss trophy', () => {
     const made = new Set(RECIPES.map((r) => r.output.id));
     const sold = new Set(Object.values(SHOPS).flatMap((sh) => sh.stock.map((s) => s.id)));
-    const TROPHY = new Set(['lockplate', 'cutlass_rusty', 'cutlass_brigand', 'ring_brass']); // boss/starter/flavour pieces with crafted equivalents
+    const questGifts = Object.values(QUESTS).flatMap((q) => q.stages.flatMap((st) => [st.talk, ...(st.also ?? [])].flatMap((o) => o?.node.effect?.give?.map((g) => g.id) ?? [])));
+    // boss/starter/flavour pieces with crafted equivalents, quest rewards, and the Storm Tide's oilskins
+    const TROPHY = new Set(['lockplate', 'cutlass_rusty', 'cutlass_brigand', 'ring_brass', ...questGifts, 'oilskin_hat', 'oilskin_coat', 'oilskin_legs', 'sea_boots']);
     // signature weapons are drop-only on purpose (the abyssal whip of each style); each must have a source
     const dropOnly = Object.values(ITEMS).filter((d) => d.equip && !d.sig && !made.has(d.id) && !sold.has(d.id) && !TROPHY.has(d.id)).map((d) => d.id);
     expect(dropOnly).toEqual([]);
@@ -143,7 +145,8 @@ describe('content placement', () => {
     expect(Object.keys(NODES).filter((id) => !placed.has(id))).toEqual([]);
     const spawned = new Set(all.flatMap((L) => L.spawns.map((s) => s.enemy)));
     // bounty hunters aren't placed: they come looking for you (bounties.ts)
-    expect(Object.values(ENEMIES).filter((e) => !e.boss && !spawned.has(e.id) && !e.id.startsWith('bounty_')).map((e) => e.id)).toEqual([]);
+    const questFoes = new Set(Object.values(QUESTS).flatMap((q) => q.stages.flatMap((st) => (st.kill?.spawn ? [st.kill.foe] : []))));
+    expect(Object.values(ENEMIES).filter((e) => !e.boss && !spawned.has(e.id) && !e.id.startsWith('bounty_') && !questFoes.has(e.id)).map((e) => e.id)).toEqual([]);
     const arenas = new Set(all.flatMap((L) => L.arenas.map((a) => a.boss)));
     expect(Object.values(ENEMIES).filter((e) => e.boss && !arenas.has(e.id)).map((e) => e.id)).toEqual([]);
   });

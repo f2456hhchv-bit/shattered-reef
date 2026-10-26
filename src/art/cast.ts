@@ -21,6 +21,9 @@ export const NPC_LOOKS: Record<string, HumanoidLook> = {
   ines: { skin: 0x9a6a48, coat: 0x2f3a5a, coatTrim: 'brass', shirt: 0xf0e8d8, trousers: 0x22222a, boots: 0x1a1a1e, hat: 0x1a1210, hair: 0x1a1210, hatStyle: 'none', hairStyle: 'bun', beard: false, spectacles: true },
   mercy: { skin: 0xc8946a, coat: 0x3a3e44, coatTrim: 0x8a8a82, shirt: 0xd8d4c8, trousers: 0x26282c, boots: 'leather', hat: 0x1e2226, hair: 0x9a9a92, hatStyle: 'tricorn', hairStyle: 'queue', beard: false },
   jory: { skin: 0xb07a52, coat: 0x6a4a22, coatTrim: 'brass', shirt: 0xeee4cc, trousers: 0x3a3028, boots: 'leather', hat: 0x3a2a1a, hair: 0x5a3a1a, hatStyle: 'cap', beard: true },
+  pellow: { skin: 0xc8946a, coat: 0x5a4a36, coatTrim: 0x3a2e22, shirt: 0x8a7a60, trousers: 0x3a3028, boots: 'leather', hat: 0xc9a050, hair: 0xd8d0c0, hatStyle: 'cap', beard: true, held: 'hammer' },
+  muirne: { skin: 0xe8d8c8, coat: 0x5a6068, coatTrim: 0x8a9298, shirt: 0xc8ccd0, trousers: 0x4a5058, boots: 0x3a3e42, hat: 0x1a1a1e, hair: 0x1a1a1e, hatStyle: 'none', hairStyle: 'bun', beard: false, eyes: 0x2a2a2e },
+  dougal: { skin: 0xc8946a, coat: 0x3a4a5a, coatTrim: 0xd8ccb0, shirt: 0xd8ccb0, trousers: 0x3a3428, boots: 'leather', hat: 0x8a6a3a, hair: 0x8a5a2a, hatStyle: 'cap', beard: true, apron: 0xb8a888 },
   halyard_watch: { skin: 0x6a4028, coat: 0x2f6a4a, coatTrim: 0xc9a050, shirt: 0xd8ccb0, trousers: 0x2e2a26, boots: 0x1e1a18, hat: 0x2f6a4a, hair: 0x1a1210, hatStyle: 'tricorn', held: 'musket' },
 };
 /** Townsfolk who walk Bellwether's streets (no dialogue: they're busy). */
@@ -46,6 +49,7 @@ export const HUMAN_LOOKS: Record<string, HumanoidLook> = {
   // Bellwether's folk under the hill and in the Howes; Stormwrack's drowned dead (docs/ISLANDS.md)
   knocker: { skin: 0x8a9a7a, coat: 0x5a4a36, coatTrim: 0x3a2e22, shirt: 0x7a6a50, trousers: 0x3a3028, boots: 0x2a2018, hat: 0xc9a050, hair: 0xd8d0c0, hatStyle: 'cap', beard: true, held: 'hammer', eyes: 0xf2d04a },
   howe: { skin: 0xc8c2a4, coat: 0x5a4a3a, coatTrim: 0x8a5a2a, shirt: 0x6a6050, trousers: 0x3a342a, boots: 0x2a241c, hat: 0x6a6a6a, hair: 0x8a8478, hatStyle: 'none', held: 'greatsword', eyes: 0x9ad8ff },
+  wrecker: { skin: 0xb88a62, coat: 0x2a2a2e, coatTrim: 0xb8402a, shirt: 0x6a5a48, trousers: 0x22201e, boots: 'leather', hat: 0x1a1a1a, hair: 0x3a2a1a, hatStyle: 'bandana', beard: true, held: 'cutlass' },
   seadraugr: { skin: DROWNED_SKIN, coat: 0x2a4a3a, coatTrim: 0x6ac8a8, shirt: 0x4a5a4a, trousers: 0x22302a, boots: 0x1a2420, hat: 0x2a3a34, hair: 0x2a4a3a, hatStyle: 'none', held: 'pike', eyes: 0x8affe8 },
   captain: { skin: DROWNED_SKIN, coat: 0x3a1828, coatTrim: 'brass', shirt: 0x8a9a8a, trousers: 0x22201e, boots: 0x1e2424, hat: 0x141414, hair: 0x3a4a44, hatStyle: 'tricorn', held: 'cutlass', eyes: 0xbfeee4 },
 };

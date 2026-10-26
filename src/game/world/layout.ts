@@ -150,6 +150,10 @@ function buildIslandRegion(region: IslandId): IslandLayout {
     { id: 'watch_n', x: X.x + 0.6, z: X.z - 9.5, facing: Math.PI / 2 },
     { id: 'watch_e', x: X.x + 11, z: X.z + 2.5, facing: Math.PI },
     { id: 'bram', x: S.x - 1.4, z: S.z + 1.9, facing: Math.PI / 2 },
+    // the quest folk: Old Pellow at the Ironcrag camp, Muirne on the strand's rocks, Dougal mending nets nearby
+    { id: 'pellow', x: M.x - 1.5, z: M.z + 23.5, facing: Math.PI / 2 },
+    { id: 'muirne', x: coastPoint(136, 2.6)[0], z: coastPoint(136, 2.6)[1], facing: Math.atan2(coastPoint(136, -5)[1] - coastPoint(136, 2.6)[1], coastPoint(136, -5)[0] - coastPoint(136, 2.6)[0]) },
+    { id: 'dougal', x: LAYOUT.strand.x + 7, z: LAYOUT.strand.z - 4, facing: Math.PI },
   );
   else if (sun) npcs.push({ id: 'halyard_watch', x: SL.plaza.x + 3, z: SL.plaza.z - 7, facing: Math.PI / 2 });
   else if (amb) npcs.push({ id: 'jory', x: AL.dockBase.x + 3.2, z: AL.dockBase.z - 1.0, facing: Math.PI / 2 });
@@ -327,6 +331,8 @@ function buildIslandRegion(region: IslandId): IslandLayout {
       const [x, z] = coastPoint(deg, inset);
       nodes.push({ uid: `n${uid++}`, def, x, z, seed: deg });
     }
+    // the Storm Tide's shoals, either side of the pier (they only run while the storm does)
+    for (const [dx, f] of [[-3.7, 0.55], [3.7, 0.6], [-3.7, 0.9]] as const) nodes.push({ uid: `n${uid++}`, def: 'spot_storm', x: dock.x + dx, z: dock.zStart + dock.len * f, seed: 70 + Math.round(f * 10) });
     // sunken wrecks to salvage from the deck (Sailing)
     for (const [deg, out] of [[140, 15], [330, 17], [245, 15]] as const) { const [x, z] = coastPoint(deg, -out); nodes.push({ uid: `n${uid++}`, def: 'wreck_salvage', x, z, seed: deg }); }
   } else if (wrack) {
