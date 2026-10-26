@@ -4,7 +4,7 @@
 
 export type KeyFamily = 'any' | 'woodcutting' | 'mining' | 'fishing' | 'melee' | 'ranged' | 'magic' | 'sailing' | 'explore' | 'production';
 export type KeyPassive = 'skill_xp' | 'extra_log' | 'extra_ore' | 'fish_success' | 'melee_acc' | 'ranged_acc' | 'charm_save' | 'leech' | 'ship_speed' | 'walk_speed'
-  | 'find_bonus' | 'smith' | 'cook' | 'melee_dmg' | 'dr' | 'ammo_save' | 'magic_dmg' | 'free_teleport' | 'double_finds' | 'desperate' | 'sea_peace';
+  | 'find_bonus' | 'smith' | 'cook' | 'melee_dmg' | 'dr' | 'ammo_save' | 'magic_dmg' | 'free_teleport' | 'double_finds' | 'desperate' | 'sea_peace' | 'listening';
 export type KeyPower = 'lesson' | 'root' | 'shatter' | 'hook' | 'disarm' | 'mark' | 'undertow' | 'drain' | 'becalm' | 'blink'
   | 'pickpocket' | 'rust' | 'spoil' | 'knockdown' | 'ward' | 'fuse' | 'chain' | 'toll' | 'steal' | 'turncoat' | 'bite';
 
@@ -126,6 +126,10 @@ export const KEYS: KeyDef[] = [
     passive: { kind: 'dr', v: 6, text: 'You take 6% less damage' },
     power: { id: 'ward', name: 'Ward', cooldown: 45, dur: 4, text: 'This foe can\'t hurt you for 4 s' },
     lore: 'Cold iron from the Barrow King\'s hand. The dead under Goldvein Hill knew its weight.' },
+  { id: 'listener', name: 'Listener\'s Key', family: 'any', rarity: 'quest',
+    passive: { kind: 'listening', v: 8, text: 'You hear what the song-touched hear: +8% damage to elite foes, and every page of Keel\'s Log shows on your map. They hear you too: elites notice you from half as far again' },
+    power: { id: 'lesson', name: 'Eavesdrop', cooldown: 30, dur: 10, v: 25, text: 'You listen at the foe\'s keyhole: its weakness, and your hits in that style do +25% for 10 s' },
+    lore: 'Iven Marr\'s grandmother left it with her charts. Turn it in yourself and the keyholes all round you start to whisper.' },
 ];
 
 export const KEY: Record<string, KeyDef> = Object.fromEntries(KEYS.map((k) => [k.id, k]));

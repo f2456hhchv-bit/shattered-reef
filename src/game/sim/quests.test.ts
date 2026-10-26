@@ -256,6 +256,63 @@ describe('Fire on the Greenheart', () => {
   });
 });
 
+describe('The First Lock (Act II)', () => {
+  it('ledger to tide table, Keel\'s Tooth turned in the Spire from the deck, the Hushed, Corva\'s letter, the Listener\'s Key', () => {
+    let g = fresh();
+    g.s.flags.collector_done = true; g.s.quests.collector = QUESTS.collector.stages.length - 1; g.s.flags.bell_done = true; g.s.quests.bell = QUESTS.bell.stages.length - 1;
+    talk(g, 'iven');
+    expect(g.questStage('firstlock')).toBe(1);
+    // to Stormwrack
+    const L = regionLayout('wrack'), sv = g.serialize();
+    sv.player.x = L.respawn.x; sv.player.z = L.respawn.z; sv.player.onShip = false;
+    Object.assign(sv.ship, { ...L.mooring!, region: 'wrack' });
+    g = new Game({ seed: 7, save: { ...JSON.parse(JSON.stringify(sv)), region: 'wrack' } });
+    for (const e of g.enemies) { e.alive = false; e.respawnAt = Infinity; }
+    g.naval.foes.forEach((f) => { f.alive = false; f.respawnAt = Infinity; });
+    talk(g, 'mercy');
+    expect(g.questStage('firstlock')).toBe(2);
+    expect(count(g.p.inv, 'tide_table')).toBe(1);
+    // not on foot
+    expect(g.targets().some((t) => t.key === 'quest:firstlock:spire')).toBe(false);
+    // without the Tooth on the keyring the Lock won't turn
+    g.s.keyring = g.s.keyring.filter((k) => k !== 'keels_tooth');
+    g.p.onShip = true; g.p.x = g.ship.x; g.p.z = g.ship.z;
+    const visions: string[] = [];
+    g.on((e) => { if (e.type === 'read') visions.push(e.title); });
+    expect(g.interact('quest:firstlock:spire')).toBe(true);
+    for (let t = 0; t < 150 && !g.s.flags.firstlock_opened && g.questStage('firstlock') === 2 && !(g.pending === null && t > 1); t += 1 / 30) g.step(1 / 30);
+    for (let t = 0; t < 150 && g.pending; t += 1 / 30) g.step(1 / 30);
+    expect(g.questStage('firstlock')).toBe(2);
+    g.s.keyring.push('keels_tooth');
+    g.interact('quest:firstlock:spire');
+    for (let t = 0; t < 30 && g.questStage('firstlock') === 2; t += 1 / 30) g.step(1 / 30);
+    expect(g.questStage('firstlock')).toBe(3);
+    expect(visions).toContain('The First Lock');
+    // ashore: the Hushed
+    g.disembark();
+    if (g.p.onShip) { g.p.onShip = false; g.p.x = L.respawn.x; g.p.z = L.respawn.z; }
+    for (let k = 0; k < 3; k++) expect(beat(g, 'hushed_listener', 70, 'cutlass_tide')).toBe(true);
+    expect(g.questStage('firstlock')).toBe(4);
+    talk(g, 'mercy');
+    expect(g.questStage('firstlock')).toBe(5);
+    // home to Iven
+    const L2 = regionLayout('bellwether'), sv2 = g.serialize();
+    sv2.player.x = L2.respawn.x; sv2.player.z = L2.respawn.z; sv2.player.onShip = false;
+    g = new Game({ seed: 7, save: { ...JSON.parse(JSON.stringify(sv2)), region: 'bellwether' } });
+    talk(g, 'iven');
+    expect(g.questStage('firstlock')).toBe(QUESTS.firstlock.stages.length - 1);
+    expect(g.s.keyring).toContain('listener');
+  }, 120_000);
+
+  it('talking to Iven mid-Collector still finishes the Collector (the next act waits its turn)', () => {
+    const g = fresh();
+    g.s.quests.collector = 4; g.s.flags.bell_done = true; g.s.flags.temple_done = true; g.s.flags.barrow_done = true;
+    talk(g, 'iven');
+    expect(g.questStage('collector')).toBe(QUESTS.collector.stages.length - 1);
+    expect(g.questStage('firstlock')).toBe(0);
+  });
+});
+
 describe('Star-Struck', () => {
   it('search the camp in order, beat Tobin, take the shard, quench it at the vent forge for the pendant', () => {
     const L = regionLayout('wrack');
