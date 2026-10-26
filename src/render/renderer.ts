@@ -35,7 +35,7 @@ import { buildCaveMouth, buildRope, buildWeb, buildCrystal, buildCaveTorch, buil
 import { REGIONS } from '../game/world/regions';
 import { artOverride, spriteSwap } from '../art/overrides';
 import { BillboardBatch } from './billboards';
-import { buildPine, buildBroadleaf, buildRock, buildOreRock, buildCrate, buildLanternPost, buildDock, buildPalm, buildGrass, buildBush, buildKelp } from '../art/models/props';
+import { buildPine, buildBroadleaf, buildJungleTree, buildRock, buildOreRock, buildCrate, buildLanternPost, buildDock, buildPalm, buildGrass, buildBush, buildKelp } from '../art/models/props';
 import { buildBench, buildFurnace, buildAnvil, buildCookfire, buildTent, buildSmithyShed, buildPillar, buildPlinth, buildStrongbox, buildDigSpot, buildGuardian, buildStump, buildRipples, type GuardianRig } from '../art/models/world';
 import { buildLootShard, buildItemModel, SHARD_TINT, type LootShard, type ShardKind } from '../art/models/items';
 import { NODES, PLAYER_BASE, SKILLS } from '../game/data/content';
@@ -560,7 +560,7 @@ export class GameRenderer {
       let live: THREE.Object3D, dead: THREE.Object3D | undefined, ripples: THREE.Group | undefined;
       if (def.skill === 'woodcutting') {
         const tv = TREE_LOOK[n.def] ?? TREE_LOOK.tree_pine;
-        live = tv.kind === 'broad' ? buildBroadleaf(n.seed) : buildPine(n.seed, tv.scale);
+        live = n.def === 'tree_oak' && this.game.s.region === 'sunreach' ? buildJungleTree(n.seed) : tv.kind === 'broad' ? buildBroadleaf(n.seed) : buildPine(n.seed, tv.scale);
         if (tv.kind === 'broad') live.scale.multiplyScalar(tv.scale);
         if (tv.squash) live.scale.y *= tv.squash;
         if (tv.colours) recolour(live, tv.colours, tv.glow);
@@ -644,7 +644,9 @@ export class GameRenderer {
     const geo = (o: THREE.Object3D) => mergeColoured(o);
     const V = [11, 23]; // two shape variants per kind (with per-instance rotation and scale) keep draw calls low
     if (by.has('tree_pine')) this.scenery.add(by.get('tree_pine')!, V.map((k) => geo(buildPine(k, 1))), { alt: geo(buildStump(5)) });
-    if (by.has('tree_oak')) this.scenery.add(by.get('tree_oak')!, V.map((k) => geo(buildBroadleaf(k))), { alt: geo(buildStump(9)) });
+    // Sunreach's sea-oaks grow as jungle trees: tall trunks, buttress roots, flat canopies and lianas
+    const oak = this.game.s.region === 'sunreach' ? buildJungleTree : buildBroadleaf;
+    if (by.has('tree_oak')) this.scenery.add(by.get('tree_oak')!, V.map((k) => geo(oak(k))), { alt: geo(buildStump(9)) });
     if (by.has('rock_boulder')) this.scenery.add(by.get('rock_boulder')!, V.map((k, i) => geo(buildRock(k, 1, i % 2 ? 'stoneDark' : 'stone'))), { alt: geo(buildRock(41, 1, 'stoneDark')), altScale: [1.15, 0.35, 1.15] });
     if (by.has('bush_berry')) this.scenery.add(by.get('bush_berry')!, V.map((k) => geo(buildBush(k, true))), { alt: geo(buildBush(11, false)), castShadow: false });
     if (by.has('kelp_bed')) this.scenery.add(by.get('kelp_bed')!, [geo(buildKelp(3)), geo(buildKelp(8))], { castShadow: false });
