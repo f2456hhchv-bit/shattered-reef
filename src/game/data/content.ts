@@ -360,13 +360,14 @@ SHOPS.anchor = {
 export const SHOP = SHOPS.general;
 
 // ---- magic -------------------------------------------------------------------
-export interface Spell { id: string; name: string; level: number; maxHit: number; baseXp: number; charms: number }
+export interface Spell { id: string; name: string; level: number; maxHit: number; baseXp: number; charms: number; /** taught by a quest: this flag must be set */ quest?: string }
 // RuneScape's spell book by max hit: strikes 1-13, bolts to 35, blasts to 59, waves to 75, surges to 95.
 export const SPELLS: Spell[] = [
   { id: 'spray', name: 'Brine Spray', level: 1, maxHit: 2, baseXp: 5.5, charms: 0 }, // free: magic is always usable
   { id: 'bolt', name: 'Tide Bolt', level: 5, maxHit: 5, baseXp: 11.5, charms: 2 },
   { id: 'lash', name: 'Wave Lash', level: 9, maxHit: 6, baseXp: 14, charms: 2 },
   { id: 'undertow', name: 'Undertow', level: 13, maxHit: 8, baseXp: 17.5, charms: 2 },
+  { id: 'souc_fire', name: 'Soucouyant\'s Fire', level: 20, maxHit: 9, baseXp: 19, charms: 2, quest: 'souc_done' }, // Salt for the Soucouyant
   { id: 'surge', name: 'Surge Bolt', level: 23, maxHit: 10, baseXp: 21, charms: 3 },
   { id: 'blast', name: 'Brine Blast', level: 35, maxHit: 12, baseXp: 25, charms: 3 },
   { id: 'tidecall', name: 'Tidecall', level: 47, maxHit: 14, baseXp: 28.5, charms: 3 },
@@ -399,7 +400,7 @@ export const PLAYER_BASE = {
 // ---- enemies -------------------------------------------------------------------
 export type EnemyModel = 'crab' | 'brigand' | 'gunner' | 'guardian' | 'boar' | 'spider' | 'snake' | 'golem' | 'hound' | 'bat' | 'beetle';
 /** Visual variant: crab shell / humanoid outfit / stone tint, chosen by the renderer. */
-export type EnemyLook = 'reef' | 'mire' | 'ironshell' | 'brigand' | 'gunner' | 'smuggler' | 'poacher' | 'drowned' | 'captain' | 'sentinel' | 'cave' | 'giant' | 'jungle' | 'ember' | 'sunscale' | 'hunter' | 'moon' | 'amber' | 'oak' | 'queen' | 'shore' | 'gull' | 'thorn' | 'knocker' | 'leech' | 'howe' | 'troll' | 'seadraugr' | 'wrecker' | 'ant' | 'mantis' | 'douen' | 'centipede';
+export type EnemyLook = 'reef' | 'mire' | 'ironshell' | 'brigand' | 'gunner' | 'smuggler' | 'poacher' | 'drowned' | 'captain' | 'sentinel' | 'cave' | 'giant' | 'jungle' | 'ember' | 'sunscale' | 'hunter' | 'moon' | 'amber' | 'oak' | 'queen' | 'shore' | 'gull' | 'thorn' | 'knocker' | 'leech' | 'howe' | 'troll' | 'seadraugr' | 'wrecker' | 'ant' | 'mantis' | 'douen' | 'centipede' | 'souc';
 
 export interface EnemyDef {
   id: string;
@@ -499,6 +500,10 @@ export const ENEMIES: Record<string, EnemyDef> = {
     speed: 2.8, radius: 0.5, aggro: 10, attack: { kind: 'melee', range: 1.7, windup: 0.5, cooldown: 2.4 }, loot: 'knocker_elder', respawn: 0, scale: 0.95 },
   wrecker_chief: { hostile: true, id: 'wrecker_chief', name: 'Wreckers\' chief', model: 'brigand', look: 'wrecker', level: 17, hp: 38, att: 16, def: 14, defBonus: { melee: 15, ranged: 10, magic: 0 }, weakness: 'magic', style: 'melee', accBonus: 14, maxHit: 4,
     speed: 3.2, radius: 0.45, aggro: 11, attack: { kind: 'melee', range: 1.7, windup: 0.45, cooldown: 2.4 }, loot: 'wrecker_chief', respawn: 0, scale: 1.2 },
+  douen_elder: { hostile: true, id: 'douen_elder', name: 'Douen elder', model: 'brigand', look: 'douen', level: 24, hp: 42, att: 23, def: 17, defBonus: { melee: 15, ranged: 10, magic: -10 }, weakness: 'magic', style: 'melee', accBonus: 18, maxHit: 4,
+    speed: 3.4, radius: 0.45, aggro: 11, attack: { kind: 'melee', range: 1.6, windup: 0.45, cooldown: 2.4 }, loot: 'douen_elder', respawn: 0, scale: 0.95 },
+  soucouyant: { hostile: true, id: 'soucouyant', name: 'Soucouyant', model: 'bat', look: 'souc', level: 26, hp: 46, att: 25, def: 18, defBonus: { melee: 20, ranged: 15, magic: -15 }, weakness: 'magic', style: 'melee', accBonus: 20, maxHit: 5,
+    speed: 3.8, radius: 0.5, aggro: 12, attack: { kind: 'melee', range: 1.7, windup: 0.4, cooldown: 2.4 }, loot: 'soucouyant', respawn: 0, scale: 1.2 },
   // further out (their islands' slices replace the rest of this list)
   cave_bat: { hostile: true, id: 'cave_bat', name: 'Cave bat', model: 'bat', look: 'cave', level: 17, hp: 16, att: 16, def: 10, defBonus: { melee: 10, ranged: -10, magic: 5 }, weakness: 'ranged', style: 'melee', accBonus: 12, maxHit: 3,
     speed: 4.2, radius: 0.5, aggro: 8, attack: { kind: 'melee', range: 1.6, windup: 0.3, cooldown: 2.0 }, loot: 'cave_bat', respawn: 25, scale: 0.9 },
@@ -587,6 +592,8 @@ export const LOOT: Record<string, LootTable> = {
   weaver_young: { coins: [12, 30], drops: [{ item: 'spider_silk', chance: 0.6, qty: [1, 2] }, { item: 'charm_tide', chance: 0.4, qty: [5, 10] }], gear: { chance: 0.06, items: ['ring_gold', 'dagger_steel', 'wand_storm'], weights: { common: 50, fine: 38, rare: 12 } } },
   serpent: { sig: { item: 'sig_fang', chance: 1 / 40 }, coins: [150, 300], drops: [{ item: 'sunscale', chance: 1, qty: [1, 3] }, { item: 'snake_skin', chance: 1, qty: [3, 6] }, { item: 'bar_storm', chance: 0.5, qty: [1, 3] }, { item: 'charm_tide', chance: 1, qty: [40, 80] }],
     gear: { chance: 1, items: ['cutlass_storm', 'pistol_storm', 'staff_storm', 'helm_storm', 'plate_storm', 'longbow_amber'], weights: { rare: 65, relic: 35 } } },
+  douen_elder: { coins: [40, 80], drops: [{ item: 'charm_tide', chance: 1, qty: [10, 20] }] },
+  soucouyant: { coins: [30, 60], drops: [{ item: 'charm_tide', chance: 1, qty: [12, 24] }] },
   ant: { coins: [2, 6], drops: [{ item: 'resin', chance: 0.6, qty: [1, 2] }, { item: 'chitin', chance: 0.25 }] },
   mantis: { coins: [4, 10], drops: [{ item: 'mantis_blade', chance: 0.45 }, { item: 'chitin', chance: 0.2 }, { item: 'resin', chance: 0.2 }] },
   douen: { coins: [8, 20], drops: [{ item: 'charm_tide', chance: 0.6, qty: [4, 10] }, { item: 'casket', chance: 0.02 }],

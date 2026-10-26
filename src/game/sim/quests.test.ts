@@ -5,6 +5,8 @@ import { xpForLevel } from './xp';
 import { count } from './inventory';
 import { QUESTS } from '../data/quests';
 import { STORM } from './stormtide';
+import { regionLayout } from '../world/layout';
+import { SPELLS } from '../data/content';
 
 // Bellwether's quests and the Storm Tide (docs/ISLANDS.md, slice 1), played through in the simulation.
 const base = new Game({ seed: 1 });
@@ -91,6 +93,47 @@ describe('Bellwether\'s quests', () => {
     const back = new Game({ seed: 7, save: JSON.parse(JSON.stringify(g.serialize())) });
     use(back, 'knock', 'k2'); use(back, 'knock', 'k3');
     expect(back.questStage('knock')).toBe(2);
+  });
+});
+
+describe('Sunreach\'s quests', () => {
+  const sun = (seed = 7) => { const L = regionLayout('sunreach'); return new Game({ seed, save: { ...defaultSave(L.respawn, L.mooring!), region: 'sunreach' } }); };
+
+  it('Backward Tracks: read the trail the opposite way to the toes (a false lead starts again), beat the elder, get the hat', () => {
+    const g = sun();
+    talk(g, 'abena');
+    expect(g.questStage('tracks')).toBe(1);
+    use(g, 'tracks', 't1'); use(g, 'tracks', 't2');
+    use(g, 'tracks', 'd1'); // a false lead
+    use(g, 'tracks', 't3');
+    expect(g.questStage('tracks')).toBe(1);
+    for (const m of ['t1', 't2', 't3', 't4']) use(g, 'tracks', m);
+    expect(g.questStage('tracks')).toBe(2);
+    expect(beat(g, 'douen_elder')).toBe(true);
+    talk(g, 'abena');
+    expect(g.questStage('tracks')).toBe(QUESTS.tracks.stages.length - 1);
+    expect(count(g.p.inv, 'hat_douen')).toBe(1);
+  });
+
+  it('Salt for the Soucouyant: no salt, no progress; salted skin brings her down; the fire spell is hers to teach', () => {
+    const g = sun();
+    for (const k of ['magic'] as const) g.p.xp[k] = xpForLevel(25);
+    talk(g, 'nana_ayo');
+    expect(g.questStage('souc')).toBe(1);
+    use(g, 'souc', 'tree');
+    expect(g.questStage('souc')).toBe(1); // no salt
+    g.give('sea_salt', 3);
+    use(g, 'souc', 'tree');
+    expect(g.questStage('souc')).toBe(2);
+    expect(count(g.p.inv, 'sea_salt')).toBe(0);
+    g.setSpell('souc_fire');
+    expect(g.s.combat.spell).not.toBe('souc_fire'); // not taught yet
+    expect(beat(g, 'soucouyant')).toBe(true);
+    talk(g, 'nana_ayo');
+    expect(g.s.flags.souc_done).toBe(true);
+    g.setSpell('souc_fire');
+    expect(g.s.combat.spell).toBe('souc_fire');
+    expect(SPELLS.find((sp) => sp.id === 'souc_fire')!.quest).toBe('souc_done');
   });
 });
 

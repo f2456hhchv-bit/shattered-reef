@@ -1186,7 +1186,7 @@ export class UI {
 
   private spellButtons(): string {
     const g = this.game, st = g.stats;
-    return SPELLS.map((sp) => `<button data-spell="${sp.id}" class="${st.spell?.id === sp.id ? 'on' : ''}" ${g.level('magic') < sp.level ? 'disabled' : ''}><b>${esc(sp.name)}</b><small>Lv ${sp.level} · max ${sp.maxHit * 10} · ${sp.charms ? `${sp.charms} charm${sp.charms > 1 ? 's' : ''}` : 'free'}</small></button>`).join('');
+    return SPELLS.map((sp) => { const learnt = !sp.quest || !!g.s.flags[sp.quest]; return `<button data-spell="${sp.id}" class="${st.spell?.id === sp.id ? 'on' : ''}" ${g.level('magic') < sp.level || !learnt ? 'disabled' : ''}><b>${esc(sp.name)}</b><small>${learnt ? `Lv ${sp.level}` : 'Quest'} · max ${sp.maxHit * 10} · ${sp.charms ? `${sp.charms} charm${sp.charms > 1 ? 's' : ''}` : 'free'}</small></button>`; }).join('');
   }
 
   private renderLoadout() {
