@@ -1260,7 +1260,7 @@ export class Game {
       sh.heading += Math.max(-1, Math.min(1, diff * 2.2)) * 1.25 * dt;
       throttle *= Math.max(0.25, Math.cos(diff) * 0.5 + 0.5);
     }
-    const maxSpeed = 7.5 * (this.activeKey()?.passive.kind === 'ship_speed' ? 1 + this.activeKey()!.passive.v / 100 : 1) * (1 + this.crewV('ship_speed') / 100);
+    const maxSpeed = 7.5 * (this.activeKey()?.passive.kind === 'ship_speed' ? 1 + this.activeKey()!.passive.v / 100 : 1) * (1 + this.crewV('ship_speed') / 100) * (this.s.flags.toll_pennant ? 1.05 : 1); // the Tollhouse pennant
     const targetSpeed = throttle * maxSpeed;
     this.shipSpeed += (targetSpeed - this.shipSpeed) * Math.min(1, dt * (targetSpeed > this.shipSpeed ? 0.7 : 1.2));
     if (this.shipSpeed > 0.01) {
@@ -2237,7 +2237,8 @@ export class Game {
       switch (e.state) {
         case 'idle': {
           // only camps, lairs and late-game foes attack on sight; the rest fight back when you hit them
-          const calmed = this.activeKey()?.passive.kind === 'sea_peace' && (e.def.model === 'crab' || e.def.look === 'drowned' || e.def.look === 'captain'); // Keel's Tooth
+          const calmed = (this.activeKey()?.passive.kind === 'sea_peace' && (e.def.model === 'crab' || e.def.look === 'drowned' || e.def.look === 'captain')) // Keel's Tooth
+            || (this.s.flags.poachers_friend && e.def.look === 'poacher'); // The Toll of Tollhouse: Ulla's people know your face
           if (playerHittable && !inSafe && e.def.hostile && !calmed && dP < e.def.aggro) { e.state = 'chase'; break; }
           e.t -= dt;
           if (e.t <= 0) {

@@ -72,6 +72,8 @@ export const NPCS: Record<string, NpcDef> = {
   // Amberhold's quests (docs/ISLANDS.md, slice 3)
   sigrun: { id: 'sigrun', name: 'Sigrun', title: 'Skald', idle: ['Every hill on Amberhold has a song. Goldvein Hill\'s is the oldest, and nobody sings it after dark.'] },
   ingrid: { id: 'ingrid', name: 'Ingrid Vale', title: 'Fiddler', idle: ['A fiddle tune can calm a horse, a crowd, or a storm. I\'ve managed two of the three.'] },
+  halvard: { id: 'halvard', name: 'Halvard Rask', title: 'Toll-reeve of Tollhouse', idle: ['Everything that leaves Amberhold pays its toll. That\'s the law, and the law pays for the harbour wall.'] },
+  ulla: { id: 'ulla', name: 'Ulla Brenn', title: 'Chief of the poachers', idle: ['Amberwood was ours before Tollhouse had a wall. Mind your feet in my camp.'] },
   watch_n: { id: 'watch_n', name: 'Watchman Pell', title: 'Town watch', idle: ['North road runs to the Copperback Hills and the foot of Ironcrag. Mind the crabs in iron shells.'] },
   watch_e: { id: 'watch_e', name: 'Watchwoman Dory', title: 'Town watch', idle: ['East road\'s brigand country. Past their camp, the smugglers keep the cove. Go armed.'] },
 };
@@ -363,6 +365,51 @@ export const QUESTS: Record<string, QuestDef> = {
           'And this: for the story I\'m going to tell about you.'],
           effect: { take: [{ id: 'nokk_bridle', qty: 1 }], give: [{ id: 'coins', qty: 400 }], xp: [{ skill: 'sailing', amount: 1200 }, { skill: 'fishing', amount: 600 }], stage: 5, flag: 'nokk_figurehead' } } } },
       { text: 'Quest complete. Your sloop carries a nøkk figurehead: +10% hull, and she mends twice as fast.' },
+    ],
+  },
+  toll: {
+    id: 'toll',
+    name: 'The Toll of Tollhouse',
+    giver: 'halvard',
+    reward: 'Help the toll: a toll pennant for your sloop (+5% speed), a toll-keeper\'s seal ring, 600 coins. Help the poachers: they stop attacking you, an amber longbow, 400 coins. Either way, Sailing XP.',
+    stages: [
+      { text: 'Speak with Halvard Rask, the toll-reeve at Tollhouse Landing.',
+        talk: { npc: 'halvard', node: { lines: [
+          'Captain. Amberhold\'s amber and gold go out through my toll, and the toll keeps the harbour wall standing.',
+          'The poachers on the headland won\'t pay. They run amber past us by night, and their bows keep my men off the headland.',
+          'Talk to their chief, Ulla Brenn, at the edge of their camp. See if she\'ll see sense.'], effect: { stage: 1 } } } },
+      { text: 'Talk to Ulla Brenn, the poachers\' chief, at the south edge of their camp on the headland.',
+        talk: { npc: 'ulla', node: { lines: [
+          'Halvard sent you. Of course he did. His toll takes half of every lump of amber we cut from our own wood.',
+          'Help us instead: carry this season\'s haul to Tamsin at Port Halyard. She pays fair and asks no questions.',
+          'Or run back to Halvard. Your choice, captain. Choose it.'], effect: { stage: 2 } } } },
+      { text: 'Choose a side: Halvard the toll-reeve, or Ulla the poachers\' chief.',
+        talk: { npc: 'halvard', node: { lines: [
+          'She won\'t pay. I thought not.',
+          'Then take the toll ledger to Sefa Odun, the harbourmaster at Port Halyard. With her seal on it, the whole sound will know the poachers are outlaws.',
+          'Sail it there yourself, or take a ferry. Bring me back her receipt.'], effect: { give: [{ id: 'toll_ledger', qty: 1 }], stage: 3, flag: 'toll_side' } } },
+        also: [{ npc: 'ulla', node: { lines: [
+          'Good. The haul\'s in these sacks. Don\'t let the toll-men search them.',
+          'Tamsin at Port Halyard. She\'ll pay you in silver; bring the silver back to me and you\'ll have a share.'], effect: { give: [{ id: 'amber_haul', qty: 1 }], stage: 3, flag: 'poach_side' } } }] },
+      { text: 'Make the run to Port Halyard on Sunreach: the toll ledger to Sefa Odun, or the poachers\' haul to Tamsin.',
+        talk: { npc: 'sefa', node: { requires: { id: 'toll_ledger', qty: 1 }, missing: ['Port Halyard\'s harbour. Something for me, captain?'], lines: [
+          'The Tollhouse ledger. Halvard\'s been asking for my seal on this for a year.',
+          'There. Sealed. Every harbour from here to Bellwether will know who pays and who doesn\'t. Here\'s the receipt.'],
+          effect: { take: [{ id: 'toll_ledger', qty: 1 }], give: [{ id: 'toll_receipt', qty: 1 }], xp: [{ skill: 'sailing', amount: 500 }], stage: 4 } } },
+        also: [{ npc: 'tamsin', node: { requires: { id: 'amber_haul', qty: 1 }, missing: ['Buying or selling?'], lines: [
+          'Ulla\'s sacks. I\'d know that knot anywhere.',
+          'Good amber, and not a toll-man\'s thumbprint on it. Silver for Ulla. Tell her Tamsin says the next season\'s welcome too.'],
+          effect: { take: [{ id: 'amber_haul', qty: 1 }], give: [{ id: 'poachers_silver', qty: 1 }], xp: [{ skill: 'sailing', amount: 500 }], stage: 4 } } }] },
+      { text: 'Take the receipt back to Halvard, or the silver back to Ulla.',
+        talk: { npc: 'halvard', node: { requires: { id: 'toll_receipt', qty: 1 }, missing: ['Sefa\'s receipt, captain. Port Halyard, on Sunreach.'], lines: [
+          'Sealed by Port Halyard. The poachers are outlaws on every chart now. You\'ve done Amberhold a service.',
+          'Fly this toll pennant from your mast: no toll-man in the sound will slow you again. And this ring is the toll\'s own seal.'],
+          effect: { take: [{ id: 'toll_receipt', qty: 1 }], give: [{ id: 'ring_toll', qty: 1 }, { id: 'coins', qty: 600 }], xp: [{ skill: 'sailing', amount: 600 }], stage: 5, flag: 'toll_pennant' } } },
+        also: [{ npc: 'ulla', node: { requires: { id: 'poachers_silver', qty: 1 }, missing: ['Tamsin. Port Halyard. The silver, captain.'], lines: [
+          'Silver, and the full weight of it. You\'re honest, for a captain.',
+          'Take this bow: amberwood, strung by my own hands. And my people know your face now. They won\'t draw on you again.'],
+          effect: { take: [{ id: 'poachers_silver', qty: 1 }], give: [{ id: 'longbow_amber', qty: 1 }, { id: 'coins', qty: 400 }], xp: [{ skill: 'sailing', amount: 600 }], stage: 5, flag: 'poachers_friend' } } }] },
+      { text: 'Quest complete.' },
     ],
   },
 };

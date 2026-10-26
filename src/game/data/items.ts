@@ -271,6 +271,12 @@ function tierItems(): ItemDef[] {
   out.push(I({ id: 'helm_barrow', name: 'Barrow King\'s helm', desc: 'A grave-king\'s helm, rimed with barrow frost. Blows slide off it.', icon: { shape: 'helm', color: '#8a9aa0', accent: '#c9a050' }, stackable: false, value: 1500,
     equip: { slot: 'head', reqs: { defence: 40 }, bonus: { defMelee: 32, defRanged: 30, defMagic: 12, str: 3 }, affixPool: ARMOUR_AFFIX } }));
   out.push(I({ id: 'nokk_bridle', name: 'Nøkk\'s bridle', desc: 'Woven of river-weed and silver wire, always wet. Ingrid will know what to do with it.', icon: { shape: 'amulet', color: '#3a6a5a', accent: '#cfd5d8' }, stackable: false, value: 0, quest: true }));
+  out.push(I({ id: 'toll_ledger', name: 'Toll ledger', desc: 'Tollhouse\'s ledger, heavy with seals. For Sefa Odun at Port Halyard.', icon: { shape: 'book', color: '#5a3a24', accent: '#c9a050' }, stackable: false, value: 0, quest: true }));
+  out.push(I({ id: 'toll_receipt', name: 'Sealed receipt', desc: 'Port Halyard\'s seal on the toll ledger. For Halvard at Tollhouse.', icon: { shape: 'parcel', color: '#e6dcc0', accent: '#a83a2a' }, stackable: false, value: 0, quest: true }));
+  out.push(I({ id: 'amber_haul', name: 'Poachers\' haul', desc: 'Sacks of uncut amber, knotted the poachers\' way. For Tamsin at Port Halyard.', icon: { shape: 'parcel', color: '#8a6a3a', accent: '#e8902a' }, stackable: false, value: 0, quest: true }));
+  out.push(I({ id: 'poachers_silver', name: 'Pouch of silver', desc: 'Tamsin\'s payment for the haul. For Ulla on the headland.', icon: { shape: 'coins', color: '#cfd5d8' }, stackable: false, value: 0, quest: true }));
+  out.push(I({ id: 'ring_toll', name: 'Toll-keeper\'s seal', desc: 'Tollhouse\'s seal in gold. Traders look twice at it, and charge you less.', icon: { shape: 'ring', color: '#e3c25e', accent: '#5a3a24' }, stackable: false, value: 400,
+    equip: { slot: 'ring', reqs: {}, bonus: { acc: 3, defMelee: 2, defRanged: 2, defMagic: 2 }, affixPool: JEWEL_AFFIX } }));
   // Amberhold's hives (slice 3): the hornets carry comb back from the amberwood
   out.push(I({ id: 'honeycomb', name: 'Amber honeycomb', desc: 'Dark amber honey in the comb, from the hornets of the amberwood. Heals 100.', icon: { shape: 'gem', color: '#e8a83a', accent: '#f8d86a' }, stackable: true, value: 40, heal: 10 }));
   // Sunreach's quest rewards (docs/ISLANDS.md, slice 2)

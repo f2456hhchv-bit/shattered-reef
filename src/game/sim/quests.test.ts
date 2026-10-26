@@ -177,6 +177,38 @@ describe('Amberhold\'s quests', () => {
   });
 });
 
+describe('The Toll of Tollhouse', () => {
+  const at = (region: 'amberhold' | 'sunreach', save?: unknown) => {
+    const L = regionLayout(region);
+    const sv = save ? { ...(JSON.parse(JSON.stringify(save))), region } : { ...defaultSave(L.respawn, L.mooring!), region };
+    const g = new Game({ seed: 7, save: sv });
+    for (const e of g.enemies) { e.alive = false; e.respawnAt = Infinity; }
+    return g;
+  };
+  /** sail across: the same save, loaded in the other region at its harbour */
+  const cross = (g: Game, to: 'amberhold' | 'sunreach') => { const L = regionLayout(to); const sv = g.serialize(); sv.player.x = L.respawn.x; sv.player.z = L.respawn.z; sv.player.onShip = false; return at(to, sv); };
+
+  for (const side of ['toll', 'poachers'] as const) {
+    it(`side with the ${side}: the run to Port Halyard and back, and the side's reward`, () => {
+      let g = at('amberhold');
+      talk(g, 'halvard'); talk(g, 'ulla');
+      expect(g.questStage('toll')).toBe(2);
+      talk(g, side === 'toll' ? 'halvard' : 'ulla');
+      expect(g.questStage('toll')).toBe(3);
+      g = cross(g, 'sunreach');
+      talk(g, side === 'toll' ? 'tamsin' : 'sefa'); // the wrong recipient: nothing happens
+      expect(g.questStage('toll')).toBe(3);
+      talk(g, side === 'toll' ? 'sefa' : 'tamsin');
+      expect(g.questStage('toll')).toBe(4);
+      g = cross(g, 'amberhold');
+      talk(g, side === 'toll' ? 'halvard' : 'ulla');
+      expect(g.questStage('toll')).toBe(QUESTS.toll.stages.length - 1);
+      if (side === 'toll') { expect(g.s.flags.toll_pennant).toBe(true); expect(count(g.p.inv, 'ring_toll')).toBe(1); }
+      else { expect(g.s.flags.poachers_friend).toBe(true); expect(count(g.p.inv, 'longbow_amber')).toBe(1); }
+    });
+  }
+});
+
 describe('the Storm Tide', () => {
   const ring = (g: Game) => { const t = g.storm.targets().find((x) => x.key === 'event:bell')!; near(g, t.x, t.z); g.interact('event:bell'); g.step(1 / 30); };
 
