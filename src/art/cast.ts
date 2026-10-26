@@ -34,6 +34,7 @@ export const NPC_LOOKS: Record<string, HumanoidLook> = {
   // Sunreach's quest folk (slice 2)
   abena: { skin: 0x6a4630, coat: 0xd8a03a, coatTrim: 0x2a7a5a, shirt: 0xe8dcc0, trousers: 0x2a7a5a, boots: 0x4a3424, hat: 0xd84a2a, hair: 0x1a1210, hatStyle: 'bandana', hairStyle: 'bun', beard: false, apron: 0xe8dcc0 },
   nana_ayo: { skin: 0x5a3a28, coat: 0x6a3a5a, coatTrim: 0xd8b84a, shirt: 0xe8dcc0, trousers: 0x3a2a3a, boots: 0x3a2a20, hat: 0xe8dcc0, hair: 0xd8d0c0, hatStyle: 'bandana', hairStyle: 'bun', beard: false, spectacles: true },
+  ama: { skin: 0x5a3a28, coat: 0x8a4a22, coatTrim: 0xd8b84a, shirt: 0xe8dcc0, trousers: 0x3a3a2a, boots: 0x3a2a20, hat: 0x2a7a5a, hair: 0x1a1210, hatStyle: 'bandana', hairStyle: 'bun', beard: false, held: 'hammer' },
   dougal: { skin: 0xc8946a, coat: 0x3a4a5a, coatTrim: 0xd8ccb0, shirt: 0xd8ccb0, trousers: 0x3a3428, boots: 'leather', hat: 0x8a6a3a, hair: 0x8a5a2a, hatStyle: 'cap', beard: true, apron: 0xb8a888 },
   halyard_watch: { skin: 0x6a4028, coat: 0x2f6a4a, coatTrim: 0xc9a050, shirt: 0xd8ccb0, trousers: 0x2e2a26, boots: 0x1e1a18, hat: 0x2f6a4a, hair: 0x1a1210, hatStyle: 'tricorn', held: 'musket' },
 };

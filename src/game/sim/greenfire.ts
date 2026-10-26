@@ -146,8 +146,9 @@ export class GreenheartFire {
     this.ignite(this.neighbours(a)[0]);
     this.nextSpread = g.time + 6; this.nextEmber = g.time + 14; this.nextHeat = g.time + 6;
     for (const n of g.nodes) if (n.def === 'bamboo_fire') n.depletedUntil = 0;
-    g.give('bucket_water', 2); // the camp's two full buckets: enough for the first fires while you make more
-    g.msg('The horn\'s note rolls over the jungle, and smoke answers it: the Greenheart is burning! The camp hands you two full buckets. Cut bamboo, lash more, fill them at the stream, and douse the fire.', 'combat');
+    const full = g.s.flags.greenheart_done ? 4 : 2; // the camp's full buckets (four once you've done Ama's quest)
+    g.give('bucket_water', full);
+    g.msg(`The horn's note rolls over the jungle, and smoke answers it: the Greenheart is burning! The camp hands you ${full === 4 ? 'four' : 'two'} full buckets. Cut bamboo, lash more, fill them at the stream, and douse the fire.`, 'combat');
     g.emit({ type: 'boss', state: 'rise' });
     g.rev++;
   }
@@ -189,6 +190,7 @@ export class GreenheartFire {
     }
     g.addXp('woodcutting', 180); g.addXp('fletching', 120);
     g.s.flags.greenfire_won = true;
+    if (g.questStage('greenheart') === 2) g.setStage('greenheart', 3); // Fire on the Greenheart: the grove saved
     g.msg(`The last flames die in a hiss of steam. The fire camp shares out what it has: ${got.join(', ') || 'nothing you can carry'}.`, 'good');
     g.emit({ type: 'boss', state: 'defeat' });
     g.rev++;
