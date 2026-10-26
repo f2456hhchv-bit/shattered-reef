@@ -16,7 +16,22 @@ export async function loadArtOverrides() {
     const r = await fetch(`${BASE}art-overrides/index.json`, { cache: 'no-cache' });
     if (r.ok) index = await r.json();
   } catch { /* no edits */ }
+  // Fetch and decode every edited icon before the pack draws. Used straight from the network, iOS drew them
+  // half-downloaded (Tom's iPhone: icons cut off halfway). One that fails or is slow keeps the game's own icon.
+  const items = index.items ?? {};
+  const ready = new Set<string>();
+  await Promise.race([
+    Promise.all(Object.entries(items).map(([id, o]) => {
+      const im = new Image();
+      im.src = overrideUrl(o);
+      return im.decode().then(() => { ready.add(id); held.push(im); }, () => {});
+    })),
+    new Promise((res) => setTimeout(res, 5000)),
+  ]);
+  for (const id of Object.keys(items)) if (!ready.has(id)) delete items[id];
 }
+/** the decoded icons, kept so the browser holds them in memory */
+const held: HTMLImageElement[] = [];
 
 export function artOverride(kind: ArtKind, id: string): ArtOverride | undefined { return index[kind]?.[id]; }
 export const overrideUrl = (o: ArtOverride) => `${BASE}${o.file}`;

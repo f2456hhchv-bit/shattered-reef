@@ -6,8 +6,12 @@ import type { SkillId } from './items';
 export const ACTIVE = {
   /** the gold window, as a fraction of the cycle (a 2.4 s swing: about 0.7 s, closing just before the swing lands) */
   window: [0.62, 0.92] as [number, number],
-  /** a perfect swing fills progress toward the next item this much faster (so ~a third more items and XP) */
+  /** a perfect swing fills progress toward the next item this much faster, and never by less than `perfectMin`
+   *  of an item, so you can see it land (Tom: "it may as well not be there") */
   gatherBonus: 1.33,
+  perfectMin: 0.35,
+  /** every this many perfect swings in a row, a bonus item on top; a mistimed or untapped swing breaks the run */
+  streakEvery: 6,
   /** a perfect craft gives this much more XP; cooking can't burn; forging gains this much masterwork chance */
   craftXp: 1.33,
   fineBonus: 0.1,
