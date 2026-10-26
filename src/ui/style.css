@@ -597,3 +597,7 @@ body.portrait.side-open #dialog { bottom: calc(var(--panel-h) + 12px + env(safe-
 #seephud div + div i { background: #c9a050; }
 .quest.done { padding-top: 6px; padding-bottom: 6px; opacity: .7; }
 .quest.done b::before { content: '✓ '; color: var(--good); }
+
+/* island diaries in the journal */
+ul.diary { margin: 6px 0; padding-left: 16px; font-size: 12.5px; line-height: 1.45; }
+ul.diary li.diary-done { color: #8fd07a; }
