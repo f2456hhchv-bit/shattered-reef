@@ -119,6 +119,7 @@ Reflects the actual repository, not the roadmap.
 - **Laptop:** click to walk/use (RuneScape-style); right-click items for details; WASD/arrows move; E action; Space dodge roll; R whirl; F flintlock; I G K J M O tabs; Esc closes; scroll zooms.
 
 ## Playtest log
+- **2026-10-26, gloves:** worn gloves now colour your character's hands, with a cuff at the wrist (all six armour slots now show).
 - **2026-10-26, Stormwrack's first quest:** *The Drowned Captain's Log* (Mercy Gale): search three pages of the log along the wreck-shore in order, beat the Drowned Captain (70), dig up his hoard: the Drowned Captain's tricorn (Defence 60), 1500 coins, 2 caskets, 3 tidecore bars; 2000 Attack and Defence XP.
 - **2026-10-26, quest journal:** the Quests tab now lists quests first, grouped by island with a done count; in progress first, then new (with where to start), then complete as one ticked line each. Bounty and places follow.
 - **2026-10-26, The Sunken Temple:** Watchman Okoro's quest: read the three glyph stones outside the temple in the sun's order (rising, high, setting), strike the gong and beat the Sunscale; reward the Sun Key (quest key: spells +6%; Sunburst cuts a foe's defence 30% for 6 s), 1200 Magic XP, 800 Attack XP, 400 coins. All four Sunreach quests in.
@@ -206,7 +207,6 @@ Reflects the actual repository, not the roadmap.
 ## Known issues / limitations
 - `touch-e2e` intermittently taps the pack slot 0/3 times (2026-10-24, twice on 2026-10-25). Not root-caused. **Correction:** the low health in those reports (4, 14) was not an attacker: the test sets health to 4 itself, and it regenerates. Ten runs on 2026-10-25 all passed with no level-up card on screen. The test now records what was under the finger on every missed tap, so the next failure names its cause.
 - The ten new foes have no painted art yet (they render from their 3D models, like the rest).
-- Gloves don't show on the player model (helm, body, legs and boots do, in the item's colours, since 2026-10-26).
 - Effects are synthesised, music uses real samples; neither has been heard by me (I can't listen) - Tom's ears are the test.
 - Visual pass 1 (done): RuneScape-style outlined item icons (lathed items no longer vanish), skill medallions + XP bars, empty-slot silhouettes, hit splats, per-stone cobbles, cloth tents with ropes, smooth shoreline (beach toe slope + per-pixel water depth), less phone haze.
 - Buildings and the Guardian are still blocky; next art target after characters/UI.
