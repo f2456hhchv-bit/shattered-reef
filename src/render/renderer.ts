@@ -17,7 +17,7 @@ import { buildNetRack, buildRowboat, buildSignpost, buildFence, buildWell, build
 import { NPC_LOOKS, PLAYER_LOOK, BRIGAND_LOOK, HUMAN_LOOKS, TOWNS_LOOKS } from '../art/cast';
 import { buildEnterable, buildStall, type EnterableView } from '../art/models/buildings';
 import { isInside, toLocal, WALL_H, type BuildingDef } from '../game/world/buildings';
-import { buildHumanoid, addOffhand, animateIdle, animateWalk, animateSwing, animateWork, animateFish, type HeldKind, type HumanoidRig } from '../art/models/character';
+import { buildHumanoid, addOffhand, animateIdle, animateWalk, animateSwing, animateWork, animateFish, type HeldKind, type HumanoidRig, type HumanoidLook } from '../art/models/character';
 import { item, pairGroup, weaponKind, type WeaponKind } from '../game/data/items';
 import { CREW_BY } from '../game/data/bounties';
 
@@ -83,6 +83,26 @@ interface SnakeView { kind: 'snake'; rig: SnakeRig; mat: THREE.MeshStandardMater
 interface FantasyView { kind: 'fantasy'; rig: FantasyRig; mat: THREE.MeshStandardMaterial }
 type EnemyView = (RigView | CrabView | GuardView | BoarView | SpiderView | SnakeView | FantasyView) & { root: THREE.Group; ring?: THREE.Mesh; swingT: number; seen: boolean; baseScale: number };
 
+/**
+ * What you're wearing, as the player model's colours: a helm or hat over your head, body armour as the coat, legs as
+ * the trousers, boots on your feet (Tom: armour didn't show on the model). The key changes only when the look does.
+ */
+function outfitOf(equip: Partial<Record<string, { id: string } | undefined | null>>): { look: Partial<HumanoidLook>; key: string } {
+  const col = (id: string | undefined, accent = false) => {
+    if (!id) return undefined;
+    const ic = item(id).icon;
+    const c = accent ? ic.accent ?? ic.color : ic.color;
+    return parseInt(c.replace('#', ''), 16);
+  };
+  const look: Partial<HumanoidLook> = {};
+  const head = equip.head?.id, body = equip.body?.id, legs = equip.legs?.id, feet = equip.feet?.id;
+  if (head) { look.hat = col(head); look.hatStyle = item(head).icon.shape === 'helm' ? 'cap' : item(head).icon.shape === 'cap' ? 'cap' : 'tricorn'; }
+  if (body) { look.coat = col(body); look.coatTrim = col(body, true); }
+  if (legs) look.trousers = col(legs);
+  if (feet) look.boots = col(feet);
+  return { look, key: [head, body, legs, feet].map((x) => x ?? '-').join(',') };
+}
+
 export class GameRenderer {
   readonly renderer: THREE.WebGLRenderer;
   readonly scene = new THREE.Scene();
@@ -109,12 +129,14 @@ export class GameRenderer {
   private player: HumanoidRig;
   /** one rig per weapon + off-hand pairing, built the first time it's worn */
   private playerRigs = new Map<string, HumanoidRig>();
-  private playerRig(kind: WeaponKind, off: HeldKind = 'none'): HumanoidRig {
-    const key = `${kind}|${off}`;
+  private playerRig(kind: WeaponKind, off: HeldKind = 'none', outfit: { look: Partial<HumanoidLook>; key: string } = { look: {}, key: '' }): HumanoidRig {
+    const key = `${kind}|${off}|${outfit.key}`;
     let rig = this.playerRigs.get(key);
     if (rig) return rig;
+    // only a handful of outfits are kept built: the oldest go when you change clothes a lot
+    if (this.playerRigs.size >= 8) for (const [k, r] of this.playerRigs) { if (r === this.player) continue; this.scene.remove(r.root); this.disposeObject(r.root); this.playerRigs.delete(k); break; }
     const held: HeldKind = HELD_OF[kind];
-    rig = buildHumanoid({ ...PLAYER_LOOK, held });
+    rig = buildHumanoid({ ...PLAYER_LOOK, ...outfit.look, held });
     if (off !== 'none') addOffhand(rig, off);
     rig.root.scale.setScalar(HERO);
     bakeRig(rig.root, addSurfaceDetail(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: false, roughness: 0.9 }), CHAR_SURFACE));
@@ -1289,7 +1311,7 @@ export class GameRenderer {
 
     this.updateMate(dt, t);
     // player
-    const want = this.playerRig(g.stats.kind, offHeld(g.p.equip.offhand?.id));
+    const want = this.playerRig(g.stats.kind, offHeld(g.p.equip.offhand?.id), outfitOf(g.p.equip));
     if (want !== this.player) { this.player.root.visible = false; this.player = want; }
     const pr = this.player;
     pr.root.visible = true;
