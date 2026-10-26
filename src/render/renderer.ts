@@ -35,7 +35,7 @@ import { buildCaveMouth, buildRope, buildWeb, buildCrystal, buildCaveTorch, buil
 import { REGIONS } from '../game/world/regions';
 import { artOverride, spriteSwap } from '../art/overrides';
 import { BillboardBatch } from './billboards';
-import { buildPine, buildBroadleaf, buildJungleTree, buildRock, buildOreRock, buildCrate, buildLanternPost, buildDock, buildPalm, buildGrass, buildBush, buildKelp } from '../art/models/props';
+import { buildPine, buildBroadleaf, buildJungleTree, collapse, buildRock, buildOreRock, buildCrate, buildLanternPost, buildDock, buildPalm, buildGrass, buildBush, buildKelp } from '../art/models/props';
 import { buildBench, buildFurnace, buildAnvil, buildCookfire, buildTent, buildSmithyShed, buildPillar, buildPlinth, buildStrongbox, buildDigSpot, buildGuardian, buildStump, buildRipples, type GuardianRig } from '../art/models/world';
 import { buildLootShard, buildItemModel, SHARD_TINT, type LootShard, type ShardKind } from '../art/models/items';
 import { NODES, PLAYER_BASE, SKILLS } from '../game/data/content';
@@ -1094,8 +1094,9 @@ export class GameRenderer {
       const flames: THREE.Mesh[] = [];
       const cells = sp.cells.map((p, k) => {
         const y = g.world.standY(p.x, p.z);
-        const bush = new THREE.Group();
-        for (let j = 0; j < 3; j++) { const b = buildBush(400 + k * 3 + j, false); b.position.set((j - 1) * 0.9, 0, (j % 2) * 0.7 - 0.35); b.scale.setScalar(1.3); bush.add(b); }
+        const parts = new THREE.Group();
+        for (let j = 0; j < 3; j++) { const b = buildBush(400 + k * 3 + j, false); b.position.set((j - 1) * 0.9, 0, (j % 2) * 0.7 - 0.35); b.scale.setScalar(1.3); parts.add(b); }
+        const bush = collapse(parts); // three bushes in one draw per material: twelve thickets add up
         bush.position.set(p.x, y, p.z);
         const fire = new THREE.Group();
         for (let j = 0; j < 5; j++) {

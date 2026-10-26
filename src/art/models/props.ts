@@ -87,7 +87,32 @@ export function buildJungleTree(seed: number): THREE.Group {
   }
   g.scale.setScalar(0.9 + rnd() * 0.3);
   g.rotation.y = rnd() * Math.PI;
-  return g;
+  return collapse(g);
+}
+
+/** One mesh per material: a model of many small parts drawn in a handful of calls (a jungle full of trees adds up). */
+export function collapse(g: THREE.Group): THREE.Group {
+  g.updateMatrixWorld(true);
+  const inv = new THREE.Matrix4().copy(g.matrixWorld).invert();
+  const byMat = new Map<THREE.Material, THREE.BufferGeometry[]>();
+  g.traverse((o) => {
+    const me = o as THREE.Mesh;
+    if (!me.isMesh) return;
+    const geo = (me.geometry.index ? me.geometry.toNonIndexed() : me.geometry.clone()).applyMatrix4(new THREE.Matrix4().multiplyMatrices(inv, me.matrixWorld));
+    for (const k of Object.keys(geo.attributes)) if (k !== 'position' && k !== 'normal') geo.deleteAttribute(k);
+    const mat = me.material as THREE.Material;
+    (byMat.get(mat) ?? byMat.set(mat, []).get(mat)!).push(geo);
+  });
+  const out = new THREE.Group();
+  out.position.copy(g.position); out.rotation.copy(g.rotation); out.scale.copy(g.scale);
+  for (const [mat, list] of byMat) {
+    const merged = mergeGeometries(list);
+    if (!merged) continue;
+    const mesh = new THREE.Mesh(merged, mat);
+    mesh.castShadow = true; mesh.receiveShadow = true;
+    out.add(mesh);
+  }
+  return out;
 }
 
 export function buildRock(seed: number, size = 1, colour: 'stone' | 'stoneDark' = 'stone'): THREE.Mesh {
