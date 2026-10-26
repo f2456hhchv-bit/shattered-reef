@@ -28,6 +28,8 @@ export const NPC_LOOKS: Record<string, HumanoidLook> = {
   ingrid: { skin: 0xf0d0b0, coat: 0x8a2a2a, coatTrim: 0xe8dcc0, shirt: 0xe8dcc0, trousers: 0x3a2a2a, boots: 0x3a2a20, hat: 0xa86a3a, hair: 0xa86a3a, hatStyle: 'none', hairStyle: 'bun', beard: false },
   halvard: { skin: 0xd8a888, coat: 0x2a3a5a, coatTrim: 0xc9a050, shirt: 0xe8dcc0, trousers: 0x2a2a30, boots: 'leather', hat: 0x1a1a1a, hair: 0x8a6a4a, hatStyle: 'tricorn', beard: true },
   ulla: { skin: 0xc8946a, coat: 0x445228, coatTrim: 0x7a5a30, shirt: 0x9a8a62, trousers: 0x3a3424, boots: 'leather', hat: 0x5a4024, hair: 0xb8402a, hatStyle: 'none', hairStyle: 'queue', beard: false, held: 'longbow' },
+  brita: { skin: 0xf0d0b0, coat: 0x6a3a2a, coatTrim: 0xe8c86a, shirt: 0xe8dcc0, trousers: 0x3a2a24, boots: 'leather', hat: 0xe8c86a, hair: 0xe8c86a, hatStyle: 'none', hairStyle: 'queue', beard: false, apron: 0xd8cfb8 },
+  osric: { skin: 0xb88a62, coat: 0x2a3a3a, coatTrim: 0x8a9a9a, shirt: 0x9a9a8a, trousers: 0x22201e, boots: 'leather', hat: 0x2a2a2a, hair: 0x6a6a62, hatStyle: 'cap', beard: true },
   // Sunreach's quest folk (slice 2)
   abena: { skin: 0x6a4630, coat: 0xd8a03a, coatTrim: 0x2a7a5a, shirt: 0xe8dcc0, trousers: 0x2a7a5a, boots: 0x4a3424, hat: 0xd84a2a, hair: 0x1a1210, hatStyle: 'bandana', hairStyle: 'bun', beard: false, apron: 0xe8dcc0 },
   nana_ayo: { skin: 0x5a3a28, coat: 0x6a3a5a, coatTrim: 0xd8b84a, shirt: 0xe8dcc0, trousers: 0x3a2a3a, boots: 0x3a2a20, hat: 0xe8dcc0, hair: 0xd8d0c0, hatStyle: 'bandana', hairStyle: 'bun', beard: false, spectacles: true },

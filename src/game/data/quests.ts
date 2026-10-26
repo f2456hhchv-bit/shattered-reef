@@ -72,6 +72,8 @@ export const NPCS: Record<string, NpcDef> = {
   // Amberhold's quests (docs/ISLANDS.md, slice 3)
   sigrun: { id: 'sigrun', name: 'Sigrun', title: 'Skald', idle: ['Every hill on Amberhold has a song. Goldvein Hill\'s is the oldest, and nobody sings it after dark.'] },
   ingrid: { id: 'ingrid', name: 'Ingrid Vale', title: 'Fiddler', idle: ['A fiddle tune can calm a horse, a crowd, or a storm. I\'ve managed two of the three.'] },
+  brita: { id: 'brita', name: 'Brita Holm', title: 'Trader of the Tollhouse Market', shop: true, idle: ['Stormsilver, honey, and barrels that burn. Every one of them\'s paid its toll, captain.'] },
+  osric: { id: 'osric', name: 'Osric Vane', title: 'Storekeeper of Gallows Landing', shop: true, idle: ['Nobody comes to Stormwrack for the view. I sell what keeps you alive here.'] },
   halvard: { id: 'halvard', name: 'Halvard Rask', title: 'Toll-reeve of Tollhouse', idle: ['Everything that leaves Amberhold pays its toll. That\'s the law, and the law pays for the harbour wall.'] },
   ulla: { id: 'ulla', name: 'Ulla Brenn', title: 'Chief of the poachers', idle: ['Amberwood was ours before Tollhouse had a wall. Mind your feet in my camp.'] },
   watch_n: { id: 'watch_n', name: 'Watchman Pell', title: 'Town watch', idle: ['North road runs to the Copperback Hills and the foot of Ironcrag. Mind the crabs in iron shells.'] },
