@@ -150,6 +150,7 @@ const SNAKE_LOOK: Record<string, { a: number; b: number; belly: number; eye: num
   jungle: { a: 0x4f7a2a, b: 0xd8b03a, belly: 0xd8d0a0, eye: 0xf2d04a },
   ember: { a: 0x3a1e18, b: 0xe8602a, belly: 0xc8783a, eye: 0xffb040 },
   sunscale: { a: 0xc89a2a, b: 0x7a4a1a, belly: 0xf2dca0, eye: 0x59d0c4, hood: true },
+  tide: { a: 0x1e4a5a, b: 0x2f7f86, belly: 0x9ad0c8, eye: 0xd8fff2, hood: true }, // the Storm Tide's serpent
   leech: { a: 0x3a2e24, b: 0x4e3e2a, belly: 0x8a6a4a, eye: 0x9a3a2a }, // a bog leech: dark, banded, fat
 };
 export const SNAKE_SEGS = 9;

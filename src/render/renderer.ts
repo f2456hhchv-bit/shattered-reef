@@ -166,6 +166,9 @@ export class GameRenderer {
   private ballViews = new Map<number, THREE.Mesh>();
   private chargeViews = new Map<number, THREE.Mesh>();
   private aimLine: THREE.Mesh | null = null;
+  // quest spots, and the Storm Tide's quay (bell, cannon, smashed planks, the serpent)
+  private markViews = new Map<string, THREE.Group>();
+  private stormProps: { serpent: SnakeRig; planks: THREE.Mesh[] } | null = null;
   private teleViews = new Map<number, THREE.Group>();
   private flames: THREE.Mesh[] = [];
   private glows: THREE.MeshStandardMaterial[] = [];
@@ -278,6 +281,7 @@ export class GameRenderer {
     this.npcs.clear(); this.houses = []; this.walkers = []; this.enemyViews.clear(); this.nodeViews.clear();
     this.dropViews.clear(); this.projViews.clear(); this.teleViews.clear(); this.flames = []; this.glows = [];
     this.seaViews.clear(); this.ballViews.clear(); this.chargeViews.clear(); this.aimLine = null;
+    this.markViews.clear(); this.stormProps = null;
     this.grass = null; this.grassTime = [];
     this.scenery = new InstancedField(addSurfaceDetail(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: false, roughness: 0.9 }), PROP_SURFACE));
     this.sceneryState.clear();
@@ -865,6 +869,66 @@ export class GameRenderer {
     } else if (this.aimLine) this.aimLine.visible = false;
   }
 
+  private syncQuestAndStorm(t: number, dt: number) {
+    const g = this.game;
+    // quest spots: a slow gold shimmer on the ground where there's something to do
+    const live = new Set<string>();
+    for (const { quest, mark } of g.questMarks()) {
+      const key = `${quest}:${mark.id}`;
+      live.add(key);
+      let v = this.markViews.get(key);
+      if (!v) {
+        v = new THREE.Group();
+        const ring = new THREE.Mesh(new THREE.RingGeometry(0.55, 0.75, 24), new THREE.MeshBasicMaterial({ color: 0xffd35a, transparent: true, opacity: 0.7, depthWrite: false, side: THREE.DoubleSide }));
+        ring.rotation.x = -Math.PI / 2;
+        const mote = new THREE.Mesh(new THREE.OctahedronGeometry(0.16), new THREE.MeshBasicMaterial({ color: 0xfff0b0 }));
+        mote.position.y = 1.1;
+        v.add(ring, mote);
+        // the thing itself: a rock face to listen at, turned sand to dig, a lantern to douse
+        const thing = mark.verb === 'Listen' ? buildRock(7, 1.3, 'stoneDark') : mark.verb === 'Dig' ? buildDigSpot(11) : mark.verb === 'Douse' ? buildLanternPost().group : null;
+        if (thing) { thing.position.set(mark.verb === 'Listen' ? 0.9 : 0, mark.verb === 'Listen' ? 0.3 : 0, mark.verb === 'Listen' ? -0.9 : 0); v.add(thing); }
+        v.position.set(mark.x, g.world.standY(mark.x, mark.z) + 0.06, mark.z);
+        this.region3d.add(v);
+        this.markViews.set(key, v);
+      }
+      v.children[1].position.y = 1.1 + Math.sin(t * 2.4) * 0.15;
+      v.children[1].rotation.y = t * 1.5;
+      ((v.children[0] as THREE.Mesh).material as THREE.MeshBasicMaterial).opacity = 0.45 + Math.sin(t * 3) * 0.25;
+    }
+    for (const [k, v] of this.markViews) if (!live.has(k)) { this.disposeObject(v); this.markViews.delete(k); }
+    // the Storm Tide: built once on Bellwether's quay
+    const sp = g.storm.spots();
+    if (!sp) return;
+    if (!this.stormProps) {
+      const bell = buildGong();
+      bell.position.set(sp.bell.x, g.world.standY(sp.bell.x, sp.bell.z), sp.bell.z);
+      bell.rotation.y = Math.PI / 2;
+      bell.scale.setScalar(0.8);
+      const gun = buildCannon();
+      gun.position.set(sp.cannon.x, g.world.standY(sp.cannon.x, sp.cannon.z), sp.cannon.z);
+      gun.rotation.y = -Math.PI / 2; // muzzle out to sea
+      const serpent = buildSnake('tide', 77);
+      serpent.root.scale.setScalar(4.5);
+      serpent.root.position.set(sp.serpent.x, -12, sp.serpent.z);
+      serpent.root.rotation.y = Math.PI; // facing the quay
+      const planks = sp.planks.map((pl) => {
+        const m = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.12, 0.8), new THREE.MeshBasicMaterial({ color: 0x1a120a }));
+        m.position.set(pl.x, g.world.standY(pl.x, pl.z) + 0.04, pl.z);
+        m.visible = false;
+        return m;
+      });
+      this.region3d.add(bell, gun, serpent.root, ...planks);
+      this.stormProps = { serpent, planks };
+    }
+    const st = g.storm, sr = this.stormProps.serpent.root;
+    // the serpent rears up out of the water while the storm runs, and sinks when it's over
+    const wantY = st.running ? 1.1 + Math.sin(t * 0.8) * 0.35 : -14;
+    sr.position.y += (wantY - sr.position.y) * (1 - Math.exp(-dt * 1.2)); // rises over a couple of seconds, whatever the frame rate
+    sr.visible = sr.position.y > -13;
+    animateSnake(this.stormProps.serpent, t, false, st.running && Math.sin(t * 0.6) > 0.7);
+    this.stormProps.planks.forEach((m, k) => { m.visible = st.running && st.broken[k]; });
+  }
+
   private makeTelegraph(t: Telegraph): THREE.Group {
     const g = new THREE.Group();
     const red = (o: number) => new THREE.MeshBasicMaterial({ color: 0xe0402a, transparent: true, opacity: o, depthWrite: false, side: THREE.DoubleSide });
@@ -1197,6 +1261,7 @@ export class GameRenderer {
     this.syncDrops(t);
     this.syncProjectiles();
     this.syncSea(t);
+    this.syncQuestAndStorm(t, dt);
     this.syncTelegraphs();
 
     for (const f of this.flames) { f.scale.y = 0.8 + Math.sin(t * 12 + f.position.x * 10) * 0.25; f.scale.x = 1 + Math.sin(t * 9 + f.position.z * 7) * 0.12; }

@@ -91,6 +91,8 @@ export const NODES: Record<string, NodeDef> = Object.fromEntries(([
   { id: 'palm', name: 'Coconut palm', level: 1, xp: 0, item: 'coconut', difficulty: 0, tier: 0, rate: 0.7, yield: [2, 3], respawn: 70, verb: 'Pick' },
   { id: 'kelp_bed', name: 'Kelp bed', level: 1, xp: 0, item: 'kelp', difficulty: 0, tier: 0, rate: 0.8, yield: [2, 4], respawn: 50, verb: 'Gather', reach: 3.4 },
   { id: 'salt_pan', name: 'Salt pan', level: 1, xp: 0, item: 'sea_salt', difficulty: 0, tier: 0, rate: 0.6, yield: [2, 4], respawn: 90, verb: 'Scrape' },
+  // the Storm Tide's shoals by Bellwether's dock: only there while the storm is (stormtide.ts)
+  { id: 'spot_storm', name: 'Storm shoal', skill: 'fishing', level: 1, xp: 15, item: 'storm_herring_raw', tool: 'fishing_rod', difficulty: 0.3, tier: 0, rate: 0.7, yield: null, respawn: 0, verb: 'Fish' },
   // a wreck on the seabed, worked from the deck with a salvage hook (Sailing)
   { id: 'wreck_salvage', name: 'Sunken wreck', skill: 'sailing', level: 3, xp: 28, item: 'coins', loot: 'salvage', tool: 'salvage_hook', difficulty: 0.4, tier: 0, rate: 0.45, yield: [3, 5], respawn: 150, verb: 'Salvage', fromShip: true },
   { id: 'dig_spot', name: 'Disturbed sand', level: 1, xp: 0, item: 'coins', loot: 'treasure', tool: 'spade', difficulty: 0, tier: 0, rate: 0.45, yield: [1, 1], respawn: 420, verb: 'Dig' },
@@ -199,6 +201,7 @@ function buildRecipes(): Recipe[] {
   out.push({ id: 'cook_pie_berry', station: 'fire', skill: 'cooking', level: 10, xp: 50, inputs: [{ id: 'berries', qty: 3 }, { id: 'bread', qty: 1 }], output: { id: 'pie_berry', qty: 1 }, burn: { item: 'burnt_food', stopLevel: 34 } });
   out.push({ id: 'cook_stew', station: 'fire', skill: 'cooking', level: 30, xp: 120, inputs: [{ id: 'fish_salmon_raw', qty: 1 }, { id: 'kelp', qty: 1 }, { id: 'sea_salt', qty: 1 }], output: { id: 'fish_stew', qty: 1 }, burn: { item: 'burnt_food', stopLevel: 58 } });
   out.push({ id: 'burn_kelp', station: 'fire', skill: 'cooking', level: 12, xp: 12, inputs: [{ id: 'kelp', qty: 2 }], output: { id: 'kelp_ash', qty: 1 } });
+  out.push({ id: 'cook_storm_herring', station: 'fire', skill: 'cooking', level: 1, xp: 12, inputs: [{ id: 'storm_herring_raw', qty: 1 }], output: { id: 'storm_herring', qty: 1 } }); // never burns: the storm won't wait
   out.push({ id: 'cook_crab', station: 'fire', skill: 'cooking', level: 4, xp: 35, inputs: [{ id: 'crab_meat_raw', qty: 1 }], output: { id: 'crab_meat', qty: 1 }, burn: { item: 'burnt_food', stopLevel: 26 } });
   out.push({ id: 'cook_boar', station: 'fire', skill: 'cooking', level: 24, xp: 92, inputs: [{ id: 'boar_meat_raw', qty: 1 }], output: { id: 'boar_meat', qty: 1 }, burn: { item: 'burnt_food', stopLevel: 52 } });
   // ---- Crafting (RuneScape's shape: leather from 1, gold jewellery 5-8 at the furnace, then our own materials)
@@ -394,7 +397,7 @@ export const PLAYER_BASE = {
 // ---- enemies -------------------------------------------------------------------
 export type EnemyModel = 'crab' | 'brigand' | 'gunner' | 'guardian' | 'boar' | 'spider' | 'snake' | 'golem' | 'hound' | 'bat' | 'beetle';
 /** Visual variant: crab shell / humanoid outfit / stone tint, chosen by the renderer. */
-export type EnemyLook = 'reef' | 'mire' | 'ironshell' | 'brigand' | 'gunner' | 'smuggler' | 'poacher' | 'drowned' | 'captain' | 'sentinel' | 'cave' | 'giant' | 'jungle' | 'ember' | 'sunscale' | 'hunter' | 'stalker' | 'moon' | 'amber' | 'oak' | 'queen' | 'shore' | 'gull' | 'thorn' | 'knocker' | 'leech' | 'howe' | 'troll' | 'seadraugr';
+export type EnemyLook = 'reef' | 'mire' | 'ironshell' | 'brigand' | 'gunner' | 'smuggler' | 'poacher' | 'drowned' | 'captain' | 'sentinel' | 'cave' | 'giant' | 'jungle' | 'ember' | 'sunscale' | 'hunter' | 'stalker' | 'moon' | 'amber' | 'oak' | 'queen' | 'shore' | 'gull' | 'thorn' | 'knocker' | 'leech' | 'howe' | 'troll' | 'seadraugr' | 'wrecker';
 
 export interface EnemyDef {
   id: string;
@@ -480,6 +483,11 @@ export const ENEMIES: Record<string, EnemyDef> = {
     speed: 2.4, radius: 0.5, aggro: 5, attack: { kind: 'melee', range: 1.5, windup: 0.4, cooldown: 2.2 }, loot: 'bog_leech', respawn: 25, scale: 0.9 },
   haugbui: { hostile: true, id: 'haugbui', name: 'Haugbui', model: 'brigand', look: 'howe', level: 18, hp: 22, att: 17, def: 14, defBonus: { melee: 20, ranged: 15, magic: -10 }, weakness: 'magic', style: 'melee', accBonus: 13, maxHit: 4,
     speed: 2.6, radius: 0.45, aggro: 8, attack: { kind: 'melee', range: 1.7, windup: 0.5, cooldown: 2.6 }, loot: 'haugbui', respawn: 35, scale: 1.15 },
+  // quest foes (they appear for their quest, once)
+  knocker_elder: { hostile: true, id: 'knocker_elder', name: 'Knocker Elder', model: 'brigand', look: 'knocker', level: 16, hp: 34, att: 15, def: 13, defBonus: { melee: 20, ranged: -5, magic: 10 }, weakness: 'ranged', style: 'melee', accBonus: 12, maxHit: 4,
+    speed: 2.8, radius: 0.5, aggro: 10, attack: { kind: 'melee', range: 1.7, windup: 0.5, cooldown: 2.4 }, loot: 'knocker_elder', respawn: 0, scale: 0.95 },
+  wrecker_chief: { hostile: true, id: 'wrecker_chief', name: 'Wreckers\' chief', model: 'brigand', look: 'wrecker', level: 17, hp: 38, att: 16, def: 14, defBonus: { melee: 15, ranged: 10, magic: 0 }, weakness: 'magic', style: 'melee', accBonus: 14, maxHit: 4,
+    speed: 3.2, radius: 0.45, aggro: 11, attack: { kind: 'melee', range: 1.7, windup: 0.45, cooldown: 2.4 }, loot: 'wrecker_chief', respawn: 0, scale: 1.2 },
   // further out (their islands' slices replace the rest of this list)
   cave_bat: { hostile: true, id: 'cave_bat', name: 'Cave bat', model: 'bat', look: 'cave', level: 17, hp: 16, att: 16, def: 10, defBonus: { melee: 10, ranged: -10, magic: 5 }, weakness: 'ranged', style: 'melee', accBonus: 12, maxHit: 3,
     speed: 4.2, radius: 0.5, aggro: 8, attack: { kind: 'melee', range: 1.6, windup: 0.3, cooldown: 2.0 }, loot: 'cave_bat', respawn: 25, scale: 0.9 },
@@ -579,6 +587,9 @@ export const LOOT: Record<string, LootTable> = {
   bog_leech: { coins: [3, 12], drops: [{ item: 'kelp', chance: 0.4, qty: [1, 3] }, { item: 'charm_tide', chance: 0.5, qty: [3, 7] }] },
   haugbui: { coins: [12, 30], drops: [{ item: 'charm_tide', chance: 0.5, qty: [5, 10] }, { item: 'bar_iron', chance: 0.15 }],
     gear: { chance: 0.14, items: ['cutlass_iron', 'helm_iron', 'shield_iron', 'amulet_brass', 'bracelet_brass', 'ring_brass', 'greatsword_iron'], weights: { common: 45, fine: 40, rare: 15 } } }, // grave goods
+  knocker_elder: { coins: [20, 40], drops: [{ item: 'ore_iron', chance: 1, qty: [2, 4] }, { item: 'gem_pearl_rough', chance: 0.3 }] },
+  wrecker_chief: { coins: [40, 80], drops: [{ item: 'chain_shot', chance: 1, qty: [10, 20] }, { item: 'depth_charge', chance: 0.6, qty: [2, 4] }],
+    gear: { chance: 1, items: ['cutlass_iron', 'pistol_iron', 'helm_iron'], weights: { fine: 70, rare: 30 } } },
   crag_troll: { coins: [40, 90], drops: [{ item: 'ore_abyss', chance: 0.3 }, { item: 'ore_coal', chance: 0.5, qty: [2, 4] }, { item: 'crystal_geode', chance: 0.05 }],
     gear: { chance: 0.07, items: ['pike_abyss', 'helm_abyss', 'shield_abyss'], weights: { common: 45, fine: 40, rare: 13, relic: 2 } } },
   sea_draugr: { coins: [50, 110], drops: [{ item: 'charm_tide', chance: 0.6, qty: [12, 24] }, { item: 'sea_salt', chance: 0.4, qty: [2, 4] }, { item: 'ore_tide', chance: 0.15 }],

@@ -259,6 +259,22 @@ function tierItems(): ItemDef[] {
   });
   // fishing tools and magic staffs
   out.push(I({ id: 'lobster_pot', name: 'Lobster pot', desc: 'Wicker and twine. Lobsters walk in; they rarely walk out.', icon: { shape: 'pot', color: '#a8865a' }, stackable: false, value: 25, tool: { skill: 'fishing', power: 0, level: 1 } }));
+  // Bellwether's quest rewards and the Storm Tide (docs/ISLANDS.md, slice 1)
+  out.push(I({ id: 'sealskin', name: 'Sealskin', desc: 'Soft as a pelt can be, and cold, and smelling of the sea. It isn\'t yours.', icon: { shape: 'hide', color: '#6a6e72', accent: '#3a3e42' }, stackable: false, value: 0, quest: true }));
+  out.push(I({ id: 'knockers_lamp', name: 'Knocker\'s lamp', desc: 'Old Pellow\'s miner\'s lamp. The knockers know its light and show you the good seams.', icon: { shape: 'amulet', color: '#c9a050', accent: '#ffd35a' }, stackable: false, value: 150,
+    equip: { slot: 'neck', reqs: {}, bonus: { defMelee: 1, defRanged: 1, defMagic: 1 }, affixPool: JEWEL_AFFIX }, innate: [{ id: 'gather_speed', v: 4 }] }));
+  out.push(I({ id: 'ring_selkie', name: 'Selkie\'s pearl ring', desc: 'A pearl from under the sea, on a band of silver. Fish come to whoever wears it.', icon: { shape: 'ring', color: '#cfd5d8', accent: '#efe6dc' }, stackable: false, value: 300,
+    equip: { slot: 'ring', reqs: {}, bonus: { defMagic: 2 }, affixPool: JEWEL_AFFIX }, innate: [{ id: 'gather_speed', v: 3 }, { id: 'xp_bonus', v: 2 }] }));
+  out.push(I({ id: 'cloak_selkie', name: 'Sealskin cloak', desc: 'Made from a selkie\'s skin. Warm as a seal in winter, and spells slide off it like water.', icon: { shape: 'coat', color: '#6a6e72', accent: '#3a3e42' }, stackable: false, value: 400,
+    equip: { slot: 'body', reqs: { defence: 10 }, bonus: { defMelee: 6, defRanged: 8, defMagic: 14 }, affixPool: ARMOUR_AFFIX }, innate: [{ id: 'regen', v: 1 }] }));
+  out.push(I({ id: 'storm_herring_raw', name: 'Raw storm herring', desc: 'Silver herring the storm drives up to the quay. Fire them at the serpent, or cook them first: cooked ones hit twice as hard.', icon: { shape: 'fish', color: '#9ab8c8' }, stackable: true, value: 1 }));
+  out.push(I({ id: 'storm_herring', name: 'Smoked storm herring', desc: 'Hot from the quay fire. Heals 4, or loads the quay cannon for a double blow.', icon: { shape: 'fish', color: '#b8885a' }, stackable: true, value: 3, heal: 4 }));
+  // the storm outfit: oilskins for the Storm Tide; every piece makes fishing a little surer
+  const oil = (id: string, name: string, slot: Slot, shape: IconShape, dm: number, dg: number) =>
+    out.push(I({ id, name, desc: 'Oilskin from the Storm Tide\'s reward chest. Every piece of the set makes fishing a little surer.', icon: { shape, color: '#d8b83a', accent: '#3a3428' }, stackable: false, value: 120,
+      equip: { slot, reqs: {}, bonus: { defMelee: dm, defRanged: dm, defMagic: dg }, affixPool: [...ARMOUR_AFFIX, 'gather_speed'] }, innate: [{ id: 'gather_speed', v: 2 }] }));
+  oil('oilskin_hat', 'Sou\'wester', 'head', 'cap', 2, 2); oil('oilskin_coat', 'Oilskin coat', 'body', 'coat', 4, 3);
+  oil('oilskin_legs', 'Oilskin trousers', 'legs', 'legs', 3, 2); oil('sea_boots', 'Sea boots', 'feet', 'boots', 2, 1);
   // sea gear (Sailing): ship's ammunition, the salvage hook, and what the sea gives back
   out.push(I({ id: 'chain_shot', name: 'Chain shot', desc: 'Two balls on a chain. Shreds sails and whole flocks of gulls. Load it at sea (Sailing 5).', icon: { shape: 'shot', color: '#8a8a95', accent: '#5a5a62' }, stackable: true, value: 3 }));
   out.push(I({ id: 'depth_charge', name: 'Depth charge', desc: 'A powder keg with a fuse. Roll it over the stern; it finds what swims under you (Sailing 10).', icon: { shape: 'pot', color: '#3a3028', accent: '#c84a2a' }, stackable: true, value: 12 }));

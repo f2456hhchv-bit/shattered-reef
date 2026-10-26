@@ -1,3 +1,4 @@
+import { StormTide } from './stormtide';
 import { Naval } from './naval';
 import { AMMO, NAVAL } from '../data/sea';
 import { ACTIVE } from '../data/active';
@@ -8,7 +9,7 @@ import { KEY, KEYS, KEY_CONFIG, type KeyDef, type KeyFamily } from '../data/keys
 import { DROP_CONFIG, GEMS, rareTable, commonTable } from '../data/drops';
 import { BOARDS, BOUNTY_CONFIG, CREW_BY, WANTED_FIRST, WANTED_LAST, rankOf, type Contract, type CrewPassive } from '../data/bounties';
 import { HP_SCALE, NODES, RECIPES, ENEMIES, LOOT, ELITE_AFFIXES, SHOPS, PLAYER_BASE, UTILITY_SPELLS, COMBAT_SKILLS, XP_PER_DAMAGE, type EnemyDef, type Recipe, type Station } from '../data/content';
-import { NPCS, QUESTS, type DialogueNode, type Effect } from '../data/quests';
+import { NPCS, QUESTS, type DialogueNode, type Effect, type QuestMark } from '../data/quests';
 import { PLACES, placeRegion } from '../world/places';
 import { regionLayout, cachedLayout, type IslandLayout, type Arena } from '../world/layout';
 import { REGIONS, edgeCrossed, arrival, type RegionId } from '../world/regions';
@@ -116,7 +117,7 @@ type Action =
 /** How a trip to another region ends: where the player (and maybe the ship) comes out. */
 export type Travel = { to: RegionId; how: 'sail' | 'ferry' | 'portal' | 'home' | 'respawn'; along?: number; from: RegionId };
 
-export interface Target { key: string; kind: 'node' | 'npc' | 'station' | 'bank' | 'ship' | 'arena' | 'portal' | 'enemy' | 'drop' | 'mooring'; x: number; z: number; range: number; label: string; verb: string }
+export interface Target { key: string; kind: 'node' | 'npc' | 'station' | 'bank' | 'ship' | 'arena' | 'portal' | 'enemy' | 'drop' | 'mooring' | 'quest' | 'event'; x: number; z: number; range: number; label: string; verb: string }
 
 // RuneScape's 4-tick rhythm for gathering; production a little quicker.
 const DT_GATHER = 2.4;
@@ -157,6 +158,8 @@ export class Game {
   nextId = 1;
   /** the fight and the work at sea (naval.ts) */
   naval: Naval = new Naval(this);
+  /** Bellwether's skilling boss on the quay (stormtide.ts) */
+  storm: StormTide = new StormTide(this);
   private listeners: ((e: GameEvent) => void)[] = [];
 
   // player runtime
@@ -220,6 +223,7 @@ export class Game {
     this.nodes = this.layout.nodes.map((n) => ({ ...n, depletedUntil: 0, left: this.rollYield(n.def) }));
     // only a few dig spots are disturbed at any time; the rest surface later
     for (const n of this.nodes) if (NODES[n.def].verb === 'Dig' && this.rnd() < 0.75) n.depletedUntil = this.rnd() * NODES[n.def].respawn;
+    for (const n of this.nodes) if (n.def === 'spot_storm' && !this.storm?.running) n.depletedUntil = Infinity; // the storm's shoals only run in the storm
     this.enemies = []; this.drops = []; this.projectiles = []; this.telegraphs = []; this.mate = null;
     this.boss = null; this.bossArena = null;
     for (const sp of this.layout.spawns) this.spawnEnemy(ENEMIES[sp.enemy], sp.x, sp.z, false);
@@ -391,6 +395,8 @@ export class Game {
         out.push({ key: 'mooring', kind: 'mooring', x: d.x + 3, z: d.headZ + 1.6, range: 2.4, label: 'Mooring bell', verb: 'Call ship' });
       }
       for (const e of this.enemies) if (e.alive && e.state !== 'rise') out.push({ key: `enemy:${e.id}`, kind: 'enemy', x: e.x, z: e.z, range: 1.6 + e.def.radius, label: this.enemyName(e), verb: 'Attack' });
+      for (const m of this.questMarks()) out.push({ key: `quest:${m.quest}:${m.mark.id}`, kind: 'quest', x: m.mark.x, z: m.mark.z, range: 2.2, label: m.mark.label, verb: m.mark.verb });
+      out.push(...this.storm.targets());
     }
     return out;
   }
@@ -521,6 +527,8 @@ export class Game {
       case 'arena': return this.wakeGuardian(this.layout.arenas[Number(t.key.slice(6))]);
       case 'portal': { const pt = this.layout.portals[Number(t.key.slice(7))]; this.travel({ to: pt.to, how: 'portal', from: this.s.region }); return; }
       case 'mooring': return this.callShip();
+      case 'quest': { const [, q, m] = t.key.split(':'); return this.useMark(q, m); }
+      case 'event': return this.storm.use(t.key);
     }
   }
 
@@ -1036,8 +1044,9 @@ export class Game {
     const npc = NPCS[npcId];
     for (const q of Object.values(QUESTS)) {
       const stage = q.stages[this.questStage(q.id)];
-      if (stage?.talk?.npc === npcId) {
-        const node = stage.talk.node;
+      const opt = [stage?.talk, ...(stage?.also ?? [])].find((o) => o?.npc === npcId);
+      if (opt) {
+        const node = opt.node;
         if (node.requires && count(this.p.inv, node.requires.id) < node.requires.qty) {
           this.emit({ type: 'dialog', npc: npcId, lines: node.missing ?? npc.idle });
           return;
@@ -1069,6 +1078,61 @@ export class Game {
     if (e.flag === 'bell_done') this.giveKey('keels_tooth'); // the Broken Ring gives up its key
     if (e.stage !== undefined) this.setStage(questId, e.stage);
     this.rev++;
+  }
+
+  /** The quest spots open right now in this region (the stage you're on in each quest). */
+  questMarks(): { quest: string; mark: QuestMark }[] {
+    const out: { quest: string; mark: QuestMark }[] = [];
+    for (const q of Object.values(QUESTS)) for (const m of q.stages[this.questStage(q.id)]?.marks ?? []) if (m.region === this.s.region) out.push({ quest: q.id, mark: m });
+    return out;
+  }
+
+  /** Use a quest spot: in order if the stage wants an order (progress kept as flags, so it survives a reload). */
+  private useMark(questId: string, markId: string) {
+    const st = this.questStage(questId), stage = QUESTS[questId]?.stages[st], m = stage?.marks?.find((x) => x.id === markId);
+    if (!m) return;
+    for (const line of m.say ?? []) this.msg(line, 'quest');
+    if (m.seq !== undefined) {
+      const key = (n: number) => `${questId}_${st}_s${n}`;
+      const done = stage!.marks!.filter((x) => this.s.flags[key(x.seq!)]).length;
+      if (m.seq !== done + 1) {
+        for (const x of stage!.marks!) delete this.s.flags[key(x.seq!)];
+        if (done > 0 || m.seq !== 1) this.msg(stage!.wrong ?? 'That wasn\'t the right order. Start again.', 'warn');
+        if (m.seq === 1) this.s.flags[key(1)] = true; // the first one is always a fresh start
+        this.rev++;
+        return;
+      }
+      this.s.flags[key(m.seq)] = true;
+      if (done + 1 === stage!.marks!.length) this.setStage(questId, st + 1);
+      this.rev++;
+      return;
+    }
+    if (m.effect) this.applyEffect(questId, m.effect);
+  }
+
+  /** A foe beaten (on land or at sea): counts toward any stage that wants it. */
+  questKill(foe: string) {
+    for (const q of Object.values(QUESTS)) {
+      const st = this.questStage(q.id), k = q.stages[st]?.kill;
+      if (!k || k.foe !== foe) continue;
+      let n = 0;
+      while (this.s.flags[`${q.id}_${st}_k${n}`]) n++;
+      this.s.flags[`${q.id}_${st}_k${n}`] = true;
+      if (n + 1 >= k.count) this.setStage(q.id, st + 1);
+      else this.msg(`${q.name}: ${n + 1} of ${k.count}.`, 'quest');
+    }
+  }
+
+  /** A quest foe waits where its stage says, once, while you're in its region. */
+  private stepQuestFoes() {
+    for (const q of Object.values(QUESTS)) {
+      const k = q.stages[this.questStage(q.id)]?.kill;
+      if (!k?.spawn || k.spawn.region !== this.s.region || this.enemies.some((e) => e.def.id === k.foe && e.alive)) continue;
+      const at = this.world.nearestWalkable(k.spawn.x, k.spawn.z, 6);
+      if (!at) continue;
+      const e = this.spawnEnemy(ENEMIES[k.foe], at[0], at[1], false);
+      e.once = true;
+    }
   }
 
   setStage(questId: string, stage: number) {
@@ -1948,6 +2012,7 @@ export class Game {
     for (let i = before; i < this.drops.length; i++) this.drops[i].home = true; // shot from range, it still reaches you
     if (e.def.boss) this.bossDefeated(e);
     this.onBountyKill(e);
+    this.questKill(e.def.id);
     if (this.stats.sig === 'locksmith') this.keyCd = Math.max(0, this.keyCd - 5);
     if (this.stolen?.affix === 'volatile') for (const o of this.enemies) if (o !== e && o.alive && Math.hypot(o.x - e.x, o.z - e.z) < 2.6) this.damageEnemy(o, this.stats.maxHit, false, this.stats.style, 0.6);
     if (e.once) e.summoned = true; // gone for good once looted
@@ -2495,6 +2560,8 @@ export class Game {
       }
       this.stepDiscovery();
       this.stepBounties();
+      this.stepQuestFoes();
+      this.storm.step(dt);
     }
     this.stepMate(dt);
     if (this.region.kind === 'island') this.naval.step(dt);

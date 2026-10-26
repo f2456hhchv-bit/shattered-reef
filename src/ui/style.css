@@ -518,3 +518,11 @@ body.portrait .skgrid { grid-template-columns: repeat(4, 1fr); }
 /* aboard, the bar over the ship is the hull */
 .hpbar.hull { width: 64px; margin-left: -32px; height: 7px; }
 .hpbar.hull i { background: #c9a050; }
+
+/* the Storm Tide: two bars at the top of the screen */
+#stormhud { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 74px); left: calc(env(safe-area-inset-left, 0px) + 10px); width: min(220px, 56vw); padding: 6px 10px; background: rgba(20, 14, 8, .82); border: 2px solid var(--brass); border-radius: 10px; pointer-events: none; font: 600 11px var(--body); color: var(--ink); }
+#stormhud[hidden] { display: none; }
+#stormhud div { display: grid; grid-template-columns: 80px 1fr; align-items: center; gap: 6px; margin: 2px 0; }
+#stormhud span { height: 8px; background: #2a1e0e; border: 1px solid #000; border-radius: 4px; overflow: hidden; }
+#stormhud i { display: block; height: 100%; background: #3fb0a8; transition: width .3s; }
+#stormhud div + div i { background: #c9a050; }
