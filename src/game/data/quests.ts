@@ -10,6 +10,8 @@ export interface Effect {
   flag?: string;
   /** a quest key, slotted on your keyring */
   key?: string;
+  /** something seen, not said: shown like a page you're reading (a Lock's memory, a letter) */
+  vision?: { title: string; sub: string; lines: string[] };
 }
 
 export interface DialogueNode {
@@ -93,6 +95,10 @@ export interface QuestMark {
   requires?: { id: string; qty: number }; missing?: string[];
   /** in an ordered stage: a false lead, always wrong (the order starts again) */
   decoy?: boolean;
+  /** used from your ship's deck, not on foot (a Lock at sea) */
+  fromShip?: boolean;
+  /** needs this key on your keyring */
+  requiresKey?: string;
 }
 
 export interface QuestStage {
@@ -577,6 +583,61 @@ export const QUESTS: Record<string, QuestDef> = {
           'Take this for your trouble, captain. And wear that pendant: whatever sang in it, it sings for you now.'],
           effect: { give: [{ id: 'coins', qty: 1200 }], xp: [{ skill: 'magic', amount: 2500 }], stage: 6, flag: 'starfall_done' } } } },
       { text: 'Quest complete.' },
+    ],
+  },
+  firstlock: {
+    id: 'firstlock',
+    name: 'The First Lock',
+    island: 'wrack',
+    giver: 'iven',
+    reward: 'The Listener\'s Key, 3000 coins, 4000 Sailing, Magic and Defence XP. Act II begins.',
+    stages: [
+      { text: 'Speak with Iven Marr at Bellwether Quay, once The Key Collector is done.',
+        talk: { npc: 'iven', node: { needsFlags: ['collector_done'], missing: ['The Locks, captain. I need a little longer with the charts.'], lines: [
+          'I\'ve read the collector\'s ledger cover to cover. Every key they took, where, and when. Neat as a tax-man.',
+          'The last page is in another hand. "The Tooth opens the Spire. Bring it at bell-time." No name. Just a mark: an ear, drawn over a keyhole.',
+          'My grandmother drew that mark in the margins of her charts. She told me it meant "keep away". I think it means "we\'re listening".',
+          'The Drowned Spire, off Stormwrack\'s north shore. It isn\'t a rock, captain. It\'s a Lock. And Keel\'s Tooth is its key.',
+          'Don\'t go at any old hour. The Locks only rise at low water. Mercy Gale keeps the Compact\'s tide tables at Gallows Landing. Ask her for bell-time.'],
+          effect: { stage: 1 } } } },
+      { text: 'Ask Mercy Gale at Gallows Landing, Stormwrack, for bell-time at the Drowned Spire.',
+        talk: { npc: 'mercy', node: { lines: [
+          'Bell-time at the Spire? You\'ve been talking to cartographers.',
+          'The Compact takes no side. That\'s rule three, and it\'s older than this landing.',
+          'But a tide table isn\'t a side, is it. It\'s a tide table. Anyone could buy one.',
+          'Here. Low water\'s after dark this week. Whatever answers you out there, I\'d rather you didn\'t bring it back to my harbour.'],
+          effect: { give: [{ id: 'tide_table', qty: 1 }], stage: 2 } } } },
+      { text: 'Sail to the Drowned Spire at bell-time, north of Stormwrack, and turn Keel\'s Tooth in it from your deck.',
+        marks: [{ id: 'spire', label: 'The Drowned Spire, risen at low water', verb: 'Turn Keel\'s Tooth', region: 'wrack', x: WRACK_LAYOUT.spire.x, z: WRACK_LAYOUT.spire.z + 9, fromShip: true,
+          requiresKey: 'keels_tooth', requires: { id: 'tide_table', qty: 1 }, missing: ['The Spire is a shadow under the water. You need the Compact\'s tide table to know when it rises.'],
+          effect: { take: [{ id: 'tide_table', qty: 1 }], flag: 'firstlock_opened', stage: 3, vision: { title: 'The First Lock', sub: 'What Keel\'s Tooth remembers', lines: [
+            'The Tooth turns in the Spire like it\'s turning in your own jaw. The sea goes quiet. Then it isn\'t the sea any more.',
+            'You\'re standing on a deck that isn\'t yours, in a body that isn\'t yours, and the man whose eyes you\'re looking out of is laughing.',
+            'Thirteen lights round a land that\'s still whole. Twelve of them dark. A woman at the rail with her ear to the water: black hair, a quartermaster\'s ledger under her arm.',
+            '"Turn it, Corran," she says, gentle as anything. "They\'re so tired of the dark."',
+            'He turns the twelfth key. The land screams. You feel it crack under the keel like ice in spring.',
+            'And under it all, so loud it\'s almost kind, a song with your name in it.',
+            'You\'re back on your own deck. Your hands are shaking. The Spire\'s keyhole stands open and empty, and something has gone out through it.'] } } }] },
+      { text: 'Someone was waiting for the Lock to open. Hushed listeners are coming down the road to Gallows Landing: stop them before the yard.',
+        kill: { foe: 'hushed_listener', count: 3, spawn: { region: 'wrack', x: WRACK_LAYOUT.landing.x + 1, z: WRACK_LAYOUT.landing.z - 21 } } },
+      { text: 'Ask Mercy Gale who they were.',
+        talk: { npc: 'mercy', node: { lines: [
+          'They came off a black brig with no flag. Walked up my quay like they owned it, an ear to every keyhole on the way.',
+          'Their captain didn\'t fight. Stood at the end of the pier and watched you do it. Then she left this on my desk and sailed.',
+          'It\'s addressed to you. I didn\'t read it. Rule two.',
+          'In a small, neat hand: "Captain. Thank you for opening the first door. You\'ve done more for them tonight than we have in forty years."',
+          '"Twelve to go. Don\'t be frightened when you start to hear them. Everyone does." Signed: Sister Corva, of the Lantern.',
+          'I did read it. Take it to your cartographer, and then never bring that woman to my harbour again.'],
+          effect: { stage: 5 } } } },
+      { text: 'Take Sister Corva\'s letter to Iven Marr at Bellwether Quay.',
+        talk: { npc: 'iven', node: { lines: [
+          'She thanked you. That\'s the worst thing she could have written.',
+          'So that\'s what the Locks are. Not doors to a treasury. Doors to keep something in, and Keel opened twelve of them.',
+          'Now they\'re opening on their own, and the Hushed are helping them along. Twelve to go, she says. She\'s counting.',
+          'My grandmother left me this with her charts. I never knew what it opened. I think it opens you: turn it and you\'ll hear what they hear.',
+          'Take it. If we\'re going to stop them, we have to listen too. Carefully, captain. They\'ll hear you back.'],
+          effect: { give: [{ id: 'coins', qty: 3000 }], xp: [{ skill: 'sailing', amount: 4000 }, { skill: 'magic', amount: 4000 }, { skill: 'defence', amount: 4000 }], stage: 6, flag: 'firstlock_done', key: 'listener' } } } },
+      { text: 'Quest complete. The First Lock is open, and Act II has begun: twelve Locks to go, and the Hushed are counting.' },
     ],
   },
   collector: {

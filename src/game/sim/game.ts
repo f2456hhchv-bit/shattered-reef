@@ -397,6 +397,7 @@ export class Game {
       out.push({ key: `node:${n.uid}`, kind: 'node', x: n.x, z: n.z, range: this.nodeReach(d), label: d.name, verb: d.verb });
     }
     out.push(...this.treasure.targets());
+    if (onShip) for (const m of this.questMarks()) if (m.mark.fromShip) out.push({ key: `quest:${m.quest}:${m.mark.id}`, kind: 'quest', x: m.mark.x, z: m.mark.z, range: 6, label: m.mark.label, verb: m.mark.verb });
     if (!onShip) {
       for (const n of this.layout.npcs) out.push({ key: `npc:${n.id}`, kind: 'npc', x: n.x, z: n.z, range: 2.2, label: NPCS[n.id].name, verb: NPCS[n.id].shop ? 'Trade' : NPCS[n.id].bank ? 'Bank' : NPCS[n.id].ferry ? 'Travel' : 'Talk' });
       this.layout.stations.forEach((st, i) => out.push({ key: `station:${i}`, kind: 'station', x: st.x, z: st.z, range: 2.3, label: STATION_NAMES[st.id], verb: st.id === 'fire' ? 'Cook' : st.id === 'furnace' || st.id === 'vent' ? 'Smelt' : st.id === 'bench' ? 'Craft' : 'Forge' }));
@@ -410,7 +411,7 @@ export class Game {
       }
       for (const e of this.enemies) if (e.alive && e.state !== 'rise') out.push({ key: `enemy:${e.id}`, kind: 'enemy', x: e.x, z: e.z, range: 1.6 + e.def.radius, label: this.enemyName(e), verb: 'Attack' });
       for (const l of LORE) if (l.region === this.s.region) out.push({ key: `lore:${l.id}`, kind: 'lore', x: l.x, z: l.z, range: 2.2, label: l.label, verb: l.verb });
-      for (const m of this.questMarks()) out.push({ key: `quest:${m.quest}:${m.mark.id}`, kind: 'quest', x: m.mark.x, z: m.mark.z, range: 2.2, label: m.mark.label, verb: m.mark.verb });
+      for (const m of this.questMarks()) if (!m.mark.fromShip) out.push({ key: `quest:${m.quest}:${m.mark.id}`, kind: 'quest', x: m.mark.x, z: m.mark.z, range: 2.2, label: m.mark.label, verb: m.mark.verb });
       out.push(...this.storm.targets(), ...this.fire.targets(), ...this.seep.targets());
     }
     return out;
@@ -1079,20 +1080,24 @@ export class Game {
 
   private talk(npcId: string) {
     const npc = NPCS[npcId];
+    // everything this person has to say for the quests you're on; one you can act on now wins over one that's waiting
+    const opts: { q: string; node: DialogueNode }[] = [];
     for (const q of Object.values(QUESTS)) {
       const stage = q.stages[this.questStage(q.id)];
       const opt = [stage?.talk, ...(stage?.also ?? [])].find((o) => o?.npc === npcId);
-      if (opt) {
-        const node = opt.node;
-        if ((node.requires && count(this.p.inv, node.requires.id) < node.requires.qty) || (node.needsFlags ?? []).some((f) => !this.s.flags[f])) {
-          this.emit({ type: 'dialog', npc: npcId, lines: node.missing ?? npc.idle });
-          return;
-        }
-        this.emit({ type: 'dialog', npc: npcId, lines: node.lines });
-        if (node.effect) this.applyEffect(q.id, node.effect, node);
-        return;
-      }
+      if (opt) opts.push({ q: q.id, node: opt.node });
     }
+    const waiting = (node: DialogueNode) => (node.requires && count(this.p.inv, node.requires.id) < node.requires.qty) || (node.needsFlags ?? []).some((f) => !this.s.flags[f]);
+    // a quest you're already on comes before starting a new one
+    const ready = opts.find((o) => !waiting(o.node) && this.questStage(o.q) > 0) ?? opts.find((o) => !waiting(o.node)), first = opts[0];
+    if (ready) {
+      this.emit({ type: 'dialog', npc: npcId, lines: ready.node.lines });
+      if (ready.node.effect) this.applyEffect(ready.q, ready.node.effect, ready.node);
+      return;
+    }
+    // nothing to act on: a quest you're on says what it still needs (else the first one's teaser)
+    const started = opts.find((o) => this.questStage(o.q) > 0) ?? first;
+    if (started) { this.emit({ type: 'dialog', npc: npcId, lines: started.node.missing ?? npc.idle }); return; }
     if (npc.shop && this.openShopOf(npcId)) return;
     if (npc.bank) { this.emit({ type: 'openBank' }); return; }
     const board = Object.keys(BOARDS).find((b) => BOARDS[b].npc === npcId);
@@ -1114,6 +1119,7 @@ export class Game {
     if (e.flag) this.s.flags[e.flag] = true;
     if (e.flag === 'bell_done') this.giveKey('keels_tooth'); // the Broken Ring gives up its key
     if (e.key) this.giveKey(e.key);
+    if (e.vision) this.emit({ type: 'read', title: e.vision.title, sub: e.vision.sub, lines: e.vision.lines });
     if (e.stage !== undefined) this.setStage(questId, e.stage);
     this.rev++;
   }
@@ -1129,6 +1135,7 @@ export class Game {
   private useMark(questId: string, markId: string) {
     const st = this.questStage(questId), stage = QUESTS[questId]?.stages[st], m = stage?.marks?.find((x) => x.id === markId);
     if (!m) return;
+    if (m.requiresKey && !this.s.keyring.includes(m.requiresKey)) { for (const line of m.missing ?? [`It needs a key you don't have: ${KEY[m.requiresKey]?.name ?? 'a key'}.`]) this.msg(line, 'warn'); return; }
     if (m.requires && count(this.p.inv, m.requires.id) < m.requires.qty) { for (const line of m.missing ?? [`You need ${m.requires.qty} × ${item(m.requires.id).name}.`]) this.msg(line, 'warn'); return; }
     for (const line of m.say ?? []) this.msg(line, 'quest');
     if (m.seq !== undefined || m.decoy) {
@@ -1820,10 +1827,11 @@ export class Game {
     maxHit = Math.max(HP_SCALE, maxHit);
     let dmg = crit ? maxHit : HP_SCALE + Math.floor(this.rnd() * (maxHit - HP_SCALE + 1));
     if ((e.elite || e.def.boss) && dmg > 0) dmg = Math.round(dmg * (1 + st.eliteDmg));
+    if (e.elite && this.activeKey()?.passive.kind === 'listening') dmg = Math.round(dmg * (1 + this.activeKey()!.passive.v / 100)); // the Listener's Key
     if (this.activeKey()?.passive.kind === 'desperate' && this.p.hp < this.stats.maxHp / 2) dmg = Math.round(dmg * (1 + this.activeKey()!.passive.v / 100)); // Mutineer's Key
     const f = e.fx, keyed = f.root > 0 || f.disarm > 0 || f.slow > 0 || f.shatter > 0 || f.lesson > 0 || f.weak > 0 || f.ward > 0 || f.spoil > 0 || f.bite > 0 || f.marks > 0;
     if (st.sig === 'locksmith' && keyed) dmg = Math.round(dmg * 1.25); // Locksmith's Blade
-    if (e.fx.lesson > 0 && e.def.weakness === st.style) dmg = Math.round(dmg * (1 + (KEY.quick_study.power.v ?? 15) / 100)); // Lesson
+    if (e.fx.lesson > 0 && e.def.weakness === st.style) dmg = Math.round(dmg * (1 + ((this.activeKey()?.power.id === 'lesson' ? this.activeKey()!.power.v : KEY.quick_study.power.v) ?? 15) / 100)); // Lesson (Eavesdrop listens harder)
     if (st.seaDmg && (e.def.model === 'crab' || e.def.look === 'drowned' || e.def.look === 'captain')) dmg = Math.round(dmg * (1 + st.seaDmg));
     return { dmg, crit };
   }
@@ -2303,7 +2311,7 @@ export class Game {
           // only camps, lairs and late-game foes attack on sight; the rest fight back when you hit them
           const calmed = (this.activeKey()?.passive.kind === 'sea_peace' && (e.def.model === 'crab' || e.def.look === 'drowned' || e.def.look === 'captain')) // Keel's Tooth
             || (this.s.flags.poachers_friend && e.def.look === 'poacher'); // The Toll of Tollhouse: Ulla's people know your face
-          if (playerHittable && !inSafe && e.def.hostile && !calmed && dP < e.def.aggro) { e.state = 'chase'; break; }
+          if (playerHittable && !inSafe && e.def.hostile && !calmed && dP < e.def.aggro * (e.elite && this.activeKey()?.passive.kind === 'listening' ? 1.5 : 1)) { e.state = 'chase'; break; }
           e.t -= dt;
           if (e.t <= 0) {
             e.t = 2 + this.rnd() * 4;

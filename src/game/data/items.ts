@@ -283,6 +283,8 @@ function tierItems(): ItemDef[] {
     equip: { slot: 'head', reqs: { defence: 60 }, bonus: { defMelee: 40, defRanged: 38, defMagic: 30, acc: 4 }, affixPool: ARMOUR_AFFIX } }));
   // treasure maps: dug up or found in caskets; read one and sail to the X
   out.push(I({ id: 'treasure_map', name: 'Treasure map', desc: 'Stained, torn, and an X in the water off some coast. Tap it and Read it on the island it shows.', icon: { shape: 'map', color: '#d8c49a', accent: '#a83a2a' }, stackable: true, value: 80, chart: true }));
+  // The First Lock: the Compact's tide table (bell-time at the Drowned Spire)
+  out.push(I({ id: 'tide_table', name: 'Compact tide table', desc: 'Mercy Gale\'s copy, the Spire\'s low water circled in red ink. "A tide table isn\'t a side," she said.', icon: { shape: 'book', color: '#3a5a6a', accent: '#d8442a' }, stackable: false, value: 0, quest: true }));
   // The Broodmother (Amberhold): Eir's silk ring
   out.push(I({ id: 'ring_weaver', name: 'Weaver\'s ring', desc: 'Weaver silk, knotted tight around a band of amber. Eir says the silk knits flesh: you mend as you go.', icon: { shape: 'ring', color: '#e8e4d8', accent: '#e8a83a' }, stackable: false, value: 3000,
     equip: { slot: 'ring', reqs: { hitpoints: 40 }, bonus: { acc: 6, defMelee: 4, defRanged: 4, defMagic: 6 }, affixPool: JEWEL_AFFIX }, innate: [{ id: 'regen', v: 1 }] }));

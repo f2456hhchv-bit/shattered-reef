@@ -1436,6 +1436,8 @@ export class UI {
       c.beginPath(); c.moveTo(7 * scale, 0); c.lineTo(-5 * scale, 3.5 * scale); c.lineTo(-5 * scale, -3.5 * scale); c.closePath(); c.fill(); c.stroke();
       c.restore();
     }
+    // the Listener's Key: you hear where Keel's pages lie (unread ones, pale blue)
+    if (g.activeKey()?.passive.kind === 'listening') for (const l of LORE) if (l.region === g.s.region && !g.s.flags[`lore_${l.id}`]) dot(l.x, l.z, (big ? 4 : 2.6) * scale, '#bcd8ff');
     const tx = g.treasure.here();
     if (tx) {
       // the treasure map's X, in red

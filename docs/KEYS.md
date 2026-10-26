@@ -114,3 +114,7 @@ Settings: `devFreeKeySwap: boolean`. Constants: `KEY_DORMANT_S = 1800`, `KEY_REA
 - **Keel's Tooth**: Bite stops a foe's attacks for 10 s (5 s and no summons for bosses); crabs and the Drowned
   never start a fight with you while it's slotted.
 - Pickpocket, Steal and Turncoat refuse a foe they can't work on without spending the cooldown.
+
+## Quest keys added with the story (2026-10-26)
+
+- **Listener's Key** (The First Lock, Act II): slotted, +8% damage to elite (song-touched) foes and Keel's Log pages show on your map; the catch, elites notice you from half as far again. Turned: **Eavesdrop**, Lesson at +25%.
