@@ -7,7 +7,7 @@ import { mulberry32 } from '../noise';
 // pivot so bakeRig keeps it animatable. Faces +z. One rig shape for all of them keeps the renderer to a single case.
 
 export type FantasyModel = 'golem' | 'hound' | 'bat' | 'beetle';
-export interface FantasyRig { model: FantasyModel; root: THREE.Group; body: THREE.Group; a: THREE.Group[]; b: THREE.Group[] }
+export interface FantasyRig { model: FantasyModel; root: THREE.Group; body: THREE.Group; a: THREE.Group[]; b: THREE.Group[]; form?: 'mantis' }
 
 const glow = (c: number, k = 1) => mat(c, { emissive: c, emissiveIntensity: k });
 
@@ -73,7 +73,6 @@ function golem(look: string, seed: number): FantasyRig {
 
 // ---- hounds: lean four-legged hunters
 const HOUND: Record<string, { coat: number; dark: number; eye: number; spots?: number }> = {
-  stalker: { coat: 0x8a6a2a, dark: 0x3a2a18, eye: 0xf2d04a, spots: 0x2a1e12 }, // the Greenheart's spotted cat-dog
   moon: { coat: 0x9a9aa8, dark: 0x4e4e5c, eye: 0x9ad8ff }, // the amberwood's pale hounds
 };
 function hound(look: string, seed: number): FantasyRig {
@@ -189,8 +188,12 @@ function bat(look: string, seed: number): FantasyRig {
 // ---- beetles: a domed shell over six jointed legs, mandibles in front
 const BEETLE: Record<string, { shell: number; dark: number; leg: number; eye: number }> = {
   shore: { shell: 0xb89a6a, dark: 0x6a5a3e, leg: 0x4a3e2a, eye: 0x1a1a1a }, // sand-coloured, on Bellwether's beaches
+  ant: { shell: 0x8a3a1e, dark: 0x5a2414, leg: 0x4a1e10, eye: 0x1a1a1a }, // a Sunreach leafcutter: rust-red, a leaf held high
+  mantis: { shell: 0x6a9a3a, dark: 0x4a7a2a, leg: 0x5a8a30, eye: 0xe8e07a }, // a jungle mantis: leaf-green, forelimbs folded
 };
 function beetle(look: string, seed: number): FantasyRig {
+  if (look === 'ant') return ant(seed);
+  if (look === 'mantis') return mantis(seed);
   const L = BEETLE[look] ?? BEETLE.shore;
   const root = new THREE.Group(), body = new THREE.Group();
   body.position.y = 0.32;
@@ -236,6 +239,99 @@ function beetle(look: string, seed: number): FantasyRig {
   return { model: 'beetle', root, body, a: [jaws], b: legs };
 }
 
+/** Six jointed legs on a body group (shared by the insect forms). */
+function sixLegs(body: THREE.Group, col: number, spread: number, y: number, z0: number, step: number, len = 1) {
+  const legs: THREE.Group[] = [];
+  for (const s of [-1, 1]) for (let i = 0; i < 3; i++) {
+    const leg = new THREE.Group();
+    leg.position.set(spread * s, y, z0 - i * step);
+    leg.rotation.y = s > 0 ? -0.3 + i * 0.3 : Math.PI + 0.3 - i * 0.3;
+    const up = mesh(new THREE.CylinderGeometry(0.022, 0.026, 0.3 * len, 4), mat(col));
+    up.rotation.z = -1.1;
+    up.position.set(0.13 * len, 0.05 * len, 0);
+    const low = mesh(new THREE.ConeGeometry(0.022, 0.34 * len, 4), mat(col));
+    low.rotation.z = Math.PI + 0.4;
+    low.position.set(0.3 * len, -0.12 * len, 0);
+    leg.add(up, low);
+    body.add(leg);
+    legs.push(leg);
+  }
+  return legs;
+}
+
+// a leafcutter ant: head, thorax and gaster in a row, a cut leaf held up in the jaws
+function ant(seed: number): FantasyRig {
+  const L = BEETLE.ant;
+  const root = new THREE.Group(), body = new THREE.Group();
+  body.position.y = 0.32;
+  root.add(body);
+  const gaster = mesh(jitter(new THREE.IcosahedronGeometry(0.26, 1), 0.02, seed), mat(L.shell));
+  gaster.scale.set(0.9, 0.8, 1.25); gaster.position.set(0, 0.04, -0.42);
+  const thorax = mesh(jitter(new THREE.IcosahedronGeometry(0.14, 1), 0.01, seed + 1), mat(L.dark));
+  thorax.scale.set(0.9, 0.8, 1.4); thorax.position.set(0, 0.02, -0.06);
+  const head = mesh(jitter(new THREE.IcosahedronGeometry(0.17, 1), 0.015, seed + 2), mat(L.shell));
+  head.scale.set(1.15, 0.9, 1); head.position.set(0, 0.06, 0.24);
+  body.add(gaster, thorax, head);
+  for (const s of [-1, 1]) {
+    const ant = mesh(new THREE.CylinderGeometry(0.01, 0.012, 0.3, 3), mat(L.leg));
+    ant.position.set(0.07 * s, 0.22, 0.34); ant.rotation.set(0.8, 0, -0.4 * s);
+    const eye = mesh(new THREE.IcosahedronGeometry(0.03, 0), mat(L.eye));
+    eye.position.set(0.13 * s, 0.1, 0.3);
+    body.add(ant, eye);
+  }
+  // the jaws carry the leaf, so it bobs and dips when it bites
+  const jaws = new THREE.Group();
+  jaws.position.set(0, 0.02, 0.4);
+  for (const s of [-1, 1]) { const m = mesh(new THREE.ConeGeometry(0.035, 0.16, 4), mat(L.dark)); m.rotation.set(Math.PI / 2, 0.5 * s, 0); m.position.set(0.05 * s, 0, 0.03); jaws.add(m); }
+  const leaf = mesh(new THREE.CircleGeometry(0.28, 7), mat(0x5a9a3a, { side: THREE.DoubleSide }));
+  leaf.scale.set(0.8, 1.2, 1); leaf.position.set(0, 0.32, -0.1); leaf.rotation.set(-0.3, 0.4, 0.2);
+  jaws.add(leaf);
+  body.add(jaws);
+  const legs = sixLegs(body, L.leg, 0.12, -0.04, 0.02, 0.12, 0.95);
+  return { model: 'beetle', root, body, a: [jaws], b: legs };
+}
+
+// a jungle mantis: a long body reared up, a triangle head, folded forelimbs that snap out to strike
+function mantis(seed: number): FantasyRig {
+  const L = BEETLE.mantis;
+  const root = new THREE.Group(), body = new THREE.Group();
+  body.position.y = 0.42;
+  root.add(body);
+  const abdomen = mesh(jitter(new THREE.IcosahedronGeometry(0.2, 1), 0.02, seed), mat(L.shell));
+  abdomen.scale.set(0.8, 0.6, 2.2); abdomen.position.set(0, 0, -0.38);
+  const wings = mesh(new THREE.BoxGeometry(0.3, 0.03, 0.62), mat(L.dark));
+  wings.position.set(0, 0.11, -0.36);
+  const thorax = mesh(new THREE.CylinderGeometry(0.05, 0.065, 0.5, 6), mat(L.shell));
+  thorax.position.set(0, 0.2, 0.06); thorax.rotation.x = -0.9;
+  const head = new THREE.Group();
+  head.position.set(0, 0.42, 0.24);
+  const skull = mesh(new THREE.ConeGeometry(0.12, 0.16, 3), mat(L.shell));
+  skull.rotation.set(Math.PI, 0, 0); skull.scale.set(1.3, 1, 0.6);
+  head.add(skull);
+  for (const s of [-1, 1]) {
+    const eye = mesh(new THREE.IcosahedronGeometry(0.045, 0), mat(L.eye, { emissive: L.eye, emissiveIntensity: 0.4 }));
+    eye.position.set(0.1 * s, 0.04, 0.02);
+    const ant = mesh(new THREE.CylinderGeometry(0.006, 0.008, 0.3, 3), mat(L.leg));
+    ant.position.set(0.05 * s, 0.16, 0.06); ant.rotation.set(-0.5, 0, -0.3 * s);
+    head.add(eye, ant);
+  }
+  body.add(abdomen, wings, thorax, head);
+  // the raptorial forelimbs, folded under the head; they open on the wind-up and snap down on the strike
+  const arms = new THREE.Group();
+  arms.position.set(0, 0.3, 0.2);
+  for (const s of [-1, 1]) {
+    const up = mesh(new THREE.BoxGeometry(0.05, 0.05, 0.3), mat(L.dark));
+    up.position.set(0.08 * s, 0, 0.12);
+    const blade = mesh(new THREE.ConeGeometry(0.03, 0.3, 4), mat(L.leg));
+    blade.position.set(0.08 * s, -0.12, 0.24); blade.rotation.x = Math.PI;
+    arms.add(up, blade);
+  }
+  body.add(arms);
+  // four walking legs (the front pair are the arms)
+  const legs = sixLegs(body, L.leg, 0.1, -0.06, -0.08, 0.16, 1.15).filter((_, i) => i % 3 !== 0);
+  return { model: 'beetle', root, body, a: [arms], b: legs, form: 'mantis' };
+}
+
 export function buildFantasy(model: FantasyModel, look = '', seed = 7): FantasyRig {
   switch (model) {
     case 'golem': return golem(look, seed);
@@ -271,6 +367,14 @@ export function animateFantasy(r: FantasyRig, t: number, moving: boolean, windup
       break;
     }
     default: {
+      if (r.form === 'mantis') {
+        // stalks, swaying; forelimbs raised on the wind-up, then snapped down
+        r.b.forEach((leg, i) => { leg.rotation.x = moving ? Math.sin(t * 14 + (i % 2) * Math.PI) * 0.3 : 0; });
+        r.body.position.y = 0.42 + Math.sin(t * 1.6) * 0.02;
+        r.a[0].rotation.x = windup ? -1.1 : Math.sin(t * 1.3) * 0.08;
+        r.body.rotation.z = moving ? 0 : Math.sin(t * 0.9) * 0.06;
+        break;
+      }
       // scuttle: alternating tripods, jaws working before a bite
       r.b.forEach((leg, i) => { leg.rotation.x = moving ? Math.sin(t * 20 + (i % 2) * Math.PI) * 0.35 : 0; });
       r.body.position.y = 0.32 + (moving ? Math.abs(Math.sin(t * 20)) * 0.02 : 0);

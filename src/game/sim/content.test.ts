@@ -469,6 +469,22 @@ describe('end-game content works end to end', () => {
     expect(g.p.inv.some((st) => st?.id === 'helm_chitin')).toBe(true);
   });
 
+  it('Sunreach\'s insects and douen live in the Greenheart, centipedes in the Ember Deep; mantis blades set in resin make a dagger', () => {
+    const sun = regionLayout('sunreach').spawns.map((sp) => sp.enemy), deep = regionLayout('ember_deep').spawns.map((sp) => sp.enemy);
+    for (const id of ['leafcutter_ant', 'jungle_mantis', 'douen']) expect(sun, id).toContain(id);
+    expect(deep).toContain('giant_centipede');
+    expect(LOOT.ant.drops.some((d) => d.item === 'resin')).toBe(true);
+    expect(LOOT.mantis.drops.some((d) => d.item === 'mantis_blade')).toBe(true);
+    const g = fresh();
+    g.give('mantis_blade', 2); g.give('resin', 2);
+    (g.p.xp as Record<string, number>).crafting = xpForLevel(20);
+    const bench = g.layout.stations.find((st) => st.id === 'bench')!;
+    goTo(g, bench.x + 1.2, bench.z + 1.2);
+    g.craft('craft_dagger_mantis', 1);
+    run(g, 10, () => g.p.inv.some((st) => st?.id === 'dagger_mantis'));
+    expect(g.p.inv.some((st) => st?.id === 'dagger_mantis')).toBe(true);
+  });
+
   it('smelts tidecore and forges tidecore plate at the Ironcrag forge', () => {
     const g = maxed();
     g.give('ore_tide', 5); g.give('ore_coal', 40); g.give('sea_salt', 5);

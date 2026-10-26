@@ -663,7 +663,11 @@ function buildIslandRegion(region: IslandId): IslandLayout {
     for (const [dx, dz] of [[-30, 0], [-26, 12], [-20, -14], [-34, -10], [-10, -30]]) spawn('boar', SUN.x + dx, SUN.z + dz); // the jungle's west edge, away from town
     for (const [dx, dz] of [[-4, 2], [-10, -10], [-18, -6], [2, -12]]) spawn('jungle_snake', SL.jungle.x + dx, SL.jungle.z + dz);
     for (let k = 0; k < 4; k++) { const [x, z] = sunPoint(8 + k * 11, 3.5); spawn('mire_crab', x, z); }
-    for (const [dx, dz] of [[8, -4], [-12, 4], [-2, -18]]) spawn('stalker', SL.jungle.x + dx, SL.jungle.z + dz);
+    // the Greenheart's own (docs/ISLANDS.md slice 2): a leafcutter column on the path in, mantises in the trees,
+    // and douen deeper in, where the backward tracks start
+    for (let k = 0; k < 5; k++) spawn('leafcutter_ant', SUN.x + (SL.jungle.x - SUN.x) * (0.45 + k * 0.08), SUN.z + (SL.jungle.z - SUN.z) * (0.45 + k * 0.08) + (k % 2 ? 1.2 : -1.2));
+    for (const [dx, dz] of [[10, 6], [-6, 12], [12, -10]]) spawn('jungle_mantis', SL.jungle.x + dx, SL.jungle.z + dz);
+    for (const [dx, dz] of [[8, -4], [-12, 4], [-2, -18]]) spawn('douen', SL.jungle.x + dx, SL.jungle.z + dz);
   }
 
   // townsfolk walking their rounds between the squares and front doors (paths found once, on the baked grid)
@@ -778,6 +782,8 @@ function buildCave(region: RegionId): IslandLayout {
     for (const [dx, dz] of [[4, 4], [-5, -2], [6, -6]]) spawns.push({ enemy: 'ember_snake', x: magma.x + dx, z: magma.z + dz });
     spawns.push({ enemy: 'weaver_young', x: hall.x - 7, z: hall.z - 4 });
     for (const [dx, dz] of [[3, 3], [-2, 5], [4, -3]]) spawns.push({ enemy: 'ember_bat', x: vein.x + dx, z: vein.z + dz });
+    // giant centipedes in the hall's warm cracks
+    for (const [dx, dz] of [[5, 4], [-5, 5], [6, -4]]) spawns.push({ enemy: 'giant_centipede', x: hall.x + dx, z: hall.z + dz });
   }
 
   world.bake();

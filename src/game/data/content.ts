@@ -219,6 +219,8 @@ function buildRecipes(): Recipe[] {
   craft('helm_chitin', 'bench', 12, 30, [['chitin', 3], ['leather', 1]], 'helm_chitin');
   craft('legs_chitin', 'bench', 15, 40, [['chitin', 4], ['leather', 1]], 'legs_chitin');
   craft('body_chitin', 'bench', 18, 55, [['chitin', 6], ['leather', 2]], 'body_chitin');
+  // Sunreach's insects: a mantis's forelimb, set in resin for a grip
+  craft('dagger_mantis', 'bench', 20, 45, [['mantis_blade', 2], ['resin', 2]], 'dagger_mantis');
   craft('orb_glass', 'furnace', 10, 30, [['charm_tide', 20], ['sea_salt', 1]], 'orb_glass');
   craft('chaps_leather', 'bench', 11, 27, [['leather', 2]], 'chaps_leather');
   craft('coat_padded', 'bench', 14, 35, [['leather', 3]], 'coat_padded');
@@ -397,7 +399,7 @@ export const PLAYER_BASE = {
 // ---- enemies -------------------------------------------------------------------
 export type EnemyModel = 'crab' | 'brigand' | 'gunner' | 'guardian' | 'boar' | 'spider' | 'snake' | 'golem' | 'hound' | 'bat' | 'beetle';
 /** Visual variant: crab shell / humanoid outfit / stone tint, chosen by the renderer. */
-export type EnemyLook = 'reef' | 'mire' | 'ironshell' | 'brigand' | 'gunner' | 'smuggler' | 'poacher' | 'drowned' | 'captain' | 'sentinel' | 'cave' | 'giant' | 'jungle' | 'ember' | 'sunscale' | 'hunter' | 'stalker' | 'moon' | 'amber' | 'oak' | 'queen' | 'shore' | 'gull' | 'thorn' | 'knocker' | 'leech' | 'howe' | 'troll' | 'seadraugr' | 'wrecker';
+export type EnemyLook = 'reef' | 'mire' | 'ironshell' | 'brigand' | 'gunner' | 'smuggler' | 'poacher' | 'drowned' | 'captain' | 'sentinel' | 'cave' | 'giant' | 'jungle' | 'ember' | 'sunscale' | 'hunter' | 'moon' | 'amber' | 'oak' | 'queen' | 'shore' | 'gull' | 'thorn' | 'knocker' | 'leech' | 'howe' | 'troll' | 'seadraugr' | 'wrecker' | 'ant' | 'mantis' | 'douen' | 'centipede';
 
 export interface EnemyDef {
   id: string;
@@ -483,6 +485,15 @@ export const ENEMIES: Record<string, EnemyDef> = {
     speed: 2.4, radius: 0.5, aggro: 5, attack: { kind: 'melee', range: 1.5, windup: 0.4, cooldown: 2.2 }, loot: 'bog_leech', respawn: 25, scale: 0.9 },
   haugbui: { hostile: true, id: 'haugbui', name: 'Haugbui', model: 'brigand', look: 'howe', level: 18, hp: 22, att: 17, def: 14, defBonus: { melee: 20, ranged: 15, magic: -10 }, weakness: 'magic', style: 'melee', accBonus: 13, maxHit: 4,
     speed: 2.6, radius: 0.45, aggro: 8, attack: { kind: 'melee', range: 1.7, windup: 0.5, cooldown: 2.6 }, loot: 'haugbui', respawn: 35, scale: 1.15 },
+  // Sunreach (15-30): Caribbean jungle folklore and giant insects (docs/ISLANDS.md slice 2)
+  leafcutter_ant: { id: 'leafcutter_ant', name: 'Leafcutter ant', model: 'beetle', look: 'ant', level: 16, hp: 18, att: 14, def: 12, defBonus: { melee: 15, ranged: 20, magic: -10 }, weakness: 'magic', style: 'melee', accBonus: 10, maxHit: 3,
+    speed: 3.0, radius: 0.5, aggro: 6, attack: { kind: 'melee', range: 1.5, windup: 0.4, cooldown: 2.4 }, loot: 'ant', respawn: 25, scale: 0.95 },
+  jungle_mantis: { hostile: true, id: 'jungle_mantis', name: 'Jungle mantis', model: 'beetle', look: 'mantis', level: 20, hp: 22, att: 20, def: 12, defBonus: { melee: 10, ranged: -10, magic: 15 }, weakness: 'ranged', style: 'melee', accBonus: 15, maxHit: 4,
+    speed: 3.4, radius: 0.55, aggro: 8, attack: { kind: 'melee', range: 1.8, windup: 0.35, cooldown: 2.2 }, loot: 'mantis', respawn: 30, scale: 1.15 },
+  douen: { hostile: true, id: 'douen', name: 'Douen', model: 'brigand', look: 'douen', level: 22, hp: 26, att: 21, def: 15, defBonus: { melee: 15, ranged: 10, magic: -10 }, weakness: 'magic', style: 'melee', accBonus: 16, maxHit: 4,
+    speed: 3.6, radius: 0.4, aggro: 9, attack: { kind: 'melee', range: 1.5, windup: 0.4, cooldown: 2.3 }, loot: 'douen', respawn: 30, scale: 0.72 },
+  giant_centipede: { hostile: true, id: 'giant_centipede', name: 'Giant centipede', model: 'snake', look: 'centipede', level: 24, hp: 28, att: 24, def: 18, defBonus: { melee: -5, ranged: 20, magic: 15 }, weakness: 'melee', style: 'melee', accBonus: 18, maxHit: 4,
+    speed: 3.0, radius: 0.55, aggro: 8, attack: { kind: 'melee', range: 1.8, windup: 0.35, cooldown: 2.3 }, loot: 'centipede', respawn: 30, scale: 1.5 },
   // quest foes (they appear for their quest, once)
   knocker_elder: { hostile: true, id: 'knocker_elder', name: 'Knocker Elder', model: 'brigand', look: 'knocker', level: 16, hp: 34, att: 15, def: 13, defBonus: { melee: 20, ranged: -5, magic: 10 }, weakness: 'ranged', style: 'melee', accBonus: 12, maxHit: 4,
     speed: 2.8, radius: 0.5, aggro: 10, attack: { kind: 'melee', range: 1.7, windup: 0.5, cooldown: 2.4 }, loot: 'knocker_elder', respawn: 0, scale: 0.95 },
@@ -491,8 +502,6 @@ export const ENEMIES: Record<string, EnemyDef> = {
   // further out (their islands' slices replace the rest of this list)
   cave_bat: { hostile: true, id: 'cave_bat', name: 'Cave bat', model: 'bat', look: 'cave', level: 17, hp: 16, att: 16, def: 10, defBonus: { melee: 10, ranged: -10, magic: 5 }, weakness: 'ranged', style: 'melee', accBonus: 12, maxHit: 3,
     speed: 4.2, radius: 0.5, aggro: 8, attack: { kind: 'melee', range: 1.6, windup: 0.3, cooldown: 2.0 }, loot: 'cave_bat', respawn: 25, scale: 0.9 },
-  stalker: { hostile: true, id: 'stalker', name: 'Greenheart stalker', model: 'hound', look: 'stalker', level: 22, hp: 26, att: 21, def: 15, defBonus: { melee: 15, ranged: 10, magic: -10 }, weakness: 'magic', style: 'melee', accBonus: 16, maxHit: 4,
-    speed: 4.4, radius: 0.6, aggro: 9, attack: { kind: 'melee', range: 1.7, windup: 0.35, cooldown: 2.2 }, loot: 'stalker', respawn: 30, scale: 1.0 },
   ember_bat: { hostile: true, id: 'ember_bat', name: 'Ember bat', model: 'bat', look: 'ember', level: 26, hp: 26, att: 25, def: 16, defBonus: { melee: 15, ranged: -10, magic: 15 }, weakness: 'ranged', style: 'melee', accBonus: 18, maxHit: 4,
     speed: 4.2, radius: 0.5, aggro: 9, attack: { kind: 'melee', range: 1.6, windup: 0.3, cooldown: 2.0 }, loot: 'ember_bat', respawn: 30, scale: 1.1 },
   moonhound: { hostile: true, id: 'moonhound', name: 'Moonhound', model: 'hound', look: 'moon', level: 36, hp: 42, att: 35, def: 26, defBonus: { melee: 25, ranged: 20, magic: -10 }, weakness: 'magic', style: 'melee', accBonus: 26, maxHit: 6,
@@ -578,6 +587,11 @@ export const LOOT: Record<string, LootTable> = {
   weaver_young: { coins: [12, 30], drops: [{ item: 'spider_silk', chance: 0.6, qty: [1, 2] }, { item: 'charm_tide', chance: 0.4, qty: [5, 10] }], gear: { chance: 0.06, items: ['ring_gold', 'dagger_steel', 'wand_storm'], weights: { common: 50, fine: 38, rare: 12 } } },
   serpent: { sig: { item: 'sig_fang', chance: 1 / 40 }, coins: [150, 300], drops: [{ item: 'sunscale', chance: 1, qty: [1, 3] }, { item: 'snake_skin', chance: 1, qty: [3, 6] }, { item: 'bar_storm', chance: 0.5, qty: [1, 3] }, { item: 'charm_tide', chance: 1, qty: [40, 80] }],
     gear: { chance: 1, items: ['cutlass_storm', 'pistol_storm', 'staff_storm', 'helm_storm', 'plate_storm', 'longbow_amber'], weights: { rare: 65, relic: 35 } } },
+  ant: { coins: [2, 6], drops: [{ item: 'resin', chance: 0.6, qty: [1, 2] }, { item: 'chitin', chance: 0.25 }] },
+  mantis: { coins: [4, 10], drops: [{ item: 'mantis_blade', chance: 0.45 }, { item: 'chitin', chance: 0.2 }, { item: 'resin', chance: 0.2 }] },
+  douen: { coins: [8, 20], drops: [{ item: 'charm_tide', chance: 0.6, qty: [4, 10] }, { item: 'casket', chance: 0.02 }],
+    gear: { chance: 0.04, items: ['amulet_brass', 'ring_brass', 'wand_coral'], weights: { common: 55, fine: 38, rare: 7 } } },
+  centipede: { coins: [6, 15], drops: [{ item: 'chitin', chance: 0.5, qty: [1, 3] }, { item: 'ore_coal', chance: 0.3 }] },
   shore_beetle: { coins: [1, 3], drops: [{ item: 'chitin', chance: 0.6 }, { item: 'shell_fragment', chance: 0.2 }] },
   gull: { coins: [1, 5], drops: [{ item: 'fish_sprat_raw', chance: 0.5 }, { item: 'charm_tide', chance: 0.2, qty: [2, 4] }] }, // the fish it stole off someone
   spriggan: { coins: [3, 10], drops: [{ item: 'logs_oak', chance: 0.5, qty: [1, 2] }, { item: 'berries', chance: 0.5, qty: [2, 4] }],
@@ -595,8 +609,6 @@ export const LOOT: Record<string, LootTable> = {
   sea_draugr: { coins: [50, 110], drops: [{ item: 'charm_tide', chance: 0.6, qty: [12, 24] }, { item: 'sea_salt', chance: 0.4, qty: [2, 4] }, { item: 'ore_tide', chance: 0.15 }],
     gear: { chance: 0.08, items: ['cutlass_tide', 'helm_tide', 'book_storm'], weights: { common: 45, fine: 40, rare: 13, relic: 2 } } },
   cave_bat: { coins: [5, 16], drops: [{ item: 'charm_tide', chance: 0.35, qty: [3, 7] }, { item: 'ore_iron', chance: 0.2 }] },
-  stalker: { coins: [8, 24], drops: [{ item: 'boar_hide', chance: 0.5 }, { item: 'logs_willow', chance: 0.2, qty: [1, 2] }],
-    gear: { chance: 0.06, items: ['dagger_steel', 'boots_steel', 'ring_gold'], weights: { common: 52, fine: 38, rare: 10 } } },
   ember_bat: { coins: [10, 28], drops: [{ item: 'ore_coal', chance: 0.4, qty: [1, 3] }, { item: 'charm_tide', chance: 0.4, qty: [5, 10] }] },
   moonhound: { coins: [18, 45], drops: [{ item: 'boar_hide', chance: 0.6, qty: [1, 2] }, { item: 'logs_amber', chance: 0.2 }],
     gear: { chance: 0.08, items: ['dagger_storm', 'boots_storm', 'gloves_storm', 'amulet_gold'], weights: { common: 48, fine: 38, rare: 14 } } },
