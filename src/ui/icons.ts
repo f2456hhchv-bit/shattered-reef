@@ -13,7 +13,7 @@ let icon: { r: THREE.WebGLRenderer; scene: THREE.Scene; cam: THREE.PerspectiveCa
 function iconRenderer() {
   if (icon) return icon;
   const canvas = document.createElement('canvas');
-  canvas.width = canvas.height = 128;
+  canvas.width = canvas.height = 256; // phones draw a slot at ~180 device pixels: 128 went soft
   const r = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true, preserveDrawingBuffer: true });
   r.setClearColor(0x000000, 0);
   r.toneMapping = THREE.ACESFilmicToneMapping;
@@ -63,30 +63,46 @@ function fitCamera(cam: THREE.PerspectiveCamera, model: THREE.Object3D, sphere: 
   cam.lookAt(target);
 }
 
-let ink: { out: HTMLCanvasElement; sil: HTMLCanvasElement } | null = null;
+let ink: { out: HTMLCanvasElement; sil: HTMLCanvasElement; rim: HTMLCanvasElement } | null = null;
 
-/** RuneScape-style finish: a dark 2px outline and a soft drop shadow so every icon reads on any slot. */
+/** Painted finish, to sit beside the hand-painted icons (art/items): a bold dark ink outline, a soft drop shadow, a
+ * touch more colour, and a light rim along the top-left edge where the painted icons catch their highlight. */
 function outlined(src: HTMLCanvasElement): string {
-  const n = src.width;
+  const n = src.width, k = n / 128;
   if (!ink) {
     const mk = () => { const c = document.createElement('canvas'); c.width = c.height = n; return c; };
-    ink = { out: mk(), sil: mk() };
+    ink = { out: mk(), sil: mk(), rim: mk() };
   }
-  const { out, sil } = ink;
-  const s = sil.getContext('2d')!, o = out.getContext('2d')!;
+  const { out, sil, rim } = ink;
+  const s = sil.getContext('2d')!, o = out.getContext('2d')!, r = rim.getContext('2d')!;
+  // the silhouette in ink
   s.clearRect(0, 0, n, n);
   s.globalCompositeOperation = 'source-over';
   s.drawImage(src, 0, 0);
   s.globalCompositeOperation = 'source-in';
-  s.fillStyle = '#120c07';
+  s.fillStyle = '#140d08';
   s.fillRect(0, 0, n, n);
+  // the rim light: the model's own shape, minus itself nudged up-left, kept inside the model
+  r.clearRect(0, 0, n, n);
+  r.globalCompositeOperation = 'source-over';
+  r.drawImage(src, 0, 0);
+  r.globalCompositeOperation = 'source-in';
+  r.fillStyle = 'rgba(255,246,222,0.55)';
+  r.fillRect(0, 0, n, n);
+  r.globalCompositeOperation = 'destination-out';
+  r.drawImage(src, 2.2 * k, 2.2 * k);
   o.clearRect(0, 0, n, n);
   o.save();
-  o.shadowColor = 'rgba(0,0,0,0.55)'; o.shadowBlur = 6; o.shadowOffsetX = 2; o.shadowOffsetY = 4;
+  o.shadowColor = 'rgba(0,0,0,0.5)'; o.shadowBlur = 6 * k; o.shadowOffsetX = 2 * k; o.shadowOffsetY = 4 * k;
   o.drawImage(sil, 0, 0);
   o.restore();
-  for (const [x, y] of [[-2, 0], [2, 0], [0, -2], [0, 2], [-1.5, -1.5], [1.5, -1.5], [-1.5, 1.5], [1.5, 1.5]]) o.drawImage(sil, x, y);
+  const w = 2.6 * k;
+  for (let a = 0; a < 16; a++) o.drawImage(sil, Math.cos((a / 16) * Math.PI * 2) * w, Math.sin((a / 16) * Math.PI * 2) * w);
+  o.save();
+  o.filter = 'saturate(1.18) contrast(1.06)';
   o.drawImage(src, 0, 0);
+  o.restore();
+  o.drawImage(rim, 0, 0);
   return out.toDataURL('image/png');
 }
 

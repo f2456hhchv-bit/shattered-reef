@@ -67,6 +67,26 @@ def tint(src, dst, hexcol, force=False):
             px[x, y] = (int(nr * 255), int(ng * 255), int(nb * 255), a)
     im.save(dst)
 
+def regem(src, dst, gem, band=None):
+    """Tom's painted ring with its green gem recoloured (and its gold band turned silver when band='silver')."""
+    im = Image.open(src).convert('RGBA')
+    gr, gg, gb = (int(gem[i:i + 2], 16) / 255 for i in (1, 3, 5))
+    gh, gl, gs = colorsys.rgb_to_hls(gr, gg, gb)
+    px = im.load()
+    for y in range(im.size[1]):
+        for x in range(im.size[0]):
+            r, g, b, a = px[x, y]
+            if a == 0: continue
+            h, l, s = colorsys.rgb_to_hls(r / 255, g / 255, b / 255)
+            if 0.2 < h < 0.5 and s > 0.25:  # the gem
+                nl = min(1, max(0, l + (gl - 0.45) * 0.8))
+                nr, ng, nb = colorsys.hls_to_rgb(gh, nl, gs)
+            elif band == 'silver' and 0.06 < h < 0.18 and s > 0.25:  # gold band to silver
+                nr, ng, nb = colorsys.hls_to_rgb(0.58, min(1, l * 1.08), 0.08)
+            else: continue
+            px[x, y] = (int(nr * 255), int(ng * 255), int(nb * 255), a)
+    im.save(dst)
+
 if __name__ == '__main__':
     cmd = sys.argv[1]
     if cmd == 'cut': cut(sys.argv[2], sys.argv[3])
