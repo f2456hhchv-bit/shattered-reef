@@ -280,6 +280,10 @@ function tierItems(): ItemDef[] {
   // Stormwrack's quest reward
   out.push(I({ id: 'hat_captain', name: 'Drowned Captain\'s tricorn', desc: 'Black felt gone green at the edges, still dripping. The drowned know it, and spells slide off it.', icon: { shape: 'cap', color: '#1a1a1a', accent: '#c9a050' }, stackable: false, value: 2500,
     equip: { slot: 'head', reqs: { defence: 60 }, bonus: { defMelee: 40, defRanged: 38, defMagic: 30, acc: 4 }, affixPool: ARMOUR_AFFIX } }));
+  // Star-Struck (Stormwrack): the crater's shard, quenched
+  out.push(I({ id: 'star_shard', name: 'Singing star-shard', desc: 'Warm, humming, and it won\'t stop. Quench it in the vent forge on Thunder Crag.', icon: { shape: 'crystal', color: '#9ad8ff', accent: '#ffffff' }, stackable: false, value: 0, quest: true }));
+  out.push(I({ id: 'amulet_starfall', name: 'Starfall pendant', desc: 'A quenched star-shard on a silver chain. Still faintly warm; spells come easier with it on.', icon: { shape: 'amulet', color: '#c8d0d8', accent: '#9ad8ff' }, stackable: false, value: 4000,
+    equip: { slot: 'neck', reqs: { magic: 55 }, bonus: { acc: 10, str: 6, defMelee: 4, defRanged: 4, defMagic: 10, magicDmg: 4 }, affixPool: JEWEL_AFFIX } }));
   // Amberhold's hives (slice 3): the hornets carry comb back from the amberwood
   out.push(I({ id: 'honeycomb', name: 'Amber honeycomb', desc: 'Dark amber honey in the comb, from the hornets of the amberwood. Heals 100.', icon: { shape: 'gem', color: '#e8a83a', accent: '#f8d86a' }, stackable: true, value: 40, heal: 10 }));
   // Sunreach's quest rewards (docs/ISLANDS.md, slice 2)
