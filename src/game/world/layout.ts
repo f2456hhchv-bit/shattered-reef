@@ -171,7 +171,7 @@ function buildIslandRegion(region: IslandId): IslandLayout {
     { id: 'brita', x: AL.landing.x + 7, z: AL.landing.z + 3, facing: Math.PI },
     { id: 'ulla', x: AL.camp.x, z: AL.camp.z + 11, facing: Math.PI / 2 },
   );
-  else npcs.push({ id: 'mercy', x: WL.dockBase.x + 3.2, z: WL.dockBase.z - 1.0, facing: Math.PI / 2 }, { id: 'osric', x: WL.landing.x - 6, z: WL.landing.z + 2, facing: 0 });
+  else npcs.push({ id: 'mercy', x: WL.dockBase.x + 3.2, z: WL.dockBase.z - 1.0, facing: Math.PI / 2 }, { id: 'osric', x: WL.landing.x - 6, z: WL.landing.z + 2, facing: 0 }, { id: 'edda', x: WL.landing.x + 6, z: WL.landing.z + 3, facing: Math.PI });
   for (const n of npcs) world.solids.push({ x: n.x, z: n.z, r: 0.35 });
 
   // ---- boss arenas: a ring of broken pillars round the point that wakes the guardian, walled with fallen

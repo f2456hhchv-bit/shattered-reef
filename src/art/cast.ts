@@ -29,6 +29,7 @@ export const NPC_LOOKS: Record<string, HumanoidLook> = {
   halvard: { skin: 0xd8a888, coat: 0x2a3a5a, coatTrim: 0xc9a050, shirt: 0xe8dcc0, trousers: 0x2a2a30, boots: 'leather', hat: 0x1a1a1a, hair: 0x8a6a4a, hatStyle: 'tricorn', beard: true },
   ulla: { skin: 0xc8946a, coat: 0x445228, coatTrim: 0x7a5a30, shirt: 0x9a8a62, trousers: 0x3a3424, boots: 'leather', hat: 0x5a4024, hair: 0xb8402a, hatStyle: 'none', hairStyle: 'queue', beard: false, held: 'longbow' },
   brita: { skin: 0xf0d0b0, coat: 0x6a3a2a, coatTrim: 0xe8c86a, shirt: 0xe8dcc0, trousers: 0x3a2a24, boots: 'leather', hat: 0xe8c86a, hair: 0xe8c86a, hatStyle: 'none', hairStyle: 'queue', beard: false, apron: 0xd8cfb8 },
+  edda: { skin: 0xe0b896, coat: 0x2a3a5a, coatTrim: 0xc8d0d8, shirt: 0xd8ccb0, trousers: 0x2a2a34, boots: 0x2a2420, hat: 0x2a3a5a, hair: 0x8a5a2a, hatStyle: 'none', hairStyle: 'bun', beard: false },
   osric: { skin: 0xb88a62, coat: 0x2a3a3a, coatTrim: 0x8a9a9a, shirt: 0x9a9a8a, trousers: 0x22201e, boots: 'leather', hat: 0x2a2a2a, hair: 0x6a6a62, hatStyle: 'cap', beard: true },
   // Sunreach's quest folk (slice 2)
   abena: { skin: 0x6a4630, coat: 0xd8a03a, coatTrim: 0x2a7a5a, shirt: 0xe8dcc0, trousers: 0x2a7a5a, boots: 0x4a3424, hat: 0xd84a2a, hair: 0x1a1210, hatStyle: 'bandana', hairStyle: 'bun', beard: false, apron: 0xe8dcc0 },
@@ -65,5 +66,7 @@ export const HUMAN_LOOKS: Record<string, HumanoidLook> = {
   draugr: { skin: 0x8a9aa0, coat: 0x4a5258, coatTrim: 0x8a6a3a, shirt: 0x5a6268, trousers: 0x3a4248, boots: 0x2a3034, hat: 0x5a5e62, hair: 0xb8c0c4, hatStyle: 'cap', beard: true, held: 'greatsword', eyes: 0x8ae8ff },
   wrecker: { skin: 0xb88a62, coat: 0x2a2a2e, coatTrim: 0xb8402a, shirt: 0x6a5a48, trousers: 0x22201e, boots: 'leather', hat: 0x1a1a1a, hair: 0x3a2a1a, hatStyle: 'bandana', beard: true, held: 'cutlass' },
   seadraugr: { skin: DROWNED_SKIN, coat: 0x2a4a3a, coatTrim: 0x6ac8a8, shirt: 0x4a5a4a, trousers: 0x22302a, boots: 0x1a2420, hat: 0x2a3a34, hair: 0x2a4a3a, hatStyle: 'none', held: 'pike', eyes: 0x8affe8 },
+  // Tobin the star-watcher, with the crater's light in his eyes
+  starstruck: { skin: 0xd8d4e0, coat: 0x2a3a5a, coatTrim: 0x9ad8ff, shirt: 0xc8d0d8, trousers: 0x22263a, boots: 0x1e1e28, hat: 0x2a3a5a, hair: 0xe8e8f0, hatStyle: 'none', beard: true, held: 'staff', eyes: 0x9ad8ff },
   captain: { skin: DROWNED_SKIN, coat: 0x3a1828, coatTrim: 'brass', shirt: 0x8a9a8a, trousers: 0x22201e, boots: 0x1e2424, hat: 0x141414, hair: 0x3a4a44, hatStyle: 'tricorn', held: 'cutlass', eyes: 0xbfeee4 },
 };

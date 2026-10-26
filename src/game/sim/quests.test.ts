@@ -216,6 +216,28 @@ describe('Stormwrack\'s quest', () => {
   });
 });
 
+describe('Star-Struck', () => {
+  it('search the camp in order, beat Tobin, take the shard, quench it at the vent forge for the pendant', () => {
+    const L = regionLayout('wrack');
+    const g = new Game({ seed: 7, save: { ...defaultSave(L.respawn, L.mooring!), region: 'wrack' } });
+    for (const e of g.enemies) { e.alive = false; e.respawnAt = Infinity; }
+    talk(g, 'edda');
+    expect(g.questStage('starfall')).toBe(1);
+    for (const m of ['journal', 'glass', 'tracks']) use(g, 'starfall', m);
+    expect(g.questStage('starfall')).toBe(2);
+    expect(beat(g, 'starstruck', 70, 'cutlass_tide')).toBe(true);
+    expect(g.questStage('starfall')).toBe(3);
+    use(g, 'starfall', 'shard');
+    expect(count(g.p.inv, 'star_shard')).toBe(1);
+    use(g, 'starfall', 'quench');
+    expect(count(g.p.inv, 'star_shard')).toBe(0);
+    expect(count(g.p.inv, 'amulet_starfall')).toBe(1);
+    talk(g, 'edda');
+    expect(g.questStage('starfall')).toBe(QUESTS.starfall.stages.length - 1);
+    expect(g.s.flags.starfall_done).toBe(true);
+  });
+});
+
 describe('The Key Collector', () => {
   it('waits on the bell, then on the Sun and Draugr keys; the trail leads to Stormwrack; the Skeleton Key at the end', () => {
     let g = fresh();
