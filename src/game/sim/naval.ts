@@ -1,5 +1,5 @@
 import type { Game } from './game';
-import { AMMO, NAVAL, SEA_FOES, SEA_SPAWNS, CHART_MARKS, type AmmoId, type SeaFoeDef } from '../data/sea';
+import { AMMO, NAVAL, SEA_FOES, SEA_SPAWNS, CHART_MARKS, KRAKEN, type AmmoId, type SeaFoeDef } from '../data/sea';
 import { perkTotal } from '../data/perks';
 import { count, remove, canAdd } from './inventory';
 import { item } from '../data/items';
@@ -29,6 +29,8 @@ export class Naval {
   reloadCd = 0;
   ammo: AmmoId = 'cannonball';
   private lastHit = -99;
+  /** the Kraken's sighting while it lasts: its arms coming down on marked water (t counts up to KRAKEN.warn) */
+  kraken: { strikes: { id: number; x: number; z: number; t: number }[]; next: number } | null = null;
   private sailed = 0;
   private lastPos: [number, number] | null = null;
 
@@ -36,7 +38,7 @@ export class Naval {
 
   /** A new region: its waters' foes, the hull as it was. */
   enterRegion() {
-    this.foes = []; this.balls = []; this.charges = [];
+    this.foes = []; this.balls = []; this.charges = []; this.kraken = null;
     for (const sp of SEA_SPAWNS[this.g.s.region] ?? []) {
       const def = SEA_FOES[sp.foe];
       const at = def.behaviour === 'flock' ? [sp.x, sp.z] as [number, number] : this.g.nearestSea(sp.x, sp.z);
@@ -153,7 +155,7 @@ export class Naval {
     if (mo) { Object.assign(g.ship, mo); g.p.x = mo.x; g.p.z = mo.z; }
     g.shipSpeed = 0;
     this.hull = Math.round(this.hullMax() * 0.5);
-    this.balls = []; this.charges = [];
+    this.balls = []; this.charges = []; this.kraken = null;
     for (const f of this.foes) { f.state = 'idle'; f.x = f.spawnX; f.z = f.spawnZ; f.under = f.def.behaviour === 'shark'; }
     g.msg(`Your sloop is holed! The harbour crew tow her home${fee ? ` (${fee} coins)` : ''}.`, 'warn');
     g.emit({ type: 'teleport', fromX: g.p.x, fromZ: g.p.z, x: g.p.x, z: g.p.z });
@@ -211,6 +213,7 @@ export class Naval {
         g.msg(`Charted: ${m.name}. You log the soundings in your captain's book.`, 'quest');
         g.rev++;
       }
+      this.stepKraken(dt);
     } else this.lastPos = null;
 
     for (const f of this.foes) {
@@ -258,6 +261,49 @@ export class Naval {
       for (const f of this.foes) if (f.alive && Math.hypot(f.x - c.x, f.z - c.z) < NAVAL.charge.radius + f.def.scale) this.damageFoe(f, c.damage, 'depth_charge');
     }
     this.charges = this.charges.filter((c) => c.t > 0);
+  }
+
+  /** The Kraken's sighting: wakes when you sail into the North Deep, strikes round the ship until you're clear. */
+  private stepKraken(dt: number) {
+    const g = this.g, sh = g.ship;
+    if (g.s.region !== KRAKEN.region || g.s.flags.kraken_escaped) { this.kraken = null; return; }
+    const d = Math.hypot(sh.x - KRAKEN.x, sh.z - KRAKEN.z);
+    if (!this.kraken) {
+      if (d > KRAKEN.wake) return;
+      this.kraken = { strikes: [], next: g.time + 0.8 };
+      g.msg('The sea goes black under your keel. Something vast is rising out of the North Deep. Sail! Get clear of the deep!', 'combat');
+      g.emit({ type: 'boss', state: 'rise' });
+      g.rev++;
+      return;
+    }
+    const k = this.kraken;
+    for (const st of k.strikes) {
+      st.t += dt;
+      if (st.t >= KRAKEN.warn && st.t - dt < KRAKEN.warn) {
+        g.emit({ type: 'explode', x: st.x, z: st.z, r: KRAKEN.radius });
+        if (Math.hypot(sh.x - st.x, sh.z - st.z) < KRAKEN.radius + 1.2) this.hitHull(KRAKEN.damage);
+        if (!this.kraken) return; // the hull gave out: towed home, the deep goes quiet
+      }
+    }
+    k.strikes = k.strikes.filter((st) => st.t < KRAKEN.warn + 1.2);
+    if (d > KRAKEN.escape) {
+      // clear of the deep
+      this.kraken = null;
+      g.s.flags.kraken_escaped = true;
+      g.addXp('sailing', KRAKEN.xp);
+      g.msg('The arms slide back under, and the black water settles. You got away. Whatever that was, it was bigger than any island.', 'quest');
+      g.emit({ type: 'boss', state: 'defeat' });
+      g.rev++;
+      return;
+    }
+    if (g.time >= k.next) {
+      // an arm comes down where you're heading (or right on you, if you've stopped)
+      k.next = g.time + KRAKEN.strikeEvery;
+      const lead = Math.max(0, g.shipSpeed) * 1.1, j = (g.rnd() - 0.5) * 3;
+      const x = sh.x + Math.cos(sh.heading) * lead + Math.sin(sh.heading) * j, z = sh.z + Math.sin(sh.heading) * lead - Math.cos(sh.heading) * j;
+      k.strikes.push({ id: g.nextId++, x, z, t: 0 });
+      g.telegraphs.push({ id: g.nextId++, kind: 'circle', x, z, r: KRAKEN.radius, angle: 0, width: 0, t: 0, dur: KRAKEN.warn, damage: 0, source: -996 });
+    }
   }
 
   /** A cutter: stand off at gun range, sight its gun (a line you can see), then fire. */

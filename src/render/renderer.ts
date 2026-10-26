@@ -185,6 +185,8 @@ export class GameRenderer {
   private dropViews = new Map<number, LootShard>();
   private projViews = new Map<number, THREE.Mesh>();
   // the sea (naval.ts): foes on the water, shot in flight, charges sinking, and the line a broadside would take
+  /** the Kraken's arms, one per strike, rising out of the marked water and sinking back */
+  private krakenArms = new Map<number, THREE.Group>();
   private seaViews = new Map<number, { root: THREE.Group; shark?: SharkRig; gulls?: FantasyRig[]; serpent?: SnakeRig; flames?: THREE.Mesh[] }>();
   private ballViews = new Map<number, THREE.Mesh>();
   private chargeViews = new Map<number, THREE.Mesh>();
@@ -305,7 +307,7 @@ export class GameRenderer {
     this.scene.add(this.region3d);
     this.npcs.clear(); this.houses = []; this.walkers = []; this.enemyViews.clear(); this.nodeViews.clear();
     this.dropViews.clear(); this.projViews.clear(); this.teleViews.clear(); this.flames = []; this.glows = [];
-    this.seaViews.clear(); this.ballViews.clear(); this.chargeViews.clear(); this.aimLine = null;
+    this.seaViews.clear(); this.krakenArms.clear(); this.ballViews.clear(); this.chargeViews.clear(); this.aimLine = null;
     this.markViews.clear(); this.stormProps = null; this.fireProps = null; this.seepProps = null;
     this.grass = null; this.grassTime = [];
     this.scenery = new InstancedField(addSurfaceDetail(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: false, roughness: 0.9 }), PROP_SURFACE));
@@ -838,10 +840,11 @@ export class GameRenderer {
           v = { root, gulls };
         } else {
           // the wreckers' red, the pirates' black, a fire ship's tar, the Red Ransom's crimson
-          const colour = f.def.look === 'pirate' ? 0x1e1e22 : f.def.look === 'fireship' ? 0x3a2a1a : f.def.look === 'ransom' ? 0xb01818 : 0x8a2a24;
+          const colour = f.def.look === 'pirate' ? 0x1e1e22 : f.def.look === 'fireship' ? 0x3a2a1a : f.def.look === 'ransom' ? 0xb01818 : f.def.look === 'longship' ? 0xc9a050 : 0x8a2a24;
           const cut = buildSloop(colour);
           // pirates fly black canvas, the Red Ransom red, a fire ship's is scorched
-          const sails = f.def.look === 'pirate' ? [0x2a2a2e, 0x1a1a1e] : f.def.look === 'ransom' ? [0xa82020, 0x6a1010] : f.def.look === 'fireship' ? [0x5a4a3a, 0x3a2a1e] : null;
+          const sails = f.def.look === 'pirate' ? [0x2a2a2e, 0x1a1a1e] : f.def.look === 'ransom' ? [0xa82020, 0x6a1010] : f.def.look === 'fireship' ? [0x5a4a3a, 0x3a2a1e]
+            : f.def.look === 'longship' ? [0xd8cfb8, 0xa83a2a] : null; // a raider's sail: undyed wool banded red
           if (sails) recolour(cut.root, { sail: sails[0], sailPatch: sails[1] });
           cut.root.scale.setScalar(f.def.scale);
           root.add(cut.root);
@@ -879,6 +882,33 @@ export class GameRenderer {
       }
     }
     for (const [id, v] of this.seaViews) if (!live.has(id)) { this.disposeObject(v.root); this.seaViews.delete(id); }
+    // the Kraken: an arm per strike, out of the water as the mark fills, then sliding back under
+    const arms = new Set<number>();
+    for (const st of nv.kraken?.strikes ?? []) {
+      arms.add(st.id);
+      let a = this.krakenArms.get(st.id);
+      if (!a) {
+        a = new THREE.Group();
+        const skin = new THREE.MeshStandardMaterial({ color: 0x3a2a3a, roughness: 0.6 }), sucker = new THREE.MeshStandardMaterial({ color: 0xc89a9a });
+        for (let k = 0; k < 6; k++) {
+          const seg = new THREE.Mesh(new THREE.CylinderGeometry(0.55 - k * 0.08, 0.65 - k * 0.08, 1.4, 8), skin);
+          seg.position.set(Math.sin(k * 0.5) * 0.4 * k * 0.3, 0.7 + k * 1.2, 0);
+          seg.rotation.z = Math.sin(k * 0.6) * 0.25;
+          const s1 = new THREE.Mesh(new THREE.SphereGeometry(0.14, 6, 4), sucker);
+          s1.position.set(seg.position.x + 0.5 - k * 0.07, seg.position.y, 0.2);
+          a.add(seg, s1);
+        }
+        a.position.set(st.x, -8, st.z);
+        a.rotation.y = st.id;
+        this.region3d.add(a);
+        this.krakenArms.set(st.id, a);
+      }
+      // up out of the water as the warning runs out, then down again
+      const up = st.t < 1.2 ? Math.min(1, st.t / 1.2) ** 2 : Math.max(0, 1 - (st.t - 1.2) / 1.2);
+      a.position.y = -8 + up * 8;
+      a.rotation.x = (1 - up) * 0.6;
+    }
+    for (const [id, a] of this.krakenArms) if (!arms.has(id)) { this.disposeObject(a); this.krakenArms.delete(id); }
     // round shot in flight, with a smoke trail
     const balls = new Set<number>();
     for (const b of nv.balls) {
