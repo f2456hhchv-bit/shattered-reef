@@ -593,7 +593,7 @@ export class Game {
     const ok = a.progress >= 1;
     if (ok) a.progress -= 1;
     // active skilling: the swing that lands an item shows the timing bar; gold makes it two, the red heart three
-    const times = ok && d.skill && !d.loot ? ACTIVE.times[struck ?? 'miss'] : 1;
+    const strike = ok && d.skill && !d.loot ? struck ?? 'miss' : 'miss', times = ACTIVE.times[strike];
     const fx = d.skill === 'woodcutting' || d.verb === 'Pick' ? 'wood' : d.skill === 'mining' || d.verb === 'Dig' ? 'stone' : 'water';
     this.emit({ type: 'gatherFx', kind: fx, x: n.x, z: n.z, success: ok });
     if (!ok) return;
@@ -632,7 +632,7 @@ export class Game {
         this.rollKeyFind(d.fromShip ? 'sailing' : d.skill as KeyFamily, KEY_CONFIG.gatherChance);
       }
     }
-    if (d.skill) this.addXp(d.skill, (catchOf?.xp ?? d.xp) * times);
+    if (d.skill) this.addXp(d.skill, (catchOf?.xp ?? d.xp) * ACTIVE.xpTimes[strike]);
     if (tool.id !== 'hands') this.wear(this.p.inv.find((x) => x?.id === tool.id), WEAR.tool * (1 - (d.skill ? perkTotal(d.skill, this.level(d.skill), 'tool_care') / 100 : 0)));
     // each gather uses one of the node's items, unless a Lasting perk spares it
     const lasting = d.skill ? perkTotal(d.skill, this.level(d.skill), 'last') / 100 : 0;
