@@ -198,6 +198,24 @@ describe('Amberhold\'s quests', () => {
   });
 });
 
+describe('Stormwrack\'s quest', () => {
+  it('The Drowned Captain\'s Log: find the pages in order, beat the captain, dig up the hoard', () => {
+    const L = regionLayout('wrack');
+    const g = new Game({ seed: 7, save: { ...defaultSave(L.respawn, L.mooring!), region: 'wrack' } });
+    for (const e of g.enemies) if (e.def.id !== 'wreck_captain') { e.alive = false; e.respawnAt = Infinity; }
+    talk(g, 'mercy');
+    expect(g.questStage('captain')).toBe(1);
+    for (const m of ['p1', 'p2', 'p3']) use(g, 'captain', m);
+    expect(g.questStage('captain')).toBe(2);
+    expect(beat(g, 'wreck_captain', 80, 'cutlass_tide')).toBe(true);
+    expect(g.questStage('captain')).toBe(3);
+    use(g, 'captain', 'dig');
+    expect(count(g.p.inv, 'hat_captain')).toBe(1);
+    talk(g, 'mercy');
+    expect(g.questStage('captain')).toBe(QUESTS.captain.stages.length - 1);
+  });
+});
+
 describe('The Toll of Tollhouse', () => {
   const at = (region: 'amberhold' | 'sunreach', save?: unknown) => {
     const L = regionLayout(region);
