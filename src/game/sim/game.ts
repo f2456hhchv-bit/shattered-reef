@@ -13,6 +13,7 @@ import { DROP_CONFIG, GEMS, rareTable, commonTable } from '../data/drops';
 import { BOARDS, BOUNTY_CONFIG, CREW_BY, WANTED_FIRST, WANTED_LAST, rankOf, type Contract, type CrewPassive } from '../data/bounties';
 import { HP_SCALE, NODES, RECIPES, ENEMIES, LOOT, ELITE_AFFIXES, SHOPS, PLAYER_BASE, UTILITY_SPELLS, SPELLS, COMBAT_SKILLS, XP_PER_DAMAGE, type EnemyDef, type Recipe, type Station } from '../data/content';
 import { NPCS, QUESTS, type DialogueNode, type Effect, type QuestMark } from '../data/quests';
+import { DIARIES, diaryDone } from '../data/diaries';
 import { PLACES, placeRegion } from '../world/places';
 import { regionLayout, cachedLayout, type IslandLayout, type Arena } from '../world/layout';
 import { REGIONS, edgeCrossed, arrival, type RegionId } from '../world/regions';
@@ -1092,7 +1093,7 @@ export class Game {
     if (npc.bank) { this.emit({ type: 'openBank' }); return; }
     const board = Object.keys(BOARDS).find((b) => BOARDS[b].npc === npcId);
     if (board) { this.emit({ type: 'openBoard', board }); return; } // harbourmasters keep the bounty board (and the ferry)
-    if (npc.ferry) { this.emit({ type: 'ferryOffer', npc: npcId, to: npc.ferry[0].to, price: npc.ferry[0].price }); return; }
+    if (npc.ferry) { this.emit({ type: 'ferryOffer', npc: npcId, to: npc.ferry[0].to, price: this.ferryPrice(npc.ferry[0].price) }); return; }
     if (npc.heals && this.p.hp < this.stats.maxHp) {
       this.p.hp = this.stats.maxHp;
       this.emit({ type: 'dialog', npc: npcId, lines: [npc.heals] });
@@ -2006,12 +2007,28 @@ export class Game {
   takeFerry(npcId: string, to?: string) {
     const routes = NPCS[npcId]?.ferry, f = routes?.find((r) => !to || r.to === to), n = this.layout.npcs.find((x) => x.id === npcId);
     if (!f || !n || this.dead || this.p.onShip || Math.hypot(n.x - this.p.x, n.z - this.p.z) > 4.5) return;
-    if (count(this.p.inv, 'coins') < f.price) { this.msg(`Passage costs ${f.price} coins.`, 'warn'); return; }
-    remove(this.p.inv, 'coins', f.price);
+    const price = this.ferryPrice(f.price);
+    if (count(this.p.inv, 'coins') < price) { this.msg(`Passage costs ${price} coins.`, 'warn'); return; }
+    remove(this.p.inv, 'coins', price);
     this.msg(`The cutter takes you across. Your sloop sails in her wake.`, 'good');
     this.travel({ to: f.to as RegionId, how: 'ferry', from: this.s.region });
   }
 
+  /** A finished island diary: that island's harbourmaster takes you for nothing. */
+  ferryPrice(base: number) { return this.s.flags[`diary_${this.s.region}`] ? 0 : base; }
+
+  /** Claim a finished island diary (once): coins, XP and free ferries from that island. */
+  claimDiary(island: string) {
+    const d = DIARIES.find((x) => x.island === island);
+    if (!d || this.s.flags[`diary_${island}`]) return;
+    if (!diaryDone(d, this)) { this.msg('There\'s still more to do on that island.', 'warn'); return; }
+    this.s.flags[`diary_${island}`] = true;
+    this.give('coins', d.coins);
+    for (const x of d.xp) this.addXp(x.skill, x.amount);
+    this.msg(`${d.name} complete! ${d.coins} coins, and ${REGIONS[d.island].name}'s harbourmaster will ferry you free from now on.`, 'good');
+    this.emit({ type: 'boss', state: 'defeat' });
+    this.rev++;
+  }
   /** Dodge roll: short dash, no damage taken while rolling. */
   useRoll() {
     if (this.dead || this.p.onShip || this.rollCd > 0 || this.rollT > 0) return;

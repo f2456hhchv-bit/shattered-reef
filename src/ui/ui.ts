@@ -1,6 +1,7 @@
 import { SEEP } from '../game/sim/amberseep';
 import { FIRE } from '../game/sim/greenfire';
 import { AMMO, CHART_MARKS, type AmmoId } from '../game/data/sea';
+import { DIARIES } from '../game/data/diaries';
 import { item, RARITY, AFFIXES, METALS, METAL_TRAITS, AMMO_NAME, ammoKind, isTwoHanded, pairGroup, type ItemDef, type Slot, type SkillId, type WeaponKind } from '../game/data/items';
 import { morph, forget } from './morph';
 import { wears, condOf, WORN_OUT_EFFECT } from '../game/sim/inventory';
@@ -318,7 +319,7 @@ export class UI {
       case 'dialog': this.openDialog(e.npc, e.lines); break;
       case 'openStation': this.openStation(e.station); break;
       case 'openShop': this.openShop(); break;
-      case 'ferryOffer': { const n = NPCS[e.npc]; this.confirm(`${n.idle[0]}`, `Sail (${e.price} coins)`, () => this.game.takeFerry(e.npc)); break; }
+      case 'ferryOffer': { const n = NPCS[e.npc]; this.confirm(`${n.idle[0]}`, e.price ? `Sail (${e.price} coins)` : 'Sail (free: diary)', () => this.game.takeFerry(e.npc)); break; }
       case 'openBank': this.openBank(); break;
       case 'openBoard': this.openBoard(e.board); break;
       case 'sigDrop': this.banner('A signature weapon!', item(e.id).name); break;
@@ -724,8 +725,9 @@ export class UI {
   /** One set of handlers on the tab panel for its whole life (content is patched, never re-bound). */
   private bindContent(c: HTMLElement) {
     const g = this.game;
-    onTap(c, '[data-slot], [data-equip], [data-stance], [data-spell], [data-q], [data-dmg], [data-music], [data-sfx], [data-fps], [data-lv], [data-skill], [data-skillback], [data-gcat], [data-sort], [data-home], [data-mapview], [data-key], [data-devkeys], #saveNow, #resetSave', (t, pointer) => {
+    onTap(c, '[data-diary], [data-slot], [data-equip], [data-stance], [data-spell], [data-q], [data-dmg], [data-music], [data-sfx], [data-fps], [data-lv], [data-skill], [data-skillback], [data-gcat], [data-sort], [data-home], [data-mapview], [data-key], [data-devkeys], #saveNow, #resetSave', (t, pointer) => {
       if (t.dataset.home) { g.teleportHome(); return; }
+      if (t.dataset.diary) { g.claimDiary(t.dataset.diary); this.lastRev = -1; return; }
       if (t.dataset.sort) { this.closePop(); g.sortPack(t.dataset.sort as 'type' | 'value' | 'quality'); this.log(`Pack sorted by ${t.dataset.sort}.`); return; }
       if (t.dataset.gcat) { this.guideCat = t.dataset.gcat; this.lastRev = -1; this.renderTab(); return; }
       if (t.dataset.mapview) { this.mapView = t.dataset.mapview as 'here' | 'chart'; this.renderTab(); return; }
@@ -925,7 +927,16 @@ export class UI {
     const crew = g.s.crew.length ? `<small class="muted">Crew: ${g.s.crew.map((id) => esc(CREW.find((c) => c.id === id)!.name)).join(', ')}</small>` : '';
     const poster = `<div class="poster"><span>WANTED</span><b>${g.s.bounty.toLocaleString('en-GB')}</b><small>${esc(rankOf(g.s.bounty))}</small></div>
       ${contracts ? `<ul style="margin:6px 0;padding-left:18px">${contracts}</ul>` : '<p class="muted" style="font-size:12px">The harbourmasters post bounty contracts on their boards.</p>'}${crew}`;
-    return `<h2 class="title">Quests</h2>${qs}<div class="brass-rule"></div><h2 class="title">Your bounty</h2>${poster}<div class="brass-rule"></div><h2 class="title">Places (${g.s.discovered.length}/${PLACES.length})</h2>${disc}`;
+    // island diaries: what's left on each island, and the reward once it's all done
+    const diaries = DIARIES.map((d) => {
+      const done = d.tasks.filter((t) => t.done(g)).length, all = done === d.tasks.length, claimed = !!g.s.flags[`diary_${d.island}`];
+      const head = `<b>${esc(d.name)}</b>${claimed ? '<span class="status done">Complete</span>' : `<span class="status ${all ? 'active' : 'todo'}">${done}/${d.tasks.length}</span>`}`;
+      if (claimed) return `<div class="quest done">${head}</div>`;
+      const list = d.tasks.map((t) => `<li class="${t.done(g) ? 'diary-done' : ''}">${t.done(g) ? '✓ ' : ''}${esc(t.text)}</li>`).join('');
+      const reward = `${d.coins.toLocaleString('en-GB')} coins, ${d.xp.map((x) => `${x.amount.toLocaleString('en-GB')} ${x.skill[0].toUpperCase() + x.skill.slice(1)}`).join(', ')} XP, free ferries from ${esc(REGIONS[d.island].name)}`;
+      return `<div class="quest">${head}<ul class="diary">${list}</ul><small class="muted">Reward: ${reward}</small>${all ? `<button class="btn primary" data-diary="${d.island}" style="margin-top:6px;width:100%">Claim reward</button>` : ''}</div>`;
+    }).join('');
+    return `<h2 class="title">Quests</h2>${qs}<div class="brass-rule"></div><h2 class="title">Island diaries</h2>${diaries}<div class="brass-rule"></div><h2 class="title">Your bounty</h2>${poster}<div class="brass-rule"></div><h2 class="title">Places (${g.s.discovered.length}/${PLACES.length})</h2>${disc}`;
   }
 
   private settingsHtml() {

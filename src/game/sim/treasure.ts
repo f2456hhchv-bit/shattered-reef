@@ -69,6 +69,7 @@ export class TreasureHunt {
     if (key !== 'event:tm:haul' || !t) return;
     if (!g.p.onShip) { g.msg('It\'s out in the water. You\'ll need your ship.', 'warn'); return; }
     g.s.treasure = null;
+    g.s.flags.treasure_hauled = true;
     // the chest comes aboard: straight into the pack, like a sunk ship's haul
     const table = LOOT.sea_chest, got: string[] = [];
     const take = (id: string, qty: number) => {
