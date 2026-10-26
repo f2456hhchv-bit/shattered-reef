@@ -1,5 +1,5 @@
 import type { Game } from './game';
-import { AMMO, NAVAL, SEA_FOES, SEA_SPAWNS, CHART_MARKS, KRAKEN, type AmmoId, type SeaFoeDef } from '../data/sea';
+import { AMMO, NAVAL, SEA_FOES, SEA_SPAWNS, CHART_MARKS, KRAKEN, WEATHER, type AmmoId, type SeaFoeDef, type WeatherKind } from '../data/sea';
 import { perkTotal } from '../data/perks';
 import { count, remove, canAdd } from './inventory';
 import { item } from '../data/items';
@@ -31,6 +31,8 @@ export class Naval {
   private lastHit = -99;
   /** the Kraken's sighting while it lasts: its arms coming down on marked water (t counts up to KRAKEN.warn) */
   kraken: { strikes: { id: number; x: number; z: number; t: number }[]; next: number } | null = null;
+  /** the weather at sea: a spell of it while `kind` is set; `wind` is the gale's direction; thunder strikes mark first */
+  weather: { kind: WeatherKind | null; until: number; next: number; wind: number; strikes: { id: number; x: number; z: number; t: number }[]; nextStrike: number } = { kind: null, until: 0, next: 0, wind: 0, strikes: [], nextStrike: 0 };
   private sailed = 0;
   private lastPos: [number, number] | null = null;
 
@@ -39,6 +41,7 @@ export class Naval {
   /** A new region: its waters' foes, the hull as it was. */
   enterRegion() {
     this.foes = []; this.balls = []; this.charges = []; this.kraken = null;
+    this.weather = { kind: null, until: 0, next: this.g.time + WEATHER.every[0], wind: 0, strikes: [], nextStrike: 0 };
     for (const sp of SEA_SPAWNS[this.g.s.region] ?? []) {
       const def = SEA_FOES[sp.foe];
       const at = def.behaviour === 'flock' ? [sp.x, sp.z] as [number, number] : this.g.nearestSea(sp.x, sp.z);
@@ -214,6 +217,7 @@ export class Naval {
         g.rev++;
       }
       this.stepKraken(dt);
+      this.stepWeather(dt, inHarbour);
     } else this.lastPos = null;
 
     for (const f of this.foes) {
@@ -226,7 +230,8 @@ export class Naval {
       }
       f.cd = Math.max(0, f.cd - dt);
       const d = Math.hypot(sh.x - f.x, sh.z - f.z);
-      const engaged = aboard && !inHarbour && d < f.def.aggro * (f.state === 'idle' ? 1 : 1.8);
+      const sight = this.weather.kind === 'fog' ? WEATHER.fogSight : 1; // fog: they have to come close to see you
+      const engaged = aboard && !inHarbour && d < f.def.aggro * sight * (f.state === 'idle' ? 1 : 1.8);
       if (!engaged) {
         // drift home, sharks back under
         f.state = 'idle'; f.aim = null;
@@ -261,6 +266,59 @@ export class Naval {
       for (const f of this.foes) if (f.alive && Math.hypot(f.x - c.x, f.z - c.z) < NAVAL.charge.radius + f.def.scale) this.damageFoe(f, c.damage, 'depth_charge');
     }
     this.charges = this.charges.filter((c) => c.t > 0);
+  }
+
+  /** Weather: a spell blows in every few minutes on open water, and blows itself out. */
+  private stepWeather(dt: number, inHarbour: boolean) {
+    const g = this.g, w = this.weather, kinds = WEATHER.kinds[g.s.region] ?? [];
+    const span = ([a, b]: [number, number]) => a + g.rnd() * (b - a);
+    if (!w.kind) {
+      if (inHarbour || !kinds.length) { w.next = Math.max(w.next, g.time + 30); return; } // it doesn't start in harbour
+      if (g.time < w.next) return;
+      w.kind = kinds[Math.floor(g.rnd() * kinds.length)];
+      w.until = g.time + span(WEATHER.lasts);
+      w.wind = g.rnd() * Math.PI * 2;
+      w.nextStrike = g.time + 2;
+      g.msg(w.kind === 'gale' ? 'A gale comes howling over the water! Steer into it, or let it carry you.' : w.kind === 'fog' ? 'Fog rolls in thick. Whatever\'s out there can barely see you, and you can barely see it.' : 'Thunderheads close overhead. Lightning! Watch the water for where it\'s going to strike.', 'warn');
+      g.emit({ type: 'weather', kind: w.kind });
+      g.rev++;
+      return;
+    }
+    if (g.time >= w.until) {
+      g.msg('The weather blows itself out.', 'info');
+      g.addXp('sailing', WEATHER.xp);
+      w.kind = null; w.strikes = []; w.next = g.time + span(WEATHER.every);
+      g.emit({ type: 'weather', kind: null });
+      g.rev++;
+      return;
+    }
+    const sh = g.ship;
+    if (w.kind === 'gale') {
+      // the wind pushes the ship and everything else on the water
+      const vx = Math.cos(w.wind) * WEATHER.gale * dt, vz = Math.sin(w.wind) * WEATHER.gale * dt;
+      if (this.sea(sh.x + vx, sh.z + vz)) { sh.x += vx; sh.z += vz; g.p.x = sh.x; g.p.z = sh.z; }
+      for (const f of this.foes) if (f.alive && f.def.behaviour !== 'flock' && this.sea(f.x + vx, f.z + vz)) { f.x += vx; f.z += vz; }
+    } else if (w.kind === 'thunder') {
+      for (const st of w.strikes) {
+        st.t += dt;
+        if (st.t >= WEATHER.strikeWarn && st.t - dt < WEATHER.strikeWarn) {
+          g.emit({ type: 'explode', x: st.x, z: st.z, r: WEATHER.strikeRadius });
+          if (Math.hypot(sh.x - st.x, sh.z - st.z) < WEATHER.strikeRadius + 1.2) this.hitHull(WEATHER.strikeHull);
+          for (const f of this.foes) if (f.alive && !f.under && Math.hypot(f.x - st.x, f.z - st.z) < WEATHER.strikeRadius + f.def.scale) this.damageFoe(f, WEATHER.strikeFoe, f.def.counter); // lightning hits like the right ammo
+        }
+      }
+      w.strikes = w.strikes.filter((st) => st.t < WEATHER.strikeWarn + 0.3);
+      if (g.time >= w.nextStrike) {
+        // near the ship, a little ahead of it, or on a foe close by
+        w.nextStrike = g.time + WEATHER.strikeEvery;
+        const near = this.foes.filter((f) => f.alive && !f.under && Math.hypot(f.x - sh.x, f.z - sh.z) < 16);
+        const onFoe = near.length && g.rnd() < 0.4 ? near[Math.floor(g.rnd() * near.length)] : null;
+        const a = g.rnd() * Math.PI * 2, r = 2 + g.rnd() * 6;
+        const x = onFoe ? onFoe.x : sh.x + Math.cos(sh.heading) * g.shipSpeed * 0.8 + Math.cos(a) * r, z = onFoe ? onFoe.z : sh.z + Math.sin(sh.heading) * g.shipSpeed * 0.8 + Math.sin(a) * r;
+        w.strikes.push({ id: g.nextId++, x, z, t: 0 });
+        g.telegraphs.push({ id: g.nextId++, kind: 'circle', x, z, r: WEATHER.strikeRadius, angle: 0, width: 0, t: 0, dur: WEATHER.strikeWarn, damage: 0, source: -995 });
+      }
+    }
   }
 
   /** The Kraken's sighting: wakes when you sail into the North Deep, strikes round the ship until you're clear. */

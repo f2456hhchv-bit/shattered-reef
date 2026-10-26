@@ -185,6 +185,9 @@ export class GameRenderer {
   private dropViews = new Map<number, LootShard>();
   private projViews = new Map<number, THREE.Mesh>();
   // the sea (naval.ts): foes on the water, shot in flight, charges sinking, and the line a broadside would take
+  private seaFog = 1;
+  /** lightning bolts (weather at sea), one per strike, a flash as it lands */
+  private bolts = new Map<number, THREE.Mesh>();
   /** the Kraken's arms, one per strike, rising out of the marked water and sinking back */
   private krakenArms = new Map<number, THREE.Group>();
   private seaViews = new Map<number, { root: THREE.Group; shark?: SharkRig; gulls?: FantasyRig[]; serpent?: SnakeRig; flames?: THREE.Mesh[] }>();
@@ -307,7 +310,7 @@ export class GameRenderer {
     this.scene.add(this.region3d);
     this.npcs.clear(); this.houses = []; this.walkers = []; this.enemyViews.clear(); this.nodeViews.clear();
     this.dropViews.clear(); this.projViews.clear(); this.teleViews.clear(); this.flames = []; this.glows = [];
-    this.seaViews.clear(); this.krakenArms.clear(); this.ballViews.clear(); this.chargeViews.clear(); this.aimLine = null;
+    this.seaViews.clear(); this.krakenArms.clear(); this.bolts.clear(); this.ballViews.clear(); this.chargeViews.clear(); this.aimLine = null;
     this.markViews.clear(); this.stormProps = null; this.fireProps = null; this.seepProps = null;
     this.grass = null; this.grassTime = [];
     this.scenery = new InstancedField(addSurfaceDetail(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: false, roughness: 0.9 }), PROP_SURFACE));
@@ -909,6 +912,23 @@ export class GameRenderer {
       a.rotation.x = (1 - up) * 0.6;
     }
     for (const [id, a] of this.krakenArms) if (!arms.has(id)) { this.disposeObject(a); this.krakenArms.delete(id); }
+    // weather: lightning bolts as the strikes land, spray blown along in a gale
+    const w = nv.weather, live2 = new Set<number>();
+    for (const st of w.strikes) {
+      if (st.t < 1.25) continue;
+      live2.add(st.id);
+      let b = this.bolts.get(st.id);
+      if (!b) {
+        b = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.35, 30, 5), new THREE.MeshBasicMaterial({ color: 0xe8f4ff }));
+        b.position.set(st.x, 15, st.z); b.rotation.z = (st.id % 7 - 3) * 0.04;
+        this.region3d.add(b); this.bolts.set(st.id, b);
+      }
+    }
+    for (const [id, b] of this.bolts) if (!live2.has(id)) { this.disposeObject(b); this.bolts.delete(id); }
+    if (w.kind === 'gale' && g.p.onShip && Math.random() < 0.5) {
+      const sh = g.ship, a = Math.random() * Math.PI * 2, r = 4 + Math.random() * 10;
+      this.particles.burst(sh.x + Math.cos(a) * r, 0.3, sh.z + Math.sin(a) * r, 1, 0xf2f6ee, { speed: 2.5, up: 0.5, size: 0.16, life: 0.7, grav: 1 });
+    }
     // round shot in flight, with a smoke trail
     const balls = new Set<number>();
     for (const b of nv.balls) {
@@ -1523,8 +1543,11 @@ export class GameRenderer {
     const fog = this.scene.fog as THREE.Fog;
     // a tall phone screen sees much further up the island at the top edge: push the haze back to match
     const tall = THREE.MathUtils.clamp((1 - this.camera.aspect) / 0.55, 0, 1);
-    fog.near = dist * this.fogK.near * (1 + 0.6 * tall);
-    fog.far = dist * this.fogK.far * (1 + 0.4 * tall);
+    // sea fog (weather at sea) closes in over a few seconds and lifts the same way
+    const wantFog = this.game.p.onShip && this.game.naval.weather.kind === 'fog' ? 0.38 : 1;
+    this.seaFog += (wantFog - this.seaFog) * 0.02;
+    fog.near = dist * this.fogK.near * (1 + 0.6 * tall) * this.seaFog;
+    fog.far = dist * this.fogK.far * (1 + 0.4 * tall) * this.seaFog;
     // nothing past full fog is visible, so let the frustum cull it
     const far = Math.ceil(fog.far + 15);
     if (this.camera.far !== far) { this.camera.far = far; this.camera.updateProjectionMatrix(); }
