@@ -19,6 +19,7 @@ const GOLEM: Record<string, { body: number; dark: number; accent: number; eye: n
   thorn: { body: 0x5a4a2e, dark: 0x3a2e1c, accent: 0x6a8a3a, eye: 0xe8d84a, leaves: true }, // a bramble spriggan: roots, thorns, leaves
   troll: { body: 0x6a7060, dark: 0x4a5044, accent: 0x5a7a3a, eye: 0xe8b84a, leaves: true }, // grey hide grown with moss
   mosstroll: { body: 0x5a6a44, dark: 0x3a4a2e, accent: 0x7a9a3a, eye: 0xe8d84a, leaves: true }, // Amberhold's: green with moss to the brow
+  jotunn: { body: 0x4a5260, dark: 0x2a3038, accent: 0x8ad8ff, eye: 0xbfe8ff, spikes: true }, // the Thunder Jötunn: storm-slate, lightning in its cracks
   draugrtroll: { body: 0x7a8a90, dark: 0x4a5a62, accent: 0x9ab8c0, eye: 0x8ae8ff, spikes: true }, // a troll the barrows kept: grey-blue, rimed
 };
 function golem(look: string, seed: number): FantasyRig {

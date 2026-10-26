@@ -2339,7 +2339,8 @@ export class Game {
     this.bossCast = 3.5;
     this.bossSummons = 0;
     this.emit({ type: 'boss', state: 'rise' });
-    this.msg(a.boss === 'guardian' ? 'The bell sings. The stone answers. The Lockbound Guardian rises!' : a.boss === 'broodmother' ? 'The bones shift. Webs tremble across the hollow, and the Broodmother climbs out of the dark!' : 'The gong booms through the temple. Something vast uncoils beneath the flagstones: the Sunscale rises!', 'combat');
+    if (a.boss === 'storm_jotunn') this.msg('The horn\'s note rolls off the crag, and the sky answers. Lightning splits the stones, and the Thunder Jötunn stands up out of them!', 'combat');
+    else this.msg(a.boss === 'guardian' ? 'The bell sings. The stone answers. The Lockbound Guardian rises!' : a.boss === 'broodmother' ? 'The bones shift. Webs tremble across the hollow, and the Broodmother climbs out of the dark!' : 'The gong booms through the temple. Something vast uncoils beneath the flagstones: the Sunscale rises!', 'combat');
   }
 
   private stepBoss(e: Enemy, dt: number) {
@@ -2347,7 +2348,7 @@ export class Game {
     const px = this.p.x, pz = this.p.z;
     if (e.state === 'rise') { e.t -= dt; if (e.t <= 0) e.state = 'chase'; return; }
     if (this.dead || this.p.onShip || Math.hypot(px - R.x, pz - R.z) > 24) { this.resetBoss(); return; }
-    const serpent = e.def.id === 'temple_serpent', brood = e.def.id === 'broodmother';
+    const serpent = e.def.id === 'temple_serpent', brood = e.def.id === 'broodmother', giant = e.def.id === 'storm_jotunn';
     const frac = e.hp / e.maxHp;
     const enrage = (frac < 0.25 ? 1.35 : 1) * (e.fx.slow > 0 ? 0.6 : 1);
     // summons at 66% and 33%: crabs boil up round the Guardian, snakes drop from the temple's vines, the brood hatches
@@ -2356,11 +2357,12 @@ export class Game {
       for (let k = 0; k < (serpent ? 1 : 2); k++) { // one snake a wave: they're level 30, the crabs level 2
         const a = (k / 2) * Math.PI * 2 + this.rnd();
         const x = R.x + Math.cos(a) * 4.5, z = R.z + Math.sin(a) * 4.5;
-        const c = this.spawnEnemy(serpent ? ENEMIES.jungle_snake : brood ? ENEMIES.weaver_young : ENEMIES.reef_crab, x, z, true);
+        if (giant && k > 0) break; // one troll a wave: they hit hard
+        const c = this.spawnEnemy(serpent ? ENEMIES.jungle_snake : brood ? ENEMIES.weaver_young : giant ? ENEMIES.crag_troll : ENEMIES.reef_crab, x, z, true);
         c.state = 'chase';
       }
       this.emit({ type: 'boss', state: 'summon' });
-      this.msg(serpent ? 'The Sunscale hisses. Snakes drop from the temple vines!' : brood ? 'Egg sacs split along the hollow\'s walls. Her brood comes for you!' : 'The Guardian strikes its chest-bell. Crabs boil up from the stones!', 'combat');
+      this.msg(giant ? 'The Jötunn roars, and a crag troll heaves itself up over the stones!' : serpent ? 'The Sunscale hisses. Snakes drop from the temple vines!' : brood ? 'Egg sacs split along the hollow\'s walls. Her brood comes for you!' : 'The Guardian strikes its chest-bell. Crabs boil up from the stones!', 'combat');
     }
     e.cd = Math.max(0, e.cd - dt * enrage);
     this.bossCast -= dt * enrage;
@@ -2375,6 +2377,10 @@ export class Game {
         // Venom spit: a long line toward where you stand, then a second, quicker cast soon after
         this.bossCast = this.bossSummons % 2 ? 4.5 : 6;
         this.telegraphs.push({ id: this.nextId++, kind: 'line', x: e.x, z: e.z, r: 13, angle: e.facing, width: 1.8, t: 0, dur: 1.1 / enrage, damage: 6, source: e.id });
+      } else if (giant) {
+        // Lightning: called down where you stand (set for its level 82: Stormwrack hits hard)
+        this.bossCast = this.bossSummons > 0 ? 3.6 : 4.6;
+        this.telegraphs.push({ id: this.nextId++, kind: 'circle', x: px, z: pz, r: 3.2, angle: 0, width: 0, t: 0, dur: 1.2 / enrage, damage: 36, source: e.id });
       } else if (brood) {
         // Web spray: a wide splash of web where you stand
         this.bossCast = 5.5;
@@ -2389,8 +2395,16 @@ export class Game {
       return;
     }
     if (dP < 4.2 && e.cd <= 0) {
-      e.cd = serpent || brood ? 3.4 : 4;
-      if ((serpent || brood) && this.rnd() < 0.45) {
+      e.cd = serpent || brood || giant ? 3.4 : 4;
+      if (giant && this.rnd() < 0.45) {
+        // Thunder stomp: the whole ground round it shakes; roll out of the ring
+        this.telegraphs.push({ id: this.nextId++, kind: 'circle', x: e.x, z: e.z, r: 5.4, angle: 0, width: 0, t: 0, dur: 1.3 / enrage, damage: 40, source: e.id });
+        e.state = 'windup'; e.t = 1.3 / enrage;
+      } else if (giant) {
+        // Club sweep: a wide cone in front
+        this.telegraphs.push({ id: this.nextId++, kind: 'cone', x: e.x, z: e.z, r: 5.8, angle: e.facing, width: 2.1, t: 0, dur: 1.0 / enrage, damage: 30, source: e.id });
+        e.state = 'windup'; e.t = 1.0 / enrage;
+      } else if ((serpent || brood) && this.rnd() < 0.45) {
         // Coil crush (serpent) / leg sweep (Broodmother): the whole ground round her, roll out or take it
         this.telegraphs.push({ id: this.nextId++, kind: 'circle', x: e.x, z: e.z, r: brood ? 4.6 : 4.2, angle: 0, width: 0, t: 0, dur: 1.2 / enrage, damage: brood ? 9 : 7, source: e.id });
         e.state = 'windup'; e.t = 1.2 / enrage;
@@ -2414,6 +2428,7 @@ export class Game {
     this.boss = null;
     this.bossArena = null;
     this.emit({ type: 'boss', state: 'reset' });
+    if (b.def.id === 'storm_jotunn') { this.msg('The Jötunn sinks back into the stones in a crack of thunder. Sound the horn to call it again.', 'combat'); return; }
     this.msg(b.def.id === 'temple_serpent' ? 'The Sunscale slides back under the flagstones. Strike the gong to face it again.' : b.def.id === 'broodmother' ? 'The Broodmother draws back into the dark. Disturb the bones to call her out again.' : 'The Guardian sinks back into the stone. Ring the bell to try again.', 'combat');
   }
 
@@ -2427,6 +2442,11 @@ export class Game {
     if (e.def.id === 'temple_serpent') {
       if (!this.s.flags.serpent_defeated) this.msg('The Sunscale lies still. Its scales shine like hammered gold.', 'good');
       this.s.flags.serpent_defeated = true;
+      return;
+    }
+    if (e.def.id === 'storm_jotunn') {
+      if (!this.s.flags.jotunn_defeated) this.msg('The Thunder Jötunn falls, and the storm over the crag breaks into rain. Stormwrack is quiet for the first time in years.', 'good');
+      this.s.flags.jotunn_defeated = true;
       return;
     }
     if (e.def.id === 'broodmother') {
