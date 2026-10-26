@@ -154,7 +154,7 @@ export class World {
    */
   findSeaPath(sx: number, sz: number, tx: number, tz: number): [number, number][] | null {
     const SN = this.SN;
-    const goal = this.nearestOn(this.sea, SN, SCELL, tx, tz, 14);
+    const goal = this.nearestOn(this.sea, SN, SCELL, tx, tz, 26); // wide enough to find water round an islet's shallows
     const start = this.nearestOn(this.sea, SN, SCELL, sx, sz, 8);
     if (!goal || !start) return null;
     const route = this.astar(this.sea, SN, SCELL, start, goal, 90000);
