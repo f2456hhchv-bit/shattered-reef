@@ -386,7 +386,7 @@ export const PLAYER_BASE = {
 // ---- enemies -------------------------------------------------------------------
 export type EnemyModel = 'crab' | 'brigand' | 'gunner' | 'guardian' | 'boar' | 'spider' | 'snake' | 'golem' | 'hound' | 'bat' | 'beetle';
 /** Visual variant: crab shell / humanoid outfit / stone tint, chosen by the renderer. */
-export type EnemyLook = 'reef' | 'mire' | 'ironshell' | 'brigand' | 'gunner' | 'smuggler' | 'poacher' | 'drowned' | 'captain' | 'sentinel' | 'cave' | 'giant' | 'jungle' | 'ember' | 'sunscale' | 'hunter' | 'stalker' | 'moon' | 'amber' | 'oak' | 'queen' | 'shore' | 'gull' | 'thorn' | 'knocker' | 'leech' | 'barrow' | 'troll' | 'seadraugr';
+export type EnemyLook = 'reef' | 'mire' | 'ironshell' | 'brigand' | 'gunner' | 'smuggler' | 'poacher' | 'drowned' | 'captain' | 'sentinel' | 'cave' | 'giant' | 'jungle' | 'ember' | 'sunscale' | 'hunter' | 'stalker' | 'moon' | 'amber' | 'oak' | 'queen' | 'shore' | 'gull' | 'thorn' | 'knocker' | 'leech' | 'howe' | 'troll' | 'seadraugr';
 
 export interface EnemyDef {
   id: string;
@@ -470,8 +470,8 @@ export const ENEMIES: Record<string, EnemyDef> = {
     speed: 3.0, radius: 0.4, aggro: 7, attack: { kind: 'melee', range: 1.5, windup: 0.4, cooldown: 2.4 }, loot: 'knocker', respawn: 25, scale: 0.7 },
   bog_leech: { hostile: true, id: 'bog_leech', name: 'Bog leech', model: 'snake', look: 'leech', level: 14, hp: 17, att: 12, def: 9, defBonus: { melee: -10, ranged: 15, magic: 10 }, weakness: 'melee', style: 'melee', accBonus: 10, maxHit: 3,
     speed: 2.4, radius: 0.5, aggro: 5, attack: { kind: 'melee', range: 1.5, windup: 0.4, cooldown: 2.2 }, loot: 'bog_leech', respawn: 25, scale: 0.9 },
-  barrow_dead: { hostile: true, id: 'barrow_dead', name: 'Barrow-dead', model: 'brigand', look: 'barrow', level: 18, hp: 22, att: 17, def: 14, defBonus: { melee: 20, ranged: 15, magic: -10 }, weakness: 'magic', style: 'melee', accBonus: 13, maxHit: 4,
-    speed: 2.6, radius: 0.45, aggro: 8, attack: { kind: 'melee', range: 1.7, windup: 0.5, cooldown: 2.6 }, loot: 'barrow_dead', respawn: 35, scale: 1.15 },
+  haugbui: { hostile: true, id: 'haugbui', name: 'Haugbui', model: 'brigand', look: 'howe', level: 18, hp: 22, att: 17, def: 14, defBonus: { melee: 20, ranged: 15, magic: -10 }, weakness: 'magic', style: 'melee', accBonus: 13, maxHit: 4,
+    speed: 2.6, radius: 0.45, aggro: 8, attack: { kind: 'melee', range: 1.7, windup: 0.5, cooldown: 2.6 }, loot: 'haugbui', respawn: 35, scale: 1.15 },
   // further out (their islands' slices replace the rest of this list)
   cave_bat: { hostile: true, id: 'cave_bat', name: 'Cave bat', model: 'bat', look: 'cave', level: 17, hp: 16, att: 16, def: 10, defBonus: { melee: 10, ranged: -10, magic: 5 }, weakness: 'ranged', style: 'melee', accBonus: 12, maxHit: 3,
     speed: 4.2, radius: 0.5, aggro: 8, attack: { kind: 'melee', range: 1.6, windup: 0.3, cooldown: 2.0 }, loot: 'cave_bat', respawn: 25, scale: 0.9 },
@@ -567,7 +567,7 @@ export const LOOT: Record<string, LootTable> = {
   knocker: { coins: [4, 14], drops: [{ item: 'ore_copper', chance: 0.3, qty: [1, 2] }, { item: 'ore_tin', chance: 0.3, qty: [1, 2] }, { item: 'ore_iron', chance: 0.3 }],
     gear: { chance: 0.06, items: ['pickaxe_bronze', 'pickaxe_iron', 'helm_bronze'], weights: { common: 55, fine: 37, rare: 8 } } },
   bog_leech: { coins: [3, 12], drops: [{ item: 'kelp', chance: 0.4, qty: [1, 3] }, { item: 'charm_tide', chance: 0.5, qty: [3, 7] }] },
-  barrow_dead: { coins: [12, 30], drops: [{ item: 'charm_tide', chance: 0.5, qty: [5, 10] }, { item: 'bar_iron', chance: 0.15 }],
+  haugbui: { coins: [12, 30], drops: [{ item: 'charm_tide', chance: 0.5, qty: [5, 10] }, { item: 'bar_iron', chance: 0.15 }],
     gear: { chance: 0.14, items: ['cutlass_iron', 'helm_iron', 'shield_iron', 'amulet_brass', 'bracelet_brass', 'ring_brass', 'greatsword_iron'], weights: { common: 45, fine: 40, rare: 15 } } }, // grave goods
   crag_troll: { coins: [40, 90], drops: [{ item: 'ore_abyss', chance: 0.3 }, { item: 'ore_coal', chance: 0.5, qty: [2, 4] }, { item: 'crystal_geode', chance: 0.05 }],
     gear: { chance: 0.07, items: ['pike_abyss', 'helm_abyss', 'shield_abyss'], weights: { common: 45, fine: 40, rare: 13, relic: 2 } } },

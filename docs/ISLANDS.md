@@ -29,7 +29,7 @@ the-shattered-reef?" Nothing here is built yet. Decisions marked **(Tom)** are o
   sea needs reasons to steer, not just distance.
   ([designer diary](https://uk.steamforged.com/blogs/brands/enemies-and-combat-sea-of-thieves-designer-diaries-4-with-sherwin-matthews),
   [CGM review](https://www.cgmagonline.com/reviews/sea-of-thieves-xbox-one-pc-review))
-- **Folklore**: Norse draugr and haugbui (barrow-dead that guard grave goods; sea-draugr are the drowned)
+- **Folklore**: Norse draugr and haugbui (mound-dead that guard grave goods; sea-draugr are the drowned)
   ([vikingr.org](https://vikingr.org/other-beings/undead-viking-age)); Caribbean soucouyant (sheds her skin and
   flies as a fireball; salt her hidden skin to stop her), lagahoo (a shapeshifter, headless, carrying a coffin)
   ([Soucouyant](https://godsandmonsters.info/soucouyant/), [Lagahoo](https://en.wikipedia.org/wiki/Lagahoo));
@@ -67,7 +67,7 @@ one strand of three (this is a pirate game), not the default.
 - Knocker (12), the tappers in the mines (Cornish lore: they knock to warn of cave-ins). In Ironcrag and the
   Smugglers' Caves. Drops ore and the odd gem.
 - Bog leech (14), the fen. *Bug.* Drops leech oil (a fishing bait).
-- Barrow-dead (haugbui, 18), only at the barrows behind the Broken Ring, guarding grave goods. *Undead.*
+- Haugbui (18), only at the Howes (grave mounds) east of the Broken Ring, guarding grave goods. *Undead.* (Not "barrows": that's RuneScape's.)
 - Brigands (9, 11), smugglers (18, 20): kept.
 
 **Sunreach (15-30)**

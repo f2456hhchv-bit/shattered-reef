@@ -130,7 +130,7 @@ export const LAYOUT = {
   cove: at(36, 13), // Smugglers' Cove on the SE headland
   wreck: at(316, 10), // Wreckers' Point, NE
   summit: { x: 2, z: -60 }, // Ironcrag's summit: the vent forge and Cinderite
-  barrows: { x: 60, z: -14 }, // the Barrows: grave mounds east of the Ring, where the barrow-dead keep their goods
+  howes: { x: 60, z: -14 }, // the Howes: grave mounds east of the Ring, where the haugbui keep their goods
   islet: at(215, -42), // Leviathan's Rest, an islet off the north-west coast
   spire: at(240, -34), // the Drowned Spire, mined from the deck
 };
@@ -218,10 +218,10 @@ export const HILLS: Hill[] = [
   { x: L.heartwood.x - 6, z: L.heartwood.z - 6, r: 14, h: 3.5 },
   { x: L.forest.x - 8, z: L.forest.z - 6, r: 14, h: 2.5 },
   { x: L.cove.x + 5, z: L.cove.z - 6, r: 8, h: 3 },
-  // the Barrows: three grassy grave mounds
-  { x: L.barrows.x - 5, z: L.barrows.z - 3, r: 4.5, h: 2.2 },
-  { x: L.barrows.x + 5, z: L.barrows.z - 4, r: 4, h: 1.8 },
-  { x: L.barrows.x, z: L.barrows.z + 5, r: 4, h: 2.0 },
+  // the Howes: three grassy grave mounds
+  { x: L.howes.x - 5, z: L.howes.z - 3, r: 4.5, h: 2.2 },
+  { x: L.howes.x + 5, z: L.howes.z - 4, r: 4, h: 1.8 },
+  { x: L.howes.x, z: L.howes.z + 5, r: 4, h: 2.0 },
   { x: SL.ember.x, z: SL.ember.z, r: 15, h: 9 },
   { x: SL.ember.x + 8, z: SL.ember.z + 10, r: 9, h: 4 },
   { x: SL.jungle.x - 4, z: SL.jungle.z - 6, r: 16, h: 3 },
@@ -250,8 +250,8 @@ export const PATHS: PathDef[] = [
   // hills -> Broken Ring -> Wreckers' Point
   { width: 1.1, pts: [[CH.x - 5, CH.z - 6], [R.x - 10, R.z + 12], [R.x, R.z + 7]] },
   { width: 1.1, pts: [[R.x + 7, R.z], [W.x - 8, W.z + 8], [W.x, W.z]] },
-  // the Broken Ring -> the Barrows
-  { width: 1.0, pts: [[R.x + 7, R.z + 2], [L.barrows.x - 8, L.barrows.z - 4], [L.barrows.x - 2, L.barrows.z]] },
+  // the Broken Ring -> the Howes
+  { width: 1.0, pts: [[R.x + 7, R.z + 2], [L.howes.x - 8, L.howes.z - 4], [L.howes.x - 2, L.howes.z]] },
   // east road: Brigand Camp -> Smugglers' Cove
   { width: 1.2, pts: [[0, X.z], [28, X.z], [C.x - 9, C.z + 5], [C.x, C.z]] },
   { width: 1.1, pts: [[C.x + 2, C.z + 6], [SC.x - 5, SC.z - 9], [SC.x, SC.z]] },
@@ -402,7 +402,7 @@ export const ISLAND_PLACES: Place[] = [
   { id: 'peak', name: 'Ironcrag', x: M.x, z: M.z + 6, r: 20 },
   { id: 'cove', name: 'Smugglers\' Cove', x: SC.x, z: SC.z, r: 12 },
   { id: 'wreck', name: 'Wreckers\' Point', x: W.x, z: W.z, r: 13 },
-  { id: 'barrows', name: 'The Barrows', x: L.barrows.x, z: L.barrows.z, r: 11 },
+  { id: 'howes', name: 'The Howes', x: L.howes.x, z: L.howes.z, r: 11 },
   ...([['shallows', 'Bellfish Shallows', 20, -16]] as const)
     .map(([id, name, a, i]) => { const [x, z] = coastPoint(a, i); return { id, name, x, z, r: 16, sea: true }; }),
   // Sunreach Isle

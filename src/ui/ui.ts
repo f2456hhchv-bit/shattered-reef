@@ -83,6 +83,9 @@ export class UI {
   private tags = new Map<number, HTMLElement>();
   private playerBar!: HTMLElement;
   private gatherBar!: HTMLElement;
+  private cueBar!: HTMLElement;
+  private cuePop!: HTMLElement;
+  private cuePopT = 0;
   private bannerT = 0;
   private portrait = false;
   private confirmOk: (() => void) | null = null;
@@ -149,7 +152,8 @@ export class UI {
     const special = mk('ab-special', 'Special attack (R)', WHIRL, () => this.game.useSpecial());
     const keyBtn = mk('ab-key', 'Turn your key (T)', KEY_SVG, () => this.game.useKey());
     const ctx = h('button', { id: 'ctx', class: 'round', 'aria-label': 'Interact (E)' }, '<span></span><small></small>');
-    onTap(ctx, 'button', () => { const t = this.game.contextTarget(); if (t) this.game.interact(t.key); });
+    // mid-swing or mid-craft the action button is the timing tap (active skilling); otherwise it acts on what's near
+    onTap(ctx, 'button', () => { if (this.game.cueState()) { this.game.strike(); return; } const t = this.game.contextTarget(); if (t) this.game.interact(t.key); });
     const load = mk('ab-load', 'Weapon, ammo, spell and stance (L)', '<img alt="">', () => this.toggleLoadout());
     const eat = mk('ab-eat', 'Eat the best food (H)', '<img alt="">', () => this.game.quickEat());
     eat.insertAdjacentHTML('beforeend', '<b class="n"></b>');
@@ -166,6 +170,12 @@ export class UI {
     this.el.overlay.appendChild(this.playerBar);
     this.gatherBar = h('div', { class: 'hpbar gatherbar' }, '<i></i>');
     this.el.overlay.appendChild(this.gatherBar);
+    // the timing bar: a needle sweeps each swing or craft; tap while it's in the gold window
+    this.cueBar = h('div', { class: 'cuebar' }, '<b></b><i></i>');
+    this.cueBar.style.display = 'none';
+    this.el.overlay.appendChild(this.cueBar);
+    this.cuePop = h('div', { class: 'cuepop' });
+    this.el.overlay.appendChild(this.cuePop);
     mm.addEventListener('pointerdown', (e) => this.minimapTap(e));
     this.selectTab('pack', false);
   }
@@ -231,6 +241,7 @@ export class UI {
     switch (e.type) {
       case 'keyFound': this.lvQueue.push({ key: e.id }); if (!this.lvEl) this.showLevelCard(); break;
       case 'msg': this.log(e.text, e.kind); break;
+      case 'cue': this.cuePop.textContent = e.text; this.cuePop.className = `cuepop on${e.perfect ? ' good' : ''}`; this.cuePopT = 0.9; break;
       case 'xp': this.xpDrop(e.skill, e.amount); break;
       case 'level': this.levelUp(e.skill, e.level); break;
       case 'discover': { const f = this.game.placeInfo(e.id)?.foes; this.banner(e.name, f ? `Discovered · Foes level ${f[0]}${f[1] > f[0] ? `–${f[1]}` : ''}` : 'Discovered · Peaceful'); break; }
@@ -375,6 +386,7 @@ export class UI {
       b.classList.toggle('off', cd > 0 || blocked);
       (b.querySelector('.cd') as HTMLElement).style.setProperty('--cd', `${(cd / max) * 360}deg`);
     }
+    if (this.cuePopT > 0 && (this.cuePopT -= dt) <= 0) this.cuePop.className = 'cuepop';
     // frame-rate readout (settings): what Auto is doing on this phone
     this.fpsT -= dt;
     if (this.fpsT <= 0) {
@@ -514,6 +526,24 @@ export class UI {
       const s = r.project(g.p.x, g.world.standY(g.p.x, g.p.z) + 2.6, g.p.z);
       this.gatherBar.style.left = `${s.x}px`; this.gatherBar.style.top = `${s.y}px`;
       (this.gatherBar.firstElementChild as HTMLElement).style.width = `${Math.min(1, ga.progress) * 100}%`;
+    }
+    // active skilling: the timing bar under the player, and the call when you tap
+    const cue = g.cueState();
+    this.cueBar.style.display = cue ? '' : 'none';
+    if (cue) {
+      const s = r.project(g.p.x, g.world.standY(g.p.x, g.p.z) + 2.25, g.p.z);
+      this.cueBar.style.left = `${s.x}px`; this.cueBar.style.top = `${s.y}px`;
+      const win = this.cueBar.firstElementChild as HTMLElement, needle = this.cueBar.lastElementChild as HTMLElement;
+      win.style.left = `${cue.window[0] * 100}%`; win.style.width = `${(cue.window[1] - cue.window[0]) * 100}%`;
+      needle.style.left = `${cue.t * 100}%`;
+      this.cueBar.dataset.state = cue.struck ?? (cue.t >= cue.window[0] && cue.t <= cue.window[1] ? 'open' : '');
+      const s2 = r.project(g.p.x, g.world.standY(g.p.x, g.p.z) + 3.2, g.p.z);
+      this.cuePop.style.left = `${s2.x}px`; this.cuePop.style.top = `${s2.y}px`;
+    }
+    (this.el.ctx as HTMLElement).classList.toggle('cue', !!cue && !cue.struck && cue.t >= cue.window[0] && cue.t <= cue.window[1]);
+    if (cue) { // mid-swing the button is the timing tap: say so
+      (this.el.ctx.querySelector('span') as HTMLElement).textContent = 'Time it';
+      const sm = this.el.ctx.querySelector('small') as HTMLElement; sm.textContent = 'tap in the gold'; sm.classList.remove('no');
     }
   }
 
