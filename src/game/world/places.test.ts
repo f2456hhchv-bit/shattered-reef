@@ -53,7 +53,7 @@ describe('islets', () => {
 
 describe('reachability audit', () => {
   for (const r of ['bellwether', 'sunreach', 'amberhold', 'wrack', 'smugglers_caves', 'ember_deep'] as RegionId[]) {
-    it(`${r}: every NPC, station, bank, arena, quest spot and land node can be walked up to`, async () => {
+    it(`${r}: every NPC, station, bank, arena, quest spot, land node and foe can be walked up to`, async () => {
       const { QUESTS } = await import('../data/quests');
       const { NODES } = await import('../data/content');
       const L = regionLayout(r), w = L.world;
@@ -84,6 +84,9 @@ describe('reachability audit', () => {
           if (!found) bad.push(`islet node ${n.def}`);
         }
       }
+      // every foe stands somewhere you can walk up and fight it (melee reach ~1.6 m)
+      for (const q of Object.values(QUESTS)) for (const st of q.stages) { const k = st.kill?.spawn; if (k && k.region === r) { const at = w.nearestWalkable(k.x, k.z, 6); if (!at || !ok(at[0], at[1], 1.6)) bad.push(`quest foe ${st.kill!.foe}`); } }
+      for (const sp of L.spawns) if (!onIslet(sp.x, sp.z) && !ok(sp.x, sp.z, 1.6)) bad.push(`foe ${sp.enemy}@${Math.round(sp.x)},${Math.round(sp.z)}`);
       expect(bad).toEqual([]);
     }, 120_000);
   }
