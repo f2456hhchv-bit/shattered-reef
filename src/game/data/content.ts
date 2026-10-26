@@ -629,8 +629,11 @@ export const LOOT: Record<string, LootTable> = {
   geode: { coins: [10, 60], drops: [{ item: 'crystal_geode', chance: 0.4 }, { item: 'charm_tide', chance: 0.5, qty: [3, 10] }, { item: 'ore_gold', chance: 0.15 }, { item: 'shell_fragment', chance: 0.3 }] },
   nest: { coins: [5, 40], drops: [{ item: 'charm_tide', chance: 0.4, qty: [3, 8] }, { item: 'berries', chance: 0.4, qty: [2, 5] }, { item: 'crystal_geode', chance: 0.08 }],
     gear: { chance: 0.05, items: ['ring_brass', 'ring_gold'], weights: { common: 50, fine: 40, rare: 10 } } },
-  treasure: { coins: [20, 120], drops: [{ item: 'charm_tide', chance: 0.5, qty: [5, 15] }, { item: 'geode', chance: 0.25 }, { item: 'bar_iron', chance: 0.15 }, { item: 'bar_steel', chance: 0.07 }, { item: 'ore_gold', chance: 0.15 }],
+  treasure: { coins: [20, 120], drops: [{ item: 'treasure_map', chance: 0.1 }, { item: 'charm_tide', chance: 0.5, qty: [5, 15] }, { item: 'geode', chance: 0.25 }, { item: 'bar_iron', chance: 0.15 }, { item: 'bar_steel', chance: 0.07 }, { item: 'ore_gold', chance: 0.15 }],
     gear: { chance: 0.08, items: ['ring_brass', 'ring_gold', 'cutlass_steel', 'pistol_steel', 'helm_steel'], weights: { common: 50, fine: 40, rare: 10 } } },
+  // a treasure map's chest, hauled up from the deck
+  sea_chest: { coins: [150, 450], drops: [{ item: 'casket', chance: 1, qty: [1, 2] }, { item: 'charm_tide', chance: 0.8, qty: [20, 50] }, { item: 'bar_steel', chance: 0.35, qty: [2, 4] },
+    { item: 'ore_gold', chance: 0.3, qty: [3, 6] }, { item: 'crystal_geode', chance: 0.2 }, { item: 'bar_storm', chance: 0.12, qty: [1, 3] }, { item: 'treasure_map', chance: 0.15 }] },
   cave_spider: { coins: [3, 12], drops: [{ item: 'spider_silk', chance: 0.45 }, { item: 'charm_tide', chance: 0.3, qty: [3, 6] }], gear: { chance: 0.04, items: ['ring_brass', 'dagger_iron'], weights: { common: 55, fine: 38, rare: 7 } } },
   boar: { coins: [6, 20], drops: [{ item: 'boar_meat_raw', chance: 0.9 }, { item: 'boar_hide', chance: 0.7 }, { item: 'boar_meat_raw', chance: 0.25 }, { item: 'charm_tide', chance: 0.2, qty: [3, 8] }], gear: { chance: 0.04, items: ['cap_leather', 'coat_padded', 'chaps_leather', 'boots_leather', 'gloves_leather'], weights: { common: 55, fine: 38, rare: 7 } } },
   snake: { coins: [8, 25], drops: [{ item: 'snake_skin', chance: 0.55 }, { item: 'charm_tide', chance: 0.35, qty: [4, 9] }], gear: { chance: 0.05, items: ['ring_gold', 'dagger_steel'], weights: { common: 50, fine: 40, rare: 10 } } },

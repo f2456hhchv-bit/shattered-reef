@@ -736,7 +736,7 @@ export class UI {
         const d = item(st.id);
         // mouse: left-click eats/equips directly (RuneScape-style); touch opens the details panel
         if (pointer === 'mouse' && this.bankOpen) { g.deposit(i); return; } // RuneScape: click to deposit
-        if (pointer === 'mouse' && !this.shopOpen && (d.heal || d.equip || d.opens)) { g.useSlot(i); return; }
+        if (pointer === 'mouse' && !this.shopOpen && (d.heal || d.equip || d.opens || d.chart)) { g.useSlot(i); return; }
         this.openPop({ slot: i }, t);
       } else if (t.dataset.equip !== undefined) { const sl = t.dataset.equip as Slot; if (g.p.equip[sl]) this.openPop({ equip: sl }, t); }
       else if (t.dataset.stance) g.setStance(t.dataset.stance as Stance);
@@ -1000,6 +1000,7 @@ export class UI {
     else {
       if (d.heal) acts.push('<button class="btn primary" data-a="use">Eat</button>');
       if (d.opens) acts.push(`<button class="btn primary" data-a="use">${OPEN_VERB[st.id] ?? 'Open'}</button>`);
+      if (d.chart) acts.push('<button class="btn primary" data-a="use">Read</button>');
       if (!d.quest && st.id !== 'coins' && g.level('magic') >= UTILITY_SPELLS.alchemy.level && !this.shopOpen && !this.bankOpen) {
         const coins = Math.max(1, Math.floor(stackValue({ ...st, qty: 1 }) * UTILITY_SPELLS.alchemy.rate)), blk = g.utilityBlock('alchemy');
         acts.push(`<button class="btn" data-a="alch" ${blk ? `disabled title="${esc(blk)}"` : ''}>Alchemise ${coins}c</button>`);
@@ -1405,6 +1406,17 @@ export class UI {
       c.save(); c.translate(sx, sz); c.rotate(g.ship.heading);
       c.fillStyle = '#efe3c4'; c.strokeStyle = '#000'; c.lineWidth = 1;
       c.beginPath(); c.moveTo(7 * scale, 0); c.lineTo(-5 * scale, 3.5 * scale); c.lineTo(-5 * scale, -3.5 * scale); c.closePath(); c.fill(); c.stroke();
+      c.restore();
+    }
+    const tx = g.treasure.here();
+    if (tx) {
+      // the treasure map's X, in red
+      const [xx, xy] = toPx(tx.x, tx.z), r = (big ? 6 : 4) * scale;
+      c.save(); c.lineCap = 'round';
+      for (const [w, col] of [[5 * scale, '#1a120a'], [2.6 * scale, '#e04a3a']] as const) {
+        c.lineWidth = w; c.strokeStyle = col; c.beginPath();
+        c.moveTo(xx - r, xy - r); c.lineTo(xx + r, xy + r); c.moveTo(xx + r, xy - r); c.lineTo(xx - r, xy + r); c.stroke();
+      }
       c.restore();
     }
     const obj = this.questObjective();

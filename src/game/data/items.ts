@@ -20,7 +20,7 @@ export const PAIR_GROUP: Partial<Record<WeaponKind, string>> = { cutlass: 'blade
 export type AmmoKind = 'shot' | 'arrow' | 'bolt';
 export const AMMO_FOR: Partial<Record<WeaponKind, AmmoKind>> = { pistol: 'shot', shortbow: 'arrow', longbow: 'arrow', crossbow: 'bolt' };
 export const AMMO_NAME: Record<AmmoKind, string> = { shot: 'shot', arrow: 'arrows', bolt: 'bolts' };
-export type IconShape = 'log' | 'ore' | 'bar' | 'fish' | 'meat' | 'coins' | 'bread' | 'hatchet' | 'pickaxe' | 'rod' | 'cutlass' | 'helm' | 'cap' | 'coat' | 'plate' | 'ring' | 'bell' | 'tooth' | 'shell' | 'burnt' | 'pistol' | 'shot' | 'staff' | 'charm' | 'harpoon' | 'pot' | 'lobster' | 'berries' | 'kelp' | 'geode' | 'spade' | 'parcel' | 'ash' | 'salt' | 'crystal' | 'nest' | 'casket' | 'mug' | 'bowl' | 'pie' | 'dagger' | 'pike' | 'greatsword' | 'bow' | 'crossbow' | 'arrow' | 'bolt' | 'coconut' | 'wand' | 'orb' | 'book' | 'shield' | 'legs' | 'boots' | 'gloves' | 'amulet' | 'bracelet' | 'hide' | 'gem';
+export type IconShape = 'map' | 'log' | 'ore' | 'bar' | 'fish' | 'meat' | 'coins' | 'bread' | 'hatchet' | 'pickaxe' | 'rod' | 'cutlass' | 'helm' | 'cap' | 'coat' | 'plate' | 'ring' | 'bell' | 'tooth' | 'shell' | 'burnt' | 'pistol' | 'shot' | 'staff' | 'charm' | 'harpoon' | 'pot' | 'lobster' | 'berries' | 'kelp' | 'geode' | 'spade' | 'parcel' | 'ash' | 'salt' | 'crystal' | 'nest' | 'casket' | 'mug' | 'bowl' | 'pie' | 'dagger' | 'pike' | 'greatsword' | 'bow' | 'crossbow' | 'arrow' | 'bolt' | 'coconut' | 'wand' | 'orb' | 'book' | 'shield' | 'legs' | 'boots' | 'gloves' | 'amulet' | 'bracelet' | 'hide' | 'gem';
 
 /** RuneScape-style equipment bonuses. Accuracy applies to the weapon's own style. */
 export interface Bonuses {
@@ -56,6 +56,7 @@ export interface ItemDef {
   };
   quest?: boolean;
   opens?: string; // using it rolls this loot table (geodes)
+  chart?: boolean; // a treasure map: reading it puts an X on your chart
   innate?: { id: string; v: number }[]; // traits every copy has (the metal's signature), on top of rolled affixes
   /** a signature weapon's one rule, and what it says about it */
   sig?: { id: SigId; text: string };
@@ -280,6 +281,8 @@ function tierItems(): ItemDef[] {
   // Stormwrack's quest reward
   out.push(I({ id: 'hat_captain', name: 'Drowned Captain\'s tricorn', desc: 'Black felt gone green at the edges, still dripping. The drowned know it, and spells slide off it.', icon: { shape: 'cap', color: '#1a1a1a', accent: '#c9a050' }, stackable: false, value: 2500,
     equip: { slot: 'head', reqs: { defence: 60 }, bonus: { defMelee: 40, defRanged: 38, defMagic: 30, acc: 4 }, affixPool: ARMOUR_AFFIX } }));
+  // treasure maps: dug up or found in caskets; read one and sail to the X
+  out.push(I({ id: 'treasure_map', name: 'Treasure map', desc: 'Stained, torn, and an X in the water off some coast. Tap it and Read it on the island it shows.', icon: { shape: 'map', color: '#d8c49a', accent: '#a83a2a' }, stackable: true, value: 80, chart: true }));
   // The Broodmother (Amberhold): Eir's silk ring
   out.push(I({ id: 'ring_weaver', name: 'Weaver\'s ring', desc: 'Weaver silk, knotted tight around a band of amber. Eir says the silk knits flesh: you mend as you go.', icon: { shape: 'ring', color: '#e8e4d8', accent: '#e8a83a' }, stackable: false, value: 3000,
     equip: { slot: 'ring', reqs: { hitpoints: 40 }, bonus: { acc: 6, defMelee: 4, defRanged: 4, defMagic: 6 }, affixPool: JEWEL_AFFIX }, innate: [{ id: 'regen', v: 1 }] }));

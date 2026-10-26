@@ -350,6 +350,16 @@ function builders(shape: IconShape, col: string, acc: string | undefined, seed: 
       add(g, new THREE.BoxGeometry(0.05, 0.1, 0.06), m('#c9a050', 'metal'), [0.17, 0, 0.12], [0, 0.35, 0]);
       break;
     }
+    case 'map': {
+      // a sheet of parchment, both ends rolled, a red X on it
+      const sheet = new THREE.Group();
+      sheet.rotation.set(0.55, 0.3, 0);
+      g.add(sheet);
+      add(sheet, new THREE.BoxGeometry(0.42, 0.012, 0.3), m(col), [0, 0, 0]);
+      for (const x of [-0.22, 0.22]) add(sheet, new THREE.CylinderGeometry(0.035, 0.035, 0.32, 10), m(shade(col, 0.85).getHex()), [x, 0.02, 0], [Math.PI / 2, 0, 0]);
+      for (const r of [0.8, -0.8]) add(sheet, new THREE.BoxGeometry(0.12, 0.016, 0.024), m(acc ?? '#a83a2a'), [0.03, 0.012, 0], [0, r, 0]);
+      break;
+    }
     case 'shield': {
       add(g, new THREE.CylinderGeometry(0.27, 0.27, 0.05, 20), m(col, 'metal'), [0, 0, 0], [Math.PI / 2 - 0.35, 0, 0]);
       add(g, new THREE.TorusGeometry(0.27, 0.022, 6, 24), m(shade(col, 0.7).getHex(), 'metal'), [0, 0, 0], [-0.35, 0, 0]);
