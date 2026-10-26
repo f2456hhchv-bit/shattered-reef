@@ -1075,7 +1075,7 @@ export class Game {
       const opt = [stage?.talk, ...(stage?.also ?? [])].find((o) => o?.npc === npcId);
       if (opt) {
         const node = opt.node;
-        if (node.requires && count(this.p.inv, node.requires.id) < node.requires.qty) {
+        if ((node.requires && count(this.p.inv, node.requires.id) < node.requires.qty) || (node.needsFlags ?? []).some((f) => !this.s.flags[f])) {
           this.emit({ type: 'dialog', npc: npcId, lines: node.missing ?? npc.idle });
           return;
         }
