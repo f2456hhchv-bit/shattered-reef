@@ -712,7 +712,7 @@ export class UI {
         const chart = this.mapView === 'chart';
         const tabs = (['here', 'chart'] as const).map((id) => `<button data-mapview="${id}" class="${this.mapView === id ? 'on' : ''}">${id === 'here' ? 'Here' : 'Sea chart'}</button>`).join('');
         const title = chart ? 'The Shattered Reef' : this.game.region.name;
-        const note = chart ? 'Sail off the dashed lane at a chart\'s edge to cross between islands. Caves are entered on foot.' : 'Gold star: quest objective. Tap the map to walk there.';
+        const note = chart ? 'Sail off the dashed lane at a chart\'s edge to cross between islands. Caves are entered on foot.' : 'Gold star: quest objective. Gold !: a new quest. Diamonds: bosses (red) and skilling bosses (orange). Tap the map to walk there.';
         c.innerHTML = `<div class="row" style="justify-content:space-between;align-items:center;margin-bottom:6px"><h2 class="title" style="margin:0">${title}</h2><span class="seg maptabs">${tabs}</span></div><canvas id="mapbig" width="600" height="600" aria-label="${chart ? 'Sea chart' : 'Map. Tap to walk there.'}"></canvas><p class="muted" style="font-size:12px;margin:8px 0 0">${note}</p>` + this.utilityRow();
         forget(c); this.bindBigMap(); this.fitBigMap(c); this.drawBigMap(); break;
       }
@@ -1370,7 +1370,24 @@ export class UI {
     const g = this.game;
     const dot = (x: number, z: number, r: number, fill: string) => { const [px, py] = toPx(x, z); c.beginPath(); c.arc(px, py, r, 0, 7); c.fillStyle = fill; c.fill(); c.lineWidth = 1; c.strokeStyle = '#000'; c.stroke(); };
     for (const n of g.nodes) if (n.def.startsWith('spot_') && n.depletedUntil <= g.time) dot(n.x, n.z, big ? 4 : 2.5 * scale, '#9fe8ff');
-    for (const n of g.layout.npcs) dot(n.x, n.z, (big ? 4.5 : 3) * scale, '#ffe066');
+    // quest-givers with a quest you haven't started wear a gold "!" (RuneScape's quest icon); everyone else is a dot
+    const givers = new Set(Object.values(QUESTS).filter((q) => g.questStage(q.id) === 0).map((q) => q.giver));
+    for (const n of g.layout.npcs) {
+      if (!givers.has(n.id)) { dot(n.x, n.z, (big ? 4.5 : 3) * scale, '#ffe066'); continue; }
+      const [px, py] = toPx(n.x, n.z), r = (big ? 7 : 4.6) * scale;
+      c.beginPath(); c.arc(px, py, r, 0, 7); c.fillStyle = '#2a1a0a'; c.fill(); c.lineWidth = 1.5; c.strokeStyle = '#ffd34a'; c.stroke();
+      c.fillStyle = '#ffd34a'; c.font = `700 ${Math.round(r * 1.6)}px Georgia, serif`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('!', px, py + r * 0.05);
+      c.textBaseline = 'alphabetic';
+    }
+    // where the island's big fights start: the skilling bosses and the boss arenas (named on the big map)
+    for (const m of this.eventMarks()) {
+      const [px, py] = toPx(m.x, m.z), r = (big ? 6.5 : 4.2) * scale;
+      c.save(); c.translate(px, py); c.rotate(Math.PI / 4);
+      c.fillStyle = m.kind === 'boss' ? '#d8483a' : '#e8902a'; c.strokeStyle = '#1a120a'; c.lineWidth = 1.5;
+      c.fillRect(-r * 0.7, -r * 0.7, r * 1.4, r * 1.4); c.strokeRect(-r * 0.7, -r * 0.7, r * 1.4, r * 1.4);
+      c.restore();
+      if (big) { c.font = '600 13px Georgia, serif'; c.textAlign = 'center'; c.lineWidth = 4; c.strokeStyle = '#1a120a'; c.strokeText(m.name, px, py + r + 13); c.fillStyle = '#ffd9a8'; c.fillText(m.name, px, py + r + 13); }
+    }
     for (const e of g.enemies) if (e.alive) dot(e.x, e.z, (e.def.boss ? 6 : big ? 3 : 2.2) * scale, e.def.boss ? '#ff4a3a' : '#e05a44');
     for (const d of g.drops) dot(d.x, d.z, 2 * scale, '#f2cf5b');
     if (g.shipHere) {
@@ -1395,6 +1412,17 @@ export class UI {
       c.beginPath(); c.moveTo(6 * scale, 0); c.lineTo(-4 * scale, 4 * scale); c.lineTo(-2 * scale, 0); c.lineTo(-4 * scale, -4 * scale); c.closePath(); c.fill(); c.stroke();
       c.restore();
     }
+  }
+
+  /** The skilling bosses' start points and the boss arenas in this region, for the maps. */
+  private eventMarks(): { x: number; z: number; name: string; kind: 'skill' | 'boss' }[] {
+    const g = this.game, out: { x: number; z: number; name: string; kind: 'skill' | 'boss' }[] = [];
+    const st = g.storm.spots(), fi = g.fire.spots(), se = g.seep.spots();
+    if (st) out.push({ ...st.bell, name: 'The Storm Tide', kind: 'skill' });
+    if (fi) out.push({ ...fi.horn, name: 'The Greenheart Fire', kind: 'skill' });
+    if (se) out.push({ ...se.crack, name: 'The Amber Seep', kind: 'skill' });
+    for (const a of g.layout.arenas) out.push({ x: a.x, z: a.z, name: ENEMIES[a.boss]?.name ?? 'Boss', kind: 'boss' });
+    return out;
   }
 
   private readonly MM_RANGE = 34; // metres from centre to edge
