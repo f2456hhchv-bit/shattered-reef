@@ -93,6 +93,8 @@ export const NODES: Record<string, NodeDef> = Object.fromEntries(([
   { id: 'salt_pan', name: 'Salt pan', level: 1, xp: 0, item: 'sea_salt', difficulty: 0, tier: 0, rate: 0.6, yield: [2, 4], respawn: 90, verb: 'Scrape' },
   // the Storm Tide's shoals by Bellwether's dock: only there while the storm is (stormtide.ts)
   { id: 'spot_storm', name: 'Storm shoal', skill: 'fishing', level: 1, xp: 15, item: 'storm_herring_raw', tool: 'fishing_rod', difficulty: 0.3, tier: 0, rate: 0.7, yield: null, respawn: 0, verb: 'Fish' },
+  // the Greenheart Fire's bamboo by the fire camp: only there while the fire is (greenfire.ts)
+  { id: 'bamboo_fire', name: 'Bamboo stand', skill: 'woodcutting', level: 1, xp: 12, item: 'bamboo', difficulty: 0.3, tier: 0, rate: 0.7, yield: null, respawn: 0, verb: 'Chop' },
   // a wreck on the seabed, worked from the deck with a salvage hook (Sailing)
   { id: 'wreck_salvage', name: 'Sunken wreck', skill: 'sailing', level: 3, xp: 28, item: 'coins', loot: 'salvage', tool: 'salvage_hook', difficulty: 0.4, tier: 0, rate: 0.45, yield: [3, 5], respawn: 150, verb: 'Salvage', fromShip: true },
   { id: 'dig_spot', name: 'Disturbed sand', level: 1, xp: 0, item: 'coins', loot: 'treasure', tool: 'spade', difficulty: 0, tier: 0, rate: 0.45, yield: [1, 1], respawn: 420, verb: 'Dig' },

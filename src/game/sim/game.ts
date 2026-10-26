@@ -1,4 +1,5 @@
 import { StormTide } from './stormtide';
+import { GreenheartFire } from './greenfire';
 import { Naval } from './naval';
 import { AMMO, NAVAL } from '../data/sea';
 import { ACTIVE, type Struck } from '../data/active';
@@ -161,6 +162,7 @@ export class Game {
   naval: Naval = new Naval(this);
   /** Bellwether's skilling boss on the quay (stormtide.ts) */
   storm: StormTide = new StormTide(this);
+  fire: GreenheartFire = new GreenheartFire(this);
   private listeners: ((e: GameEvent) => void)[] = [];
 
   // player runtime
@@ -225,6 +227,7 @@ export class Game {
     // only a few dig spots are disturbed at any time; the rest surface later
     for (const n of this.nodes) if (NODES[n.def].verb === 'Dig' && this.rnd() < 0.75) n.depletedUntil = this.rnd() * NODES[n.def].respawn;
     for (const n of this.nodes) if (n.def === 'spot_storm' && !this.storm?.running) n.depletedUntil = Infinity; // the storm's shoals only run in the storm
+    for (const n of this.nodes) if (n.def === 'bamboo_fire' && !this.fire?.running) n.depletedUntil = Infinity; // and the fire camp's bamboo only in the fire
     this.enemies = []; this.drops = []; this.projectiles = []; this.telegraphs = []; this.mate = null;
     this.boss = null; this.bossArena = null;
     for (const sp of this.layout.spawns) this.spawnEnemy(ENEMIES[sp.enemy], sp.x, sp.z, false);
@@ -397,7 +400,7 @@ export class Game {
       }
       for (const e of this.enemies) if (e.alive && e.state !== 'rise') out.push({ key: `enemy:${e.id}`, kind: 'enemy', x: e.x, z: e.z, range: 1.6 + e.def.radius, label: this.enemyName(e), verb: 'Attack' });
       for (const m of this.questMarks()) out.push({ key: `quest:${m.quest}:${m.mark.id}`, kind: 'quest', x: m.mark.x, z: m.mark.z, range: 2.2, label: m.mark.label, verb: m.mark.verb });
-      out.push(...this.storm.targets());
+      out.push(...this.storm.targets(), ...this.fire.targets());
     }
     return out;
   }
@@ -529,7 +532,7 @@ export class Game {
       case 'portal': { const pt = this.layout.portals[Number(t.key.slice(7))]; this.travel({ to: pt.to, how: 'portal', from: this.s.region }); return; }
       case 'mooring': return this.callShip();
       case 'quest': { const [, q, m] = t.key.split(':'); return this.useMark(q, m); }
-      case 'event': return this.storm.use(t.key);
+      case 'event': return t.key.startsWith('event:gf:') ? this.fire.use(t.key) : this.storm.use(t.key);
     }
   }
 
@@ -2589,6 +2592,7 @@ export class Game {
       this.stepBounties();
       this.stepQuestFoes();
       this.storm.step(dt);
+      this.fire.step(dt);
     }
     this.stepMate(dt);
     if (this.region.kind === 'island') this.naval.step(dt);
