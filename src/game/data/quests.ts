@@ -71,6 +71,7 @@ export const NPCS: Record<string, NpcDef> = {
   // Sunreach's quests (docs/ISLANDS.md, slice 2)
   abena: { id: 'abena', name: 'Abena Owusu', title: 'Fruit seller', idle: ['Mangoes, limes, soursop. Mind the jungle edge after dark, captain.'] },
   nana_ayo: { id: 'nana_ayo', name: 'Nana Ayo', title: 'Herb woman', idle: ['Bush tea for the fever, salt for what comes at night. I keep both.'] },
+  ama: { id: 'ama', name: 'Ama Boateng', title: 'Fire-warden of the Greenheart', idle: ['Dry season, lightning season. The Greenheart burns a little every year. My job is to make it a little.'] },
   // Amberhold's quests (docs/ISLANDS.md, slice 3)
   sigrun: { id: 'sigrun', name: 'Sigrun', title: 'Skald', idle: ['Every hill on Amberhold has a song. Goldvein Hill\'s is the oldest, and nobody sings it after dark.'] },
   ingrid: { id: 'ingrid', name: 'Ingrid Vale', title: 'Fiddler', idle: ['A fiddle tune can calm a horse, a crowd, or a storm. I\'ve managed two of the three.'] },
@@ -424,6 +425,33 @@ export const QUESTS: Record<string, QuestDef> = {
           'Take this bow: amberwood, strung by my own hands. And my people know your face now. They won\'t draw on you again.'],
           effect: { take: [{ id: 'poachers_silver', qty: 1 }], give: [{ id: 'longbow_amber', qty: 1 }, { id: 'coins', qty: 400 }], xp: [{ skill: 'sailing', amount: 600 }], stage: 5, flag: 'poachers_friend' } } }] },
       { text: 'Quest complete.' },
+    ],
+  },
+  greenheart: {
+    id: 'greenheart',
+    name: 'Fire on the Greenheart',
+    island: 'sunreach',
+    giver: 'ama',
+    reward: 'The fire camp hands you four full buckets each time, not two; 800 coins, 1500 Woodcutting XP, 1000 Fletching XP',
+    stages: [
+      { text: 'Speak with Ama Boateng, the fire-warden, at the fire camp in the Greenheart.',
+        talk: { npc: 'ama', node: { lines: [
+          'Lightning season, and the grove\'s dry as kindling. When it goes up, I need hands that know the camp.',
+          'Here\'s how it works. Bamboo from the stands, two lengths to a bucket, lashed at the bench. Fill them at the stream.',
+          'Walk the camp with me: the bench first, then the stream. Then you\'ll know where to run when the horn goes.'], effect: { stage: 1 } } } },
+      { text: 'Learn the fire camp: look over the bench, then the stream.',
+        wrong: 'Bench first, captain. You make the bucket before you fill it.',
+        marks: [
+          { id: 'bench', label: 'Fire camp bench', verb: 'Look over', region: 'sunreach', x: SUN_LAYOUT.jungle.x - 12, z: SUN_LAYOUT.jungle.z + 13, seq: 1, say: ['Twine, a mallet, and bamboo offcuts. Two lengths lashed together make a bucket that holds water.'] },
+          { id: 'stream', label: 'The stream', verb: 'Look over', region: 'sunreach', x: SUN_LAYOUT.jungle.x - 30, z: SUN_LAYOUT.jungle.z + 8, seq: 2, say: ['Cold and quick. You can fill a bucket here in a breath.', 'Somewhere over the canopy, thunder. Ama shouts: "That\'s it! Sound the horn when you\'re ready!"'] },
+        ] },
+      { text: 'Sound the fire horn and save the grove: douse the burning thickets before too much of it burns.', },
+      { text: 'Tell Ama Boateng the grove is saved.',
+        talk: { npc: 'ama', node: { lines: [
+          'Steam over the canopy, and not a tree lost that won\'t grow back. You\'ve the makings of a warden.',
+          'From now on the camp keeps four buckets full for you, not two. Come back whenever the horn sounds.'],
+          effect: { give: [{ id: 'coins', qty: 800 }], xp: [{ skill: 'woodcutting', amount: 1500 }, { skill: 'fletching', amount: 1000 }], stage: 4, flag: 'greenheart_done' } } } },
+      { text: 'Quest complete. The fire camp hands you four full buckets each time.' },
     ],
   },
   temple: {

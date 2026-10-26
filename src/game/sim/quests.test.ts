@@ -216,6 +216,29 @@ describe('Stormwrack\'s quest', () => {
   });
 });
 
+describe('Fire on the Greenheart', () => {
+  it('learn the camp in order, save the grove, and the camp keeps four buckets for you after', () => {
+    const L = regionLayout('sunreach');
+    const g = new Game({ seed: 7, save: { ...defaultSave(L.respawn, L.mooring!), region: 'sunreach' } });
+    for (const e of g.enemies) { e.alive = false; e.respawnAt = Infinity; }
+    talk(g, 'ama');
+    expect(g.questStage('greenheart')).toBe(1);
+    use(g, 'greenheart', 'stream'); // out of order
+    expect(g.questStage('greenheart')).toBe(1);
+    use(g, 'greenheart', 'bench'); use(g, 'greenheart', 'stream');
+    expect(g.questStage('greenheart')).toBe(2);
+    g.give('hatchet_bronze', 1);
+    g.fire.start();
+    expect(count(g.p.inv, 'bucket_water')).toBe(2);
+    (g.fire as unknown as { end(won: boolean): void }).end(true);
+    expect(g.questStage('greenheart')).toBe(3);
+    talk(g, 'ama');
+    expect(g.questStage('greenheart')).toBe(QUESTS.greenheart.stages.length - 1);
+    g.fire.start();
+    expect(count(g.p.inv, 'bucket_water')).toBe(4);
+  });
+});
+
 describe('Star-Struck', () => {
   it('search the camp in order, beat Tobin, take the shard, quench it at the vent forge for the pendant', () => {
     const L = regionLayout('wrack');

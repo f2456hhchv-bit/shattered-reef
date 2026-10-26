@@ -160,6 +160,7 @@ function buildIslandRegion(region: IslandId): IslandLayout {
     // the quest folk (slice 2): Abena at her fruit stand, Nana Ayo by the plaza's shade tree
     { id: 'abena', x: SL.plaza.x - 5, z: SL.plaza.z + 2, facing: 0 },
     { id: 'nana_ayo', x: SL.plaza.x + 6, z: SL.plaza.z + 3, facing: Math.PI },
+    { id: 'ama', x: SL.jungle.x - 16, z: SL.jungle.z + 13, facing: Math.PI / 2 }, // the Greenheart Fire's camp
   );
   else if (amb) npcs.push(
     { id: 'jory', x: AL.dockBase.x + 3.2, z: AL.dockBase.z - 1.0, facing: Math.PI / 2 },
