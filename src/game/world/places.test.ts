@@ -66,9 +66,12 @@ describe('reachability audit', () => {
         return false;
       };
       const bad: string[] = [];
+      const onIsletL = (x: number, z: number) => ISLETS.some((i) => Math.hypot(i.x - x, i.z - z) < i.r);
       for (const n of L.npcs) if (!ok(n.x, n.z, 2.2)) bad.push(`npc ${n.id}`);
       L.stations.forEach((s) => { if (!ok(s.x, s.z, 2.3)) bad.push(`station ${s.id}`); });
       L.banks.forEach((b, i) => { if (!ok(b.x, b.z, 2.2)) bad.push(`bank ${i}`); });
+      const { LORE } = await import('../data/lore');
+      for (const l of LORE) if (l.region === r && !onIsletL(l.x, l.z) && !ok(l.x, l.z, 2.2)) bad.push(`lore ${l.id}`);
       for (const a of L.arenas) if (!ok(a.altar.x, a.altar.z, 2.2)) bad.push(`arena ${a.boss}`);
       for (const q of Object.values(QUESTS)) for (const st of q.stages) for (const m of st.marks ?? []) if (m.region === r && !ok(m.x, m.z, 2.2)) bad.push(`quest ${q.id}:${m.id}`);
       // (islets are reached by ship: what stands on one is checked from its own shore, below)
@@ -82,6 +85,11 @@ describe('reachability audit', () => {
           let found = false;
           for (let k = 0; k < 16 && !found; k++) { const a = (k / 16) * Math.PI * 2, px = n.x + Math.cos(a) * (reach - 0.4), pz = n.z + Math.sin(a) * (reach - 0.4); found = w.walkable(px, pz) && !!w.findPath(shore[0], shore[1], px, pz); }
           if (!found) bad.push(`islet node ${n.def}`);
+        }
+        for (const l of LORE.filter((x) => x.region === r && Math.hypot(i.x - x.x, i.z - x.z) < i.r)) {
+          let found = false;
+          for (let k = 0; k < 16 && !found; k++) { const a = (k / 16) * Math.PI * 2, px = l.x + Math.cos(a) * 1.6, pz = l.z + Math.sin(a) * 1.6; found = w.walkable(px, pz) && !!w.findPath(shore[0], shore[1], px, pz); }
+          if (!found) bad.push(`islet lore ${l.id}`);
         }
       }
       // every foe stands somewhere you can walk up and fight it (melee reach ~1.6 m)

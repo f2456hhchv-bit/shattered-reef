@@ -5,7 +5,7 @@ import type { UI } from '../ui/ui';
 // One input layer for both devices. Touch: invisible joystick (drag) + tap to walk/use.
 // Mouse: click to walk/use (RuneScape-style), hover labels, wheel zoom. Keyboard: WASD + hotkeys.
 
-const PICK_Y: Record<Target['kind'], number> = { node: 0.9, npc: 1.3, station: 0.8, bank: 0.6, ship: 1.6, arena: 1.0, portal: 1.2, enemy: 0.9, drop: 0.25, mooring: 1.2, quest: 0.8, event: 1.0 };
+const PICK_Y: Record<Target['kind'], number> = { node: 0.9, npc: 1.3, station: 0.8, bank: 0.6, ship: 1.6, arena: 1.0, portal: 1.2, enemy: 0.9, drop: 0.25, mooring: 1.2, quest: 0.8, event: 1.0, lore: 0.5 };
 
 export class Input {
   private keys = new Set<string>();

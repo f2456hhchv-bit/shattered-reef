@@ -8,6 +8,7 @@ import { DIARIES, diaryDone } from '../data/diaries';
 import { QUESTS } from '../data/quests';
 import { PLACES, placeRegion } from '../world/places';
 import { CHART_MARKS } from '../data/sea';
+import { LORE } from '../data/lore';
 
 // Island diaries (data/diaries.ts): a list per island, claimed once for coins, XP and free ferries.
 const at = (region: 'bellwether' | 'sunreach' | 'amberhold' | 'wrack') => { const L = regionLayout(region); return new Game({ seed: 3, save: { ...defaultSave(L.respawn, L.mooring!), region } }); };
@@ -16,6 +17,7 @@ const finish = (g: Game, island: string) => {
   for (const q of Object.values(QUESTS).filter((x) => (x.island ?? 'bellwether') === island)) g.s.quests[q.id] = q.stages.length - 1;
   for (const f of ['storm_tide_won', 'guardian_defeated', 'greenfire_won', 'seep_held', 'kraken_escaped', 'jotunn_defeated', 'treasure_hauled']) g.s.flags[f] = true;
   for (const m of CHART_MARKS) g.s.flags[`chart_${m.id}`] = true;
+  for (const l of LORE) g.s.flags[`lore_${l.id}`] = true;
   g.s.discovered = PLACES.map((p) => p.id);
   for (const k of Object.keys(g.p.xp) as (keyof typeof g.p.xp)[]) g.p.xp[k] = xpForLevel(60);
 };

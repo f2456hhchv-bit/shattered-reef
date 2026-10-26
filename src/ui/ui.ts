@@ -3,6 +3,7 @@ import { onIconReady } from '../art/overrides';
 import { FIRE } from '../game/sim/greenfire';
 import { AMMO, CHART_MARKS, type AmmoId } from '../game/data/sea';
 import { DIARIES } from '../game/data/diaries';
+import { LORE, KEEL_PAGES } from '../game/data/lore';
 import { item, RARITY, AFFIXES, METALS, METAL_TRAITS, AMMO_NAME, ammoKind, isTwoHanded, pairGroup, type ItemDef, type Slot, type SkillId, type WeaponKind } from '../game/data/items';
 import { morph, forget } from './morph';
 import { wears, condOf, WORN_OUT_EFFECT } from '../game/sim/inventory';
@@ -83,7 +84,7 @@ export class UI {
   private station: Station | null = null;
   private shopOpen = false;
   private shopTab: 'buy' | 'sell' = 'buy';
-  private dialog: { npc: string; lines: string[]; i: number } | null = null;
+  private dialog: { npc: string; lines: string[]; i: number; read?: { title: string; sub: string } } | null = null;
   private pop: { slot?: number; equip?: Slot } | null = null;
   private dmgPool: { el: HTMLElement; x: number; y: number; z: number; t: number; live: boolean }[] = [];
   private bars = new Map<number, HTMLElement>();
@@ -321,6 +322,7 @@ export class UI {
         break;
       }
       case 'dialog': this.openDialog(e.npc, e.lines); break;
+      case 'read': this.closeWindows(); this.dialog = { npc: '', lines: e.lines, i: 0, read: { title: e.title, sub: e.sub } }; this.renderDialog(); break;
       case 'openStation': this.openStation(e.station); break;
       case 'openShop': this.openShop(); break;
       case 'ferryOffer': { const n = NPCS[e.npc]; this.confirm(`${n.idle[0]}`, e.price ? `Sail (${e.price} coins)` : 'Sail (free: diary)', () => this.game.takeFerry(e.npc)); break; }
@@ -729,8 +731,9 @@ export class UI {
   /** One set of handlers on the tab panel for its whole life (content is patched, never re-bound). */
   private bindContent(c: HTMLElement) {
     const g = this.game;
-    onTap(c, '[data-diary], [data-slot], [data-equip], [data-stance], [data-spell], [data-q], [data-dmg], [data-music], [data-sfx], [data-fps], [data-lv], [data-skill], [data-skillback], [data-gcat], [data-sort], [data-home], [data-mapview], [data-key], [data-devkeys], #saveNow, #resetSave', (t, pointer) => {
+    onTap(c, '[data-lore], [data-diary], [data-slot], [data-equip], [data-stance], [data-spell], [data-q], [data-dmg], [data-music], [data-sfx], [data-fps], [data-lv], [data-skill], [data-skillback], [data-gcat], [data-sort], [data-home], [data-mapview], [data-key], [data-devkeys], #saveNow, #resetSave', (t, pointer) => {
       if (t.dataset.home) { g.teleportHome(); return; }
+      if (t.dataset.lore) { g.readLore(t.dataset.lore); return; }
       if (t.dataset.diary) { g.claimDiary(t.dataset.diary); this.lastRev = -1; return; }
       if (t.dataset.sort) { this.closePop(); g.sortPack(t.dataset.sort as 'type' | 'value' | 'quality'); this.log(`Pack sorted by ${t.dataset.sort}.`); return; }
       if (t.dataset.gcat) { this.guideCat = t.dataset.gcat; this.lastRev = -1; this.renderTab(); return; }
@@ -940,7 +943,13 @@ export class UI {
       const reward = `${d.coins.toLocaleString('en-GB')} coins, ${d.xp.map((x) => `${x.amount.toLocaleString('en-GB')} ${x.skill[0].toUpperCase() + x.skill.slice(1)}`).join(', ')} XP, free ferries from ${esc(REGIONS[d.island].name)}`;
       return `<div class="quest">${head}<ul class="diary">${list}</ul><small class="muted">Reward: ${reward}</small>${all ? `<button class="btn primary" data-diary="${d.island}" style="margin-top:6px;width:100%">Claim reward</button>` : ''}</div>`;
     }).join('');
-    return `<h2 class="title">Quests</h2>${qs}<div class="brass-rule"></div><h2 class="title">Island diaries</h2>${diaries}<div class="brass-rule"></div><h2 class="title">Your bounty</h2>${poster}<div class="brass-rule"></div><h2 class="title">Places (${g.s.discovered.length}/${PLACES.length})</h2>${disc}`;
+    // Keel's Log and the Varrow's fragments: what you've found, in Keel's order; tap one to read it again
+    const found = LORE.filter((l) => g.s.flags[`lore_${l.id}`]);
+    const keelFound = found.filter((l) => l.set === 'keel').length;
+    const order = (l: (typeof LORE)[number]) => (l.set === 'keel' ? 0 : 1) * 100 + LORE.indexOf(l);
+    const loreRows = [...found].sort((a, b) => order(a) - order(b)).map((l) => `<button class="lore-row" data-lore="${l.id}"><b>${esc(l.title)}</b><small>${esc(REGIONS[l.region].name)}</small></button>`).join('');
+    const lore = `<p class="muted" style="font-size:12px;margin:0 0 6px">${keelFound} of ${KEEL_PAGES} pages of Keel's Log found${found.length > keelFound ? `, and ${found.length - keelFound} fragment${found.length - keelFound > 1 ? 's' : ''} of the Varrow` : ''}. Pages turn up on every island, wedged and weighted where the sea left them.</p>${loreRows}`;
+    return `<h2 class="title">Quests</h2>${qs}<div class="brass-rule"></div><h2 class="title">Keel's Log</h2>${lore}<div class="brass-rule"></div><h2 class="title">Island diaries</h2>${diaries}<div class="brass-rule"></div><h2 class="title">Your bounty</h2>${poster}<div class="brass-rule"></div><h2 class="title">Places (${g.s.discovered.length}/${PLACES.length})</h2>${disc}`;
   }
 
   private settingsHtml() {
@@ -1314,9 +1323,13 @@ export class UI {
     let el = document.getElementById('dialog');
     if (!this.dialog) { el?.remove(); return; }
     if (!el) { el = h('div', { id: 'dialog', class: 'panel', role: 'dialog' }); document.body.appendChild(el); }
-    const n = NPCS[this.dialog.npc];
     const last = this.dialog.i >= this.dialog.lines.length - 1;
-    el.innerHTML = `${NPC_LOOKS[this.dialog.npc] ? `<img class="portrait" alt="" src="${portrait(this.dialog.npc, NPC_LOOKS[this.dialog.npc])}">` : ''}<div class="who">${esc(n.name)}<small>${esc(n.title)}</small></div><p>${esc(this.dialog.lines[this.dialog.i])}</p><div class="act"><button class="btn primary">${last ? 'Close' : 'Continue'}</button></div>`;
+    const rd = this.dialog.read, n = rd ? null : NPCS[this.dialog.npc];
+    // a page you're reading (Keel's Log, a Varrow fragment): parchment, no portrait
+    el.classList.toggle('reading', !!rd);
+    const who = rd ? `<div class="who">${esc(rd.title)}<small>${esc(rd.sub)}</small></div>` : `<div class="who">${esc(n!.name)}<small>${esc(n!.title)}</small></div>`;
+    const pic = !rd && NPC_LOOKS[this.dialog.npc] ? `<img class="portrait" alt="" src="${portrait(this.dialog.npc, NPC_LOOKS[this.dialog.npc])}">` : '';
+    el.innerHTML = `${pic}${who}<p>${esc(this.dialog.lines[this.dialog.i])}</p><div class="act"><button class="btn primary">${last ? 'Close' : 'Continue'}</button></div>`;
     const btn = el.querySelector('button')!;
     onTap(btn, 'button', () => this.advanceDialog());
     btn.focus({ preventScroll: true });
@@ -1329,7 +1342,7 @@ export class UI {
       const npc = this.dialog.npc;
       this.dialog = null;
       this.renderDialog();
-      if (NPCS[npc].shop && !this.shopOpen) this.game.openShopOf(npc);
+      if (NPCS[npc]?.shop && !this.shopOpen) this.game.openShopOf(npc);
       return;
     }
     this.renderDialog();
