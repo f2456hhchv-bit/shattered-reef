@@ -67,7 +67,7 @@ describe('content data', () => {
     const questGifts = Object.values(QUESTS).flatMap((q) => q.stages.flatMap((st) => [st.talk, ...(st.also ?? [])].flatMap((o) => o?.node.effect?.give?.map((g) => g.id) ?? [])));
     // boss/starter/flavour pieces with crafted equivalents, quest rewards, and the skilling bosses' outfits
     const TROPHY = new Set(['lockplate', 'cutlass_rusty', 'cutlass_brigand', 'ring_brass', ...questGifts, 'oilskin_hat', 'oilskin_coat', 'oilskin_legs', 'sea_boots',
-      'warden_hat', 'warden_coat', 'warden_legs', 'warden_boots']);
+      'warden_hat', 'warden_coat', 'warden_legs', 'warden_boots', 'prospector_hat', 'prospector_coat', 'prospector_legs', 'prospector_boots']);
     // signature weapons are drop-only on purpose (the abyssal whip of each style); each must have a source
     const dropOnly = Object.values(ITEMS).filter((d) => d.equip && !d.sig && !made.has(d.id) && !sold.has(d.id) && !TROPHY.has(d.id)).map((d) => d.id);
     expect(dropOnly).toEqual([]);

@@ -293,6 +293,14 @@ function tierItems(): ItemDef[] {
       equip: { slot, reqs: {}, bonus: { defMelee: dm, defRanged: dm, defMagic: dg }, affixPool: [...ARMOUR_AFFIX, 'gather_speed'] }, innate: [{ id: 'gather_speed', v: 2 }] }));
   warden('warden_hat', 'Fire warden\'s hat', 'head', 'cap', 2, 2); warden('warden_coat', 'Fire warden\'s coat', 'body', 'coat', 4, 3);
   warden('warden_legs', 'Fire warden\'s trousers', 'legs', 'legs', 3, 2); warden('warden_boots', 'Fire warden\'s boots', 'feet', 'boots', 2, 1);
+  // the Amber Seep (Amberhold's skilling boss): amber, braces, and the prospectors' outfit
+  out.push(I({ id: 'raw_amber', name: 'Raw amber', desc: 'A lump of amber from the seep, warm to the touch. Tip it in the cart, or set it in a brace.', icon: { shape: 'gem', color: '#e8902a', accent: '#f8c86a' }, stackable: true, value: 0, quest: true }));
+  out.push(I({ id: 'amber_brace', name: 'Amber brace', desc: 'A log bound with amber, hard as iron. Hammer it into a groaning support.', icon: { shape: 'log', color: '#8a5a2a', accent: '#e8902a' }, stackable: true, value: 0, quest: true }));
+  const prospector = (id: string, name: string, slot: Slot, shape: IconShape, dm: number, dg: number) =>
+    out.push(I({ id, name, desc: 'From the Amber Seep\'s cart. Every piece of the set makes mining and gathering a little quicker.', icon: { shape, color: '#6a5a3a', accent: '#e8902a' }, stackable: false, value: 120,
+      equip: { slot, reqs: {}, bonus: { defMelee: dm, defRanged: dm, defMagic: dg }, affixPool: [...ARMOUR_AFFIX, 'gather_speed'] }, innate: [{ id: 'gather_speed', v: 2 }] }));
+  prospector('prospector_hat', 'Prospector\'s helmet', 'head', 'helm', 3, 2); prospector('prospector_coat', 'Prospector\'s jacket', 'body', 'coat', 5, 3);
+  prospector('prospector_legs', 'Prospector\'s trousers', 'legs', 'legs', 4, 2); prospector('prospector_boots', 'Prospector\'s boots', 'feet', 'boots', 2, 1);
   // sea gear (Sailing): ship's ammunition, the salvage hook, and what the sea gives back
   out.push(I({ id: 'chain_shot', name: 'Chain shot', desc: 'Two balls on a chain. Shreds sails and whole flocks of gulls. Load it at sea (Sailing 5).', icon: { shape: 'shot', color: '#8a8a95', accent: '#5a5a62' }, stackable: true, value: 3 }));
   out.push(I({ id: 'fire_barrel', name: 'Fire barrel', desc: 'A cask of resin and pitch with a lit fuse. Sets wooden ships ablaze. Fire it from your broadside (Sailing 20).', icon: { shape: 'pot', color: '#6a4a2a', accent: '#e8702a' }, stackable: true, value: 18 }));

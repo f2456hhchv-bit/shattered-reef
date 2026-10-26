@@ -1,3 +1,4 @@
+import { SEEP } from '../game/sim/amberseep';
 import { FIRE } from '../game/sim/greenfire';
 import { AMMO, CHART_MARKS, type AmmoId } from '../game/data/sea';
 import { item, RARITY, AFFIXES, METALS, METAL_TRAITS, AMMO_NAME, ammoKind, isTwoHanded, pairGroup, type ItemDef, type Slot, type SkillId, type WeaponKind } from '../game/data/items';
@@ -91,6 +92,7 @@ export class UI {
   private overhead!: HTMLElement;
   private stormHud!: HTMLElement;
   private fireHud!: HTMLElement;
+  private seepHud!: HTMLElement;
   private cuePop!: HTMLElement;
   private cuePopT = 0;
   private bannerT = 0;
@@ -216,6 +218,10 @@ export class UI {
     this.fireHud = h('div', { id: 'firehud', class: 'stormhud' }, '<div><b>Fires out</b><span><i></i></span></div><div><b>Grove left</b><span><i></i></span></div>');
     this.fireHud.hidden = true;
     this.el.overlay.appendChild(this.fireHud);
+    // the Amber Seep: the tunnel's strength, and how long the hill stays open
+    this.seepHud = h('div', { id: 'seephud' }, '<div><b>The tunnel</b><span><i></i></span></div><div><b>Hill open</b><span><i></i></span></div>');
+    this.seepHud.hidden = true;
+    this.el.overlay.appendChild(this.seepHud);
     this.overhead = h('div', { class: 'overhead' });
     this.el.overlay.appendChild(this.overhead);
     this.cuePop = h('div', { class: 'cuepop' });
@@ -458,6 +464,13 @@ export class UI {
       const bars = this.fireHud.querySelectorAll('i');
       (bars[0] as HTMLElement).style.width = `${(fire.doused / FIRE.win) * 100}%`;
       (bars[1] as HTMLElement).style.width = `${(1 - fire.ashed / FIRE.lose) * 100}%`;
+    }
+    const seep = g.seep;
+    this.seepHud.hidden = !seep.running;
+    if (seep.running) {
+      const bars = this.seepHud.querySelectorAll('i');
+      (bars[0] as HTMLElement).style.width = `${(seep.stability / SEEP.stability) * 100}%`;
+      (bars[1] as HTMLElement).style.width = `${(seep.left / SEEP.duration) * 100}%`;
     }
     const storm = g.storm;
     this.stormHud.hidden = !storm.running;
