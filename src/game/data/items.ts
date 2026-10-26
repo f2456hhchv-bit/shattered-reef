@@ -289,6 +289,7 @@ function tierItems(): ItemDef[] {
   warden('warden_legs', 'Fire warden\'s trousers', 'legs', 'legs', 3, 2); warden('warden_boots', 'Fire warden\'s boots', 'feet', 'boots', 2, 1);
   // sea gear (Sailing): ship's ammunition, the salvage hook, and what the sea gives back
   out.push(I({ id: 'chain_shot', name: 'Chain shot', desc: 'Two balls on a chain. Shreds sails and whole flocks of gulls. Load it at sea (Sailing 5).', icon: { shape: 'shot', color: '#8a8a95', accent: '#5a5a62' }, stackable: true, value: 3 }));
+  out.push(I({ id: 'fire_barrel', name: 'Fire barrel', desc: 'A cask of resin and pitch with a lit fuse. Sets wooden ships ablaze. Fire it from your broadside (Sailing 20).', icon: { shape: 'pot', color: '#6a4a2a', accent: '#e8702a' }, stackable: true, value: 18 }));
   out.push(I({ id: 'depth_charge', name: 'Depth charge', desc: 'A powder keg with a fuse. Roll it over the stern; it finds what swims under you (Sailing 10).', icon: { shape: 'pot', color: '#3a3028', accent: '#c84a2a' }, stackable: true, value: 12 }));
   out.push(I({ id: 'salvage_hook', name: 'Salvage hook', desc: 'A grapnel on a long line. Drags what\'s worth having off a wreck, from the deck.', icon: { shape: 'harpoon', color: '#6a6e72', accent: '#8a5a34' }, stackable: false, value: 40, tool: { skill: 'sailing', power: 0, level: 1 } }));
   out.push(I({ id: 'shark_tooth', name: 'Shark tooth', desc: 'Serrated and white. Strung on leather it makes a lucky charm.', icon: { shape: 'tooth', color: '#efe8d8' }, stackable: true, value: 10 }));

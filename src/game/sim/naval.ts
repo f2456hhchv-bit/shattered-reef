@@ -233,6 +233,8 @@ export class Naval {
       }
       if (f.state === 'idle') f.state = f.def.behaviour === 'shark' ? 'circle' : 'chase';
       if (f.def.behaviour === 'cutter') this.stepCutter(f, d, dt);
+      else if (f.def.behaviour === 'brig') this.stepBrig(f, d, dt);
+      else if (f.def.behaviour === 'fireship') this.stepFireship(f, d, dt);
       else if (f.def.behaviour === 'flock') this.stepFlock(f, d, dt);
       else this.stepShark(f, d, dt);
     }
@@ -276,6 +278,57 @@ export class Naval {
       f.state = 'aim'; f.t = 0.9;
       f.aim = { x: sh.x, z: sh.z };
       this.g.telegraphs.push({ id: this.g.nextId++, kind: 'line', x: f.x, z: f.z, r: 18, angle: Math.atan2(sh.z - f.z, sh.x - f.x), width: 1.2, t: 0, dur: 0.9, damage: 0, source: -f.id });
+    }
+  }
+
+  /**
+   * A brig: circles wide, and when the guns are ready it shows three lines across your bow and beam, then fires a
+   * broadside down them. Steer off the lines.
+   */
+  private stepBrig(f: SeaFoe, d: number, dt: number) {
+    const sh = this.g.ship;
+    if (f.state === 'aim') {
+      f.t -= dt;
+      if (f.t <= 0 && f.aim) {
+        const base = Math.atan2(f.aim.z - f.z, f.aim.x - f.x);
+        for (const off of [-0.16, 0, 0.16]) this.balls.push({ id: this.g.nextId++, x: f.x, z: f.z, vx: Math.cos(base + off) * 18, vz: Math.sin(base + off) * 18, life: 1.15, from: 'foe', damage: f.def.damage, ammo: 'cannonball' });
+        f.state = 'chase'; f.cd = f.def.cooldown; f.aim = null;
+      }
+      return;
+    }
+    const want = 12, ang = Math.atan2(f.z - sh.z, f.x - sh.x) + 0.28;
+    this.moveFoe(f, sh.x + Math.cos(ang) * want, sh.z + Math.sin(ang) * want, f.def.speed, dt);
+    if (f.cd <= 0 && d < 16) {
+      f.state = 'aim'; f.t = 1.1;
+      f.aim = { x: sh.x, z: sh.z };
+      const base = Math.atan2(sh.z - f.z, sh.x - f.x);
+      for (const off of [-0.16, 0, 0.16]) this.g.telegraphs.push({ id: this.g.nextId++, kind: 'line', x: f.x, z: f.z, r: 20, angle: base + off, width: 1.0, t: 0, dur: 1.1, damage: 0, source: -f.id });
+    }
+  }
+
+  /**
+   * A fire ship: sails straight at you. Close in, its crew light the fuse and dive overboard (a marked ring round
+   * it), and it keeps coming; when the fuse burns down it goes up. Sink it first, or turn away and outrun the ring.
+   */
+  private stepFireship(f: SeaFoe, d: number, dt: number) {
+    const sh = this.g.ship, R = 4.5;
+    if (f.state === 'aim') {
+      f.t -= dt;
+      this.moveFoe(f, sh.x, sh.z, f.def.speed * 0.55, dt); // drifting on, slower with no crew
+      if (f.t <= 0) {
+        this.g.emit({ type: 'explode', x: f.x, z: f.z, r: R });
+        if (Math.hypot(sh.x - f.x, sh.z - f.z) < R + 1.2) this.hitHull(f.def.damage);
+        // it burns to the waterline: no prize, no Sailing XP for the one that got away
+        f.alive = false; f.respawnAt = this.g.time + f.def.respawn;
+        this.g.emit({ type: 'enemyDeath', id: f.id, x: f.x, z: f.z, elite: false, boss: false });
+        this.g.rev++;
+      }
+      return;
+    }
+    this.moveFoe(f, sh.x, sh.z, f.def.speed, dt);
+    if (d < 6) {
+      f.state = 'aim'; f.t = 1.6;
+      this.g.telegraphs.push({ id: this.g.nextId++, kind: 'circle', x: f.x, z: f.z, r: R, angle: 0, width: 0, t: 0, dur: 1.6, damage: 0, source: -f.id });
     }
   }
 

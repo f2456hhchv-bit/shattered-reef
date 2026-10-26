@@ -1169,7 +1169,7 @@ export class UI {
   private fpsT = 0;
   /** Aboard: load the next ammunition you can use (cannonballs, chain shot, depth charges). */
   cycleShipAmmo() {
-    const nv = this.game.naval, order: AmmoId[] = ['cannonball', 'chain_shot', 'depth_charge'];
+    const nv = this.game.naval, order = Object.keys(AMMO) as AmmoId[];
     const i = order.indexOf(nv.ammo);
     for (let k = 1; k <= order.length; k++) {
       const next = order[(i + k) % order.length];
