@@ -4,6 +4,7 @@ import { mulberry32 } from '../noise';
 import { m, nudge, shade, add } from './itemkit';
 import { buildHatchet, buildPickaxe, buildCutlass, buildHelm, buildPlate, buildPistol, buildStaff, buildDagger, buildGreatsword, buildPike, buildBow, buildCrossbow, buildArrows } from './gear';
 import { buildFish, buildSteak } from './fish';
+import { artOverride, overrideTexture } from '../overrides';
 
 // Item models: one small, readable 3D object per item. Used for inventory icons (rendered on a
 // slate tile) and inside the sea-glass shards that loot washes up in. ~0.6 units across.
@@ -465,11 +466,22 @@ export function buildLootShard(id: string, qty: number, kind: ShardKind, seed: n
   shell.renderOrder = 3;
   const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geo, 25), new THREE.LineBasicMaterial({ color: tint, transparent: true, opacity: 0.9 }));
   shell.add(edges);
-  const inner = buildItemModel(id, qty);
-  const sphere = new THREE.Box3().setFromObject(inner).getBoundingSphere(new THREE.Sphere());
-  inner.scale.setScalar(0.26 / Math.max(0.05, sphere.radius));
-  inner.position.y = 0.06;
-  inner.rotation.set(0.3, 0, 0.2);
+  // a painted icon (art/items) floats in the crystal as a cut-out, so the world shows the same art as the pack
+  const art = artOverride('items', id);
+  let inner: THREE.Group;
+  if (art) {
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: overrideTexture(art), transparent: true, depthWrite: false }));
+    sp.scale.setScalar(0.5);
+    sp.renderOrder = 4;
+    inner = new THREE.Group().add(sp);
+    inner.position.y = 0.07;
+  } else {
+    inner = buildItemModel(id, qty);
+    const sphere = new THREE.Box3().setFromObject(inner).getBoundingSphere(new THREE.Sphere());
+    inner.scale.setScalar(0.26 / Math.max(0.05, sphere.radius));
+    inner.position.y = 0.06;
+    inner.rotation.set(0.3, 0, 0.2);
+  }
   group.scale.setScalar(1.25);
   const ring = new THREE.Mesh(new THREE.RingGeometry(0.36, 0.42, 28), new THREE.MeshBasicMaterial({ color: tint, transparent: true, opacity: 0.5, depthWrite: false, blending: THREE.AdditiveBlending }));
   ring.rotation.x = -Math.PI / 2;
