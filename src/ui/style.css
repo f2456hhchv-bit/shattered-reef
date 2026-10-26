@@ -583,3 +583,8 @@ body.portrait.side-open .ability { width: 50px; height: 50px; }
 body.portrait.side-open .ability svg { width: 27px; height: 27px; }
 body.portrait.side-open #log { bottom: calc(var(--panel-h) + 14px + env(safe-area-inset-bottom, 0px)); right: 120px; }
 body.portrait.side-open #dialog { bottom: calc(var(--panel-h) + 12px + env(safe-area-inset-bottom, 0px)); }
+/* the run of perfect swings toward a bonus item */
+.cuebar u { position: absolute; left: 50%; top: 13px; transform: translateX(-50%); display: flex; gap: 3px; text-decoration: none; }
+.cuebar u[hidden] { display: none; }
+.cuebar em { width: 7px; height: 7px; border-radius: 50%; background: #241a10; box-shadow: 0 0 0 1px #000; }
+.cuebar em.on { background: #ffd35a; box-shadow: 0 0 0 1px #000, 0 0 6px #ffd35a; }
