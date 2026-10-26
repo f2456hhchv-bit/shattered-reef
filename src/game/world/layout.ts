@@ -709,7 +709,15 @@ function buildIslandRegion(region: IslandId): IslandLayout {
   // townsfolk walking their rounds between the squares and front doors (paths found once, on the baked grid)
   const door = (id: string) => doorPoints(T.buildings.find((b) => b.id === id)!).out;
   const P = SL.plaza;
-  const rounds: { look: string; stops: [number, number][] }[] = wrack || amb ? [] : bell ? [
+  const rounds: { look: string; stops: [number, number][] }[] = amb ? [
+    // Tollhouse Landing: a porter between the quay and the market, a carter out toward the poachers' track
+    { look: 'towns_d', stops: [[AL.dockBase.x - 2, AL.dockBase.z - 3], [AL.landing.x + 5, AL.landing.z + 5], [AL.landing.x - 4, AL.landing.z - 2], [AL.landing.x + 2, AL.landing.z - 9]] },
+    { look: 'towns_a', stops: [[AL.landing.x - 6, AL.landing.z + 6], [AL.landing.x + 8, AL.landing.z - 4], [(AL.landing.x + AL.camp.x) / 2, (AL.landing.z + AL.camp.z) / 2]] },
+  ] : wrack ? [
+    // Gallows Landing: a lookout walking the yard, a smith's boy fetching from the quay
+    { look: 'towns_e', stops: [[WL.landing.x - 5, WL.landing.z + 5], [WL.landing.x + 5, WL.landing.z - 7], [WL.dockBase.x + 2, WL.dockBase.z - 3]] },
+    { look: 'towns_b', stops: [[WL.landing.x - 3, WL.landing.z + 3], [WL.landing.x + 7, WL.landing.z + 1], [WL.landing.x - 7, WL.landing.z - 7]] },
+  ] : bell ? [
     { look: 'towns_a', stops: [[X.x - 4, X.z + 2], door('inn'), [X.x - 22, X.z + 1], door('house_2'), [X.x - 6, X.z + 8]] },
     { look: 'towns_b', stops: [[X.x + 4, X.z - 2], door('bank'), door('chapel'), [X.x + 25, X.z + 1], door('house_3')] },
     { look: 'towns_c', stops: [[V.x + 2, V.z + 1], door('chart'), [V.x + 2, V.z - 10], [X.x + 1.5, X.z + 6], door('store')] },
