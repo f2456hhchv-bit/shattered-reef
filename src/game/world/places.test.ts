@@ -50,3 +50,41 @@ describe('islets', () => {
     expect(Math.hypot(g.p.x - I.x, g.p.z - I.z)).toBeLessThan(16);
   }, 60_000);
 });
+
+describe('reachability audit', () => {
+  for (const r of ['bellwether', 'sunreach', 'amberhold', 'wrack', 'smugglers_caves', 'ember_deep'] as RegionId[]) {
+    it(`${r}: every NPC, station, bank, arena, quest spot and land node can be walked up to`, async () => {
+      const { QUESTS } = await import('../data/quests');
+      const { NODES } = await import('../data/content');
+      const L = regionLayout(r), w = L.world;
+      // reachable = a walkable point within (reach) of it that has a path from where you arrive
+      const ok = (x: number, z: number, reach: number) => {
+        for (let k = 0; k < 16; k++) for (const d of [0.6, 1.2, Math.max(0.6, reach - 0.4)]) {
+          const a = (k / 16) * Math.PI * 2, px = x + Math.cos(a) * d, pz = z + Math.sin(a) * d;
+          if (w.walkable(px, pz) && w.findPath(L.respawn.x, L.respawn.z, px, pz)) return true;
+        }
+        return false;
+      };
+      const bad: string[] = [];
+      for (const n of L.npcs) if (!ok(n.x, n.z, 2.2)) bad.push(`npc ${n.id}`);
+      L.stations.forEach((s) => { if (!ok(s.x, s.z, 2.3)) bad.push(`station ${s.id}`); });
+      L.banks.forEach((b, i) => { if (!ok(b.x, b.z, 2.2)) bad.push(`bank ${i}`); });
+      for (const a of L.arenas) if (!ok(a.altar.x, a.altar.z, 2.2)) bad.push(`arena ${a.boss}`);
+      for (const q of Object.values(QUESTS)) for (const st of q.stages) for (const m of st.marks ?? []) if (m.region === r && !ok(m.x, m.z, 2.2)) bad.push(`quest ${q.id}:${m.id}`);
+      // (islets are reached by ship: what stands on one is checked from its own shore, below)
+      const onIslet = (x: number, z: number) => ISLETS.some((i) => Math.hypot(i.x - x, i.z - z) < i.r);
+      for (const n of L.nodes) { const d = NODES[n.def]; if (d.fromShip || n.scenery || onIslet(n.x, n.z)) continue; if (!ok(n.x, n.z, d.reach ?? 2.2)) bad.push(`node ${n.def}@${Math.round(n.x)},${Math.round(n.z)}`); }
+      for (const i of ISLETS) {
+        const shore = w.nearestWalkable(i.x, i.z, i.r);
+        if (!shore) continue;
+        for (const n of L.nodes.filter((x) => !x.scenery && Math.hypot(i.x - x.x, i.z - x.z) < i.r)) {
+          const reach = NODES[n.def].reach ?? 2.2;
+          let found = false;
+          for (let k = 0; k < 16 && !found; k++) { const a = (k / 16) * Math.PI * 2, px = n.x + Math.cos(a) * (reach - 0.4), pz = n.z + Math.sin(a) * (reach - 0.4); found = w.walkable(px, pz) && !!w.findPath(shore[0], shore[1], px, pz); }
+          if (!found) bad.push(`islet node ${n.def}`);
+        }
+      }
+      expect(bad).toEqual([]);
+    }, 120_000);
+  }
+});
