@@ -277,6 +277,9 @@ function tierItems(): ItemDef[] {
   out.push(I({ id: 'poachers_silver', name: 'Pouch of silver', desc: 'Tamsin\'s payment for the haul. For Ulla on the headland.', icon: { shape: 'coins', color: '#cfd5d8' }, stackable: false, value: 0, quest: true }));
   out.push(I({ id: 'ring_toll', name: 'Toll-keeper\'s seal', desc: 'Tollhouse\'s seal in gold. Traders look twice at it, and charge you less.', icon: { shape: 'ring', color: '#e3c25e', accent: '#5a3a24' }, stackable: false, value: 400,
     equip: { slot: 'ring', reqs: {}, bonus: { acc: 3, defMelee: 2, defRanged: 2, defMagic: 2 }, affixPool: JEWEL_AFFIX } }));
+  // Stormwrack's quest reward
+  out.push(I({ id: 'hat_captain', name: 'Drowned Captain\'s tricorn', desc: 'Black felt gone green at the edges, still dripping. The drowned know it, and spells slide off it.', icon: { shape: 'cap', color: '#1a1a1a', accent: '#c9a050' }, stackable: false, value: 2500,
+    equip: { slot: 'head', reqs: { defence: 60 }, bonus: { defMelee: 40, defRanged: 38, defMagic: 30, acc: 4 }, affixPool: ARMOUR_AFFIX } }));
   // Amberhold's hives (slice 3): the hornets carry comb back from the amberwood
   out.push(I({ id: 'honeycomb', name: 'Amber honeycomb', desc: 'Dark amber honey in the comb, from the hornets of the amberwood. Heals 100.', icon: { shape: 'gem', color: '#e8a83a', accent: '#f8d86a' }, stackable: true, value: 40, heal: 10 }));
   // Sunreach's quest rewards (docs/ISLANDS.md, slice 2)

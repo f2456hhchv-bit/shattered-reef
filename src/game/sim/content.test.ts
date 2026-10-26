@@ -64,7 +64,10 @@ describe('content data', () => {
   it('no gear is drop-only: every weapon and armour piece is craftable, sold, or a quest/boss trophy', () => {
     const made = new Set(RECIPES.map((r) => r.output.id));
     const sold = new Set(Object.values(SHOPS).flatMap((sh) => sh.stock.map((s) => s.id)));
-    const questGifts = Object.values(QUESTS).flatMap((q) => q.stages.flatMap((st) => [st.talk, ...(st.also ?? [])].flatMap((o) => o?.node.effect?.give?.map((g) => g.id) ?? [])));
+    const questGifts = Object.values(QUESTS).flatMap((q) => q.stages.flatMap((st) => [
+      ...[st.talk, ...(st.also ?? [])].flatMap((o) => o?.node.effect?.give?.map((g) => g.id) ?? []),
+      ...(st.marks ?? []).flatMap((m) => m.effect?.give?.map((g) => g.id) ?? []), // a dug-up hoard
+    ]));
     // boss/starter/flavour pieces with crafted equivalents, quest rewards, and the skilling bosses' outfits
     const TROPHY = new Set(['lockplate', 'cutlass_rusty', 'cutlass_brigand', 'ring_brass', ...questGifts, 'oilskin_hat', 'oilskin_coat', 'oilskin_legs', 'sea_boots',
       'warden_hat', 'warden_coat', 'warden_legs', 'warden_boots', 'prospector_hat', 'prospector_coat', 'prospector_legs', 'prospector_boots']);

@@ -1,5 +1,5 @@
 import type { SkillId } from './items';
-import { LAYOUT, SUN_LAYOUT, AMBER_LAYOUT, AMBER, coastPoint } from '../world/island';
+import { LAYOUT, SUN_LAYOUT, AMBER_LAYOUT, AMBER, WRACK_LAYOUT, coastPoint } from '../world/island';
 // NPCs and the first quest, as data. Dialogue is chosen by quest stage; effects are interpreted by the quest system.
 
 export interface Effect {
@@ -449,6 +449,37 @@ export const QUESTS: Record<string, QuestDef> = {
           'And this was under it? The sun-priests\' key. Gold that\'s never cold. Keep it: it\'s earned.',
           'Port Halyard owes you, captain. I\'ll see the whole watch knows it.'],
           effect: { give: [{ id: 'coins', qty: 400 }], xp: [{ skill: 'magic', amount: 1200 }, { skill: 'attack', amount: 800 }], stage: 4, flag: 'temple_done', key: 'sun_key' } } } },
+      { text: 'Quest complete.' },
+    ],
+  },
+  captain: {
+    id: 'captain',
+    name: 'The Drowned Captain\'s Log',
+    island: 'wrack',
+    giver: 'mercy',
+    reward: 'The Drowned Captain\'s tricorn, his hoard (1500 coins and more), 2000 Attack XP, 2000 Defence XP',
+    stages: [
+      { text: 'Speak with Mercy Gale, the harbourmaster at Gallows Landing.',
+        talk: { npc: 'mercy', node: { lines: [
+          'You\'ve seen the Wrack? Ships\' ribs, and the drowned walking among them. Their captain still gives orders.',
+          'He sank with a hoard aboard, they say, and buried it before the end. His log washed up in pieces along the wreck-shore.',
+          'Find the pages. Read where he hid it. Then you\'ll have to get past him to dig.'], effect: { stage: 1 } } } },
+      { text: 'Search the wreck-shore for the three torn pages of the captain\'s log.',
+        marks: [
+          { id: 'p1', label: 'Sodden page in the ribs', verb: 'Search', region: 'wrack', x: WRACK_LAYOUT.wreck.x - 9, z: WRACK_LAYOUT.wreck.z - 2, seq: 1, say: ['"...put it ashore where the ribs point at the crag..."'] },
+          { id: 'p2', label: 'Page under a barnacled spar', verb: 'Search', region: 'wrack', x: WRACK_LAYOUT.wreck.x + 7, z: WRACK_LAYOUT.wreck.z + 1, seq: 2, say: ['"...twelve paces inland of the third rib, no more..."'] },
+          { id: 'p3', label: 'Page in a drowned sailor\'s fist', verb: 'Search', region: 'wrack', x: WRACK_LAYOUT.wreck.x - 1, z: WRACK_LAYOUT.wreck.z + 10, seq: 3, say: ['"...and if I come for it dead, God help the man who\'s dug it first."', 'The pages fit together. You know where to dig. Behind you, something in a rotted coat draws its sword.'] },
+        ] },
+      { text: 'The Drowned Captain stands between you and his hoard. Beat him.', kill: { foe: 'wreck_captain', count: 1 } },
+      { text: 'Dig where the log says: twelve paces inland of the third rib, toward the crag.',
+        marks: [{ id: 'dig', label: 'Disturbed shingle', verb: 'Dig', region: 'wrack', x: WRACK_LAYOUT.wreck.x + 3, z: WRACK_LAYOUT.wreck.z - 9,
+          say: ['Under the shingle, a chest bound in green copper. The lid gives with a shriek.'],
+          effect: { give: [{ id: 'hat_captain', qty: 1 }, { id: 'coins', qty: 1500 }, { id: 'casket', qty: 2 }, { id: 'bar_tide', qty: 3 }], stage: 4 } }] },
+      { text: 'Tell Mercy Gale you found the hoard.',
+        talk: { npc: 'mercy', node: { lines: [
+          'You dug it up, and you\'re still breathing. Gallows Landing will be telling that one for years.',
+          'Keep his hat on, captain. The drowned know it. They might think twice.'],
+          effect: { xp: [{ skill: 'attack', amount: 2000 }, { skill: 'defence', amount: 2000 }], stage: 5, flag: 'captain_done' } } } },
       { text: 'Quest complete.' },
     ],
   },
