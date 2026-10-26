@@ -406,7 +406,7 @@ export const PLAYER_BASE = {
 // ---- enemies -------------------------------------------------------------------
 export type EnemyModel = 'crab' | 'brigand' | 'gunner' | 'guardian' | 'boar' | 'spider' | 'snake' | 'golem' | 'hound' | 'bat' | 'beetle';
 /** Visual variant: crab shell / humanoid outfit / stone tint, chosen by the renderer. */
-export type EnemyLook = 'reef' | 'mire' | 'ironshell' | 'brigand' | 'gunner' | 'smuggler' | 'poacher' | 'drowned' | 'captain' | 'sentinel' | 'cave' | 'giant' | 'jungle' | 'ember' | 'sunscale' | 'hunter' | 'moon' | 'amber' | 'oak' | 'queen' | 'shore' | 'gull' | 'thorn' | 'knocker' | 'leech' | 'howe' | 'troll' | 'seadraugr' | 'wrecker' | 'ant' | 'mantis' | 'douen' | 'centipede' | 'souc' | 'warg' | 'nokk' | 'hornet' | 'bark' | 'mosstroll' | 'draugr' | 'draugrtroll';
+export type EnemyLook = 'reef' | 'mire' | 'ironshell' | 'brigand' | 'gunner' | 'smuggler' | 'poacher' | 'drowned' | 'captain' | 'sentinel' | 'cave' | 'giant' | 'jungle' | 'ember' | 'sunscale' | 'hunter' | 'moon' | 'amber' | 'oak' | 'queen' | 'shore' | 'gull' | 'thorn' | 'knocker' | 'leech' | 'howe' | 'troll' | 'seadraugr' | 'wrecker' | 'ant' | 'mantis' | 'douen' | 'centipede' | 'souc' | 'warg' | 'nokk' | 'hornet' | 'bark' | 'mosstroll' | 'draugr' | 'draugrtroll' | 'jotunn';
 
 export interface EnemyDef {
   id: string;
@@ -541,6 +541,9 @@ export const ENEMIES: Record<string, EnemyDef> = {
   // Amberhold's finale: the giant weavers' mother, under Weaver Hollow
   broodmother: { id: 'broodmother', name: 'The Broodmother', model: 'spider', look: 'queen', boss: true, level: 52, hp: 115, att: 50, def: 38, defBonus: { melee: 30, ranged: 40, magic: -10 }, weakness: 'magic', style: 'melee', accBonus: 44, maxHit: 9,
     speed: 2.8, radius: 1.6, aggro: 20, attack: { kind: 'melee', range: 3.4, windup: 0.6, cooldown: 3 }, loot: 'broodmother', respawn: 0, scale: 2.8 },
+  // Stormwrack's finale (the first island past 50): a storm giant on Thunder Crag, calling lightning
+  storm_jotunn: { id: 'storm_jotunn', name: 'The Thunder Jötunn', model: 'golem', look: 'jotunn', boss: true, level: 82, hp: 360, att: 80, def: 74, defBonus: { melee: 60, ranged: 60, magic: -15 }, weakness: 'magic', style: 'melee', accBonus: 78, maxHit: 24,
+    speed: 2.3, radius: 1.8, aggro: 20, attack: { kind: 'melee', range: 3.8, windup: 0.7, cooldown: 3.2 }, loot: 'jotunn', respawn: 0, scale: 2.4 },
   // bounty hunters (bounties.ts): they come for you once your bounty is big enough; three tiers by your bounty
   bounty_hunter_1: { hostile: true, id: 'bounty_hunter_1', name: 'Bounty hunter', model: 'brigand', look: 'hunter', level: 22, hp: 30, att: 20, def: 16, defBonus: { melee: 15, ranged: 10, magic: 0 }, weakness: 'magic', style: 'melee', accBonus: 16, maxHit: 4,
     speed: 3.5, radius: 0.45, aggro: 14, attack: { kind: 'melee', range: 1.7, windup: 0.4, cooldown: 2.4 }, loot: 'hunter', respawn: 0, scale: 1.2 },
@@ -648,6 +651,8 @@ export const LOOT: Record<string, LootTable> = {
   ember_bat: { coins: [10, 28], drops: [{ item: 'ore_coal', chance: 0.4, qty: [1, 3] }, { item: 'charm_tide', chance: 0.4, qty: [5, 10] }] },
   oakheart: { coins: [60, 140], drops: [{ item: 'logs_cedar', chance: 0.35 }, { item: 'logs_star', chance: 0.25, qty: [1, 2] }, { item: 'logs_yew', chance: 0.5, qty: [2, 4] }],
     gear: { chance: 0.08, items: ['staff_tide', 'longbow_amber', 'shield_tide'], weights: { common: 45, fine: 40, rare: 13, relic: 2 } } },
+  jotunn: { coins: [800, 1600], drops: [{ item: 'bar_sky', chance: 0.6, qty: [2, 4] }, { item: 'ore_levi', chance: 0.5, qty: [2, 4] }, { item: 'crystal_geode', chance: 1, qty: [1, 3] }, { item: 'charm_tide', chance: 1, qty: [100, 200] }],
+    gear: { chance: 1, items: ['cutlass_sky', 'helm_sky', 'plate_sky', 'staff_tide', 'greatsword_sky', 'shield_sky'], weights: { rare: 70, relic: 30 } } },
   broodmother: { sig: { item: 'sig_skypiercer', chance: 1 / 30 }, coins: [300, 600], drops: [{ item: 'spider_silk', chance: 1, qty: [6, 12] }, { item: 'bar_storm', chance: 0.6, qty: [2, 4] }, { item: 'crystal_geode', chance: 0.5 }, { item: 'charm_tide', chance: 1, qty: [60, 120] }],
     gear: { chance: 1, items: ['cutlass_abyss', 'pistol_abyss', 'staff_tide', 'helm_abyss', 'plate_abyss', 'longbow_amber'], weights: { rare: 65, relic: 35 } } },
   guardian: { sig: { item: 'sig_bell', chance: 1 / 80 }, coins: [80, 130], drops: [{ item: 'bar_iron', chance: 1, qty: [2, 4] }, { item: 'charm_tide', chance: 1, qty: [20, 40] }],

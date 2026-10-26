@@ -211,6 +211,13 @@ function buildIslandRegion(region: IslandId): IslandLayout {
     const bones = { x: HO.x + Math.cos(ga) * 4.6, z: HO.z + Math.sin(ga) * 4.6 };
     world.solids.push({ x: bones.x, z: bones.z, r: 0.7 });
     arenas.push({ boss: 'broodmother', x: HO.x, z: HO.z, r: 7, altar: bones, label: 'Web-wrapped bones', verb: 'Disturb' });
+  } else if (wrack) {
+    // Thunder Crag's crown: a ring of storm-cracked stones north of the vent forge; a war horn at the gap (south)
+    const TC = { x: WL.crag.x + 2, z: WL.crag.z - 20 };
+    ring(TC.x, TC.z, 2, 1100);
+    const horn = { x: TC.x, z: TC.z + 4.6 };
+    world.solids.push({ x: horn.x, z: horn.z, r: 0.7 });
+    arenas.push({ boss: 'storm_jotunn', x: TC.x, z: TC.z, r: 7, altar: horn, label: 'Storm horn', verb: 'Sound' });
   }
 
   // ---- cave mouths
@@ -398,7 +405,7 @@ function buildIslandRegion(region: IslandId): IslandLayout {
     : sun ? [{ x: SL.temple.x, z: SL.temple.z, r: 11 }, { x: SL.plaza.x, z: SL.plaza.z, r: 12 }, { x: SL.port.x, z: SL.port.z, r: 16 },
       { x: SL.jungle.x - 24, z: SL.jungle.z, r: 12 }, { x: SL.jungle.x - 14, z: SL.jungle.z + 11, r: 5 }] // the Greenheart Fire's grove and camp
     : amb ? [{ x: AL.landing.x, z: AL.landing.z, r: 14 }, { x: AL.camp.x, z: AL.camp.z, r: 9 }, { x: AL.hollow.x, z: AL.hollow.z, r: 11 }, { x: AL.goldhill.x - 22, z: AL.goldhill.z - 4, r: 9 }] // the Amber Seep's ground
-    : [{ x: WL.starfall.x, z: WL.starfall.z, r: 10 }, { x: WL.landing.x, z: WL.landing.z, r: 14 }, { x: WL.crag.x, z: WL.crag.z - 6, r: 7 }];
+    : [{ x: WL.starfall.x, z: WL.starfall.z, r: 10 }, { x: WL.landing.x, z: WL.landing.z, r: 14 }, { x: WL.crag.x, z: WL.crag.z - 6, r: 7 }, { x: WL.crag.x + 2, z: WL.crag.z - 20, r: 10 }];
   if (bell) {
     const woods = [{ x: F.x, z: F.z, r: 20 }, { x: GV.x, z: GV.z, r: 13 }, { x: HW.x, z: HW.z, r: 20 }, { x: LAYOUT.fen.x, z: LAYOUT.fen.z, r: 16 }];
     for (let tries = 0, made = 0; tries < 9000 && made < 260; tries++) {
