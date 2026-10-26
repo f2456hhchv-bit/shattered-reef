@@ -145,6 +145,8 @@ function buildRecipes(): Recipe[] {
   // ship's stores (Sailing): chain shot, depth charges and the salvage hook, at the anvil
   out.push({ id: 'forge_chain_shot', station: 'anvil', skill: 'smithing', level: 5, xp: 12, inputs: [{ id: 'bar_bronze', qty: 1 }], output: { id: 'chain_shot', qty: 8 } });
   out.push({ id: 'forge_salvage_hook', station: 'anvil', skill: 'smithing', level: 3, xp: 20, inputs: [{ id: 'bar_bronze', qty: 2 }], output: { id: 'salvage_hook', qty: 1 } });
+  // fire barrels: oak casks packed with Greenheart resin (Fletching, for Sunreach's waters)
+  out.push({ id: 'fletch_fire_barrel', station: 'bench', skill: 'fletching', level: 20, xp: 30, inputs: [{ id: 'logs_oak', qty: 1 }, { id: 'resin', qty: 2 }], output: { id: 'fire_barrel', qty: 3 } });
   out.push({ id: 'forge_depth_charge', station: 'anvil', skill: 'smithing', level: 10, xp: 25, inputs: [{ id: 'bar_bronze', qty: 1 }, { id: 'logs_pine', qty: 1 }], output: { id: 'depth_charge', qty: 2 } });
   out.push({ id: 'smelt_gold', station: 'furnace', skill: 'smithing', level: 40, xp: 22.5, inputs: [{ id: 'ore_gold', qty: 1 }], output: { id: 'bar_gold', qty: 1 } });
   // high staffs are smithed too (never drop-only): metal fittings, a rare haft, and charms to wake the focus
@@ -346,7 +348,7 @@ SHOPS.sunreach = {
   stock: [
     { id: 'shortbow_oak', qty: 1 }, { id: 'longbow_willow', qty: 1 }, { id: 'crossbow_iron', qty: 1 }, { id: 'arrow_iron', qty: 25 }, { id: 'bolt_iron', qty: 20 }, { id: 'shot_steel', qty: 25 },
     { id: 'cutlass_steel', qty: 1 }, { id: 'pike_iron', qty: 1 }, { id: 'helm_steel', qty: 1 }, { id: 'shield_steel', qty: 1 }, { id: 'legs_iron', qty: 1 },
-    { id: 'wand_coral', qty: 1 }, { id: 'orb_coral', qty: 1 }, { id: 'book_coral', qty: 1 }, { id: 'harpoon', qty: 1 }, { id: 'lobster_pot', qty: 1 }, { id: 'charm_tide', qty: 50 }, { id: 'sea_salt', qty: 5 },
+    { id: 'wand_coral', qty: 1 }, { id: 'orb_coral', qty: 1 }, { id: 'book_coral', qty: 1 }, { id: 'harpoon', qty: 1 }, { id: 'lobster_pot', qty: 1 }, { id: 'charm_tide', qty: 50 }, { id: 'sea_salt', qty: 5 }, { id: 'fire_barrel', qty: 20 },
   ],
   buyMul: 1.15, sellMul: 0.55,
   wants: [{ prefix: 'ore_', mul: 1.3, note: 'Tamsin pays well for ore,' }, { prefix: 'logs_', mul: 1.3, note: 'timber' }, { prefix: 'spider_silk', mul: 1.5, note: 'and spider silk.' }],

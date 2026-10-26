@@ -163,7 +163,7 @@ export class GameRenderer {
   private dropViews = new Map<number, LootShard>();
   private projViews = new Map<number, THREE.Mesh>();
   // the sea (naval.ts): foes on the water, shot in flight, charges sinking, and the line a broadside would take
-  private seaViews = new Map<number, { root: THREE.Group; shark?: SharkRig; gulls?: FantasyRig[] }>();
+  private seaViews = new Map<number, { root: THREE.Group; shark?: SharkRig; gulls?: FantasyRig[]; serpent?: SnakeRig; flames?: THREE.Mesh[] }>();
   private ballViews = new Map<number, THREE.Mesh>();
   private chargeViews = new Map<number, THREE.Mesh>();
   private aimLine: THREE.Mesh | null = null;
@@ -799,7 +799,13 @@ export class GameRenderer {
       let v = this.seaViews.get(f.id);
       if (!v) {
         const root = new THREE.Group();
-        if (f.def.behaviour === 'shark') {
+        if (f.def.look === 'serpent') {
+          // a sea serpent: the tide-serpent's body, half out of the water when it surfaces
+          const serpent = buildSnake('tide', f.id);
+          serpent.root.scale.setScalar(2.4 * f.def.scale);
+          root.add(serpent.root);
+          v = { root, serpent };
+        } else if (f.def.behaviour === 'shark') {
           const shark = buildShark(f.id, f.def.boss ? 'gnasher' : 'reef');
           shark.root.scale.setScalar(f.def.scale);
           root.add(shark.root);
@@ -808,16 +814,31 @@ export class GameRenderer {
           const gulls = [0, 1, 2].map((k) => { const r = buildFantasy('bat', 'gull', f.id * 7 + k); r.root.scale.setScalar(0.9); root.add(r.root); return r; });
           v = { root, gulls };
         } else {
-          const cut = buildSloop(0x8a2a24); // the wreckers' colours
+          // the wreckers' red, the pirates' black, a fire ship's tar, the Red Ransom's crimson
+          const colour = f.def.look === 'pirate' ? 0x1e1e22 : f.def.look === 'fireship' ? 0x3a2a1a : f.def.look === 'ransom' ? 0xb01818 : 0x8a2a24;
+          const cut = buildSloop(colour);
+          // pirates fly black canvas, the Red Ransom red, a fire ship's is scorched
+          const sails = f.def.look === 'pirate' ? [0x2a2a2e, 0x1a1a1e] : f.def.look === 'ransom' ? [0xa82020, 0x6a1010] : f.def.look === 'fireship' ? [0x5a4a3a, 0x3a2a1e] : null;
+          if (sails) recolour(cut.root, { sail: sails[0], sailPatch: sails[1] });
           cut.root.scale.setScalar(f.def.scale);
           root.add(cut.root);
           v = { root };
+          if (f.def.look === 'fireship') {
+            // burning from bow to stern
+            const flameMat = new THREE.MeshStandardMaterial({ color: 0xffb04a, emissive: 0xff6a1a, emissiveIntensity: 2.6 });
+            v.flames = [];
+            for (let k = 0; k < 5; k++) { const m = new THREE.Mesh(new THREE.ConeGeometry(0.35, 1.3, 5), flameMat); m.position.set((k % 2 ? 0.4 : -0.4), 1.4, (k - 2) * 0.9); root.add(m); v.flames.push(m); }
+          }
         }
         this.region3d.add(root);
         this.seaViews.set(f.id, v);
       }
       v.root.position.set(f.x, 0, f.z);
-      if (v.shark) {
+      if (v.serpent) {
+        v.root.rotation.y = Math.PI / 2 - f.heading;
+        v.root.position.y = f.under ? -1.6 : -0.3;
+        animateSnake(v.serpent, t + f.id, true, f.state === 'surface');
+      } else if (v.shark) {
         v.root.rotation.y = Math.PI / 2 - f.heading;
         animateShark(v.shark, t + f.id, f.under, f.state === 'charge');
       } else if (v.gulls) {
@@ -831,6 +852,7 @@ export class GameRenderer {
       } else {
         v.root.rotation.y = -f.heading;
         v.root.position.y = Math.sin(t * 1.3 + f.id) * 0.06;
+        for (const m of v.flames ?? []) { m.scale.y = 0.75 + Math.sin(t * 11 + m.position.z * 5) * 0.3; m.visible = true; }
       }
     }
     for (const [id, v] of this.seaViews) if (!live.has(id)) { this.disposeObject(v.root); this.seaViews.delete(id); }
