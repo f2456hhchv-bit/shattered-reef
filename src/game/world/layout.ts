@@ -166,6 +166,9 @@ function buildIslandRegion(region: IslandId): IslandLayout {
     // the quest folk (slice 3): Sigrun the skald and Ingrid the fiddler at the landing
     { id: 'sigrun', x: AL.landing.x - 5, z: AL.landing.z - 2, facing: 0 },
     { id: 'ingrid', x: AL.landing.x + 5, z: AL.landing.z - 3, facing: Math.PI },
+    // The Toll of Tollhouse: the toll-reeve at his landing, the poachers' chief at the south edge of her camp
+    { id: 'halvard', x: AL.landing.x, z: AL.landing.z - 7, facing: Math.PI / 2 },
+    { id: 'ulla', x: AL.camp.x, z: AL.camp.z + 11, facing: Math.PI / 2 },
   );
   else npcs.push({ id: 'mercy', x: WL.dockBase.x + 3.2, z: WL.dockBase.z - 1.0, facing: Math.PI / 2 });
   for (const n of npcs) world.solids.push({ x: n.x, z: n.z, r: 0.35 });
