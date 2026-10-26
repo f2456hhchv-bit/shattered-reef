@@ -502,3 +502,15 @@ body.portrait .skgrid { grid-template-columns: repeat(4, 1fr); }
 .recipe .tag { font-size: 11px; color: #d9b25a; text-transform: uppercase; letter-spacing: .06em; }
 .recipe.brow { grid-template-columns: 1fr auto; }
 .recipe.brow .btns .btn { white-space: nowrap; }
+
+/* active skilling: the timing bar (a needle sweeps each swing; tap in the gold) and the call when you do */
+.cuebar { position: absolute; width: 74px; height: 9px; margin-left: -37px; background: #241a10; border: 1px solid #000; border-radius: 5px; pointer-events: none; }
+.cuebar b { position: absolute; top: 0; bottom: 0; background: #b8892e; border-radius: 4px; }
+.cuebar i { position: absolute; top: -3px; bottom: -3px; width: 3px; margin-left: -1.5px; background: #fff6dc; border-radius: 2px; box-shadow: 0 0 4px #000; }
+.cuebar[data-state="open"] b { background: #ffd35a; box-shadow: 0 0 8px #ffd35a; }
+.cuebar[data-state="perfect"] b { background: #8aff7a; box-shadow: 0 0 10px #8aff7a; }
+.cuebar[data-state="miss"] { opacity: .45; }
+.cuepop { position: absolute; transform: translate(-50%, -50%); font: 700 15px var(--display); color: #e8e0cc; text-shadow: 0 1px 3px #000; opacity: 0; pointer-events: none; transition: opacity .2s, transform .5s; white-space: nowrap; }
+.cuepop.on { opacity: 1; transform: translate(-50%, -90%); }
+.cuepop.good { color: #ffd35a; }
+#ctx.cue { box-shadow: 0 0 0 3px #ffd35a, 0 0 18px #ffd35a; }

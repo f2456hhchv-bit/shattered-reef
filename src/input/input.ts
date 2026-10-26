@@ -150,6 +150,7 @@ export class Input {
     switch (k) {
       case 'e': case 'Enter': {
         if (this.ui.dialogOpen) { this.ui.advanceDialog(); break; }
+        if (g.cueState()) { g.strike(); break; } // mid-swing or mid-craft: E is the timing tap
         const t = g.contextTarget();
         if (t) g.interact(t.key);
         break;

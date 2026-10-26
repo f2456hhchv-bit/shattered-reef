@@ -1,3 +1,4 @@
+import { ACTIVE } from '../data/active';
 import { mulberry32 } from '../../art/noise';
 import { item, ammoKind, AMMO_NAME, isTwoHanded, offhandBlock, pairGroup, type ItemDef, type Slot, type SkillId, type CombatStyle } from '../data/items';
 import { perkTotal } from '../data/perks';
@@ -42,6 +43,7 @@ export type GameEvent =
   | { type: 'mateAttack'; x: number; z: number; tx: number; tz: number; style: CombatStyle }
   | { type: 'keyTurn'; x: number; z: number; power: string }
   | { type: 'ferryOffer'; npc: string; to: string; price: number }
+  | { type: 'cue'; perfect: boolean; text: string }
   | { type: 'roll' }
   | { type: 'dodge'; x: number; z: number }
   | { type: 'shoot'; x: number; z: number; tx: number; tz: number }
@@ -104,8 +106,8 @@ export interface Projectile { id: number; x: number; z: number; vx: number; vz: 
 export interface Telegraph { id: number; kind: 'circle' | 'cone' | 'line'; x: number; z: number; r: number; angle: number; width: number; t: number; dur: number; damage: number; source: number }
 
 type Action =
-  | { type: 'gather'; node: string; next: number; progress: number } // progress: 0..1 toward the next item
-  | { type: 'craft'; recipe: string; remaining: number; next: number }
+  | { type: 'gather'; node: string; next: number; progress: number; from: number; struck?: 'perfect' | 'miss' } // progress: 0..1 toward the next item
+  | { type: 'craft'; recipe: string; remaining: number; next: number; from: number; struck?: 'perfect' | 'miss' } // from: this cycle's start (active skilling)
   | null;
 
 /** How a trip to another region ends: where the player (and maybe the ship) comes out. */
@@ -536,7 +538,7 @@ export class Game {
     const tool = this.gatherTool(d);
     if (!tool) { this.msg(`You need ${d.tool ? `a ${item(d.tool).name.toLowerCase()}${d.tool === 'spade' ? ' (Marta sells them)' : ''}` : d.skill === 'woodcutting' ? 'a hatchet' : 'a pickaxe'}.`, 'warn'); return; }
     if (!d.loot && !canAdd(this.p.inv, d.item)) { this.msg('Your pack is full.', 'warn'); return; }
-    this.action = { type: 'gather', node: uid, next: this.time + DT_GATHER * 0.6, progress: this.rnd() * 0.25 };
+    this.action = { type: 'gather', node: uid, next: this.time + DT_GATHER * 0.6, progress: this.rnd() * 0.25, from: this.time };
     this.msg(d.verb === 'Dig' ? 'You start digging...' : d.verb === 'Pick' || d.verb === 'Gather' ? `You reach into the ${d.name.toLowerCase()}...` : d.skill === 'fishing' ? 'You cast your line...' : `You swing at the ${d.name.toLowerCase()}...`);
   }
 
@@ -566,10 +568,12 @@ export class Game {
     const tool = this.gatherTool(d);
     if (!tool) { this.stopAction(); return; }
     a.next = this.time + (d.skill ? DT_GATHER : DT_GATHER * 0.6);
+    const perfect = a.struck === 'perfect';
+    a.struck = undefined; a.from = this.time;
     // steady returns (Tom: one quick, then 30 s of nothing): each swing fills progress by the success chance, a
     // little jittered, and an item lands when it's full. Same average rate as rolling the chance every swing, but
     // the wait between items stays close to the average instead of swinging wildly.
-    a.progress += this.gatherChance(d, tool.power) * (0.75 + this.rnd() * 0.5);
+    a.progress += this.gatherChance(d, tool.power) * (0.75 + this.rnd() * 0.5) * (perfect ? ACTIVE.gatherBonus : 1);
     const ok = a.progress >= 1;
     if (ok) a.progress -= 1;
     const fx = d.skill === 'woodcutting' || d.verb === 'Pick' ? 'wood' : d.skill === 'mining' || d.verb === 'Dig' ? 'stone' : 'water';
@@ -644,6 +648,27 @@ export class Game {
     return list[list.length - 1].item;
   }
 
+  // ------------------------------------------------------------------ active skilling (data/active.ts)
+  /** The current swing or craft's timing: how far through the cycle it is, the gold window, and whether you've tapped. */
+  cueState(): { t: number; window: [number, number]; struck: 'perfect' | 'miss' | null; skill: SkillId | null } | null {
+    const a = this.action;
+    if (!a || this.dead) return null;
+    const skill = a.type === 'gather' ? NODES[this.nodes.find((n) => n.uid === a.node)?.def ?? '']?.skill ?? null : RECIPES.find((r) => r.id === a.recipe)?.skill ?? null;
+    if (!skill) return null; // picking and digging have no skill to be good at
+    const len = Math.max(0.01, a.next - a.from);
+    return { t: Math.max(0, Math.min(1, (this.time - a.from) / len)), window: ACTIVE.window, struck: a.struck ?? null, skill };
+  }
+
+  /** Tap during a swing or craft: in the gold window it's perfect; outside, that cycle's chance is gone. */
+  strike(): 'perfect' | 'miss' | null {
+    const c = this.cueState(), a = this.action;
+    if (!c || !a || a.struck) return null;
+    a.struck = c.t >= c.window[0] && c.t <= c.window[1] ? 'perfect' : 'miss';
+    if (a.struck === 'perfect') this.emit({ type: 'cue', perfect: true, text: ACTIVE.calls[c.skill!] ?? 'Perfect!' });
+    else this.emit({ type: 'cue', perfect: false, text: c.t < c.window[0] ? 'Too soon' : 'Too late' });
+    return a.struck;
+  }
+
   // ------------------------------------------------------------------ crafting
   /** Any station of this kind within reach (the village and the outlying camps each have their own). */
   nearStation(st: Station) {
@@ -666,12 +691,14 @@ export class Game {
     const block = this.recipeBlock(r);
     if (block) { this.msg(block + '.', 'warn'); return; }
     this.path = [];
-    this.action = { type: 'craft', recipe: r.id, remaining: Math.max(1, times), next: this.time + 0.4 };
+    this.action = { type: 'craft', recipe: r.id, remaining: Math.max(1, times), next: this.time + 0.4, from: this.time };
   }
 
   private tickCraft(a: Extract<NonNullable<Action>, { type: 'craft' }>) {
     if (this.time < a.next) return;
     const r = RECIPES.find((x) => x.id === a.recipe)!;
+    const perfect = a.struck === 'perfect';
+    a.struck = undefined;
     if (!this.nearStation(r.station)) { this.stopAction(); return; }
     const block = this.recipeBlock(r);
     if (block) { this.msg(block + '.', 'warn'); this.stopAction(); return; }
@@ -682,7 +709,7 @@ export class Game {
     if (!saved) for (const i of r.inputs) remove(this.p.inv, i.id, i.qty); // validated above: all-or-nothing
     else this.msg('Thrifty: you keep your materials.', 'good');
     this.emit({ type: 'craftFx', station: r.station });
-    if (r.burn) {
+    if (r.burn && !perfect) { // off the heat at the right moment: it can't burn
       const span = Math.max(1, r.burn.stopLevel - (kp?.kind === 'cook' ? 5 : 0) - r.level);
       const burnChance = Math.max(0, 0.45 * (1 - (lvl - r.level) / span)) * (1 - perkTotal(r.skill, lvl, 'burn') / 100);
       if (this.rnd() < burnChance) {
@@ -692,7 +719,7 @@ export class Game {
       }
     }
     if (r.rarityRoll) {
-      const fine = 0.08 + lvl * 0.01 + perkTotal(r.skill, lvl, 'fine') / 100 + (kp?.kind === 'smith' && r.skill === 'smithing' ? kp.v / 100 : 0), rare = 0.015 + lvl * 0.003;
+      const fine = 0.08 + lvl * 0.01 + perkTotal(r.skill, lvl, 'fine') / 100 + (kp?.kind === 'smith' && r.skill === 'smithing' ? kp.v / 100 : 0) + (perfect ? ACTIVE.fineBonus : 0), rare = 0.015 + lvl * 0.003;
       const roll = this.rnd();
       const rarity = roll < rare ? 'rare' : roll < rare + fine ? 'fine' : 'common';
       const inst = makeInstance(r.output.id, rarity, this.rnd, this.uid());
@@ -703,7 +730,7 @@ export class Game {
       this.give(r.output.id, r.output.qty + extra);
       if (r.burn && this.rnd() < perkTotal(r.skill, lvl, 'double') / 100 && canAdd(this.p.inv, r.output.id)) { this.give(r.output.id, 1); this.msg('Two pans: you cook an extra one.', 'good'); }
     }
-    this.addXp(r.skill, r.xp);
+    this.addXp(r.skill, r.xp * (perfect ? ACTIVE.craftXp : 1));
     this.rollKeyFind('production', KEY_CONFIG.craftChance);
     this.afterCraft(a);
   }
@@ -711,6 +738,7 @@ export class Game {
   private afterCraft(a: Extract<NonNullable<Action>, { type: 'craft' }>) {
     a.remaining--;
     const r = RECIPES.find((x) => x.id === a.recipe);
+    a.from = this.time;
     a.next = this.time + DT_CRAFT * (1 - (r ? perkTotal(r.skill, this.level(r.skill), 'quick') / 100 : 0));
     if (a.remaining <= 0) this.stopAction();
     this.rev++;

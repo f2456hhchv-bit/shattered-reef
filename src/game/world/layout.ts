@@ -369,7 +369,7 @@ function buildIslandRegion(region: IslandId): IslandLayout {
   // ---- vegetation and rocks (solid, every one usable): woods are dense, open country is sparse
   const centre = bell ? { x: 0, z: 0 } : sun ? SUN : amb ? AMBER : WRACK;
   const keepClear = bell
-    ? [{ x: R.x, z: R.z, r: 11 }, { x: C.x, z: C.z, r: 9 }, { x: LAYOUT.cove.x, z: LAYOUT.cove.z, r: 9 }, { x: X.x, z: X.z, r: 6 }, { x: LAYOUT.barrows.x, z: LAYOUT.barrows.z, r: 11 }]
+    ? [{ x: R.x, z: R.z, r: 11 }, { x: C.x, z: C.z, r: 9 }, { x: LAYOUT.cove.x, z: LAYOUT.cove.z, r: 9 }, { x: X.x, z: X.z, r: 6 }, { x: LAYOUT.howes.x, z: LAYOUT.howes.z, r: 11 }]
     : sun ? [{ x: SL.temple.x, z: SL.temple.z, r: 11 }, { x: SL.plaza.x, z: SL.plaza.z, r: 12 }, { x: SL.port.x, z: SL.port.z, r: 16 }]
     : amb ? [{ x: AL.landing.x, z: AL.landing.z, r: 14 }, { x: AL.camp.x, z: AL.camp.z, r: 9 }, { x: AL.hollow.x, z: AL.hollow.z, r: 11 }]
     : [{ x: WL.starfall.x, z: WL.starfall.z, r: 10 }, { x: WL.landing.x, z: WL.landing.z, r: 14 }, { x: WL.crag.x, z: WL.crag.z - 6, r: 7 }];
@@ -511,9 +511,9 @@ function buildIslandRegion(region: IslandId): IslandLayout {
       ['campfire', C.x, C.z], ['crate', C.x + 1.8, C.z - 1.5], ['barrel', C.x - 2, C.z + 1.2],
     ]);
     decor('netrack', DB.x - 6.5, DB.z - 1.5, 1.3, 0.15, true);
-    // standing stones round the Barrows
+    // standing stones round the Howes
     for (let k = 0; k < 5; k++) {
-      const a = (k / 5) * Math.PI * 2 + 0.4, BW = LAYOUT.barrows;
+      const a = (k / 5) * Math.PI * 2 + 0.4, BW = LAYOUT.howes;
       props.push({ kind: 'pillar', x: BW.x + Math.cos(a) * 10, z: BW.z + Math.sin(a) * 10, rot: a, s: 0.55 + rnd() * 0.3, seed: 1200 + k });
       world.solids.push({ x: BW.x + Math.cos(a) * 10, z: BW.z + Math.sin(a) * 10, r: 0.6 });
     }
@@ -622,9 +622,9 @@ function buildIslandRegion(region: IslandId): IslandLayout {
     for (let k = 0; k < 4; k++) { const [x, z] = coastPoint(150 + k * 8, 3.5); spawn('shore_beetle', x, z); }
     for (const [dx, dz] of [[-8, -3], [-6, -9], [-12, 2]]) spawn('spriggan', GV.x + dx, GV.z + dz); // the grove's far side, away from Saltpine Wood
     for (const [dx, dz] of [[-7, 10], [6, 12], [-3, 2]]) spawn('knocker', M.x + dx, M.z + dz);
-    // the Barrows: the dead keep their grave goods
-    const BW = LAYOUT.barrows;
-    for (const [dx, dz] of [[-6, 1], [6, 0], [-2, -6], [3, 8]]) spawn('barrow_dead', BW.x + dx, BW.z + dz);
+    // the Howes: the haugbui keep their grave goods
+    const BW = LAYOUT.howes;
+    for (const [dx, dz] of [[-6, 1], [6, 0], [-2, -6], [3, 8]]) spawn('haugbui', BW.x + dx, BW.z + dz);
     const SC = LAYOUT.cove;
     spawn('smuggler', SC.x - 3, SC.z - 2); spawn('smuggler', SC.x + 2, SC.z - 4); spawn('smuggler', SC.x - 5, SC.z - 6);
     spawn('smuggler_gunner', SC.x + 4, SC.z - 1); spawn('smuggler_gunner', SC.x - 1, SC.z - 8);
