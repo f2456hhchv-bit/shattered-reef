@@ -37,6 +37,7 @@ import { artOverride, spriteSwap } from '../art/overrides';
 import { BillboardBatch } from './billboards';
 import { buildPine, buildBroadleaf, buildJungleTree, collapse, buildRock, buildOreRock, buildCrate, buildLanternPost, buildDock, buildPalm, buildGrass, buildBush, buildKelp } from '../art/models/props';
 import { buildBench, buildFurnace, buildAnvil, buildCookfire, buildTent, buildSmithyShed, buildPillar, buildPlinth, buildStrongbox, buildDigSpot, buildGuardian, buildStump, buildRipples, type GuardianRig } from '../art/models/world';
+import { LORE } from '../game/data/lore';
 import { buildLootShard, buildItemModel, SHARD_TINT, type LootShard, type ShardKind } from '../art/models/items';
 import { NODES, PLAYER_BASE, SKILLS } from '../game/data/content';
 import type { Game, GameEvent, Enemy, Telegraph } from '../game/sim/game';
@@ -996,6 +997,30 @@ export class GameRenderer {
       v.children[1].position.y = 1.1 + Math.sin(t * 2.4) * 0.15;
       v.children[1].rotation.y = t * 1.5;
       ((v.children[0] as THREE.Mesh).material as THREE.MeshBasicMaterial).opacity = 0.45 + Math.sin(t * 3) * 0.25;
+    }
+    // Keel's Log pages and Varrow fragments: a page weighted with a stone, a pale shimmer until you've read it
+    for (const l of LORE) {
+      if (l.region !== g.s.region) continue;
+      const key = `lore:${l.id}`;
+      live.add(key);
+      let v = this.markViews.get(key);
+      if (!v) {
+        v = new THREE.Group();
+        const ring = new THREE.Mesh(new THREE.RingGeometry(0.4, 0.55, 24), new THREE.MeshBasicMaterial({ color: 0xd8e8ff, transparent: true, opacity: 0.6, depthWrite: false, side: THREE.DoubleSide }));
+        ring.rotation.x = -Math.PI / 2;
+        const page = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.025, 0.3), new THREE.MeshStandardMaterial({ color: 0xe8d8b0, roughness: 0.95 }));
+        page.position.y = 0.03; page.rotation.y = (l.x * 7) % 3;
+        const stone = buildRock(13 + l.id.length, 0.13, 'stoneDark');
+        stone.position.set(0.05, 0.08, 0.02);
+        v.add(ring, page, stone);
+        v.position.set(l.x, g.world.standY(l.x, l.z) + 0.04, l.z);
+        this.region3d.add(v);
+        this.markViews.set(key, v);
+      }
+      const unread = !g.s.flags[`lore_${l.id}`];
+      const ring = v.children[0] as THREE.Mesh;
+      ring.visible = unread;
+      if (unread) (ring.material as THREE.MeshBasicMaterial).opacity = 0.35 + Math.sin(t * 2 + l.x) * 0.2;
     }
     for (const [k, v] of this.markViews) if (!live.has(k)) { this.disposeObject(v); this.markViews.delete(k); }
     // the Storm Tide: built once on Bellwether's quay

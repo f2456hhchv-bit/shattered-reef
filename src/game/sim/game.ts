@@ -14,6 +14,7 @@ import { BOARDS, BOUNTY_CONFIG, CREW_BY, WANTED_FIRST, WANTED_LAST, rankOf, type
 import { HP_SCALE, NODES, RECIPES, ENEMIES, LOOT, ELITE_AFFIXES, SHOPS, PLAYER_BASE, UTILITY_SPELLS, SPELLS, COMBAT_SKILLS, XP_PER_DAMAGE, type EnemyDef, type Recipe, type Station } from '../data/content';
 import { NPCS, QUESTS, type DialogueNode, type Effect, type QuestMark } from '../data/quests';
 import { DIARIES, diaryDone } from '../data/diaries';
+import { LORE, LORE_BY_ID, KEEL_PAGES } from '../data/lore';
 import { PLACES, placeRegion } from '../world/places';
 import { regionLayout, cachedLayout, type IslandLayout, type Arena } from '../world/layout';
 import { REGIONS, edgeCrossed, arrival, type RegionId } from '../world/regions';
@@ -61,6 +62,7 @@ export type GameEvent =
   | { type: 'gatherFx'; kind: 'wood' | 'stone' | 'water'; x: number; z: number; success: boolean }
   | { type: 'craftFx'; station: Station }
   | { type: 'dialog'; npc: string; lines: string[] }
+  | { type: 'read'; title: string; sub: string; lines: string[] }
   | { type: 'openStation'; station: Station }
   | { type: 'openShop'; shop: string }
   | { type: 'openBank' }
@@ -123,7 +125,7 @@ type Action =
 /** How a trip to another region ends: where the player (and maybe the ship) comes out. */
 export type Travel = { to: RegionId; how: 'sail' | 'ferry' | 'portal' | 'home' | 'respawn'; along?: number; from: RegionId };
 
-export interface Target { key: string; kind: 'node' | 'npc' | 'station' | 'bank' | 'ship' | 'arena' | 'portal' | 'enemy' | 'drop' | 'mooring' | 'quest' | 'event'; x: number; z: number; range: number; label: string; verb: string }
+export interface Target { key: string; kind: 'node' | 'npc' | 'station' | 'bank' | 'ship' | 'arena' | 'portal' | 'enemy' | 'drop' | 'mooring' | 'quest' | 'event' | 'lore'; x: number; z: number; range: number; label: string; verb: string }
 
 // RuneScape's 4-tick rhythm for gathering; production a little quicker.
 const DT_GATHER = 2.4;
@@ -407,6 +409,7 @@ export class Game {
         out.push({ key: 'mooring', kind: 'mooring', x: d.x + 3, z: d.headZ + 1.6, range: 2.4, label: 'Mooring bell', verb: 'Call ship' });
       }
       for (const e of this.enemies) if (e.alive && e.state !== 'rise') out.push({ key: `enemy:${e.id}`, kind: 'enemy', x: e.x, z: e.z, range: 1.6 + e.def.radius, label: this.enemyName(e), verb: 'Attack' });
+      for (const l of LORE) if (l.region === this.s.region) out.push({ key: `lore:${l.id}`, kind: 'lore', x: l.x, z: l.z, range: 2.2, label: l.label, verb: l.verb });
       for (const m of this.questMarks()) out.push({ key: `quest:${m.quest}:${m.mark.id}`, kind: 'quest', x: m.mark.x, z: m.mark.z, range: 2.2, label: m.mark.label, verb: m.mark.verb });
       out.push(...this.storm.targets(), ...this.fire.targets(), ...this.seep.targets());
     }
@@ -540,6 +543,7 @@ export class Game {
       case 'portal': { const pt = this.layout.portals[Number(t.key.slice(7))]; this.travel({ to: pt.to, how: 'portal', from: this.s.region }); return; }
       case 'mooring': return this.callShip();
       case 'quest': { const [, q, m] = t.key.split(':'); return this.useMark(q, m); }
+      case 'lore': return this.readLore(t.key.slice(5));
       case 'event': return t.key.startsWith('event:gf:') ? this.fire.use(t.key) : t.key.startsWith('event:seep:') ? this.seep.use(t.key) : t.key.startsWith('event:tm:') ? this.treasure.use(t.key) : this.storm.use(t.key);
     }
   }
@@ -2012,6 +2016,20 @@ export class Game {
     remove(this.p.inv, 'coins', price);
     this.msg(`The cutter takes you across. Your sloop sails in her wake.`, 'good');
     this.travel({ to: f.to as RegionId, how: 'ferry', from: this.s.region });
+  }
+
+  /** Read a page of Keel's Log or a Varrow fragment (where it lies, or again from the journal once found). */
+  readLore(id: string) {
+    const l = LORE_BY_ID[id];
+    if (!l) return;
+    const first = !this.s.flags[`lore_${id}`];
+    this.s.flags[`lore_${id}`] = true;
+    this.emit({ type: 'read', title: l.title, sub: l.set === 'keel' ? 'Corran Keel, captain of the Undertow' : 'From the Varrow', lines: l.lines });
+    if (first) {
+      const keel = LORE.filter((x) => x.set === 'keel' && this.s.flags[`lore_${x.id}`]).length;
+      this.msg(l.set === 'keel' ? `You found a page of Keel's Log (${keel} of ${KEEL_PAGES} pages). It's in your journal.` : `${l.title} is in your journal.`, 'quest');
+      this.rev++;
+    }
   }
 
   /** Tell the player when a diary task gets ticked off (checked twice a second; ticks already done on load are quiet). */

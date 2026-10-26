@@ -601,3 +601,12 @@ body.portrait.side-open #dialog { bottom: calc(var(--panel-h) + 12px + env(safe-
 /* island diaries in the journal */
 ul.diary { margin: 6px 0; padding-left: 16px; font-size: 12.5px; line-height: 1.45; }
 ul.diary li.diary-done { color: #8fd07a; }
+
+/* reading a page (Keel's Log, Varrow fragments): the dialogue box as parchment */
+#dialog.reading { background: linear-gradient(180deg, #efe2bf, #e2cf9f); color: #3a2614; border-color: #8a6a3a; }
+#dialog.reading .who { color: #5a3a1a; font-family: Georgia, serif; }
+#dialog.reading .who small { color: #7a5a34; }
+#dialog.reading p { font-family: Georgia, 'Times New Roman', serif; font-style: italic; font-size: 15.5px; line-height: 1.5; }
+/* the journal's list of pages found */
+.lore-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; width: 100%; text-align: left; padding: 8px 10px; margin: 0 0 4px; border-radius: 8px; border: 1px solid rgba(201,160,80,.35); background: rgba(239,226,191,.06); color: inherit; font: inherit; cursor: pointer; }
+.lore-row small { opacity: .7; white-space: nowrap; }
