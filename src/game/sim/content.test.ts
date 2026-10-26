@@ -493,6 +493,18 @@ describe('end-game content works end to end', () => {
     expect(LOOT.hornet.drops.some((d) => d.item === 'honeycomb')).toBe(true);
   });
 
+  it('Amberhold and Stormwrack each have a trader at the landing', () => {
+    for (const [region, keeper, shop] of [['amberhold', 'brita', 'tollmarket'], ['wrack', 'osric', 'gallows']] as const) {
+      const g = inRegion(region);
+      const n = g.layout.npcs.find((x) => x.id === keeper)!;
+      expect(n, keeper).toBeTruthy();
+      goTo(g, n.x + 1, n.z);
+      g.interact(`npc:${keeper}`);
+      run(g, 15, () => g.shopId === shop);
+      expect(g.shopId).toBe(shop);
+    }
+  });
+
   it('smelts tidecore and forges tidecore plate at the Ironcrag forge', () => {
     const g = maxed();
     g.give('ore_tide', 5); g.give('ore_coal', 40); g.give('sea_salt', 5);

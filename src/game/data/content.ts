@@ -355,6 +355,28 @@ SHOPS.sunreach = {
   buyMul: 1.15, sellMul: 0.55,
   wants: [{ prefix: 'ore_', mul: 1.3, note: 'Tamsin pays well for ore,' }, { prefix: 'logs_', mul: 1.3, note: 'timber' }, { prefix: 'spider_silk', mul: 1.5, note: 'and spider silk.' }],
 };
+// Amberhold's toll-market at the landing: stormsilver gear, gunnery and the island's honey, for a 25-50 captain
+SHOPS.tollmarket = {
+  id: 'tollmarket', name: 'Tollhouse Market', keeper: 'brita',
+  stock: [
+    { id: 'cutlass_storm', qty: 1 }, { id: 'greatsword_storm', qty: 1 }, { id: 'helm_storm', qty: 1 }, { id: 'plate_storm', qty: 1 }, { id: 'legs_storm', qty: 1 }, { id: 'shield_storm', qty: 1 },
+    { id: 'longbow_amber', qty: 1 }, { id: 'arrow_storm', qty: 25 }, { id: 'shot_storm', qty: 25 }, { id: 'staff_storm', qty: 1 }, { id: 'charm_tide', qty: 80 },
+    { id: 'fire_barrel', qty: 20 }, { id: 'depth_charge', qty: 10 }, { id: 'chain_shot', qty: 20 }, { id: 'honeycomb', qty: 1 }, { id: 'fish_salmon', qty: 1 },
+  ],
+  buyMul: 1.2, sellMul: 0.5,
+  wants: [{ prefix: 'logs_amber', mul: 1.5, note: 'Brita pays well for amber logs,' }, { prefix: 'ore_gold', mul: 1.4, note: 'gold ore' }, { prefix: 'honeycomb', mul: 1.5, note: 'and honeycomb.' }],
+};
+// Stormwrack's outpost store at Gallows Landing: the high metals' gear, deep-sea food and gunnery, for 50+
+SHOPS.gallows = {
+  id: 'gallows', name: 'Gallows Landing Store', keeper: 'osric',
+  stock: [
+    { id: 'cutlass_tide', qty: 1 }, { id: 'helm_tide', qty: 1 }, { id: 'plate_tide', qty: 1 }, { id: 'legs_tide', qty: 1 }, { id: 'shield_tide', qty: 1 }, { id: 'staff_tide', qty: 1 },
+    { id: 'arrow_tide', qty: 25 }, { id: 'shot_tide', qty: 25 }, { id: 'bolt_tide', qty: 20 }, { id: 'charm_tide', qty: 120 },
+    { id: 'fish_shark', qty: 1 }, { id: 'fish_sword', qty: 1 }, { id: 'depth_charge', qty: 20 }, { id: 'fire_barrel', qty: 30 }, { id: 'sea_salt', qty: 10 },
+  ],
+  buyMul: 1.3, sellMul: 0.5,
+  wants: [{ prefix: 'ore_', mul: 1.3, note: 'Osric pays well for the high ores,' }, { prefix: 'bar_', mul: 1.2, note: 'bars' }, { prefix: 'fish_gloom', mul: 1.5, note: 'and gloomfish.' }],
+};
 SHOPS.anchor = {
   id: 'anchor', name: 'The Gilded Anchor', keeper: 'rell',
   stock: [{ id: 'coconut', qty: 1 }, { id: 'ale', qty: 1 }, { id: 'crab_cakes', qty: 1 }, { id: 'boar_meat', qty: 1 }, { id: 'fish_stew', qty: 1 }, { id: 'fish_pie', qty: 1 }],
