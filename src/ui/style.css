@@ -51,7 +51,7 @@ body.portrait #tabs { padding-top: 6px; }
 body.portrait #tabs button { height: 48px; }
 body.portrait #content { flex: none; height: 44dvh; margin: 8px 0 0; }
 body.portrait .grid28 { grid-template-columns: repeat(7, 1fr); gap: 5px; }
-body.portrait.side-open #mm, body.portrait.side-open #xpdrops { display: none; }
+body.portrait.side-open #mm { display: none; }
 body.portrait:not(.side-open) #content { display: none; }
 #collapse { position: fixed; z-index: 6; width: 30px; height: 64px; border-radius: 8px 0 0 8px; top: 50%; margin-top: -32px; display: none; padding: 0; }
 body.landscape #collapse { display: block; right: var(--side-w); }
@@ -111,11 +111,10 @@ body.landscape.side-open #bossbar { left: calc((100vw - var(--side-w)) / 2); }
 #bossbar b { font: 700 14px var(--display); color: #f2b9a8; text-shadow: 0 1px 2px #000; letter-spacing: .05em; }
 #bossbar .bar { height: 12px; margin-top: 4px; background: #120b06; border-radius: 6px; box-shadow: 0 0 0 2px var(--brass); overflow: hidden; }
 #bossbar .bar i { display: block; height: 100%; background: linear-gradient(180deg, #59d0c4, #2a7f78); transform-origin: left; }
-#xpdrops { position: fixed; z-index: 6; pointer-events: none; display: flex; flex-direction: column; align-items: flex-end; gap: 2px; font: 700 13px var(--body); text-shadow: 0 1px 2px #000; }
-body.landscape #xpdrops { top: calc(var(--mm) + 64px); right: calc(var(--side-w) + 12px); }
-body.portrait #xpdrops { top: calc(var(--mm) + 18px + env(safe-area-inset-top, 0px)); right: 14px; }
-#xpdrops div { animation: xpdrop 1.8s ease-out forwards; }
-@keyframes xpdrop { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-30px); } }
+/* XP and gains over the player's head: faint, drifting up */
+.overhead { position: absolute; transform: translate(-50%, -100%); display: flex; flex-direction: column; align-items: center; gap: 1px; font: 700 12px var(--body); text-shadow: 0 1px 2px #000, 0 0 4px #000a; pointer-events: none; white-space: nowrap; }
+.overhead div { display: flex; align-items: center; gap: 4px; opacity: 0; animation: xpdrop 1.8s ease-out forwards; }
+@keyframes xpdrop { 0% { opacity: 0; transform: translateY(6px); } 15% { opacity: .78; } 70% { opacity: .6; } 100% { opacity: 0; transform: translateY(-26px); } }
 
 /* damage numbers + bars over heads */
 #overlay { position: fixed; inset: 0; z-index: 3; pointer-events: none; overflow: hidden; }
@@ -254,7 +253,7 @@ body.intro > *:not(canvas):not(#title):not(#intro):not(#confirm) { visibility: h
 #confirm .acts { display: flex; gap: 8px; margin-top: 12px; }
 #confirm .acts .btn { flex: 1; }
 #ko { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; background: #3a0d08a0; font: 700 clamp(22px, 5vw, 34px) var(--display); color: #ffd0c0; text-shadow: 0 2px 0 #000; pointer-events: none; }
-@media (prefers-reduced-motion: reduce) { #xpdrops div { animation-duration: .01s; } #banner { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .overhead div { animation-duration: .01s; } #banner { transition: none; } }
 
 /* ================================================ UI pass 1: carved, framed, rounded (no flat boxes) */
 :root { --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9 0.08' numOctaves='2' seed='4'/%3E%3CfeColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.35 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url%28%23n%29'/%3E%3C/svg%3E"); }
@@ -340,9 +339,8 @@ body.landscape #side { padding-top: calc(var(--mm) + 80px + env(safe-area-inset-
 .dmg.miss0 { min-width: 54px; height: 34px; font-size: 11px; letter-spacing: .04em; --sc: #2a5cbf; --sh: #7fb2ff; }
 
 /* HUD icons: skill glyphs on the XP drops, the level-up banner and the orbs */
-#xpdrops div { display: flex; align-items: center; gap: 5px; }
-#xpdrops .xi { width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--c) 55%, #fff3), color-mix(in srgb, var(--c) 40%, #120b06) 70%); box-shadow: 0 0 0 1.5px #120b06, 0 0 0 2.5px var(--brass); }
-#xpdrops .xi svg { width: 12px; height: 12px; }
+.overhead .xi { width: 14px; height: 14px; border-radius: 50%; display: grid; place-items: center; background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--c) 55%, #fff3), color-mix(in srgb, var(--c) 40%, #120b06) 70%); box-shadow: 0 0 0 1.5px #120b06, 0 0 0 2.5px var(--brass); }
+.overhead .xi svg { width: 9px; height: 9px; }
 #banner .medal { display: grid; place-items: center; width: 54px; height: 54px; margin: 0 auto 6px; border-radius: 50%;
   background: radial-gradient(circle at 35% 28%, color-mix(in srgb, var(--c) 55%, #fff3), color-mix(in srgb, var(--c) 40%, #120b06) 70%);
   box-shadow: 0 0 0 2px #120b06, 0 0 0 4px var(--brass), 0 0 24px color-mix(in srgb, var(--c) 60%, transparent), 0 4px 10px #000a; }
@@ -402,7 +400,6 @@ body.portrait #fps { top: auto; bottom: calc(env(safe-area-inset-bottom) + 96px)
 body.portrait #mm, body.landscape:not(.side-open) #mm { right: max(16px, calc(env(safe-area-inset-right, 0px) + 12px)); }
 body.landscape #side { padding-top: calc(var(--mm) + 88px + env(safe-area-inset-top, 0px)); }
 body.landscape #orbs { top: calc(var(--mm) + 28px + env(safe-area-inset-top, 0px)); }
-body.portrait #xpdrops { top: calc(var(--mm) + 28px + env(safe-area-inset-top, 0px)); }
 body.portrait #bossbar { top: calc(var(--mm) + 30px + env(safe-area-inset-top, 0px)); }
 body.portrait #orbs { top: calc(14px + env(safe-area-inset-top, 0px)); }
 /* 40-slot pack: 5 across in the side panel, 8 across on a phone */
