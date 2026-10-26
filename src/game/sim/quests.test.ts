@@ -115,6 +115,27 @@ describe('Sunreach\'s quests', () => {
     expect(count(g.p.inv, 'hat_douen')).toBe(1);
   });
 
+  it('The Sunken Temple: read the glyphs in the sun\'s order, strike the gong, beat the Sunscale, take the Sun Key', () => {
+    const g = sun();
+    for (const e of g.enemies) { e.alive = false; e.respawnAt = Infinity; }
+    talk(g, 'halyard_watch');
+    expect(g.questStage('temple')).toBe(1);
+    use(g, 'temple', 'rise'); use(g, 'temple', 'set'); // setting before high: wrong
+    expect(g.questStage('temple')).toBe(1);
+    for (const m of ['rise', 'high', 'set']) use(g, 'temple', m);
+    expect(g.questStage('temple')).toBe(2);
+    for (const k of ['attack', 'strength', 'defence', 'hitpoints'] as const) g.p.xp[k] = xpForLevel(50);
+    g.p.equip.weapon = { id: 'cutlass_storm', qty: 1 }; g.recalc(); g.p.hp = g.stats.maxHp;
+    const a = g.layout.arenas.findIndex((x) => x.boss === 'temple_serpent');
+    near(g, g.layout.arenas[a].altar.x, g.layout.arenas[a].altar.z + 1.5);
+    g.interact(`arena:${a}`);
+    run(g, 120, () => { g.p.hp = g.stats.maxHp; if (g.boss && g.boss.state !== 'rise') g.target = g.boss.id; return g.questStage('temple') === 3; });
+    expect(g.questStage('temple')).toBe(3);
+    talk(g, 'halyard_watch');
+    expect(g.questStage('temple')).toBe(QUESTS.temple.stages.length - 1);
+    expect(g.s.keyring).toContain('sun_key');
+  });
+
   it('Salt for the Soucouyant: no salt, no progress; salted skin brings her down; the fire spell is hers to teach', () => {
     const g = sun();
     for (const k of ['magic'] as const) g.p.xp[k] = xpForLevel(25);

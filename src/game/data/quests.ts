@@ -414,4 +414,32 @@ export const QUESTS: Record<string, QuestDef> = {
       { text: 'Quest complete.' },
     ],
   },
+  temple: {
+    id: 'temple',
+    name: 'The Sunken Temple',
+    giver: 'halyard_watch',
+    reward: 'The Sun Key, 1200 Magic XP, 800 Attack XP, 400 coins',
+    stages: [
+      { text: 'Speak with Watchman Okoro in Port Halyard\'s plaza.',
+        talk: { npc: 'halyard_watch', node: { lines: [
+          'You\'re asking about the old temple in the jungle? My grandmother told me about it. The sun-priests built it around something they were afraid of.',
+          'There are three glyph stones outside it. The priests read them in the order the sun walks the sky before they went in: rising, high, setting.',
+          'Read them right and the gong inside will wake what they locked away. They say it guards a key. Go well armed.'], effect: { stage: 1 } } } },
+      { text: 'Read the three glyph stones outside the Sunken Temple in the order the sun walks the sky: rising, high, setting.',
+        wrong: 'The glyphs go dark. The sun doesn\'t walk that way: start again from where it rises.',
+        marks: [
+          { id: 'set', label: 'Glyph stone (setting sun)', verb: 'Read', region: 'sunreach', x: SUN_LAYOUT.temple.x - 10, z: SUN_LAYOUT.temple.z + 3, seq: 3, say: ['The setting sun, carved half under a wavy line. Deep in the temple, something shifts.'] },
+          { id: 'rise', label: 'Glyph stone (rising sun)', verb: 'Read', region: 'sunreach', x: SUN_LAYOUT.temple.x + 10, z: SUN_LAYOUT.temple.z + 3, seq: 1, say: ['A sun rising over the sea, its rays picked out in old gold.'] },
+          { id: 'high', label: 'Glyph stone (high sun)', verb: 'Read', region: 'sunreach', x: SUN_LAYOUT.temple.x + 3, z: SUN_LAYOUT.temple.z + 10, seq: 2, say: ['The sun at its height, every ray a serpent.'] },
+        ] },
+      { text: 'Strike the temple gong and beat the Sunscale.', kill: { foe: 'temple_serpent', count: 1 } },
+      { text: 'Bring the news to Watchman Okoro.',
+        talk: { npc: 'halyard_watch', node: { lines: [
+          'The Sunscale? Beaten? Then my grandmother\'s stories were true, every word.',
+          'And this was under it? The sun-priests\' key. Gold that\'s never cold. Keep it: it\'s earned.',
+          'Port Halyard owes you, captain. I\'ll see the whole watch knows it.'],
+          effect: { give: [{ id: 'coins', qty: 400 }], xp: [{ skill: 'magic', amount: 1200 }, { skill: 'attack', amount: 800 }], stage: 4, flag: 'temple_done', key: 'sun_key' } } } },
+      { text: 'Quest complete.' },
+    ],
+  },
 };
