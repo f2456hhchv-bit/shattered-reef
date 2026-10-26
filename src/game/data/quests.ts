@@ -15,6 +15,8 @@ export interface Effect {
 export interface DialogueNode {
   lines: string[];
   requires?: { id: string; qty: number }; // only offered when the player carries this
+  /** only offered once these flags are set (other quests done); `missing` is said until then */
+  needsFlags?: string[];
   missing?: string[]; // said instead when requirement not met
   effect?: Effect;
 }
@@ -481,6 +483,36 @@ export const QUESTS: Record<string, QuestDef> = {
           'Keep his hat on, captain. The drowned know it. They might think twice.'],
           effect: { xp: [{ skill: 'attack', amount: 2000 }, { skill: 'defence', amount: 2000 }], stage: 5, flag: 'captain_done' } } } },
       { text: 'Quest complete.' },
+    ],
+  },
+  collector: {
+    id: 'collector',
+    name: 'The Key Collector',
+    island: 'wrack',
+    giver: 'iven',
+    reward: 'The Skeleton Key (legendary), 2500 coins, 3000 Attack, Defence and Magic XP',
+    stages: [
+      { text: 'Speak with Iven Marr at Bellwether Quay, once The Bell at Low Water is done.',
+        talk: { npc: 'iven', node: { needsFlags: ['bell_done'], missing: ['The sea has a second map, captain. I mean to finish it.'], lines: [
+          'Captain. Keel\'s Tooth has been keeping me up at night. I\'ve been charting where the Locks lead, and I\'m not the only one looking.',
+          'Every island I write to has lost a key. Taken, not found. Someone is collecting them.',
+          'The Sunken Temple on Sunreach guards one, and the barrows under Goldvein Hill on Amberhold another. Win them before the collector does.'], effect: { stage: 1 } } } },
+      { text: 'Win the Sun Key (The Sunken Temple, Sunreach) and the Draugr\'s Key (The Barrow King, Amberhold), then go back to Iven Marr.',
+        talk: { npc: 'iven', node: { needsFlags: ['temple_done', 'barrow_done'], missing: ['The Sun Key and the Draugr\'s Key, captain. Sunreach\'s temple and Amberhold\'s barrows. Before the collector gets there.'], lines: [
+          'Both keys, and on your ring, not in some stranger\'s pack. Good.',
+          'I\'ve followed the collector\'s trail on my charts: every theft, a ship out of Gallows Landing a week later. Stormwrack.',
+          'There\'s an old camp in the Old Wood there. Find it. Be careful: anyone who can take a key from a guardian is no tavern thief.'], effect: { stage: 2 } } } },
+      { text: 'Search the Old Wood on Stormwrack for the collector\'s camp.',
+        marks: [{ id: 'camp', label: 'A cold camp under the yews', verb: 'Search', region: 'wrack', x: WRACK_LAYOUT.oldwood.x + 4, z: WRACK_LAYOUT.oldwood.z + 8,
+          say: ['A bedroll, a lantern, and a ledger of keys: every island, every guardian, crossed off one by one.', 'A voice behind you: "You\'re carrying two of mine, captain."'], effect: { stage: 3 } }] },
+      { text: 'The Key Collector has come for your keys. Beat them.', kill: { foe: 'key_collector', count: 1, spawn: { region: 'wrack', x: WRACK_LAYOUT.oldwood.x + 1, z: WRACK_LAYOUT.oldwood.z + 11 } } },
+      { text: 'Take the collector\'s ledger back to Iven Marr at Bellwether Quay.',
+        talk: { npc: 'iven', node: { lines: [
+          'The collector, beaten. And their ledger: every key they took, and where it is now. This changes the whole chart.',
+          'They had this on them. It opens any lock I\'ve ever drawn. I think it\'s been opening them for a long time.',
+          'It\'s yours, captain. Nobody else should hold it.'],
+          effect: { give: [{ id: 'coins', qty: 2500 }], xp: [{ skill: 'attack', amount: 3000 }, { skill: 'defence', amount: 3000 }, { skill: 'magic', amount: 3000 }], stage: 5, flag: 'collector_done', key: 'skeleton' } } } },
+      { text: 'Quest complete. The Skeleton Key is on your keyring.' },
     ],
   },
 };

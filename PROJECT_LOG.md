@@ -119,6 +119,7 @@ Reflects the actual repository, not the roadmap.
 - **Laptop:** click to walk/use (RuneScape-style); right-click items for details; WASD/arrows move; E action; Space dodge roll; R whirl; F flintlock; I G K J M O tabs; Esc closes; scroll zooms.
 
 ## Playtest log
+- **2026-10-26, The Key Collector (the islands' thread):** Iven Marr's follow-up to The Bell at Low Water: someone is collecting the islands' keys. Opens after the bell quest; needs the Sun Key (The Sunken Temple) and the Draugr's Key (The Barrow King); search the collector's camp in Stormwrack's Old Wood and beat the Key Collector (78); reward the legendary Skeleton Key, 2500 coins, 3000 Attack/Defence/Magic XP. Dialogue can now wait on other quests' flags.
 - **2026-10-26, gloves:** worn gloves now colour your character's hands, with a cuff at the wrist (all six armour slots now show).
 - **2026-10-26, Stormwrack's first quest:** *The Drowned Captain's Log* (Mercy Gale): search three pages of the log along the wreck-shore in order, beat the Drowned Captain (70), dig up his hoard: the Drowned Captain's tricorn (Defence 60), 1500 coins, 2 caskets, 3 tidecore bars; 2000 Attack and Defence XP.
 - **2026-10-26, quest journal:** the Quests tab now lists quests first, grouped by island with a done count; in progress first, then new (with where to start), then complete as one ticked line each. Bounty and places follow.

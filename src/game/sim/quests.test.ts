@@ -216,6 +216,37 @@ describe('Stormwrack\'s quest', () => {
   });
 });
 
+describe('The Key Collector', () => {
+  it('waits on the bell, then on the Sun and Draugr keys; the trail leads to Stormwrack; the Skeleton Key at the end', () => {
+    let g = fresh();
+    talk(g, 'iven');
+    expect(g.questStage('collector')).toBe(0); // the bell quest comes first
+    g.s.quests.bell = QUESTS.bell.stages.length - 1; g.s.flags.bell_done = true;
+    talk(g, 'iven');
+    expect(g.questStage('collector')).toBe(1);
+    talk(g, 'iven');
+    expect(g.questStage('collector')).toBe(1); // not without both keys
+    g.s.flags.temple_done = true; g.s.flags.barrow_done = true;
+    talk(g, 'iven');
+    expect(g.questStage('collector')).toBe(2);
+    // to Stormwrack
+    const L = regionLayout('wrack'), sv = g.serialize();
+    sv.player.x = L.respawn.x; sv.player.z = L.respawn.z; sv.player.onShip = false;
+    g = new Game({ seed: 7, save: { ...JSON.parse(JSON.stringify(sv)), region: 'wrack' } });
+    for (const e of g.enemies) { e.alive = false; e.respawnAt = Infinity; }
+    use(g, 'collector', 'camp');
+    expect(g.questStage('collector')).toBe(3);
+    expect(beat(g, 'key_collector', 80, 'cutlass_tide')).toBe(true);
+    expect(g.questStage('collector')).toBe(4);
+    const L2 = regionLayout('bellwether'), sv2 = g.serialize();
+    sv2.player.x = L2.respawn.x; sv2.player.z = L2.respawn.z;
+    g = new Game({ seed: 7, save: { ...JSON.parse(JSON.stringify(sv2)), region: 'bellwether' } });
+    talk(g, 'iven');
+    expect(g.questStage('collector')).toBe(QUESTS.collector.stages.length - 1);
+    expect(g.s.keyring).toContain('skeleton');
+  });
+});
+
 describe('The Toll of Tollhouse', () => {
   const at = (region: 'amberhold' | 'sunreach', save?: unknown) => {
     const L = regionLayout(region);
