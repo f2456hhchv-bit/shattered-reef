@@ -11,8 +11,10 @@ export const ACTIVE = {
   /** the red heart of the gold window: harder, worth more */
   red: [0.73, 0.81] as [number, number],
   /** items from the swing that lands one (the timing bar only shows on that swing): no tap or a miss one, gold two,
-   *  red three (Tom: "should it not just give 2, maybe a small red section that gives 3?"). XP counts for each. */
+   *  red three (Tom: "should it not just give 2, maybe a small red section that gives 3?"). */
   times: { miss: 1, perfect: 2, red: 3 } as Record<Struck, number>,
+  /** XP for that swing: softer than the items, so focused play doesn't level three times as fast (Tom, 2026-10-26) */
+  xpTimes: { miss: 1, perfect: 1.5, red: 2 } as Record<Struck, number>,
   /** a perfect craft gives this much more XP; cooking can't burn; forging gains this much masterwork chance */
   craftXp: 1.33,
   fineBonus: 0.1,

@@ -55,14 +55,17 @@ describe('active skilling', () => {
     expect(g.strike()).toBe('red');
   });
 
-  it('gold doubles the log that lands, red trebles it, each with its XP; mistimed and no taps change nothing', () => {
+  it('gold doubles the log that lands (1.5x XP), red trebles it (2x XP); mistimed and no taps change nothing', () => {
     const afk = chop(null), gold = chop(0.66), red = chop(0.77), early = chop(0.2);
     console.log('CHOP', JSON.stringify({ afk, gold, red, early }));
     expect(gold.perMin / afk.perMin).toBeGreaterThan(1.85);
     expect(gold.perMin / afk.perMin).toBeLessThan(2.15);
     expect(red.perMin / afk.perMin).toBeGreaterThan(2.75);
     expect(red.perMin / afk.perMin).toBeLessThan(3.25);
-    expect(gold.xp / afk.xp).toBeGreaterThan(1.85);
+    expect(gold.xp / afk.xp).toBeGreaterThan(1.4);
+    expect(gold.xp / afk.xp).toBeLessThan(1.6);
+    expect(red.xp / afk.xp).toBeGreaterThan(1.85);
+    expect(red.xp / afk.xp).toBeLessThan(2.15);
     expect(Math.abs(early.perMin / afk.perMin - 1)).toBeLessThan(0.08); // a miss costs nothing but the bonus
   }, 60_000);
 
