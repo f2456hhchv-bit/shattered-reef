@@ -403,7 +403,7 @@ export const ISLAND_PLACES: Place[] = [
   { id: 'cove', name: 'Smugglers\' Cove', x: SC.x, z: SC.z, r: 12 },
   { id: 'wreck', name: 'Wreckers\' Point', x: W.x, z: W.z, r: 13 },
   { id: 'howes', name: 'The Howes', x: L.howes.x, z: L.howes.z, r: 11 },
-  ...([['shallows', 'Bellfish Shallows', 20, -16]] as const)
+  ...([['shallows', 'Bellfish Shallows', 20, -16], ['gnasher', 'Gnasher\'s Reef', 50, -26]] as const)
     .map(([id, name, a, i]) => { const [x, z] = coastPoint(a, i); return { id, name, x, z, r: 16, sea: true }; }),
   // Sunreach Isle
   { id: 'halyard', name: 'Port Halyard', x: SL.port.x, z: SL.port.z - 6, r: 18, region: 'sunreach' },

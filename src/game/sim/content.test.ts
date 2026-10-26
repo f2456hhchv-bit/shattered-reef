@@ -9,6 +9,7 @@ import { NODES, RECIPES, ENEMIES, LOOT, SHOPS, UNLOCKS, SKILLS } from '../data/c
 import { LAYOUT, WRACK_LAYOUT, nearestPathDist } from '../world/island';
 import { toWorld, toLocal, doorPoints, isInside } from '../world/buildings';
 import { regionLayout } from '../world/layout';
+import { AMMO } from '../data/sea';
 import { NPC_LOOKS } from '../../art/cast';
 import { NPCS } from '../data/quests';
 import { REGIONS, type RegionId } from '../world/regions';
@@ -54,7 +55,8 @@ describe('content data', () => {
 
   it('every item has a use: an input, gear, food, a tool, a quest item, or a declared trade good', () => {
     const TRADE = new Set(['coins', 'shell_fragment', 'burnt_food', 'charm_tide', 'spider_silk', 'snake_skin', 'sunscale']); // charms are burnt by spells; silk, skins and scales are traders' goods
-    const used = new Set([...RECIPES.flatMap((r) => r.inputs.map((i) => i.id)), ...Object.values(NODES).flatMap((n) => (n.tool ? [n.tool] : []))]);
+    const used = new Set([...RECIPES.flatMap((r) => r.inputs.map((i) => i.id)), ...Object.values(NODES).flatMap((n) => (n.tool ? [n.tool] : [])),
+      ...Object.values(AMMO).flatMap((a) => (a.item ? [a.item] : []))]); // the ship's guns burn their ammo
     const idle = Object.values(ITEMS).filter((d) => !used.has(d.id) && !d.equip && !d.heal && !d.tool && !d.quest && !d.opens && !TRADE.has(d.id)).map((d) => d.id);
     expect(idle).toEqual([]);
   });

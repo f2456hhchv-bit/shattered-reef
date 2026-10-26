@@ -1,3 +1,4 @@
+import { AMMO, CHART_MARKS, type AmmoId } from '../game/data/sea';
 import { item, RARITY, AFFIXES, METALS, METAL_TRAITS, AMMO_NAME, ammoKind, isTwoHanded, pairGroup, type ItemDef, type Slot, type SkillId, type WeaponKind } from '../game/data/items';
 import { morph, forget } from './morph';
 import { wears, condOf, WORN_OUT_EFFECT } from '../game/sim/inventory';
@@ -40,6 +41,8 @@ const slotLabel = (d: ItemDef) => {
   return SLOT_NAME[e.slot];
 };
 const signed = (n: number) => (n > 0 ? `+${n}` : String(n));
+// a ship's gun, for the broadside button aboard
+const CANNON = '<svg viewBox="0 0 32 32"><path d="M5 14l16-4 3 8-16 4z" fill="#3a3430" stroke="#1a120a" stroke-width="2" stroke-linejoin="round"/><circle cx="10" cy="22" r="4" fill="#8a5a34" stroke="#1a120a" stroke-width="2"/><circle cx="26" cy="9" r="2.5" fill="#e9e5d5"/><circle cx="29" cy="5" r="1.5" fill="#e9e5d5"/></svg>';
 const WHIRL = '<svg viewBox="0 0 32 32"><path d="M16 4a12 12 0 0 1 11 7l-5-1M28 16a12 12 0 0 1-7 11l1-5M16 28a12 12 0 0 1-11-7l5 1M4 16a12 12 0 0 1 7-11l-1 5" fill="none" stroke="#e9e5d5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="16" cy="16" r="4" fill="#c9a050" stroke="#1a120a" stroke-width="2"/></svg>';
 const OPEN_VERB: Record<string, string> = { geode: 'Crack open', bird_nest: 'Search', casket: 'Prise open' };
 const KIND_TIPS: Record<WeaponKind, string> = {
@@ -154,7 +157,8 @@ export class UI {
     const ctx = h('button', { id: 'ctx', class: 'round', 'aria-label': 'Interact (E)' }, '<span></span><small></small>');
     // mid-swing or mid-craft the action button is the timing tap (active skilling); otherwise it acts on what's near
     onTap(ctx, 'button', () => { if (this.game.cueState()) { this.game.strike(); return; } const t = this.game.contextTarget(); if (t) this.game.interact(t.key); });
-    const load = mk('ab-load', 'Weapon, ammo, spell and stance (L)', '<img alt="">', () => this.toggleLoadout());
+    // aboard, the loadout button cycles the guns' ammunition instead
+    const load = mk('ab-load', 'Weapon, ammo, spell and stance (L)', '<img alt="">', () => { if (this.game.p.onShip) this.cycleShipAmmo(); else this.toggleLoadout(); });
     const eat = mk('ab-eat', 'Eat the best food (H)', '<img alt="">', () => this.game.quickEat());
     eat.insertAdjacentHTML('beforeend', '<b class="n"></b>');
     const abil = h('div', { id: 'abilities' });
@@ -370,9 +374,10 @@ export class UI {
     }
     const sp = g.specialInfo();
     const spBtn = this.el['ab-special'];
-    if (spBtn.dataset.style !== g.stats.style) {
-      spBtn.dataset.style = g.stats.style;
-      spBtn.innerHTML = `${g.stats.style === 'melee' ? WHIRL : g.stats.style === 'ranged' ? PISTOL : SQUALL}<div class="cd"></div>`;
+    const spStyle = g.p.onShip ? 'ship' : g.stats.style;
+    if (spBtn.dataset.style !== spStyle) {
+      spBtn.dataset.style = spStyle;
+      spBtn.innerHTML = `${spStyle === 'ship' ? CANNON : spStyle === 'melee' ? WHIRL : spStyle === 'ranged' ? PISTOL : SQUALL}<div class="cd"></div>`;
     }
     spBtn.title = `${sp.name} (R)${sp.block ? ' · ' + sp.block : ''}`;
     spBtn.setAttribute('aria-label', spBtn.title);
@@ -380,7 +385,7 @@ export class UI {
     const kb = this.el['ab-key'], kd = g.s.key ? KEY[g.s.key] : null, kBlock = g.keyBlock();
     kb.hidden = !kd;
     if (kd) { kb.title = `${kd.power.name}: ${kd.power.text} (T)${kBlock ? ' · ' + kBlock : ''}`; kb.setAttribute('aria-label', kb.title); }
-    const abs: [HTMLElement, number, number, boolean][] = [[this.el['ab-roll'], g.rollCd, PLAYER_BASE.rollCooldown, false], [spBtn, g.specialCd, sp.cooldown, !!sp.block],
+    const abs: [HTMLElement, number, number, boolean][] = [[this.el['ab-roll'], g.rollCd, PLAYER_BASE.rollCooldown, false], [spBtn, g.p.onShip ? g.naval.reloadCd : g.specialCd, sp.cooldown, !!sp.block && !(g.p.onShip && sp.block === 'Reloading')],
       [kb, g.s.keyDormant > 0 ? KEY_CONFIG.dormantS : g.keyCd, g.s.keyDormant > 0 ? KEY_CONFIG.dormantS : kd?.power.cooldown ?? 1, !!kBlock]];
     for (const [b, cd, max, blocked] of abs) {
       b.classList.toggle('off', cd > 0 || blocked);
@@ -396,9 +401,10 @@ export class UI {
       if (!fe.hidden) { const pf = this.r.perf; fe.textContent = `${Math.round(pf.fps)} fps · detail ${['full', 'high', 'medium', 'low', 'lowest'][pf.tier] ?? '?'} · ${pf.pr.toFixed(2)}x`; }
     }
     // loadout button: the weapon in hand (the dot shows when there's a choice to make: a spell or ammo)
-    const lb = this.el['ab-load'], wid = g.p.equip.weapon?.id ?? 'cutlass_rusty', limg = lb.querySelector('img') as HTMLImageElement, lsrc = itemIcon(wid);
+    const shipAmmo = AMMO[g.naval.ammo].item ?? 'shot_bronze'; // aboard: the guns' load (cannonballs show as round shot)
+    const lb = this.el['ab-load'], wid = g.p.equip.weapon?.id ?? 'cutlass_rusty', limg = lb.querySelector('img') as HTMLImageElement, lsrc = itemIcon(g.p.onShip ? shipAmmo : wid);
     if (limg.getAttribute('src') !== lsrc) limg.setAttribute('src', lsrc);
-    lb.classList.toggle('warn', !!g.ammoBlock());
+    lb.classList.toggle('warn', g.p.onShip ? false : !!g.ammoBlock());
     // quick eat: shows the food it would pick right now (any food when you're at full health)
     const eatBtn = this.el['ab-eat'], fi = g.bestFood() ?? g.foodSlot();
     eatBtn.hidden = fi === null;
@@ -411,7 +417,10 @@ export class UI {
       eatBtn.classList.toggle('off', g.bestFood() === null || g.eatCd > 0);
       (eatBtn.querySelector('.cd') as HTMLElement).style.setProperty('--cd', `${(Math.max(0, g.eatCd) / 1.2) * 360}deg`);
     }
-    this.el.abilities.hidden = g.p.onShip || g.dead > 0;
+    // aboard: the guns (special = Fire, loadout = ammo); roll, eat and key stay ashore
+    this.el.abilities.hidden = g.dead > 0;
+    this.el['ab-roll'].hidden = g.p.onShip;
+    for (const id of ['ab-key', 'ab-eat']) if (g.p.onShip) this.el[id].hidden = true; // ashore their own rules above show them again
     // boss bar
     const bb = this.el.bossbar;
     if (g.boss && g.boss.alive) {
@@ -512,12 +521,15 @@ export class UI {
     for (const [id, b] of this.bars) if (!seen.has(id)) { b.remove(); this.bars.delete(id); }
     this.updateNodeBadges();
     for (const [id, tg] of this.tags) if (!seen.has(-id)) { tg.remove(); this.tags.delete(id); }
-    const showPlayer = g.combatTimer < 5 && !g.p.onShip && !g.dead;
+    // ashore: your health in a fight; aboard: the hull, whenever it's been knocked about
+    const hullMax = g.naval.hullMax(), showHull = g.p.onShip && g.naval.hull < hullMax - 0.5;
+    const showPlayer = (g.combatTimer < 5 && !g.p.onShip && !g.dead) || showHull;
     this.playerBar.style.display = showPlayer ? '' : 'none';
+    this.playerBar.classList.toggle('hull', showHull);
     if (showPlayer) {
-      const s = r.project(g.p.x, g.world.standY(g.p.x, g.p.z) + 2.6, g.p.z);
+      const s = r.project(g.p.x, (g.p.onShip ? 0 : g.world.standY(g.p.x, g.p.z)) + (g.p.onShip ? 4.2 : 2.6), g.p.z);
       this.playerBar.style.left = `${s.x}px`; this.playerBar.style.top = `${s.y}px`;
-      (this.playerBar.firstElementChild as HTMLElement).style.width = `${(g.p.hp / g.stats.maxHp) * 100}%`;
+      (this.playerBar.firstElementChild as HTMLElement).style.width = `${(showHull ? g.naval.hull / hullMax : g.p.hp / g.stats.maxHp) * 100}%`;
     }
     // gathering: a gold bar over your head fills toward the next log, ore or fish
     const ga = g.action?.type === 'gather' ? g.action : null;
@@ -1075,6 +1087,15 @@ export class UI {
   // ------------------------------------------------------------------ loadout (HUD quick menu)
   private loadoutOpen = false;
   private fpsT = 0;
+  /** Aboard: load the next ammunition you can use (cannonballs, chain shot, depth charges). */
+  cycleShipAmmo() {
+    const nv = this.game.naval, order: AmmoId[] = ['cannonball', 'chain_shot', 'depth_charge'];
+    const i = order.indexOf(nv.ammo);
+    for (let k = 1; k <= order.length; k++) {
+      const next = order[(i + k) % order.length];
+      if (!nv.ammoBlock(next)) { nv.setAmmo(next); return; }
+    }
+  }
   toggleLoadout() { if (this.loadoutOpen) this.closeLoadout(); else { this.closePop(); this.loadoutOpen = true; this.renderLoadout(); } }
   closeLoadout() { this.loadoutOpen = false; document.getElementById('loadout')?.remove(); }
 
@@ -1292,7 +1313,7 @@ export class UI {
     if (r.id === 'sunreach') return { cx: SUN.x, cz: SUN.z, span: 170 };
     if (r.id === 'wrack') return { cx: WRACK.x, cz: WRACK.z, span: 150 };
     if (r.id === 'amberhold') return { cx: AMBER.x, cz: AMBER.z, span: 160 };
-    if (r.id === 'bellwether') return { cx: 0, cz: 0, span: 216 };
+    if (r.id === 'bellwether') return { cx: 0, cz: 0, span: 290 }; // the island and its fighting waters (charting marks, Old Gnasher's reef)
     return { cx: r.bounds.cx, cz: r.bounds.cz, span: r.bounds.half * 2 };
   }
   private drawMinimap() {
@@ -1337,6 +1358,13 @@ export class UI {
       const [x, y] = toPx(p.x, p.z);
       c.lineWidth = 4; c.strokeStyle = '#1a120a'; c.strokeText(p.name, x, y - 12);
       c.fillStyle = p.sea ? '#bfefff' : '#ffe9b8'; c.fillText(p.name, x, y - 12);
+    }
+    // charting marks not yet logged: a gold cross on the water (sail over one to log it)
+    for (const m of CHART_MARKS) {
+      if (m.region !== this.game.s.region || this.game.s.flags[`chart_${m.id}`]) continue;
+      const [x, y] = toPx(m.x, m.z);
+      c.lineWidth = 5; c.strokeStyle = '#1a120a'; c.beginPath(); c.moveTo(x - 7, y - 7); c.lineTo(x + 7, y + 7); c.moveTo(x + 7, y - 7); c.lineTo(x - 7, y + 7); c.stroke();
+      c.lineWidth = 2.5; c.strokeStyle = '#ffd35a'; c.stroke();
     }
     this.drawMarkers(c, toPx, 1.6, true);
   }

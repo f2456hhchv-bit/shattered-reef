@@ -1,3 +1,5 @@
+import { buildShark, animateShark, type SharkRig } from '../art/models/seafoes';
+import { AMMO } from '../game/data/sea';
 import * as THREE from 'three';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
@@ -159,6 +161,11 @@ export class GameRenderer {
   private nodeViews = new Map<string, { live: THREE.Object3D; dead?: THREE.Object3D; ripples?: THREE.Group; leap?: THREE.Object3D }>();
   private dropViews = new Map<number, LootShard>();
   private projViews = new Map<number, THREE.Mesh>();
+  // the sea (naval.ts): foes on the water, shot in flight, charges sinking, and the line a broadside would take
+  private seaViews = new Map<number, { root: THREE.Group; shark?: SharkRig; gulls?: FantasyRig[] }>();
+  private ballViews = new Map<number, THREE.Mesh>();
+  private chargeViews = new Map<number, THREE.Mesh>();
+  private aimLine: THREE.Mesh | null = null;
   private teleViews = new Map<number, THREE.Group>();
   private flames: THREE.Mesh[] = [];
   private glows: THREE.MeshStandardMaterial[] = [];
@@ -270,6 +277,7 @@ export class GameRenderer {
     this.scene.add(this.region3d);
     this.npcs.clear(); this.houses = []; this.walkers = []; this.enemyViews.clear(); this.nodeViews.clear();
     this.dropViews.clear(); this.projViews.clear(); this.teleViews.clear(); this.flames = []; this.glows = [];
+    this.seaViews.clear(); this.ballViews.clear(); this.chargeViews.clear(); this.aimLine = null;
     this.grass = null; this.grassTime = [];
     this.scenery = new InstancedField(addSurfaceDetail(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: false, roughness: 0.9 }), PROP_SURFACE));
     this.sceneryState.clear();
@@ -532,6 +540,11 @@ export class GameRenderer {
         const h = -w.ground(n.x, n.z) + 3.4; // from the seabed to well above the waterline
         live = buildSpire(n.seed, h);
         dead = buildSpire(n.seed, h, true);
+      } else if (n.def === 'wreck_salvage') {
+        // a wreck's ribs breaking the surface; worked out, it settles lower
+        live = buildWreckRibs(n.seed);
+        dead = buildWreckRibs(n.seed);
+        dead.scale.set(1, 0.5, 1);
       } else if (n.def === 'palm') {
         live = buildPalm(n.seed, true);
         dead = buildPalm(n.seed, false);
@@ -561,7 +574,7 @@ export class GameRenderer {
         leapFish.set(n.uid, fish);
         if (def.fromShip) live.scale.setScalar(2.2);
       }
-      const y = def.skill === 'fishing' ? 0.06 : n.def === 'rock_ori' ? w.ground(n.x, n.z) - 0.05 : w.ground(n.x, n.z) - (def.skill ? 0.05 : 0.02);
+      const y = def.skill === 'fishing' ? 0.06 : n.def === 'wreck_salvage' ? -0.9 : n.def === 'rock_ori' ? w.ground(n.x, n.z) - 0.05 : w.ground(n.x, n.z) - (def.skill ? 0.05 : 0.02);
       live.position.set(n.x, y, n.z);
       this.region3d.add(live);
       if (dead) { dead.position.set(n.x, y, n.z); dead.visible = false; this.region3d.add(dead); }
@@ -769,6 +782,87 @@ export class GameRenderer {
       this.particles.burst(m.position.x, m.position.y, m.position.z, 1, p.kind === 'magic' ? 0x59d0c4 : p.from === 'player' ? 0xd8d2c0 : 0x5a5552, { speed: 0.3, up: 0.3, size: 0.1, life: 0.35, grav: -1 });
     }
     for (const [id, m] of this.projViews) if (!live.has(id)) { this.disposeObject(m); this.projViews.delete(id); }
+  }
+
+  private syncSea(t: number) {
+    const g = this.game, nv = g.naval;
+    const live = new Set<number>();
+    for (const f of nv.foes) {
+      if (!f.alive) continue;
+      live.add(f.id);
+      let v = this.seaViews.get(f.id);
+      if (!v) {
+        const root = new THREE.Group();
+        if (f.def.behaviour === 'shark') {
+          const shark = buildShark(f.id, f.def.boss ? 'gnasher' : 'reef');
+          shark.root.scale.setScalar(f.def.scale);
+          root.add(shark.root);
+          v = { root, shark };
+        } else if (f.def.behaviour === 'flock') {
+          const gulls = [0, 1, 2].map((k) => { const r = buildFantasy('bat', 'gull', f.id * 7 + k); r.root.scale.setScalar(0.9); root.add(r.root); return r; });
+          v = { root, gulls };
+        } else {
+          const cut = buildSloop(0x8a2a24); // the wreckers' colours
+          cut.root.scale.setScalar(f.def.scale);
+          root.add(cut.root);
+          v = { root };
+        }
+        this.region3d.add(root);
+        this.seaViews.set(f.id, v);
+      }
+      v.root.position.set(f.x, 0, f.z);
+      if (v.shark) {
+        v.root.rotation.y = Math.PI / 2 - f.heading;
+        animateShark(v.shark, t + f.id, f.under, f.state === 'charge');
+      } else if (v.gulls) {
+        // a wheeling knot of gulls above the water
+        v.gulls.forEach((gr, k) => {
+          const a = t * 2.2 + (k / 3) * Math.PI * 2;
+          gr.root.position.set(Math.cos(a) * 1.4, 1.6 + Math.sin(t * 3 + k) * 0.3, Math.sin(a) * 1.4);
+          gr.root.rotation.y = -a;
+          animateFantasy(gr, t + k, true, f.state === 'chase');
+        });
+      } else {
+        v.root.rotation.y = -f.heading;
+        v.root.position.y = Math.sin(t * 1.3 + f.id) * 0.06;
+      }
+    }
+    for (const [id, v] of this.seaViews) if (!live.has(id)) { this.disposeObject(v.root); this.seaViews.delete(id); }
+    // round shot in flight, with a smoke trail
+    const balls = new Set<number>();
+    for (const b of nv.balls) {
+      balls.add(b.id);
+      let m = this.ballViews.get(b.id);
+      if (!m) { m = new THREE.Mesh(new THREE.SphereGeometry(0.2, 7, 5), new THREE.MeshBasicMaterial({ color: b.ammo === 'chain_shot' ? 0x8a8a95 : 0x2a2622 })); this.region3d.add(m); this.ballViews.set(b.id, m); }
+      m.position.set(b.x, 1.3, b.z);
+      this.particles.burst(b.x, 1.3, b.z, 1, 0xcfc8b8, { speed: 0.2, up: 0.3, size: 0.18, life: 0.5, grav: -0.5 });
+    }
+    for (const [id, m] of this.ballViews) if (!balls.has(id)) { this.disposeObject(m); this.ballViews.delete(id); }
+    // a depth charge: a keg bobbing as it sinks, its fuse spitting
+    const charges = new Set<number>();
+    for (const c of nv.charges) {
+      charges.add(c.id);
+      let m = this.chargeViews.get(c.id);
+      if (!m) { m = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.7, 8), new THREE.MeshStandardMaterial({ color: 0x3a3028, emissive: 0xc84a2a, emissiveIntensity: 0 })); this.region3d.add(m); this.chargeViews.set(c.id, m); }
+      m.position.set(c.x, -0.1 - (1 - c.t) * 0.6, c.z);
+      (m.material as THREE.MeshStandardMaterial).emissiveIntensity = Math.sin(t * 20) > 0 ? 0.8 : 0;
+    }
+    for (const [id, m] of this.chargeViews) if (!charges.has(id)) { this.disposeObject(m); this.chargeViews.delete(id); }
+    // aboard: a gold line from the ship to whatever a broadside would hit
+    const tgt = g.p.onShip && AMMO[nv.ammo].kind === 'broadside' ? nv.broadsideTarget() : null;
+    if (tgt) {
+      if (!this.aimLine) {
+        this.aimLine = new THREE.Mesh(new THREE.PlaneGeometry(1, 0.18).translate(0.5, 0, 0), new THREE.MeshBasicMaterial({ color: 0xffd35a, transparent: true, opacity: 0.6, depthWrite: false, side: THREE.DoubleSide }));
+        this.aimLine.rotation.order = 'YXZ';
+        this.region3d.add(this.aimLine);
+      }
+      const sh = g.ship, dx = tgt.foe.x - sh.x, dz = tgt.foe.z - sh.z;
+      this.aimLine.visible = true;
+      this.aimLine.position.set(sh.x, 0.25, sh.z);
+      this.aimLine.scale.x = Math.hypot(dx, dz);
+      this.aimLine.rotation.set(-Math.PI / 2, -Math.atan2(dz, dx), 0);
+      (this.aimLine.material as THREE.MeshBasicMaterial).opacity = nv.reloadCd > 0 ? 0.25 : 0.55 + Math.sin(t * 6) * 0.2;
+    } else if (this.aimLine) this.aimLine.visible = false;
   }
 
   private makeTelegraph(t: Telegraph): THREE.Group {
@@ -1102,6 +1196,7 @@ export class GameRenderer {
     this.syncEnemies(t, dt);
     this.syncDrops(t);
     this.syncProjectiles();
+    this.syncSea(t);
     this.syncTelegraphs();
 
     for (const f of this.flames) { f.scale.y = 0.8 + Math.sin(t * 12 + f.position.x * 10) * 0.25; f.scale.x = 1 + Math.sin(t * 9 + f.position.z * 7) * 0.12; }

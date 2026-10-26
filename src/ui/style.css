@@ -514,3 +514,7 @@ body.portrait .skgrid { grid-template-columns: repeat(4, 1fr); }
 .cuepop.on { opacity: 1; transform: translate(-50%, -90%); }
 .cuepop.good { color: #ffd35a; }
 #ctx.cue { box-shadow: 0 0 0 3px #ffd35a, 0 0 18px #ffd35a; }
+
+/* aboard, the bar over the ship is the hull */
+.hpbar.hull { width: 64px; margin-left: -32px; height: 7px; }
+.hpbar.hull i { background: #c9a050; }

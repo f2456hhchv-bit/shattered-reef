@@ -109,7 +109,7 @@ export interface ShipRig {
   hull: THREE.Group;
 }
 
-export function buildSloop(stripe = PAL.teal): ShipRig {
+export function buildSloop(stripe: number = PAL.teal): ShipRig {
   const root = new THREE.Group();
   const hull = new THREE.Group();
   root.add(hull);
