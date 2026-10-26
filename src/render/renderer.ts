@@ -95,12 +95,13 @@ function outfitOf(equip: Partial<Record<string, { id: string } | undefined | nul
     return parseInt(c.replace('#', ''), 16);
   };
   const look: Partial<HumanoidLook> = {};
-  const head = equip.head?.id, body = equip.body?.id, legs = equip.legs?.id, feet = equip.feet?.id;
+  const head = equip.head?.id, body = equip.body?.id, legs = equip.legs?.id, feet = equip.feet?.id, hands = equip.hands?.id;
   if (head) { look.hat = col(head); look.hatStyle = item(head).icon.shape === 'helm' ? 'cap' : item(head).icon.shape === 'cap' ? 'cap' : 'tricorn'; }
   if (body) { look.coat = col(body); look.coatTrim = col(body, true); }
   if (legs) look.trousers = col(legs);
   if (feet) look.boots = col(feet);
-  return { look, key: [head, body, legs, feet].map((x) => x ?? '-').join(',') };
+  if (hands) look.gloves = col(hands);
+  return { look, key: [head, body, legs, feet, hands].map((x) => x ?? '-').join(',') };
 }
 
 export class GameRenderer {

@@ -147,9 +147,11 @@ export function buildLowPoly(look: HumanoidLook, buildHeld: (held: THREE.Group, 
     elbow.position.y = -0.27;
     elbow.add(part(lathe([[0, 0.02], [0.058, 0.0], [0.052, -0.2], [0, -0.22]], 6), look.coat));
     elbow.add(put(part(new THREE.CylinderGeometry(0.064, 0.07, 0.05, 6), look.coatTrim), 0, -0.21, 0));
-    elbow.add(put(part(shape(box(0.075, 0.1, 0.055), (x, y, z) => [x * (y < 0 ? 0.85 : 1), y, z]), look.skin), 0, -0.29, 0.01));
-    elbow.add(put(part(box(0.065, 0.05, 0.045), look.skin), 0, -0.36, 0.025, 0.35)); // curled fingers
-    elbow.add(put(part(box(0.024, 0.055, 0.026), look.skin), -0.042 * side, -0.29, 0.04, 0.4, 0, 0.45 * side)); // thumb
+    const hand = look.gloves ?? look.skin; // gloves, when worn, cover the hand
+    elbow.add(put(part(shape(box(0.075, 0.1, 0.055), (x, y, z) => [x * (y < 0 ? 0.85 : 1), y, z]), hand), 0, -0.29, 0.01));
+    elbow.add(put(part(box(0.065, 0.05, 0.045), hand), 0, -0.36, 0.025, 0.35)); // curled fingers
+    elbow.add(put(part(box(0.024, 0.055, 0.026), hand), -0.042 * side, -0.29, 0.04, 0.4, 0, 0.45 * side)); // thumb
+    if (look.gloves !== undefined) elbow.add(put(part(new THREE.CylinderGeometry(0.068, 0.062, 0.07, 6), look.gloves), 0, -0.24, 0)); // a gauntlet's cuff
     arm.add(elbow);
     arm.rotation.z = 0.1 * side;
     body.add(arm);

@@ -19,6 +19,8 @@ export interface HumanoidLook {
   hat: PalKey | number;
   hair: PalKey | number;
   hatStyle?: 'tricorn' | 'bandana' | 'cap' | 'straw' | 'none';
+  /** worn gloves: the hands take their colour */
+  gloves?: PalKey | number;
   /** feet on backwards (Sunreach's douen) */
   feetBack?: boolean;
   hairStyle?: 'short' | 'queue' | 'bun';
