@@ -32,46 +32,37 @@ function chop(when: number | null, secs = 900, seed = 21) {
 }
 
 describe('active skilling', () => {
-  it('a tap in the gold window is perfect; too soon or a second tap is not', () => {
+  it('the bar shows on the swing that lands a log: gold, its red heart, too soon; one tap a swing', () => {
     const g = fresh();
     g.give('hatchet_bronze', 1);
     const n = g.nodes.find((x) => x.def === 'tree_pine')!;
     const q = g.world.nearestWalkable(n.x + 1.2, n.z, 3)!; g.p.x = q[0]; g.p.z = q[1];
     g.interact(`node:${n.uid}`);
-    g.step(0.05);
+    const live = () => { let k = 0; while (!g.cueState()?.live && k++ < 30 * 60) g.step(1 / 30); expect(g.cueState()!.live).toBe(true); };
+    const at = (t: number) => { while (g.cueState()!.t < t) g.step(1 / 30); };
+    // a swing that won't land a log takes no tap
+    let k = 0; while (g.cueState()?.live !== false && k++ < 30 * 60) g.step(1 / 30);
+    if (g.cueState()?.live === false) expect(g.strike()).toBeNull();
+    live();
     expect(g.cueState()!.t).toBeLessThan(ACTIVE.window[0]);
     expect(g.strike()).toBe('miss'); // too soon
     expect(g.strike()).toBeNull(); // one tap a swing
-    // next swing: wait for the window
-    while (g.cueState()!.struck) g.step(1 / 30);
-    while (g.cueState()!.t < ACTIVE.window[0] + 0.02) g.step(1 / 30);
+    while (g.cueState()?.struck) g.step(1 / 30);
+    live(); at(ACTIVE.window[0] + 0.02);
     expect(g.strike()).toBe('perfect');
+    while (g.cueState()?.struck) g.step(1 / 30);
+    live(); at(ACTIVE.red[0] + 0.01);
+    expect(g.strike()).toBe('red');
   });
 
-  it('a run of perfect swings pays a bonus log; a mistimed swing breaks the run', () => {
-    const g = fresh();
-    g.give('hatchet_bronze', 1);
-    const n = g.nodes.find((x) => x.def === 'tree_pine')!;
-    const q = g.world.nearestWalkable(n.x + 1.2, n.z, 3)!; g.p.x = q[0]; g.p.z = q[1];
-    g.interact(`node:${n.uid}`);
-    const swing = (when: number) => { let s = 0; while (g.action && s++ < 300) { const c = g.cueState()!; if (!c.struck && c.t >= when) g.strike(); const was = g.streak; g.step(1 / 30); if (g.streak !== was || (c.struck && g.cueState() && !g.cueState()!.struck)) return; } };
-    for (let k = 0; k < ACTIVE.streakEvery - 1; k++) swing(0.75);
-    expect(g.streak).toBe(ACTIVE.streakEvery - 1);
-    g.p.inv.forEach((s, i) => { if (s?.id === 'logs_pine') g.p.inv[i] = null; });
-    swing(0.75);
-    expect(g.streak).toBe(ACTIVE.streakEvery);
-    expect(count(g.p.inv, 'logs_pine')).toBeGreaterThanOrEqual(1); // the bonus, even on a swing that landed nothing
-    swing(0.2);
-    expect(g.streak).toBe(0);
-  });
-
-  it('perfect timing every swing nearly doubles logs (a third more XP); mistimed taps and no taps give the same', () => {
-    const afk = chop(null), perfect = chop(0.75), early = chop(0.2);
-    console.log('CHOP', JSON.stringify({ afk, perfect, early }));
-    // checked 2026-10-26, oak at Woodcutting 30: 8.7 logs/min idle, 16.3 perfect (bonus logs from runs carry no XP)
-    expect(perfect.perMin / afk.perMin).toBeGreaterThan(1.6);
-    expect(perfect.perMin / afk.perMin).toBeLessThan(2.1);
-    expect(perfect.xp / afk.xp).toBeGreaterThan(1.25);
+  it('gold doubles the log that lands, red trebles it, each with its XP; mistimed and no taps change nothing', () => {
+    const afk = chop(null), gold = chop(0.66), red = chop(0.77), early = chop(0.2);
+    console.log('CHOP', JSON.stringify({ afk, gold, red, early }));
+    expect(gold.perMin / afk.perMin).toBeGreaterThan(1.85);
+    expect(gold.perMin / afk.perMin).toBeLessThan(2.15);
+    expect(red.perMin / afk.perMin).toBeGreaterThan(2.75);
+    expect(red.perMin / afk.perMin).toBeLessThan(3.25);
+    expect(gold.xp / afk.xp).toBeGreaterThan(1.85);
     expect(Math.abs(early.perMin / afk.perMin - 1)).toBeLessThan(0.08); // a miss costs nothing but the bonus
   }, 60_000);
 

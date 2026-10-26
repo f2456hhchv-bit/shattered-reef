@@ -1,7 +1,7 @@
 import { StormTide } from './stormtide';
 import { Naval } from './naval';
 import { AMMO, NAVAL } from '../data/sea';
-import { ACTIVE } from '../data/active';
+import { ACTIVE, type Struck } from '../data/active';
 import { mulberry32 } from '../../art/noise';
 import { item, ammoKind, AMMO_NAME, isTwoHanded, offhandBlock, pairGroup, type ItemDef, type Slot, type SkillId, type CombatStyle } from '../data/items';
 import { perkTotal } from '../data/perks';
@@ -110,8 +110,9 @@ export interface Projectile { id: number; x: number; z: number; vx: number; vz: 
 export interface Telegraph { id: number; kind: 'circle' | 'cone' | 'line'; x: number; z: number; r: number; angle: number; width: number; t: number; dur: number; damage: number; source: number }
 
 type Action =
-  | { type: 'gather'; node: string; next: number; progress: number; from: number; struck?: 'perfect' | 'miss' } // progress: 0..1 toward the next item
-  | { type: 'craft'; recipe: string; remaining: number; next: number; from: number; struck?: 'perfect' | 'miss' } // from: this cycle's start (active skilling)
+  // progress: 0..1 toward the next item; fill: what this swing adds (rolled when it starts, so the game knows which swing lands)
+  | { type: 'gather'; node: string; next: number; progress: number; from: number; fill?: number; struck?: Struck }
+  | { type: 'craft'; recipe: string; remaining: number; next: number; from: number; struck?: Struck } // from: this cycle's start (active skilling)
   | null;
 
 /** How a trip to another region ends: where the player (and maybe the ship) comes out. */
@@ -164,8 +165,6 @@ export class Game {
 
   // player runtime
   facing = Math.PI / 2;
-  /** perfect swings in a row (active skilling): every ACTIVE.streakEvery, a bonus item */
-  streak = 0;
   moveDir = { x: 0, z: 0 };
   path: [number, number][] = [];
   pending: string | null = null; // interaction to perform on arrival
@@ -584,21 +583,17 @@ export class Game {
     const tool = this.gatherTool(d);
     if (!tool) { this.stopAction(); return; }
     a.next = this.time + (d.skill ? DT_GATHER : DT_GATHER * 0.6);
-    const perfect = a.struck === 'perfect';
+    const struck = a.struck;
     a.struck = undefined; a.from = this.time;
     // steady returns (Tom: one quick, then 30 s of nothing): each swing fills progress by the success chance, a
     // little jittered, and an item lands when it's full. Same average rate as rolling the chance every swing, but
     // the wait between items stays close to the average instead of swinging wildly.
-    const fill = this.gatherChance(d, tool.power) * (0.75 + this.rnd() * 0.5);
-    a.progress += perfect ? Math.max(ACTIVE.perfectMin, fill * ACTIVE.gatherBonus) : fill;
-    if (d.skill) this.streak = perfect ? this.streak + 1 : 0;
+    a.progress += this.swingFill(a, d, tool.power);
+    a.fill = undefined; // the next swing rolls its own
     const ok = a.progress >= 1;
     if (ok) a.progress -= 1;
-    // a run of perfect swings: a bonus item on top, whether or not this swing landed one
-    if (perfect && d.skill && !d.loot && this.streak % ACTIVE.streakEvery === 0) {
-      const extra = d.catches ? this.pickCatch(d.catches).item : d.drops ? this.weighted(d.drops) : d.item;
-      if (extra && canAdd(this.p.inv, extra)) { this.give(extra, 1); this.msg(`${this.streak} perfect in a row: a bonus ${item(extra).name.toLowerCase()}!`, 'good'); }
-    }
+    // active skilling: the swing that lands an item shows the timing bar; gold makes it two, the red heart three
+    const times = ok && d.skill && !d.loot ? ACTIVE.times[struck ?? 'miss'] : 1;
     const fx = d.skill === 'woodcutting' || d.verb === 'Pick' ? 'wood' : d.skill === 'mining' || d.verb === 'Dig' ? 'stone' : 'water';
     this.emit({ type: 'gatherFx', kind: fx, x: n.x, z: n.z, success: ok });
     if (!ok) return;
@@ -616,7 +611,8 @@ export class Game {
       catchOf = d.catches ? this.pickCatch(d.catches) : null;
       const got = catchOf ? catchOf.item : d.drops ? this.weighted(d.drops) : d.item;
       if (!canAdd(this.p.inv, got)) { this.msg('Your pack is full.', 'warn'); this.stopAction(); return; }
-      this.give(got, 1);
+      let n = 0;
+      while (n < times && canAdd(this.p.inv, got)) { this.give(got, 1); n++; }
       if (d.bonus && this.rnd() < d.bonus.chance) { this.give(d.bonus.item, 1); this.msg(`You find a ${item(d.bonus.item).name.toLowerCase()}!`, 'loot'); }
       if (d.skill) {
         const lvl = this.level(d.skill);
@@ -636,7 +632,7 @@ export class Game {
         this.rollKeyFind(d.fromShip ? 'sailing' : d.skill as KeyFamily, KEY_CONFIG.gatherChance);
       }
     }
-    if (d.skill) this.addXp(d.skill, catchOf?.xp ?? d.xp);
+    if (d.skill) this.addXp(d.skill, (catchOf?.xp ?? d.xp) * times);
     if (tool.id !== 'hands') this.wear(this.p.inv.find((x) => x?.id === tool.id), WEAR.tool * (1 - (d.skill ? perkTotal(d.skill, this.level(d.skill), 'tool_care') / 100 : 0)));
     // each gather uses one of the node's items, unless a Lasting perk spares it
     const lasting = d.skill ? perkTotal(d.skill, this.level(d.skill), 'last') / 100 : 0;
@@ -679,23 +675,37 @@ export class Game {
 
   // ------------------------------------------------------------------ active skilling (data/active.ts)
   /** The current swing or craft's timing: how far through the cycle it is, the gold window, and whether you've tapped. */
-  cueState(): { t: number; window: [number, number]; struck: 'perfect' | 'miss' | null; skill: SkillId | null; streak: number } | null {
+  /** What this swing adds toward the next item, rolled once when the swing starts. */
+  private swingFill(a: Extract<NonNullable<Action>, { type: 'gather' }>, d: (typeof NODES)[string], power: number) {
+    if (a.fill === undefined) a.fill = this.gatherChance(d, power) * (0.75 + this.rnd() * 0.5);
+    return a.fill;
+  }
+
+  /**
+   * The current swing or craft's timing: how far through the cycle it is, the gold window and its red heart, and
+   * whether you've tapped. `live`: a gather swing only counts when it's the one that lands an item.
+   */
+  cueState(): { t: number; window: [number, number]; red: [number, number]; struck: Struck | null; skill: SkillId | null; live: boolean } | null {
     const a = this.action;
     if (!a || this.dead) return null;
     const skill = a.type === 'gather' ? NODES[this.nodes.find((n) => n.uid === a.node)?.def ?? '']?.skill ?? null : RECIPES.find((r) => r.id === a.recipe)?.skill ?? null;
     if (!skill) return null; // picking and digging have no skill to be good at
     const len = Math.max(0.01, a.next - a.from);
-    return { t: Math.max(0, Math.min(1, (this.time - a.from) / len)), window: ACTIVE.window, struck: a.struck ?? null, skill, streak: a.type === 'gather' ? this.streak : 0 };
+    let live = true;
+    if (a.type === 'gather') {
+      const n = this.nodes.find((x) => x.uid === a.node)!, d = NODES[n.def], tool = this.gatherTool(d);
+      live = !!tool && !d.loot && a.progress + this.swingFill(a, d, tool.power) >= 1;
+    }
+    return { t: Math.max(0, Math.min(1, (this.time - a.from) / len)), window: ACTIVE.window, red: ACTIVE.red, struck: a.struck ?? null, skill, live };
   }
 
   /** Tap during a swing or craft: in the gold window it's perfect; outside, that cycle's chance is gone. */
-  strike(): 'perfect' | 'miss' | null {
+  strike(): Struck | null {
     const c = this.cueState(), a = this.action;
-    if (!c || !a || a.struck) return null;
-    a.struck = c.t >= c.window[0] && c.t <= c.window[1] ? 'perfect' : 'miss';
-    // the run counts this tap now (the swing itself resolves when it lands)
-    const run = a.type === 'gather' ? this.streak + 1 : 0;
-    if (a.struck === 'perfect') this.emit({ type: 'cue', perfect: true, text: `${ACTIVE.calls[c.skill!] ?? 'Perfect!'}${run > 1 ? ` ×${run}` : ''}` });
+    if (!c || !a || a.struck || !c.live) return null;
+    a.struck = c.t >= c.red[0] && c.t <= c.red[1] ? 'red' : c.t >= c.window[0] && c.t <= c.window[1] ? 'perfect' : 'miss';
+    const x = a.type === 'gather' && a.struck !== 'miss' ? ` ×${ACTIVE.times[a.struck]}` : '';
+    if (a.struck !== 'miss') this.emit({ type: 'cue', perfect: true, text: `${ACTIVE.calls[c.skill!] ?? 'Perfect!'}${x}` });
     else this.emit({ type: 'cue', perfect: false, text: c.t < c.window[0] ? 'Too soon' : 'Too late' });
     return a.struck;
   }
@@ -728,7 +738,7 @@ export class Game {
   private tickCraft(a: Extract<NonNullable<Action>, { type: 'craft' }>) {
     if (this.time < a.next) return;
     const r = RECIPES.find((x) => x.id === a.recipe)!;
-    const perfect = a.struck === 'perfect';
+    const perfect = a.struck === 'perfect' || a.struck === 'red';
     a.struck = undefined;
     if (!this.nearStation(r.station)) { this.stopAction(); return; }
     const block = this.recipeBlock(r);

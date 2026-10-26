@@ -1,4 +1,3 @@
-import { ACTIVE } from '../game/data/active';
 import { AMMO, CHART_MARKS, type AmmoId } from '../game/data/sea';
 import { item, RARITY, AFFIXES, METALS, METAL_TRAITS, AMMO_NAME, ammoKind, isTwoHanded, pairGroup, type ItemDef, type Slot, type SkillId, type WeaponKind } from '../game/data/items';
 import { morph, forget } from './morph';
@@ -204,7 +203,7 @@ export class UI {
     this.gatherBar = h('div', { class: 'hpbar gatherbar' }, '<i></i>');
     this.el.overlay.appendChild(this.gatherBar);
     // the timing bar: a needle sweeps each swing or craft; tap while it's in the gold window
-    this.cueBar = h('div', { class: 'cuebar' }, `<b></b><i></i><u>${'<em></em>'.repeat(ACTIVE.streakEvery)}</u>`);
+    this.cueBar = h('div', { class: 'cuebar' }, '<b></b><s></s><i></i>');
     this.cueBar.style.display = 'none';
     this.el.overlay.appendChild(this.cueBar);
     // the Storm Tide: the serpent's strength and the pier's, while it runs
@@ -604,17 +603,16 @@ export class UI {
     // XP and gains float over your head (over the ship when you're aboard)
     { const s = r.project(g.p.x, (g.p.onShip ? 0 : g.world.standY(g.p.x, g.p.z)) + (g.p.onShip ? 5 : 3.1), g.p.z); this.overhead.style.left = `${s.x}px`; this.overhead.style.top = `${s.y}px`; }
     // active skilling: the timing bar under the player, and the call when you tap
-    const cue = g.cueState();
+    // (gathering: only on the swing that lands an item; gold makes it two, the red heart three)
+    const cue0 = g.cueState(), cue = cue0?.live ? cue0 : null;
     this.cueBar.style.display = cue ? '' : 'none';
     if (cue) {
       const s = r.project(g.p.x, g.world.standY(g.p.x, g.p.z) + 2.25, g.p.z);
       this.cueBar.style.left = `${s.x}px`; this.cueBar.style.top = `${s.y}px`;
-      const win = this.cueBar.querySelector('b') as HTMLElement, needle = this.cueBar.querySelector('i') as HTMLElement;
-      // the run toward a bonus item: pips fill with each perfect swing in a row
-      const run = cue.streak % ACTIVE.streakEvery;
-      this.cueBar.querySelectorAll('em').forEach((p, k) => p.classList.toggle('on', cue.skill !== null && k < run));
-      (this.cueBar.querySelector('u') as HTMLElement).hidden = this.game.action?.type !== 'gather';
+      const win = this.cueBar.querySelector('b') as HTMLElement, heart = this.cueBar.querySelector('s') as HTMLElement, needle = this.cueBar.querySelector('i') as HTMLElement;
       win.style.left = `${cue.window[0] * 100}%`; win.style.width = `${(cue.window[1] - cue.window[0]) * 100}%`;
+      heart.hidden = g.action?.type !== 'gather'; // crafts have no red heart
+      heart.style.left = `${cue.red[0] * 100}%`; heart.style.width = `${(cue.red[1] - cue.red[0]) * 100}%`;
       needle.style.left = `${cue.t * 100}%`;
       this.cueBar.dataset.state = cue.struck ?? (cue.t >= cue.window[0] && cue.t <= cue.window[1] ? 'open' : '');
       const s2 = r.project(g.p.x, g.world.standY(g.p.x, g.p.z) + 3.2, g.p.z);

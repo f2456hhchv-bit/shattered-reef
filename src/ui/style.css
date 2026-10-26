@@ -501,7 +501,7 @@ body.portrait .skgrid { grid-template-columns: repeat(4, 1fr); }
 .recipe.brow .btns .btn { white-space: nowrap; }
 
 /* active skilling: the timing bar (a needle sweeps each swing; tap in the gold) and the call when you do */
-.cuebar { position: absolute; width: 74px; height: 9px; margin-left: -37px; background: #241a10; border: 1px solid #000; border-radius: 5px; pointer-events: none; }
+.cuebar { position: absolute; width: 96px; height: 11px; margin-left: -48px; background: #241a10; border: 1px solid #000; border-radius: 5px; pointer-events: none; }
 .cuebar b { position: absolute; top: 0; bottom: 0; background: #b8892e; border-radius: 4px; }
 .cuebar i { position: absolute; top: -3px; bottom: -3px; width: 3px; margin-left: -1.5px; background: #fff6dc; border-radius: 2px; box-shadow: 0 0 4px #000; }
 .cuebar[data-state="open"] b { background: #ffd35a; box-shadow: 0 0 8px #ffd35a; }
@@ -583,11 +583,10 @@ body.portrait.side-open .ability { width: 50px; height: 50px; }
 body.portrait.side-open .ability svg { width: 27px; height: 27px; }
 body.portrait.side-open #log { bottom: calc(var(--panel-h) + 14px + env(safe-area-inset-bottom, 0px)); right: 120px; }
 body.portrait.side-open #dialog { bottom: calc(var(--panel-h) + 12px + env(safe-area-inset-bottom, 0px)); }
-/* the run of perfect swings toward a bonus item */
-.cuebar u { position: absolute; left: 50%; top: 13px; transform: translateX(-50%); display: flex; gap: 3px; text-decoration: none; }
-.cuebar u[hidden] { display: none; }
-.cuebar em { width: 7px; height: 7px; border-radius: 50%; background: #241a10; box-shadow: 0 0 0 1px #000; }
-.cuebar em.on { background: #ffd35a; box-shadow: 0 0 0 1px #000, 0 0 6px #ffd35a; }
+/* the red heart of the gold window: three items instead of two */
+.cuebar s { position: absolute; top: -1px; bottom: -1px; background: #d8483a; border-radius: 3px; text-decoration: none; box-shadow: 0 0 0 1px #000; }
+.cuebar s[hidden] { display: none; }
+.cuebar[data-state="red"] b, .cuebar[data-state="red"] s { background: #ff6a5a; box-shadow: 0 0 12px #ff6a5a; }
 /* the context button's second line: up to two short lines, kept inside the circle (a long name wraps, not cuts) */
 #ctx small { white-space: normal; max-width: 64px; margin: 2px auto 0; line-height: 1.15; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; text-overflow: clip; }
 #ctx span { max-width: 62px; margin: 0 auto; white-space: nowrap; }
