@@ -59,6 +59,18 @@ describe('island diaries', () => {
     expect(g.s.region).toBe('bellwether'); // across, and nothing paid
   });
 
+  it('ticking a task off tells you, once; what was already done when you load stays quiet', () => {
+    const g = at('bellwether');
+    const said: string[] = [];
+    g.on((e) => { if (e.type === 'msg') said.push(e.text); });
+    g.s.flags.storm_tide_won = true; // done before the first check: quiet
+    g.step(1 / 30);
+    expect(said.filter((t) => t.includes('Diary')).length).toBe(0);
+    g.s.flags.guardian_defeated = true;
+    for (let k = 0; k < 40; k++) g.step(1 / 30);
+    expect(said.filter((t) => t.includes('Bellwether Diary: Beat the Guardian')).length).toBe(1);
+  });
+
   it('hauling a treasure chest is recorded for the Stormwrack diary', () => {
     const g = at('wrack');
     g.give('treasure_map', 1);

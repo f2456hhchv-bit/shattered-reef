@@ -2014,6 +2014,26 @@ export class Game {
     this.travel({ to: f.to as RegionId, how: 'ferry', from: this.s.region });
   }
 
+  /** Tell the player when a diary task gets ticked off (checked twice a second; ticks already done on load are quiet). */
+  private diaryCheckAt = 0;
+  private stepDiaries() {
+    if (this.time < this.diaryCheckAt) return;
+    this.diaryCheckAt = this.time + 0.5;
+    const quiet = !this.s.flags.diary_seen;
+    for (const d of DIARIES) {
+      if (this.s.flags[`diary_${d.island}`]) continue;
+      for (const t of d.tasks) {
+        const key = `dt_${d.island}_${t.id}`;
+        if (this.s.flags[key] || !t.done(this)) continue;
+        this.s.flags[key] = true;
+        if (quiet) continue;
+        const n = d.tasks.filter((x) => this.s.flags[`dt_${d.island}_${x.id}`]).length;
+        this.msg(n === d.tasks.length ? `${d.name} finished! Claim your reward in the Quests tab.` : `${d.name}: ${t.text} (${n}/${d.tasks.length})`, n === d.tasks.length ? 'good' : 'quest');
+      }
+    }
+    this.s.flags.diary_seen = true;
+  }
+
   /** A finished island diary: that island's harbourmaster takes you for nothing. */
   ferryPrice(base: number) { return this.s.flags[`diary_${this.s.region}`] ? 0 : base; }
 
@@ -2645,6 +2665,7 @@ export class Game {
       this.storm.step(dt);
       this.fire.step(dt);
       this.seep.step(dt);
+      this.stepDiaries();
     }
     this.stepMate(dt);
     if (this.region.kind === 'island') this.naval.step(dt);
