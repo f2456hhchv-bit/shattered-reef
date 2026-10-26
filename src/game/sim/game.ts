@@ -8,7 +8,7 @@ import { perkTotal } from '../data/perks';
 import { KEY, KEYS, KEY_CONFIG, type KeyDef, type KeyFamily } from '../data/keys';
 import { DROP_CONFIG, GEMS, rareTable, commonTable } from '../data/drops';
 import { BOARDS, BOUNTY_CONFIG, CREW_BY, WANTED_FIRST, WANTED_LAST, rankOf, type Contract, type CrewPassive } from '../data/bounties';
-import { HP_SCALE, NODES, RECIPES, ENEMIES, LOOT, ELITE_AFFIXES, SHOPS, PLAYER_BASE, UTILITY_SPELLS, COMBAT_SKILLS, XP_PER_DAMAGE, type EnemyDef, type Recipe, type Station } from '../data/content';
+import { HP_SCALE, NODES, RECIPES, ENEMIES, LOOT, ELITE_AFFIXES, SHOPS, PLAYER_BASE, UTILITY_SPELLS, SPELLS, COMBAT_SKILLS, XP_PER_DAMAGE, type EnemyDef, type Recipe, type Station } from '../data/content';
 import { NPCS, QUESTS, type DialogueNode, type Effect, type QuestMark } from '../data/quests';
 import { PLACES, placeRegion } from '../world/places';
 import { regionLayout, cachedLayout, type IslandLayout, type Arena } from '../world/layout';
@@ -1112,19 +1112,21 @@ export class Game {
   private useMark(questId: string, markId: string) {
     const st = this.questStage(questId), stage = QUESTS[questId]?.stages[st], m = stage?.marks?.find((x) => x.id === markId);
     if (!m) return;
+    if (m.requires && count(this.p.inv, m.requires.id) < m.requires.qty) { for (const line of m.missing ?? [`You need ${m.requires.qty} × ${item(m.requires.id).name}.`]) this.msg(line, 'warn'); return; }
     for (const line of m.say ?? []) this.msg(line, 'quest');
-    if (m.seq !== undefined) {
+    if (m.seq !== undefined || m.decoy) {
       const key = (n: number) => `${questId}_${st}_s${n}`;
-      const done = stage!.marks!.filter((x) => this.s.flags[key(x.seq!)]).length;
-      if (m.seq !== done + 1) {
-        for (const x of stage!.marks!) delete this.s.flags[key(x.seq!)];
+      const real = stage!.marks!.filter((x) => !x.decoy);
+      const done = real.filter((x) => this.s.flags[key(x.seq!)]).length;
+      if (m.decoy || m.seq !== done + 1) {
+        for (const x of real) delete this.s.flags[key(x.seq!)];
         if (done > 0 || m.seq !== 1) this.msg(stage!.wrong ?? 'That wasn\'t the right order. Start again.', 'warn');
-        if (m.seq === 1) this.s.flags[key(1)] = true; // the first one is always a fresh start
+        if (m.seq === 1 && !m.decoy) this.s.flags[key(1)] = true; // the first one is always a fresh start
         this.rev++;
         return;
       }
       this.s.flags[key(m.seq)] = true;
-      if (done + 1 === stage!.marks!.length) this.setStage(questId, st + 1);
+      if (done + 1 === real.length) this.setStage(questId, st + 1);
       this.rev++;
       return;
     }
@@ -1746,7 +1748,11 @@ export class Game {
 
   // ---- stances, ammo, specials -------------------------------------------------
   setStance(st: Stance) { this.s.combat.stance = st; this.recalc(); }
-  setSpell(id: string) { this.s.combat.spell = id; this.recalc(); }
+  setSpell(id: string) {
+    const sp = SPELLS.find((x) => x.id === id);
+    if (sp?.quest && !this.s.flags[sp.quest]) { this.msg(`${sp.name} is taught by a quest.`, 'warn'); return; }
+    this.s.combat.spell = id; this.recalc();
+  }
 
   /** Why the equipped weapon can't attack right now, or null. */
   ammoBlock(n = 1): string | null {

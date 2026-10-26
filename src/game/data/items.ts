@@ -267,6 +267,9 @@ function tierItems(): ItemDef[] {
     equip: { slot: 'ring', reqs: {}, bonus: { defMagic: 2 }, affixPool: JEWEL_AFFIX }, innate: [{ id: 'gather_speed', v: 3 }, { id: 'xp_bonus', v: 2 }] }));
   out.push(I({ id: 'cloak_selkie', name: 'Sealskin cloak', desc: 'Made from a selkie\'s skin. Warm as a seal in winter, and spells slide off it like water.', icon: { shape: 'coat', color: '#6a6e72', accent: '#3a3e42' }, stackable: false, value: 400,
     equip: { slot: 'body', reqs: { defence: 10 }, bonus: { defMelee: 6, defRanged: 8, defMagic: 14 }, affixPool: ARMOUR_AFFIX }, innate: [{ id: 'regen', v: 1 }] }));
+  // Sunreach's quest rewards (docs/ISLANDS.md, slice 2)
+  out.push(I({ id: 'hat_douen', name: 'Douen\'s straw hat', desc: 'A wide straw hat from the Greenheart glade. Whoever wears it walks the jungle like they were born there.', icon: { shape: 'cap', color: '#d8c07a', accent: '#5a4a2a' }, stackable: false, value: 300,
+    equip: { slot: 'head', reqs: {}, bonus: { defMelee: 3, defRanged: 3, defMagic: 3 }, affixPool: [...ARMOUR_AFFIX, 'gather_speed'] }, innate: [{ id: 'gather_speed', v: 4 }] }));
   out.push(I({ id: 'storm_herring_raw', name: 'Raw storm herring', desc: 'Silver herring the storm drives up to the quay. Fire them at the serpent, or cook them first: cooked ones hit twice as hard.', icon: { shape: 'fish', color: '#9ab8c8' }, stackable: true, value: 1 }));
   out.push(I({ id: 'storm_herring', name: 'Smoked storm herring', desc: 'Hot from the quay fire. Heals 4, or loads the quay cannon for a double blow.', icon: { shape: 'fish', color: '#b8885a' }, stackable: true, value: 3, heal: 4 }));
   // the storm outfit: oilskins for the Storm Tide; every piece makes fishing a little surer

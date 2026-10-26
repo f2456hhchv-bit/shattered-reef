@@ -140,15 +140,17 @@ const BAT: Record<string, { fur: number; wing: number; eye: number; beak?: numbe
   cave: { fur: 0x3a2e2a, wing: 0x5a443a, eye: 0xe8402a },
   ember: { fur: 0x2a1a14, wing: 0x9a3a1a, eye: 0xffb040 },
   gull: { fur: 0xeeeeea, wing: 0xb8bcc2, eye: 0x1a1a1a, beak: 0xe8b83a }, // a herring gull: white, grey wings, yellow bill
+  souc: { fur: 0xff8a2a, wing: 0xffc04a, eye: 0xfff2c0 }, // the soucouyant: a ball of fire with wings of flame
 };
 function bat(look: string, seed: number): FantasyRig {
   const L = BAT[look] ?? BAT.cave;
   const root = new THREE.Group(), body = new THREE.Group();
   body.position.y = 1.5;
   root.add(body);
-  const torso = mesh(jitter(new THREE.IcosahedronGeometry(0.22, 1), 0.03, seed), mat(L.fur));
+  const fire = look === 'souc';
+  const torso = mesh(jitter(new THREE.IcosahedronGeometry(fire ? 0.3 : 0.22, 1), 0.03, seed), fire ? glow(L.fur, 1.6) : mat(L.fur));
   torso.scale.set(0.9, 0.9, 1.3);
-  const head = mesh(jitter(new THREE.IcosahedronGeometry(0.15, 0), 0.02, seed + 1), mat(L.fur));
+  const head = mesh(jitter(new THREE.IcosahedronGeometry(0.15, 0), 0.02, seed + 1), fire ? glow(L.fur, 1.6) : mat(L.fur));
   head.position.set(0, 0.06, 0.28);
   body.add(torso, head);
   if (L.beak) {
@@ -173,7 +175,7 @@ function bat(look: string, seed: number): FantasyRig {
     w.position.set(0.16 * s, 0.04, 0);
     // a wing is three fingers of membrane fanned out from the shoulder
     for (let k = 0; k < 3; k++) {
-      const m = mesh(new THREE.ConeGeometry(0.22 - k * 0.04, 0.8 - k * 0.15, 3), mat(L.wing, { side: THREE.DoubleSide }));
+      const m = mesh(new THREE.ConeGeometry(0.22 - k * 0.04, 0.8 - k * 0.15, 3), fire ? mat(L.wing, { side: THREE.DoubleSide, emissive: L.wing, emissiveIntensity: 1.2 }) : mat(L.wing, { side: THREE.DoubleSide }));
       m.scale.z = 0.12;
       m.rotation.z = s * (Math.PI / 2 + (k - 1) * 0.35);
       m.position.set(s * (0.36 - k * 0.04), 0, -k * 0.08);

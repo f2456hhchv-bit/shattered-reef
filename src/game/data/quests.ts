@@ -1,5 +1,5 @@
 import type { SkillId } from './items';
-import { LAYOUT, coastPoint } from '../world/island';
+import { LAYOUT, SUN_LAYOUT, coastPoint } from '../world/island';
 // NPCs and the first quest, as data. Dialogue is chosen by quest stage; effects are interpreted by the quest system.
 
 export interface Effect {
@@ -64,13 +64,22 @@ export const NPCS: Record<string, NpcDef> = {
   dougal: { id: 'dougal', name: 'Dougal Penrose', title: 'Fisherman', idle: ['Fish are fish and the sea\'s the sea. Mind your own nets.'] },
   halyard_watch: { id: 'halyard_watch', name: 'Watchman Okoro', title: 'Port watch',
     idle: ['North through the plaza is the Greenheart. Hunters in there shoot first. East, Ember Hill: coal and iron, if you can swing a pick.', 'The old temple in the jungle? Nobody goes in. Something still keeps it.'] },
+  // Sunreach's quests (docs/ISLANDS.md, slice 2)
+  abena: { id: 'abena', name: 'Abena Owusu', title: 'Fruit seller', idle: ['Mangoes, limes, soursop. Mind the jungle edge after dark, captain.'] },
+  nana_ayo: { id: 'nana_ayo', name: 'Nana Ayo', title: 'Herb woman', idle: ['Bush tea for the fever, salt for what comes at night. I keep both.'] },
   watch_n: { id: 'watch_n', name: 'Watchman Pell', title: 'Town watch', idle: ['North road runs to the Copperback Hills and the foot of Ironcrag. Mind the crabs in iron shells.'] },
   watch_e: { id: 'watch_e', name: 'Watchwoman Dory', title: 'Town watch', idle: ['East road\'s brigand country. Past their camp, the smugglers keep the cove. Go armed.'] },
 };
 
 /** A spot to use during a stage: a rock to listen at, sand to dig, a lantern to douse. With `seq`, the stage's
  * spots must be used in that order (a wrong one starts the order again). */
-export interface QuestMark { id: string; label: string; verb: string; region: string; x: number; z: number; seq?: number; say?: string[]; effect?: Effect }
+export interface QuestMark {
+  id: string; label: string; verb: string; region: string; x: number; z: number; seq?: number; say?: string[]; effect?: Effect;
+  /** needs this in the pack (said instead when it isn't) */
+  requires?: { id: string; qty: number }; missing?: string[];
+  /** in an ordered stage: a false lead, always wrong (the order starts again) */
+  decoy?: boolean;
+}
 
 export interface QuestStage {
   text: string;
@@ -221,6 +230,69 @@ export const QUESTS: Record<string, QuestDef> = {
           'And captain: the chief had a chart on him. Islands to the east. You\'ll want it.'],
           effect: { give: [{ id: 'coins', qty: 300 }], xp: [{ skill: 'sailing', amount: 600 }, { skill: 'attack', amount: 300 }], stage: 5, flag: 'swivel_gun' } } } },
       { text: 'Quest complete. Your sloop carries the swivel gun: broadsides hit 15% harder.' },
+    ],
+  },
+  tracks: {
+    id: 'tracks',
+    name: 'Backward Tracks',
+    giver: 'abena',
+    reward: 'The douen\'s straw hat (faster gathering), 600 Woodcutting XP, 300 Attack XP, 250 coins',
+    stages: [
+      { text: 'Speak with Abena, the fruit seller in Port Halyard\'s plaza.',
+        talk: { npc: 'abena', node: { lines: [
+          'Captain, please. My boy Kofi. He went to the jungle edge after a little one he thought was another child. A child in a big straw hat.',
+          'A douen. They wear those hats so you never see their faces, and their feet are on backwards.',
+          'Their tracks lie: the toes point the way they came from, not the way they went. Find him before they lead him too deep.'], effect: { stage: 1 } } } },
+      { text: 'Follow the douen\'s tracks into the Greenheart. Its feet are on backwards: it went the opposite way to its toes.',
+        wrong: 'These prints go nowhere. Back to the jungle\'s edge and read the trail again.',
+        marks: [
+          { id: 't1', label: 'Small footprints at the jungle edge', verb: 'Read', region: 'sunreach', x: SUN_LAYOUT.jungle.x + 10, z: SUN_LAYOUT.jungle.z + 8, seq: 1,
+            say: ['Two sets of small prints: a boy\'s, and beside them a child\'s with the toes pointing south-east, back toward the port.', 'Backward feet. It walked north-west, into the trees.'] },
+          { id: 't2', label: 'Footprints by the strangler fig', verb: 'Read', region: 'sunreach', x: SUN_LAYOUT.jungle.x + 2, z: SUN_LAYOUT.jungle.z - 2, seq: 2,
+            say: ['Here the douen\'s toes point north-east.', 'So it went the other way: south-west, toward the sound of water.'] },
+          { id: 't3', label: 'Footprints by the stream', verb: 'Read', region: 'sunreach', x: SUN_LAYOUT.jungle.x - 8, z: SUN_LAYOUT.jungle.z + 4, seq: 3,
+            say: ['Wet prints on the bank. The douen\'s toes point south-east.', 'North-west, then: deeper in, where the canopy closes.'] },
+          { id: 't4', label: 'A ring of little footprints', verb: 'Read', region: 'sunreach', x: SUN_LAYOUT.jungle.x - 14, z: SUN_LAYOUT.jungle.z - 8, seq: 4,
+            say: ['A clearing ringed with prints. In the middle, curled up asleep: Kofi.', 'Straw hats move at the clearing\'s edge. The biggest one steps forward.'] },
+          { id: 'd1', label: 'Footprints by the ant column', verb: 'Read', region: 'sunreach', x: SUN_LAYOUT.jungle.x + 11, z: SUN_LAYOUT.jungle.z - 6, decoy: true, say: ['Ant tracks and a boar\'s slots. No child came this way.'] },
+          { id: 'd2', label: 'Footprints by the fallen palm', verb: 'Read', region: 'sunreach', x: SUN_LAYOUT.jungle.x - 4, z: SUN_LAYOUT.jungle.z + 12, decoy: true, say: ['Old prints, half washed out. A dead end.'] },
+        ] },
+      { text: 'The douen elder stands over Kofi in the clearing. Beat it.', kill: { foe: 'douen_elder', count: 1, spawn: { region: 'sunreach', x: SUN_LAYOUT.jungle.x - 15, z: SUN_LAYOUT.jungle.z - 10 } } },
+      { text: 'Bring the news to Abena in the plaza.',
+        talk: { npc: 'abena', node: { lines: [
+          'Kofi! He ran in an hour ago, muddy to the knees and talking about straw hats. Thank you, captain. Thank you.',
+          'He brought this back with him. The douen dropped it when it ran. Better on your head than his.',
+          'They say whoever wears a douen\'s hat never gets lost in the trees.'],
+          effect: { give: [{ id: 'hat_douen', qty: 1 }, { id: 'coins', qty: 250 }], xp: [{ skill: 'woodcutting', amount: 600 }, { skill: 'attack', amount: 300 }], stage: 4, flag: 'tracks_done' } } } },
+      { text: 'Quest complete.' },
+    ],
+  },
+  souc: {
+    id: 'souc',
+    name: 'Salt for the Soucouyant',
+    giver: 'nana_ayo',
+    reward: 'The spell Soucouyant\'s Fire (Magic 20), 800 Magic XP, 200 coins',
+    stages: [
+      { text: 'Speak with Nana Ayo, the herb woman in Port Halyard\'s plaza.',
+        talk: { npc: 'nana_ayo', node: { lines: [
+          'Three sailors this week woke grey as ash, with a bruise on the neck. Something drinks from them while they sleep.',
+          'A soucouyant. By day an old woman. At night she sheds her skin, hides it, and flies as a ball of fire.',
+          'Find where she hides the skin and rub it with salt. Three handfuls of sea salt; Tamsin sells it. Then she can\'t put it back on, and she has to come for you.'], effect: { stage: 1 } } } },
+      { text: 'Find the soucouyant\'s hidden skin at the jungle\'s edge, and salt it (three sea salt).',
+        marks: [
+          { id: 'tree', label: 'Hollow of the silk-cotton tree', verb: 'Search', region: 'sunreach', x: SUN_LAYOUT.jungle.x + 16, z: SUN_LAYOUT.jungle.z + 2,
+            requires: { id: 'sea_salt', qty: 3 }, missing: ['In the hollow, folded like washing: a woman\'s skin, still warm. You have no salt for it. Three handfuls, Nana Ayo said.'],
+            say: ['In the hollow, folded like washing: a woman\'s skin, still warm.', 'You rub it with salt. Somewhere above the trees, a scream, and a light coming down fast.'],
+            effect: { take: [{ id: 'sea_salt', qty: 3 }], stage: 2 } },
+        ] },
+      { text: 'The soucouyant has come down as a ball of fire, and she can\'t get back into her skin. Beat her.', kill: { foe: 'soucouyant', count: 1, spawn: { region: 'sunreach', x: SUN_LAYOUT.jungle.x + 18, z: SUN_LAYOUT.jungle.z + 5 } } },
+      { text: 'Tell Nana Ayo it\'s done.',
+        talk: { npc: 'nana_ayo', node: { lines: [
+          'The sailors are sleeping sound tonight. You did that.',
+          'You stood in her fire and lived. Come, I\'ll show you how to call it yourself: it answers anyone who isn\'t afraid of it.',
+          'Soucouyant\'s Fire. Don\'t burn the port down.'],
+          effect: { give: [{ id: 'coins', qty: 200 }], xp: [{ skill: 'magic', amount: 800 }], stage: 4, flag: 'souc_done' } } } },
+      { text: 'Quest complete. Soucouyant\'s Fire is in your spell list (Magic 20).' },
     ],
   },
 };

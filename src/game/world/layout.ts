@@ -155,7 +155,12 @@ function buildIslandRegion(region: IslandId): IslandLayout {
     { id: 'muirne', x: coastPoint(136, 2.6)[0], z: coastPoint(136, 2.6)[1], facing: Math.atan2(coastPoint(136, -5)[1] - coastPoint(136, 2.6)[1], coastPoint(136, -5)[0] - coastPoint(136, 2.6)[0]) },
     { id: 'dougal', x: LAYOUT.strand.x + 7, z: LAYOUT.strand.z - 4, facing: Math.PI },
   );
-  else if (sun) npcs.push({ id: 'halyard_watch', x: SL.plaza.x + 3, z: SL.plaza.z - 7, facing: Math.PI / 2 });
+  else if (sun) npcs.push(
+    { id: 'halyard_watch', x: SL.plaza.x + 3, z: SL.plaza.z - 7, facing: Math.PI / 2 },
+    // the quest folk (slice 2): Abena at her fruit stand, Nana Ayo by the plaza's shade tree
+    { id: 'abena', x: SL.plaza.x - 5, z: SL.plaza.z + 2, facing: 0 },
+    { id: 'nana_ayo', x: SL.plaza.x + 6, z: SL.plaza.z + 3, facing: Math.PI },
+  );
   else if (amb) npcs.push({ id: 'jory', x: AL.dockBase.x + 3.2, z: AL.dockBase.z - 1.0, facing: Math.PI / 2 });
   else npcs.push({ id: 'mercy', x: WL.dockBase.x + 3.2, z: WL.dockBase.z - 1.0, facing: Math.PI / 2 });
   for (const n of npcs) world.solids.push({ x: n.x, z: n.z, r: 0.35 });
