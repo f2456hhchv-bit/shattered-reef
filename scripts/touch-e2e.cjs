@@ -33,7 +33,7 @@ const { chromium } = require(path.join(require('child_process').execSync('npm ro
   res.chopping = await p.evaluate(() => window.__reef.game.action?.type === 'gather'); // the tap registered
 
   // 2) pack slot + Eat while the game changes every frame
-  await tap(...Object.values(await center('#tabs button')), 120);
+  if (!(await p.evaluate(() => window.__reef.ui.sideOpen && window.__reef.ui.tab === 'pack'))) await tap(...Object.values(await center('#tabs button')), 120); // phones now start with the pack open
   await p.evaluate(() => { const g = window.__reef.game; const f = () => { g.rev++; requestAnimationFrame(f); }; f(); });
   await p.waitForFunction(() => document.querySelector('[data-slot="3"]'), null, { timeout: 60000 });
   let opened = 0;

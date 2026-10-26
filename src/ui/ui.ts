@@ -140,6 +140,16 @@ export class UI {
     side.appendChild(tabs);
     const content = h('div', { id: 'content', role: 'tabpanel' });
     side.appendChild(content);
+    // phone panel (RuneScape's vertical mobile layout): up/down buttons beside the open tab
+    const scroll = h('div', { id: 'scroll' });
+    for (const [dir, label, d] of [[-1, 'Scroll up', 'M6 15l6-6 6 6'], [1, 'Scroll down', 'M6 9l6 6 6-6']] as const) {
+      const b = h('button', { class: 'btn', 'data-dir': String(dir), 'aria-label': label, title: label }, `<svg viewBox="0 0 24 24"><path d="${d}" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`);
+      onTap(b, 'button', () => content.scrollBy({ top: dir * content.clientHeight * 0.8, behavior: 'smooth' }));
+      scroll.appendChild(b);
+    }
+    side.appendChild(scroll);
+    this.el.scroll = scroll;
+    content.addEventListener('scroll', () => this.scrollButtons(), { passive: true });
     this.el.content = content;
     this.bindContent(content);
     this.el.tabs = tabs;
@@ -207,9 +217,16 @@ export class UI {
     cv.width = cv.height = Math.round(mm * dpr);
     requestAnimationFrame(() => {
       this.r.resize();
-      const content = this.el.content;
-      this.r.coveredBottom = this.portrait && this.sideOpen ? content.getBoundingClientRect().height + 20 : 0;
+      this.r.coveredBottom = this.portrait && this.sideOpen ? this.el.side.getBoundingClientRect().height : 0;
+      this.scrollButtons();
     });
+  }
+
+  /** The phone panel's up/down buttons fade at the ends (and when the tab fits without scrolling). */
+  private scrollButtons() {
+    const c = this.el.content, [up, down] = this.el.scroll.querySelectorAll('button');
+    (up as HTMLButtonElement).disabled = c.scrollTop <= 1;
+    (down as HTMLButtonElement).disabled = c.scrollTop + c.clientHeight >= c.scrollHeight - 1;
   }
 
   selectTab(t: Tab, user: boolean) {
@@ -223,9 +240,9 @@ export class UI {
     this.lastRev = -1;
   }
 
-  /** Portrait starts with the sheet closed so the world is visible. */
+  /** Phones start with the pack open under the world (RuneScape's vertical layout); narrow landscape starts closed. */
   setInitialPanel() {
-    this.sideOpen = !(window.innerHeight > window.innerWidth) && window.innerWidth > 700;
+    this.sideOpen = window.innerHeight > window.innerWidth || window.innerWidth > 700;
     this.layout();
   }
 
@@ -647,6 +664,7 @@ export class UI {
       }
       case 'settings': morph(c, this.settingsHtml()); break;
     }
+    this.scrollButtons();
   }
 
   /** One set of handlers on the tab panel for its whole life (content is patched, never re-bound). */
