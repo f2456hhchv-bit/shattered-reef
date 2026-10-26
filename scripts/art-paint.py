@@ -35,6 +35,23 @@ def cut(src, dst):
         if x < w - 1: q.append((x + 1, y))
         if y > 0: q.append((x, y - 1))
         if y < h - 1: q.append((x, y + 1))
+    # white pockets the outline encloses (inside a helmet's brim, between a bow and its string) are background too;
+    # small white bits are highlights and stay
+    lim = max(60, int(w * h * 0.004))
+    for sy in range(h):
+        for sx in range(w):
+            i0 = sy * w + sx
+            if bg[i0] or seen[i0] == 2 or not near(px[sx, sy]): continue
+            comp, st = [], [(sx, sy)]
+            seen[i0] = 2
+            while st:
+                x, y = st.pop(); comp.append(y * w + x)
+                for nx, ny in ((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)):
+                    if 0 <= nx < w and 0 <= ny < h:
+                        j = ny * w + nx
+                        if seen[j] != 2 and not bg[j] and near(px[nx, ny]): seen[j] = 2; st.append((nx, ny))
+            if len(comp) > lim:
+                for j in comp: bg[j] = 1
     mask = Image.new('L', (w, h), 255)
     mp = mask.load()
     for y in range(h):
@@ -50,7 +67,7 @@ def cut(src, dst):
     sq.paste(im, ((side - im.size[0]) // 2, (side - im.size[1]) // 2), im)
     sq.resize((SIZE, SIZE), Image.LANCZOS).save(dst)
 
-def tint(src, dst, hexcol, force=False):
+def tint(src, dst, hexcol, force=False, lmax=1.0):
     im = Image.open(src).convert('RGBA')
     r0, g0, b0 = (int(hexcol[i:i + 2], 16) / 255 for i in (1, 3, 5))
     th, tl, ts = colorsys.rgb_to_hls(r0, g0, b0)
@@ -60,7 +77,7 @@ def tint(src, dst, hexcol, force=False):
             r, g, b, a = px[x, y]
             if a == 0: continue
             h, l, s = colorsys.rgb_to_hls(r / 255, g / 255, b / 255)
-            if l < 0.07 or (not force and s > 0.28 and l > 0.12): continue  # coloured: leather, wood, brass, gems keep their colour
+            if l < 0.07 or l > lmax or (not force and s > 0.28 and l > 0.12): continue  # coloured: leather, wood, brass, gems keep their colour
             # metal: take the tier's hue and saturation; shift the shading toward the tier's lightness
             nl = min(1, max(0, l + (tl - 0.62) * 0.75 * (1 - abs(l - 0.5))))
             nr, ng, nb = colorsys.hls_to_rgb(th, nl, min(1, ts * 0.95))
@@ -84,6 +101,22 @@ def regem(src, dst, gem, band=None):
             elif band == 'silver' and 0.06 < h < 0.18 and s > 0.25:  # gold band to silver
                 nr, ng, nb = colorsys.hls_to_rgb(0.58, min(1, l * 1.08), 0.08)
             else: continue
+            px[x, y] = (int(nr * 255), int(ng * 255), int(nb * 255), a)
+    im.save(dst)
+
+def rewood(src, dst, hexcol):
+    """A painted wooden item (bow, staff, log) in another wood: the orange-brown wood takes the new colour."""
+    im = Image.open(src).convert('RGBA')
+    th, tl, ts = colorsys.rgb_to_hls(*(int(hexcol[i:i + 2], 16) / 255 for i in (1, 3, 5)))
+    px = im.load()
+    for y in range(im.size[1]):
+        for x in range(im.size[0]):
+            r, g, b, a = px[x, y]
+            if a == 0: continue
+            h, l, s = colorsys.rgb_to_hls(r / 255, g / 255, b / 255)
+            if not (0.0 <= h < 0.16 and s > 0.2 and l > 0.12): continue
+            nl = min(1, max(0, l + (tl - 0.42) * 0.8))
+            nr, ng, nb = colorsys.hls_to_rgb(th, nl, min(1, ts * 1.1))
             px[x, y] = (int(nr * 255), int(ng * 255), int(nb * 255), a)
     im.save(dst)
 
