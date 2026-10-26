@@ -198,6 +198,23 @@ describe('Amberhold\'s quests', () => {
   });
 });
 
+describe('The Broodmother', () => {
+  it('follow the silk in order, cut Leif free, beat the Broodmother, and Eir gives you the Weaver\'s ring', () => {
+    const L = regionLayout('amberhold');
+    const g = new Game({ seed: 7, save: { ...defaultSave(L.respawn, L.mooring!), region: 'amberhold' } });
+    for (const e of g.enemies) { e.alive = false; e.respawnAt = Infinity; }
+    talk(g, 'eir');
+    expect(g.questStage('brood')).toBe(1);
+    for (const m of ['trail', 'cocoon', 'lair']) use(g, 'brood', m);
+    expect(g.questStage('brood')).toBe(2);
+    g.questKill('broodmother');
+    expect(g.questStage('brood')).toBe(3);
+    talk(g, 'eir');
+    expect(g.questStage('brood')).toBe(QUESTS.brood.stages.length - 1);
+    expect(count(g.p.inv, 'ring_weaver')).toBe(1);
+  });
+});
+
 describe('Stormwrack\'s quest', () => {
   it('The Drowned Captain\'s Log: find the pages in order, beat the captain, dig up the hoard', () => {
     const L = regionLayout('wrack');

@@ -280,6 +280,9 @@ function tierItems(): ItemDef[] {
   // Stormwrack's quest reward
   out.push(I({ id: 'hat_captain', name: 'Drowned Captain\'s tricorn', desc: 'Black felt gone green at the edges, still dripping. The drowned know it, and spells slide off it.', icon: { shape: 'cap', color: '#1a1a1a', accent: '#c9a050' }, stackable: false, value: 2500,
     equip: { slot: 'head', reqs: { defence: 60 }, bonus: { defMelee: 40, defRanged: 38, defMagic: 30, acc: 4 }, affixPool: ARMOUR_AFFIX } }));
+  // The Broodmother (Amberhold): Eir's silk ring
+  out.push(I({ id: 'ring_weaver', name: 'Weaver\'s ring', desc: 'Weaver silk, knotted tight around a band of amber. Eir says the silk knits flesh: you mend as you go.', icon: { shape: 'ring', color: '#e8e4d8', accent: '#e8a83a' }, stackable: false, value: 3000,
+    equip: { slot: 'ring', reqs: { hitpoints: 40 }, bonus: { acc: 6, defMelee: 4, defRanged: 4, defMagic: 6 }, affixPool: JEWEL_AFFIX }, innate: [{ id: 'regen', v: 1 }] }));
   // Star-Struck (Stormwrack): the crater's shard, quenched
   out.push(I({ id: 'star_shard', name: 'Singing star-shard', desc: 'Warm, humming, and it won\'t stop. Quench it in the vent forge on Thunder Crag.', icon: { shape: 'crystal', color: '#9ad8ff', accent: '#ffffff' }, stackable: false, value: 0, quest: true }));
   out.push(I({ id: 'amulet_starfall', name: 'Starfall pendant', desc: 'A quenched star-shard on a silver chain. Still faintly warm; spells come easier with it on.', icon: { shape: 'amulet', color: '#c8d0d8', accent: '#9ad8ff' }, stackable: false, value: 4000,
