@@ -146,12 +146,13 @@ export function animateSpider(r: SpiderRig, t: number, moving: boolean, windup: 
   r.fangs.scale.x = windup ? 1.5 : 1 + Math.max(0, Math.sin(t * 3)) ** 8 * 0.3;
 }
 
-const SNAKE_LOOK: Record<string, { a: number; b: number; belly: number; eye: number; hood?: boolean }> = {
+const SNAKE_LOOK: Record<string, { a: number; b: number; belly: number; eye: number; hood?: boolean; legs?: number }> = {
   jungle: { a: 0x4f7a2a, b: 0xd8b03a, belly: 0xd8d0a0, eye: 0xf2d04a },
   ember: { a: 0x3a1e18, b: 0xe8602a, belly: 0xc8783a, eye: 0xffb040 },
   sunscale: { a: 0xc89a2a, b: 0x7a4a1a, belly: 0xf2dca0, eye: 0x59d0c4, hood: true },
   tide: { a: 0x1e4a5a, b: 0x2f7f86, belly: 0x9ad0c8, eye: 0xd8fff2, hood: true }, // the Storm Tide's serpent
   leech: { a: 0x3a2e24, b: 0x4e3e2a, belly: 0x8a6a4a, eye: 0x9a3a2a }, // a bog leech: dark, banded, fat
+  centipede: { a: 0x7a2a1a, b: 0x2a1a14, belly: 0xc87a3a, eye: 0x1a1a1a, legs: 0xd8903a }, // the Ember Deep's: banded, a pair of legs a segment
 };
 export const SNAKE_SEGS = 9;
 
@@ -169,6 +170,11 @@ export function buildSnake(look = 'jungle', seed = 9): SnakeRig {
     belly.scale.set(0.9, 0.5, 1.6);
     belly.position.y = -r * 0.35;
     g.add(m, belly);
+    if (L.legs) for (const sd of [-1, 1]) {
+      const leg = mesh(new THREE.ConeGeometry(0.018, 0.26, 3), mat(L.legs));
+      leg.position.set(sd * (r + 0.08), -r * 0.4, 0); leg.rotation.z = sd * 2.2;
+      g.add(leg);
+    }
     g.position.set(0, r * 0.8, -i * 0.26);
     root.add(g);
     segs.push(g);
@@ -179,6 +185,14 @@ export function buildSnake(look = 'jungle', seed = 9): SnakeRig {
   const skull = mesh(jitter(new THREE.IcosahedronGeometry(0.17, 1), 0.02, seed + 30), mat(L.a));
   skull.scale.set(1.1, 0.7, 1.45);
   head.add(skull);
+  if (L.legs) for (const sd of [-1, 1]) {
+    // a centipede's forcipules and feelers
+    const fang = mesh(new THREE.ConeGeometry(0.025, 0.16, 4), mat(L.legs));
+    fang.position.set(0.07 * sd, -0.04, 0.2); fang.rotation.set(Math.PI / 2, 0, 0.5 * sd);
+    const feeler = mesh(new THREE.CylinderGeometry(0.008, 0.01, 0.34, 3), mat(L.legs));
+    feeler.position.set(0.08 * sd, 0.1, 0.24); feeler.rotation.set(1.0, 0, -0.5 * sd);
+    head.add(fang, feeler);
+  }
   if (L.hood) {
     // the Sunscale's crest: a fan of gold spines behind the skull, like a sunburst
     for (let k = 0; k < 7; k++) {

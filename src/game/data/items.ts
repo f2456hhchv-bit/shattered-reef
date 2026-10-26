@@ -347,6 +347,11 @@ function tierItems(): ItemDef[] {
     pieces.forEach(([id, name, slot, shape, dm, dr, dg, extra], k) => out.push(I({ id, name, desc, icon: { shape, color: col, accent: acc }, stackable: false, value: value * (k + 2),
       equip: { slot, off: slot === 'offhand' ? 'shield' : undefined, reqs: reqs(k), bonus: { defMelee: dm, defRanged: dr, defMagic: dg, ...extra }, affixPool: pool } })));
   out.push(I({ id: 'chitin', name: 'Chitin', desc: 'A plate of shore-beetle shell. Light and hard; lace it into armour at a workbench.', icon: { shape: 'shell', color: '#7a6a4a', accent: '#c8b088' }, stackable: true, value: 9 }));
+  // Sunreach's insects (docs/ISLANDS.md slice 2): leafcutter resin, mantis blades, and the dagger made of them
+  out.push(I({ id: 'resin', name: 'Leafcutter resin', desc: 'Sticky amber resin the ants carry. Sets hard as horn; good for a grip.', icon: { shape: 'gem', color: '#d8902a', accent: '#f2c86a' }, stackable: true, value: 12 }));
+  out.push(I({ id: 'mantis_blade', name: 'Mantis blade', desc: 'A jungle mantis\'s forelimb, edged like a saw. Set two in resin at a workbench.', icon: { shape: 'dagger', color: '#6a9a3a', accent: '#c8e07a' }, stackable: true, value: 28 }));
+  out.push(I({ id: 'dagger_mantis', name: 'Mantis-blade dagger', desc: 'Two mantis forelimbs set in resin. Lighter and quicker than any metal dagger.', icon: { shape: 'dagger', color: '#6a9a3a', accent: '#d8902a' }, stackable: false, value: 220,
+    equip: { slot: 'weapon', reqs: { attack: 20 }, style: 'melee', kind: 'dagger', speed: 1.6, range: 1.4, bonus: { acc: 50, str: 27 }, affixPool: [...MELEE_AFFIX, 'leech'] } }));
   // chitin: shore-beetle shell on leather; turns blades, light enough to run in (Defence 10-15)
   set([
     ['helm_chitin', 'Chitin helm', 'head', 'helm', 5, 3, 1], ['legs_chitin', 'Chitin legs', 'legs', 'legs', 8, 5, 2], ['body_chitin', 'Chitin body', 'body', 'plate', 12, 8, 3],

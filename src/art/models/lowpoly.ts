@@ -48,7 +48,7 @@ export function buildLowPoly(look: HumanoidLook, buildHeld: (held: THREE.Group, 
     knee.add(put(part(new THREE.CylinderGeometry(0.09, 0.094, 0.07, 7), look.trousers), 0, -0.32, 0)); // rolled cuff
     knee.add(put(part(new THREE.CylinderGeometry(0.068, 0.074, 0.08, 6), look.boots), 0, -0.39, 0));
     const foot = shape(box(0.12, 0.08, 0.25), (x, y, z) => [x * (z > 0 ? 0.85 : 1), y + (z > 0.08 && y > 0 ? -0.025 : 0), z]);
-    knee.add(put(part(foot, look.boots), 0, -0.44, 0.045));
+    knee.add(look.feetBack ? put(part(foot, look.boots), 0, -0.44, -0.045, 0, Math.PI) : put(part(foot, look.boots), 0, -0.44, 0.045));
     leg.add(knee);
     body.add(leg);
     knees.push(knee);
@@ -126,6 +126,10 @@ export function buildLowPoly(look: HumanoidLook, buildHeld: (held: THREE.Group, 
     head.add(put(part(new THREE.SphereGeometry(0.143, 8, 5, 0, Math.PI * 2, 0, Math.PI * 0.5), look.hat), 0, 0.2, -0.008, -0.15));
     head.add(put(part(new THREE.SphereGeometry(0.035, 5, 3), look.hat), 0, 0.21, -0.145));
     head.add(put(part(box(0.04, 0.13, 0.015), look.hat), 0.025, 0.13, -0.16, 0.45, 0, 0.25));
+  } else if (hatStyle === 'straw') {
+    // a wide straw hat tipped forward over the whole face
+    head.add(put(part(new THREE.ConeGeometry(0.46, 0.34, 10), look.hat), 0, 0.3, 0.03, 0.18));
+    head.add(put(part(new THREE.TorusGeometry(0.2, 0.018, 3, 10), look.coatTrim), 0, 0.26, 0.01, Math.PI / 2 + 0.18));
   } else if (hatStyle === 'cap') {
     head.add(put(part(new THREE.SphereGeometry(0.145, 8, 4, 0, Math.PI * 2, 0, Math.PI * 0.42), look.hat), 0, 0.22, 0));
     head.add(put(part(new THREE.CylinderGeometry(0.11, 0.11, 0.018, 8, 1, false, -Math.PI / 2, Math.PI), look.hat), 0, 0.26, 0.07, 0.18));
