@@ -119,6 +119,7 @@ Reflects the actual repository, not the roadmap.
 - **Laptop:** click to walk/use (RuneScape-style); right-click items for details; WASD/arrows move; E action; Space dodge roll; R whirl; F flintlock; I G K J M O tabs; Esc closes; scroll zooms.
 
 ## Playtest log
+- **2026-10-26, Tom:** "looks terrible" on the first vertical layout. Redone: plain dark-wood panel (no corner ornaments or handle), one labelled tab rail down the right (Pack, Gear, Skills, Quests, Map, Options, Hide), a slim scrollbar with arrows and a draggable thumb beside the open tab, compact tab headers. Closed: one labelled tab row.
 - **2026-10-26, Tom (OSRS vertical mobile screenshot):** phone layout redone like RuneScape's vertical mode. The panel opens under the world (40% of the screen, starts open on the pack): the open tab scrolls in the middle, up/down scroll buttons on the left, tab medallions in two columns on the right. The minimap, action buttons (paired into two columns) and chat stay usable above it. Tapping the open tab closes it to the old bottom row.
 - **2026-10-26, Tom:** XP drops sat top-right under the minimap. Moved: XP and item gains ("1 tin ore gained", "+12 coins") now float faintly over the player's head (over the ship when aboard), max 4 lines, 1.8 s each.
 - **2026-10-23, Tom, iPhone (live Pages build):** smooth, no heat; joystick + tap-to-move liked; camera distance and zoom liked.

@@ -132,21 +132,38 @@ export class UI {
     this.el.hp = document.getElementById('hp')!;
     const side = add('side', h('div', { class: 'panel' }));
     const tabs = h('div', { id: 'tabs', role: 'tablist' });
+    const SHORT: Partial<Record<Tab, string>> = { gear: 'Gear', settings: 'Options' };
     for (const t of TABS) {
-      const btn = h('button', { 'data-tab': t.id, role: 'tab', 'aria-label': `${t.name} (${t.key})`, title: `${t.name} (${t.key})` }, TAB_ICONS[t.id]);
+      const btn = h('button', { 'data-tab': t.id, role: 'tab', 'aria-label': `${t.name} (${t.key})`, title: `${t.name} (${t.key})` }, `${TAB_ICONS[t.id]}<span class="tl">${SHORT[t.id] ?? t.name}</span>`);
       onTap(btn, 'button', () => this.selectTab(t.id, true));
       tabs.appendChild(btn);
     }
+    // phones: the open panel's own close button, at the foot of the tab rail
+    const shut = h('button', { id: 'tabshut', 'aria-label': 'Close panel', title: 'Close panel' }, '<svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="tl">Hide</span>');
+    onTap(shut, 'button', () => { this.sideOpen = false; this.layout(); });
+    tabs.appendChild(shut);
     side.appendChild(tabs);
     const content = h('div', { id: 'content', role: 'tabpanel' });
     side.appendChild(content);
-    // phone panel (RuneScape's vertical mobile layout): up/down buttons beside the open tab
-    const scroll = h('div', { id: 'scroll' });
-    for (const [dir, label, d] of [[-1, 'Scroll up', 'M6 15l6-6 6 6'], [1, 'Scroll down', 'M6 9l6 6 6-6']] as const) {
-      const b = h('button', { class: 'btn', 'data-dir': String(dir), 'aria-label': label, title: label }, `<svg viewBox="0 0 24 24"><path d="${d}" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`);
-      onTap(b, 'button', () => content.scrollBy({ top: dir * content.clientHeight * 0.8, behavior: 'smooth' }));
-      scroll.appendChild(b);
-    }
+    // phones (RuneScape's vertical layout): a slim scrollbar beside the open tab, arrows at each end, a thumb to drag
+    const arrow = (dir: number) => `<button data-dir="${dir}" aria-label="Scroll ${dir < 0 ? 'up' : 'down'}"><svg viewBox="0 0 24 24"><path d="${dir < 0 ? 'M6 15l6-6 6 6' : 'M6 9l6 6 6-6'}" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>`;
+    const scroll = h('div', { id: 'scroll' }, `${arrow(-1)}<div class="track"><i></i></div>${arrow(1)}`);
+    onTap(scroll, 'button', (el) => content.scrollBy({ top: Number(el.dataset.dir) * content.clientHeight * 0.75, behavior: 'smooth' }));
+    const track = scroll.querySelector('.track') as HTMLElement, thumb = track.firstElementChild as HTMLElement;
+    let drag: { y: number; top: number } | null = null;
+    track.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      if (e.target === thumb) { drag = { y: e.clientY, top: content.scrollTop }; track.setPointerCapture(e.pointerId); return; }
+      const r = thumb.getBoundingClientRect();
+      content.scrollBy({ top: (e.clientY < r.top ? -1 : 1) * content.clientHeight * 0.9, behavior: 'smooth' });
+    });
+    track.addEventListener('pointermove', (e) => {
+      if (!drag) return;
+      const room = track.clientHeight - thumb.offsetHeight;
+      if (room > 0) content.scrollTop = drag.top + ((e.clientY - drag.y) / room) * (content.scrollHeight - content.clientHeight);
+    });
+    const end = () => { drag = null; };
+    track.addEventListener('pointerup', end); track.addEventListener('pointercancel', end);
     side.appendChild(scroll);
     this.el.scroll = scroll;
     content.addEventListener('scroll', () => this.scrollButtons(), { passive: true });
@@ -224,9 +241,15 @@ export class UI {
 
   /** The phone panel's up/down buttons fade at the ends (and when the tab fits without scrolling). */
   private scrollButtons() {
-    const c = this.el.content, [up, down] = this.el.scroll.querySelectorAll('button');
+    const c = this.el.content, sc = this.el.scroll, [up, down] = sc.querySelectorAll('button');
+    const max = c.scrollHeight - c.clientHeight;
+    sc.classList.toggle('none', max <= 1);
     (up as HTMLButtonElement).disabled = c.scrollTop <= 1;
-    (down as HTMLButtonElement).disabled = c.scrollTop + c.clientHeight >= c.scrollHeight - 1;
+    (down as HTMLButtonElement).disabled = c.scrollTop >= max - 1;
+    const track = sc.querySelector('.track') as HTMLElement, thumb = track.firstElementChild as HTMLElement;
+    const th = Math.max(28, track.clientHeight * (c.clientHeight / Math.max(1, c.scrollHeight)));
+    thumb.style.height = `${th}px`;
+    thumb.style.transform = `translateY(${max > 0 ? (c.scrollTop / max) * (track.clientHeight - th) : 0}px)`;
   }
 
   selectTab(t: Tab, user: boolean) {
