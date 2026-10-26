@@ -78,6 +78,7 @@ export const NPCS: Record<string, NpcDef> = {
   brita: { id: 'brita', name: 'Brita Holm', title: 'Trader of the Tollhouse Market', shop: true, idle: ['Stormsilver, honey, and barrels that burn. Every one of them\'s paid its toll, captain.'] },
   osric: { id: 'osric', name: 'Osric Vane', title: 'Storekeeper of Gallows Landing', shop: true, idle: ['Nobody comes to Stormwrack for the view. I sell what keeps you alive here.'] },
   edda: { id: 'edda', name: 'Edda Lorne', title: 'Starwatcher\'s sister', idle: ['Tobin watched the sky every night of his life. Then the sky came down, and he went to meet it.'] },
+  eir: { id: 'eir', name: 'Eir Sund', title: 'Healer of Tollhouse', idle: ['Hornet stings, warg bites, and silk burns from the hollow. I\'ve set more bones this month than all last year.'] },
   halvard: { id: 'halvard', name: 'Halvard Rask', title: 'Toll-reeve of Tollhouse', idle: ['Everything that leaves Amberhold pays its toll. That\'s the law, and the law pays for the harbour wall.'] },
   ulla: { id: 'ulla', name: 'Ulla Brenn', title: 'Chief of the poachers', idle: ['Amberwood was ours before Tollhouse had a wall. Mind your feet in my camp.'] },
   watch_n: { id: 'watch_n', name: 'Watchman Pell', title: 'Town watch', idle: ['North road runs to the Copperback Hills and the foot of Ironcrag. Mind the crabs in iron shells.'] },
@@ -379,6 +380,34 @@ export const QUESTS: Record<string, QuestDef> = {
           'And this: for the story I\'m going to tell about you.'],
           effect: { take: [{ id: 'nokk_bridle', qty: 1 }], give: [{ id: 'coins', qty: 400 }], xp: [{ skill: 'sailing', amount: 1200 }, { skill: 'fishing', amount: 600 }], stage: 5, flag: 'nokk_figurehead' } } } },
       { text: 'Quest complete. Your sloop carries a nøkk figurehead: +10% hull, and she mends twice as fast.' },
+    ],
+  },
+  brood: {
+    id: 'brood',
+    name: 'The Broodmother',
+    island: 'amberhold',
+    giver: 'eir',
+    reward: 'The Weaver\'s ring (heals you slowly), 1500 coins, 2000 Magic XP, 2000 Ranged XP',
+    stages: [
+      { text: 'Speak with Eir Sund, the healer at Tollhouse Landing.',
+        talk: { npc: 'eir', node: { lines: [
+          'Three poachers went into Weaver Hollow after silk this week. One came out. He\'s on my table with burns from the web.',
+          'He says the weavers have a mother now. Big as a cart. And my apprentice Leif went in after the other two.',
+          'Follow the silk to the hollow, captain. Bring Leif back if you can. And if that thing\'s real, end it.'], effect: { stage: 1 } } } },
+      { text: 'Follow the silk into Weaver Hollow: the web-strung trail, Leif, and the mother\'s lair.',
+        wrong: 'You lose the silk. Start again from the trail.',
+        marks: [
+          { id: 'trail', label: 'Web-strung trail', verb: 'Follow', region: 'amberhold', x: AMBER_LAYOUT.hollow.x - 14, z: AMBER_LAYOUT.hollow.z + 5, seq: 1, say: ['Silk lines run between the trees, thick as rope, all of them leading down into the hollow.'] },
+          { id: 'cocoon', label: 'A cocoon, moving', verb: 'Cut down', region: 'amberhold', x: AMBER_LAYOUT.hollow.x - 10, z: AMBER_LAYOUT.hollow.z - 4, seq: 2, say: ['You slit the silk. Leif tumbles out, pale and shaking but breathing. "The others... she took them deeper. Go, I can walk."'] },
+          { id: 'lair', label: 'Silk over the hollow\'s mouth', verb: 'Look in', region: 'amberhold', x: AMBER_LAYOUT.hollow.x - 8, z: AMBER_LAYOUT.hollow.z + 2, seq: 3, say: ['Bones in the web, and the web is breathing. Something huge shifts in the dark. Disturb the bones in the ring and she\'ll come.'] },
+        ] },
+      { text: 'Disturb the web-wrapped bones in Weaver Hollow and beat the Broodmother.', kill: { foe: 'broodmother', count: 1 } },
+      { text: 'Go back to Eir Sund at Tollhouse Landing.',
+        talk: { npc: 'eir', node: { lines: [
+          'Leif made it back on his own two feet, talking about you the whole way. And the hollow\'s quiet.',
+          'I made this from the silk the poachers brought me: the weavers\' silk knits flesh. Wear it, and you\'ll mend as you go.'],
+          effect: { give: [{ id: 'ring_weaver', qty: 1 }, { id: 'coins', qty: 1500 }], xp: [{ skill: 'magic', amount: 2000 }, { skill: 'ranged', amount: 2000 }], stage: 4, flag: 'brood_done' } } } },
+      { text: 'Quest complete.' },
     ],
   },
   toll: {
