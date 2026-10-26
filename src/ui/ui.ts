@@ -891,10 +891,20 @@ export class UI {
 
   private questsHtml() {
     const g = this.game;
-    const qs = Object.values(QUESTS).map((q) => {
-      const st = g.questStage(q.id), last = q.stages.length - 1;
-      const status = st === 0 ? '<span class="status todo">Not started</span>' : st >= last ? '<span class="status done">Complete</span>' : '<span class="status active">In progress</span>';
-      return `<div class="quest"><b>${esc(q.name)}</b>${status}<p style="margin:6px 0">${esc(q.stages[st].text)}</p><small class="muted">Reward: ${esc(q.reward)}</small></div>`;
+    // the journal: by island, what you're doing first, then what's new, then what's done (one line each)
+    const ISLES = [['bellwether', 'Bellwether Isle'], ['sunreach', 'Sunreach Isle'], ['amberhold', 'Amberhold Isle'], ['wrack', 'Stormwrack Isle']] as const;
+    const qs = ISLES.map(([id, name]) => {
+      const list = Object.values(QUESTS).filter((q) => (q.island ?? 'bellwether') === id);
+      if (!list.length) return '';
+      const rank = (q: (typeof list)[number]) => { const st = g.questStage(q.id); return st >= q.stages.length - 1 ? 2 : st === 0 ? 1 : 0; };
+      const done = list.filter((q) => rank(q) === 2).length;
+      const rows = [...list].sort((a, b) => rank(a) - rank(b)).map((q) => {
+        const st = g.questStage(q.id), r = rank(q);
+        if (r === 2) return `<div class="quest done"><b>${esc(q.name)}</b><span class="status done">Complete</span></div>`;
+        const status = r === 1 ? '<span class="status todo">New</span>' : '<span class="status active">In progress</span>';
+        return `<div class="quest"><b>${esc(q.name)}</b>${status}<p style="margin:6px 0">${esc(q.stages[st].text)}</p><small class="muted">Reward: ${esc(q.reward)}</small></div>`;
+      }).join('');
+      return `<h3 class="title" style="font-size:14px;margin:12px 0 6px">${esc(name)} <small class="muted">${done}/${list.length} done</small></h3>${rows}`;
     }).join('');
     // grouped by region; foes and resources are listed for regions loaded this session (each is built on first visit)
     const disc = Object.values(REGIONS).map((r) => {
@@ -915,7 +925,7 @@ export class UI {
     const crew = g.s.crew.length ? `<small class="muted">Crew: ${g.s.crew.map((id) => esc(CREW.find((c) => c.id === id)!.name)).join(', ')}</small>` : '';
     const poster = `<div class="poster"><span>WANTED</span><b>${g.s.bounty.toLocaleString('en-GB')}</b><small>${esc(rankOf(g.s.bounty))}</small></div>
       ${contracts ? `<ul style="margin:6px 0;padding-left:18px">${contracts}</ul>` : '<p class="muted" style="font-size:12px">The harbourmasters post bounty contracts on their boards.</p>'}${crew}`;
-    return `<h2 class="title">Your bounty</h2>${poster}<div class="brass-rule"></div><h2 class="title">Quests</h2>${qs}<div class="brass-rule"></div><h2 class="title">Places (${g.s.discovered.length}/${PLACES.length})</h2>${disc}`;
+    return `<h2 class="title">Quests</h2>${qs}<div class="brass-rule"></div><h2 class="title">Your bounty</h2>${poster}<div class="brass-rule"></div><h2 class="title">Places (${g.s.discovered.length}/${PLACES.length})</h2>${disc}`;
   }
 
   private settingsHtml() {

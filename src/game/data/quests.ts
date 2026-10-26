@@ -102,7 +102,7 @@ export interface QuestStage {
   kill?: { foe: string; count: number; sea?: boolean; spawn?: { region: string; x: number; z: number } };
 }
 
-export interface QuestDef { id: string; name: string; giver: string; stages: QuestStage[]; reward: string }
+export interface QuestDef { id: string; name: string; giver: string; stages: QuestStage[]; reward: string; /** the island it belongs to (the journal groups by it) */ island?: 'bellwether' | 'sunreach' | 'amberhold' | 'wrack' }
 
 /** the pool behind the Ironshell Shore where the nøkk live */
 const POOL = { x: AMBER_LAYOUT.ironshore.x + (AMBER.x - AMBER_LAYOUT.ironshore.x) * 0.22, z: AMBER_LAYOUT.ironshore.z + (AMBER.z - AMBER_LAYOUT.ironshore.z) * 0.22 + 6 };
@@ -110,6 +110,7 @@ const POOL = { x: AMBER_LAYOUT.ironshore.x + (AMBER.x - AMBER_LAYOUT.ironshore.x
 export const QUESTS: Record<string, QuestDef> = {
   bell: {
     id: 'bell',
+    island: 'bellwether',
     name: 'The Bell at Low Water',
     giver: 'iven',
     reward: '150 coins, 300 Attack XP, 300 Defence XP, 200 Smithing XP',
@@ -158,6 +159,7 @@ export const QUESTS: Record<string, QuestDef> = {
 
   knock: {
     id: 'knock',
+    island: 'bellwether',
     name: 'Knock Three Times',
     giver: 'pellow',
     reward: 'The Knocker\'s lamp, 400 Mining XP, 200 coins',
@@ -186,6 +188,7 @@ export const QUESTS: Record<string, QuestDef> = {
   },
   selkie: {
     id: 'selkie',
+    island: 'bellwether',
     name: 'The Selkie\'s Skin',
     giver: 'muirne',
     reward: 'A choice: the selkie\'s pearl ring and 500 Fishing XP, or a sealskin cloak and 250 coins',
@@ -222,6 +225,7 @@ export const QUESTS: Record<string, QuestDef> = {
   },
   wreckers: {
     id: 'wreckers',
+    island: 'bellwether',
     name: 'Wreckers\' Lantern',
     giver: 'corwin',
     reward: 'A swivel gun for your sloop (+15% broadside damage), 600 Sailing XP, 300 Attack XP, 300 coins',
@@ -246,6 +250,7 @@ export const QUESTS: Record<string, QuestDef> = {
   },
   tracks: {
     id: 'tracks',
+    island: 'sunreach',
     name: 'Backward Tracks',
     giver: 'abena',
     reward: 'The douen\'s straw hat (faster gathering), 600 Woodcutting XP, 300 Attack XP, 250 coins',
@@ -281,6 +286,7 @@ export const QUESTS: Record<string, QuestDef> = {
   },
   souc: {
     id: 'souc',
+    island: 'sunreach',
     name: 'Salt for the Soucouyant',
     giver: 'nana_ayo',
     reward: 'The spell Soucouyant\'s Fire (Magic 20), 800 Magic XP, 200 coins',
@@ -309,6 +315,7 @@ export const QUESTS: Record<string, QuestDef> = {
   },
   barrow: {
     id: 'barrow',
+    island: 'amberhold',
     name: 'The Barrow King',
     giver: 'sigrun',
     reward: 'The Barrow King\'s helm, the Draugr\'s Key, 1500 Attack XP, 1500 Defence XP, 500 coins',
@@ -338,6 +345,7 @@ export const QUESTS: Record<string, QuestDef> = {
   },
   fiddle: {
     id: 'fiddle',
+    island: 'amberhold',
     name: 'The Nøkk\'s Fiddle',
     giver: 'ingrid',
     reward: 'A nøkk figurehead for your sloop (+10% hull, mends twice as fast), 1200 Sailing XP, 600 Fishing XP, 400 coins',
@@ -371,6 +379,7 @@ export const QUESTS: Record<string, QuestDef> = {
   },
   toll: {
     id: 'toll',
+    island: 'amberhold',
     name: 'The Toll of Tollhouse',
     giver: 'halvard',
     reward: 'Help the toll: a toll pennant for your sloop (+5% speed), a toll-keeper\'s seal ring, 600 coins. Help the poachers: they stop attacking you, an amber longbow, 400 coins. Either way, Sailing XP.',
@@ -416,6 +425,7 @@ export const QUESTS: Record<string, QuestDef> = {
   },
   temple: {
     id: 'temple',
+    island: 'sunreach',
     name: 'The Sunken Temple',
     giver: 'halyard_watch',
     reward: 'The Sun Key, 1200 Magic XP, 800 Attack XP, 400 coins',
