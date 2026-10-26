@@ -352,6 +352,8 @@ function buildIslandRegion(region: IslandId): IslandLayout {
     nodes.push({ uid: `n${uid++}`, def: 'rock_ori', x: WL.spire.x, z: WL.spire.z, seed: 77 });
     for (const [def, list] of Object.entries(WRACK_SEA_SPOTS)) for (const [x, z] of list) nodes.push({ uid: `n${uid++}`, def, x, z, seed: Math.round(x + z) });
   } else if (amb) {
+    // the Amber Seep's seams on Goldvein Hill's west flank (they only run while the hill is open: amberseep.ts)
+    for (const [dx, dz] of [[-26, -8], [-22, -10], [-18, -8]]) nodes.push({ uid: `n${uid++}`, def: 'amber_seep', x: AL.goldhill.x + dx, z: AL.goldhill.z + dz, seed: 600 + dx });
     // lobster pots along the Ironshell Shore, swordfish out in the sound
     for (const [def, th] of [['spot_lobster', 0], ['spot_lobster', 22], ['spot_salmon', 200]] as const) {
       const [fx, fz] = amberPoint(th, 8), p = shoreSpot(fx, fz, sunOut(th));
@@ -392,7 +394,7 @@ function buildIslandRegion(region: IslandId): IslandLayout {
     ? [{ x: R.x, z: R.z, r: 11 }, { x: C.x, z: C.z, r: 9 }, { x: LAYOUT.cove.x, z: LAYOUT.cove.z, r: 9 }, { x: X.x, z: X.z, r: 6 }, { x: LAYOUT.howes.x, z: LAYOUT.howes.z, r: 11 }]
     : sun ? [{ x: SL.temple.x, z: SL.temple.z, r: 11 }, { x: SL.plaza.x, z: SL.plaza.z, r: 12 }, { x: SL.port.x, z: SL.port.z, r: 16 },
       { x: SL.jungle.x - 24, z: SL.jungle.z, r: 12 }, { x: SL.jungle.x - 14, z: SL.jungle.z + 11, r: 5 }] // the Greenheart Fire's grove and camp
-    : amb ? [{ x: AL.landing.x, z: AL.landing.z, r: 14 }, { x: AL.camp.x, z: AL.camp.z, r: 9 }, { x: AL.hollow.x, z: AL.hollow.z, r: 11 }]
+    : amb ? [{ x: AL.landing.x, z: AL.landing.z, r: 14 }, { x: AL.camp.x, z: AL.camp.z, r: 9 }, { x: AL.hollow.x, z: AL.hollow.z, r: 11 }, { x: AL.goldhill.x - 22, z: AL.goldhill.z - 4, r: 9 }] // the Amber Seep's ground
     : [{ x: WL.starfall.x, z: WL.starfall.z, r: 10 }, { x: WL.landing.x, z: WL.landing.z, r: 14 }, { x: WL.crag.x, z: WL.crag.z - 6, r: 7 }];
   if (bell) {
     const woods = [{ x: F.x, z: F.z, r: 20 }, { x: GV.x, z: GV.z, r: 13 }, { x: HW.x, z: HW.z, r: 20 }, { x: LAYOUT.fen.x, z: LAYOUT.fen.z, r: 16 }];

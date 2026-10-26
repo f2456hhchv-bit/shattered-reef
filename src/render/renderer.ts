@@ -71,7 +71,7 @@ export const TREE_LOOK: Record<string, TreeLook> = {
 };
 export const ORE_TINT: Record<string, [number, number]> = {
   rock_copper: [PAL.copper, 0.12], rock_tin: [0xd6d9d4, 0.12], rock_iron: [0xa5543a, 0.12], rock_coal: [0x202022, 0], rock_gold: [0xe3c25e, 0.25],
-  rock_storm: [0x8fc0e8, 0.35], rock_abyss: [0x3f8f6e, 0.3], rock_tide: [0x3fd8d0, 0.6],
+  amber_seep: [0xe8902a, 0.6], rock_storm: [0x8fc0e8, 0.35], rock_abyss: [0x3f8f6e, 0.3], rock_tide: [0x3fd8d0, 0.6],
 };
 
 interface RigView { kind: 'human'; rig: HumanoidRig; mat: THREE.MeshStandardMaterial }
@@ -170,6 +170,7 @@ export class GameRenderer {
   // quest spots, and the Storm Tide's quay (bell, cannon, smashed planks, the serpent)
   private markViews = new Map<string, THREE.Group>();
   private stormProps: { serpent: SnakeRig; planks: THREE.Mesh[] } | null = null;
+  private seepProps: { crack: THREE.Mesh; supports: THREE.Group[] } | null = null;
   private fireProps: { cells: { bush: THREE.Group; fire: THREE.Group; ash: THREE.Mesh; stump: THREE.Mesh }[]; flames: THREE.Mesh[] } | null = null;
   private teleViews = new Map<number, THREE.Group>();
   private flames: THREE.Mesh[] = [];
@@ -283,7 +284,7 @@ export class GameRenderer {
     this.npcs.clear(); this.houses = []; this.walkers = []; this.enemyViews.clear(); this.nodeViews.clear();
     this.dropViews.clear(); this.projViews.clear(); this.teleViews.clear(); this.flames = []; this.glows = [];
     this.seaViews.clear(); this.ballViews.clear(); this.chargeViews.clear(); this.aimLine = null;
-    this.markViews.clear(); this.stormProps = null; this.fireProps = null;
+    this.markViews.clear(); this.stormProps = null; this.fireProps = null; this.seepProps = null;
     this.grass = null; this.grassTime = [];
     this.scenery = new InstancedField(addSurfaceDetail(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: false, roughness: 0.9 }), PROP_SURFACE));
     this.sceneryState.clear();
@@ -954,6 +955,37 @@ export class GameRenderer {
     this.stormProps.planks.forEach((m, k) => { m.visible = st.running && st.broken[k]; });
   }
 
+  /** The Amber Seep (amberseep.ts): the crack in Goldvein Hill, glowing while it's open, and its camp. */
+  private syncSeep(t: number) {
+    const g = this.game, sp = g.seep.spots();
+    if (!sp) return;
+    if (!this.seepProps) {
+      const y = (p: { x: number; z: number }) => g.world.standY(p.x, p.z);
+      const crack = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.1, 0.5), new THREE.MeshStandardMaterial({ color: 0x2a1e12, emissive: 0xe8902a, emissiveIntensity: 0 }));
+      crack.position.set(sp.crack.x, y(sp.crack) + 0.06, sp.crack.z);
+      crack.rotation.y = 0.4;
+      const bench = buildBench();
+      bench.position.set(sp.bench.x, y(sp.bench), sp.bench.z);
+      const cart = buildCrate(5);
+      cart.position.set(sp.cart.x, y(sp.cart), sp.cart.z);
+      const supports = sp.supports.map((p) => {
+        const gr = new THREE.Group();
+        for (const sx of [-0.7, 0.7]) { const post = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.14, 2.2, 6), new THREE.MeshStandardMaterial({ color: 0x6a4a2a })); post.position.set(sx, 1.1, 0); gr.add(post); }
+        const beam = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.22, 0.26), new THREE.MeshStandardMaterial({ color: 0x5a3e22 }));
+        beam.position.y = 2.2; gr.add(beam);
+        gr.position.set(p.x, y(p), p.z);
+        return gr;
+      });
+      this.region3d.add(crack, bench, cart, ...supports);
+      this.seepProps = { crack, supports };
+    }
+    const st = g.seep;
+    (this.seepProps.crack.material as THREE.MeshStandardMaterial).emissiveIntensity = st.running ? 1.4 + Math.sin(t * 3) * 0.4 : 0.15;
+    // the supports shake as the tunnel weakens
+    const shake = st.running ? Math.max(0, 1 - st.stability / 60) * 0.05 : 0;
+    this.seepProps.supports.forEach((s, k) => { s.rotation.z = Math.sin(t * 23 + k) * shake; });
+  }
+
   /** The Greenheart Fire (greenfire.ts): the grove's twelve thickets, burning, felled or burnt to ash, and its camp. */
   private syncFire(t: number) {
     const g = this.game, sp = g.fire.spots();
@@ -1344,6 +1376,7 @@ export class GameRenderer {
     this.syncSea(t);
     this.syncQuestAndStorm(t, dt);
     this.syncFire(t);
+    this.syncSeep(t);
     this.syncTelegraphs();
 
     for (const f of this.flames) { f.scale.y = 0.8 + Math.sin(t * 12 + f.position.x * 10) * 0.25; f.scale.x = 1 + Math.sin(t * 9 + f.position.z * 7) * 0.12; }
