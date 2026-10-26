@@ -17,23 +17,29 @@ export async function loadArtOverrides() {
     if (r.ok) index = await r.json();
   } catch { /* no edits */ }
   // Fetch and decode every edited icon before the pack draws. Used straight from the network, iOS drew them
-  // half-downloaded (Tom's iPhone: icons cut off halfway). One that fails or is slow keeps the game's own icon.
+  // half-downloaded (Tom's iPhone: icons cut off halfway), so an icon is only used once it has decoded. The game waits
+  // up to 5 s for them; any still on their way then keep loading, and swap in (the pack redraws) as they arrive.
+  // One that fails keeps the game's own icon.
   const items = index.items ?? {};
-  const ready = new Set<string>();
   await Promise.race([
     Promise.all(Object.entries(items).map(([id, o]) => {
       const im = new Image();
       im.src = overrideUrl(o);
-      return im.decode().then(() => { ready.add(id); held.push(im); }, () => {});
+      return im.decode().then(() => { readyIcons.add(id); held.push(im); if (booted) for (const f of iconListeners) f(); }, () => {});
     })),
     new Promise((res) => setTimeout(res, 5000)),
   ]);
-  for (const id of Object.keys(items)) if (!ready.has(id)) delete items[id];
+  booted = true;
 }
 /** the decoded icons, kept so the browser holds them in memory */
 const held: HTMLImageElement[] = [];
+const readyIcons = new Set<string>();
+let booted = false;
+const iconListeners: (() => void)[] = [];
+/** Called when a painted icon finishes loading after start-up (redraw whatever shows icons). */
+export function onIconReady(f: () => void) { iconListeners.push(f); }
 
-export function artOverride(kind: ArtKind, id: string): ArtOverride | undefined { return index[kind]?.[id]; }
+export function artOverride(kind: ArtKind, id: string): ArtOverride | undefined { return kind === 'items' && !readyIcons.has(id) ? undefined : index[kind]?.[id]; }
 export const overrideUrl = (o: ArtOverride) => `${BASE}${o.file}`;
 
 const textures = new Map<string, THREE.Texture>();

@@ -1,4 +1,5 @@
 import { SEEP } from '../game/sim/amberseep';
+import { onIconReady } from '../art/overrides';
 import { FIRE } from '../game/sim/greenfire';
 import { AMMO, CHART_MARKS, type AmmoId } from '../game/data/sea';
 import { DIARIES } from '../game/data/diaries';
@@ -108,6 +109,9 @@ export class UI {
   constructor(private game: Game, private r: GameRenderer) {
     this.build();
     game.on((e) => this.onEvent(e));
+    // painted icons still loading after start-up: redraw the panel as they land (at most four times a second)
+    let redraw = 0;
+    onIconReady(() => { if (!redraw) redraw = window.setTimeout(() => { redraw = 0; this.lastRev = -1; }, 250); });
     this.layout();
     window.addEventListener('resize', () => this.layout());
     // a tap anywhere outside the item popup closes it (a slot tap opens the next one instead)

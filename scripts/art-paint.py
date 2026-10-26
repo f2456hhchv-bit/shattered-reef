@@ -11,6 +11,10 @@ from PIL import Image, ImageFilter
 
 SIZE = 256
 
+def save(im, dst):
+    """Icons are saved as 256-colour PNGs: a fifth of the size, and you can't tell (still a PNG anyone can paint over)."""
+    im.convert('RGBA').quantize(256, method=Image.Quantize.FASTOCTREE).save(dst, optimize=True)
+
 def cut(src, dst):
     im = Image.open(src).convert('RGBA')
     w, h = im.size
@@ -65,7 +69,7 @@ def cut(src, dst):
     side = int(max(im.size) * 1.08)
     sq = Image.new('RGBA', (side, side), (0, 0, 0, 0))
     sq.paste(im, ((side - im.size[0]) // 2, (side - im.size[1]) // 2), im)
-    sq.resize((SIZE, SIZE), Image.LANCZOS).save(dst)
+    save(sq.resize((SIZE, SIZE), Image.LANCZOS), dst)
 
 def tint(src, dst, hexcol, force=False, lmax=1.0):
     im = Image.open(src).convert('RGBA')
@@ -82,7 +86,7 @@ def tint(src, dst, hexcol, force=False, lmax=1.0):
             nl = min(1, max(0, l + (tl - 0.62) * 0.75 * (1 - abs(l - 0.5))))
             nr, ng, nb = colorsys.hls_to_rgb(th, nl, min(1, ts * 0.95))
             px[x, y] = (int(nr * 255), int(ng * 255), int(nb * 255), a)
-    im.save(dst)
+    save(im, dst)
 
 def regem(src, dst, gem, band=None):
     """Tom's painted ring with its green gem recoloured (and its gold band turned silver when band='silver')."""
@@ -102,7 +106,7 @@ def regem(src, dst, gem, band=None):
                 nr, ng, nb = colorsys.hls_to_rgb(0.58, min(1, l * 1.08), 0.08)
             else: continue
             px[x, y] = (int(nr * 255), int(ng * 255), int(nb * 255), a)
-    im.save(dst)
+    save(im, dst)
 
 def rewood(src, dst, hexcol):
     """A painted wooden item (bow, staff, log) in another wood: the orange-brown wood takes the new colour."""
@@ -118,7 +122,7 @@ def rewood(src, dst, hexcol):
             nl = min(1, max(0, l + (tl - 0.42) * 0.8))
             nr, ng, nb = colorsys.hls_to_rgb(th, nl, min(1, ts * 1.1))
             px[x, y] = (int(nr * 255), int(ng * 255), int(nb * 255), a)
-    im.save(dst)
+    save(im, dst)
 
 if __name__ == '__main__':
     cmd = sys.argv[1]
