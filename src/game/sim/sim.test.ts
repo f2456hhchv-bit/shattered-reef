@@ -903,9 +903,10 @@ describe('the second ring of keys', () => {
   };
   const near = (g: Game, id = 'reef_crab') => { const c = g.enemies.find((e) => e.def.id === id && e.alive && !e.elite)!; g.p.x = c.x + 1.3; g.p.z = c.z; g.keyCd = 0; return c; };
 
-  it('there are 21 keys; Keel\'s Tooth never drops but comes with the bell quest (and to anyone who finished it already)', () => {
-    expect(KEYS.length).toBe(21);
+  it('there are 22 keys; Keel\'s Tooth never drops but comes with the bell quest (and to anyone who finished it already)', () => {
+    expect(KEYS.length).toBe(22);
     expect(KEY.keels_tooth.rarity).toBe('quest');
+    expect(KEY.draugr_key.rarity).toBe('quest'); // The Barrow King's
     const d = defaultSave(base.layout.respawn, base.layout.mooring!);
     d.flags.bell_done = true;
     const g = new Game({ seed: 80, save: d });

@@ -1,5 +1,5 @@
 import type { SkillId } from './items';
-import { LAYOUT, SUN_LAYOUT, coastPoint } from '../world/island';
+import { LAYOUT, SUN_LAYOUT, AMBER_LAYOUT, AMBER, coastPoint } from '../world/island';
 // NPCs and the first quest, as data. Dialogue is chosen by quest stage; effects are interpreted by the quest system.
 
 export interface Effect {
@@ -8,6 +8,8 @@ export interface Effect {
   xp?: { skill: SkillId; amount: number }[];
   stage?: number;
   flag?: string;
+  /** a quest key, slotted on your keyring */
+  key?: string;
 }
 
 export interface DialogueNode {
@@ -67,6 +69,9 @@ export const NPCS: Record<string, NpcDef> = {
   // Sunreach's quests (docs/ISLANDS.md, slice 2)
   abena: { id: 'abena', name: 'Abena Owusu', title: 'Fruit seller', idle: ['Mangoes, limes, soursop. Mind the jungle edge after dark, captain.'] },
   nana_ayo: { id: 'nana_ayo', name: 'Nana Ayo', title: 'Herb woman', idle: ['Bush tea for the fever, salt for what comes at night. I keep both.'] },
+  // Amberhold's quests (docs/ISLANDS.md, slice 3)
+  sigrun: { id: 'sigrun', name: 'Sigrun', title: 'Skald', idle: ['Every hill on Amberhold has a song. Goldvein Hill\'s is the oldest, and nobody sings it after dark.'] },
+  ingrid: { id: 'ingrid', name: 'Ingrid Vale', title: 'Fiddler', idle: ['A fiddle tune can calm a horse, a crowd, or a storm. I\'ve managed two of the three.'] },
   watch_n: { id: 'watch_n', name: 'Watchman Pell', title: 'Town watch', idle: ['North road runs to the Copperback Hills and the foot of Ironcrag. Mind the crabs in iron shells.'] },
   watch_e: { id: 'watch_e', name: 'Watchwoman Dory', title: 'Town watch', idle: ['East road\'s brigand country. Past their camp, the smugglers keep the cove. Go armed.'] },
 };
@@ -94,6 +99,9 @@ export interface QuestStage {
 }
 
 export interface QuestDef { id: string; name: string; giver: string; stages: QuestStage[]; reward: string }
+
+/** the pool behind the Ironshell Shore where the nøkk live */
+const POOL = { x: AMBER_LAYOUT.ironshore.x + (AMBER.x - AMBER_LAYOUT.ironshore.x) * 0.22, z: AMBER_LAYOUT.ironshore.z + (AMBER.z - AMBER_LAYOUT.ironshore.z) * 0.22 + 6 };
 
 export const QUESTS: Record<string, QuestDef> = {
   bell: {
@@ -293,6 +301,68 @@ export const QUESTS: Record<string, QuestDef> = {
           'Soucouyant\'s Fire. Don\'t burn the port down.'],
           effect: { give: [{ id: 'coins', qty: 200 }], xp: [{ skill: 'magic', amount: 800 }], stage: 4, flag: 'souc_done' } } } },
       { text: 'Quest complete. Soucouyant\'s Fire is in your spell list (Magic 20).' },
+    ],
+  },
+  barrow: {
+    id: 'barrow',
+    name: 'The Barrow King',
+    giver: 'sigrun',
+    reward: 'The Barrow King\'s helm, the Draugr\'s Key, 1500 Attack XP, 1500 Defence XP, 500 coins',
+    stages: [
+      { text: 'Speak with Sigrun the skald at Tollhouse Landing.',
+        talk: { npc: 'sigrun', node: { lines: [
+          'The dead are walking out of Goldvein Hill. Draugr, in their rusted mail. Something under the hill has woken them.',
+          'The old song says a king lies in the barrow, and four lamps keep him sleeping. Someone has let them go out.',
+          '"North for the cold that keeps him, sunrise for the day he lost, sunset for the last of it, and the sea that brought him." Light them in that order.'], effect: { stage: 1 } } } },
+      { text: 'Light the four barrow lamps on Goldvein Hill in the order of the song: north, sunrise, sunset, sea.',
+        wrong: 'The flames gutter and go out together. The song has an order: start again.',
+        marks: [
+          { id: 'lw', label: 'Barrow lamp (west)', verb: 'Light', region: 'amberhold', x: AMBER_LAYOUT.goldhill.x - 12, z: AMBER_LAYOUT.goldhill.z - 4, seq: 3, say: ['The west lamp, where the sun goes down, catches.'] },
+          { id: 'ls', label: 'Barrow lamp (south, toward the sea)', verb: 'Light', region: 'amberhold', x: AMBER_LAYOUT.goldhill.x, z: AMBER_LAYOUT.goldhill.z + 8, seq: 4, say: ['The last lamp catches. Under your feet, the hill groans, and the barrow door grinds open.'] },
+          { id: 'ln', label: 'Barrow lamp (north)', verb: 'Light', region: 'amberhold', x: AMBER_LAYOUT.goldhill.x, z: AMBER_LAYOUT.goldhill.z - 15, seq: 1, say: ['The north lamp catches with a cold blue flame.'] },
+          { id: 'le', label: 'Barrow lamp (east)', verb: 'Light', region: 'amberhold', x: AMBER_LAYOUT.goldhill.x + 12, z: AMBER_LAYOUT.goldhill.z - 4, seq: 2, say: ['The east lamp, toward the sunrise, catches.'] },
+        ] },
+      { text: 'The lamps have woken the Barrow King himself. Beat him.', kill: { foe: 'barrow_king', count: 1, spawn: { region: 'amberhold', x: AMBER_LAYOUT.goldhill.x, z: AMBER_LAYOUT.goldhill.z - 6 } } },
+      { text: 'Tell Sigrun the Barrow King sleeps again.',
+        talk: { npc: 'sigrun', node: { lines: [
+          'The draugr went back into the hill at sundown, like men going home. I\'ll make a new verse of it.',
+          'He wore this in the song: the king\'s helm. It\'s yours now. And this was in his hand. A key, cold as the barrow.',
+          'Keep it close. The dead know its weight.'],
+          effect: { give: [{ id: 'helm_barrow', qty: 1 }, { id: 'coins', qty: 500 }], xp: [{ skill: 'attack', amount: 1500 }, { skill: 'defence', amount: 1500 }], stage: 4, flag: 'barrow_done', key: 'draugr_key' } } } },
+      { text: 'Quest complete.' },
+    ],
+  },
+  fiddle: {
+    id: 'fiddle',
+    name: 'The Nøkk\'s Fiddle',
+    giver: 'ingrid',
+    reward: 'A nøkk figurehead for your sloop (+10% hull, mends twice as fast), 1200 Sailing XP, 600 Fishing XP, 400 coins',
+    stages: [
+      { text: 'Speak with Ingrid Vale, the fiddler at Tollhouse Landing.',
+        talk: { npc: 'ingrid', node: { lines: [
+          'There\'s a nøkk in the pools behind the Ironshell Shore. A water-horse. At night it plays a fiddle under the water.',
+          'They say if you play its own tune back to it, it\'ll give you its bridle, and a ship with a nøkk on her bow never founders.',
+          'Go and listen. Then play it back on the reed stones by the pool.'], effect: { stage: 1 } } } },
+      { text: 'Listen to the nøkk\'s tune at the pool behind the Ironshell Shore.',
+        marks: [{ id: 'listen', label: 'Still pool', verb: 'Listen', region: 'amberhold', x: POOL.x, z: POOL.z,
+          say: ['From under the water, very faint: three notes on a fiddle.', 'Low. Then high. Then the middle note, held long.'], effect: { stage: 2 } }] },
+      { text: 'Play the tune back on the reed stones: low, then high, then middle.',
+        wrong: 'A sour note. The water goes still. Start the tune again.',
+        marks: [
+          { id: 'mid', label: 'Reed stone (middle note)', verb: 'Play', region: 'amberhold', x: POOL.x + 3, z: POOL.z + 3, seq: 3, say: ['The middle note, held long. The pool goes glassy, and something rises.'] },
+          { id: 'high', label: 'Reed stone (high note)', verb: 'Play', region: 'amberhold', x: POOL.x - 3, z: POOL.z + 3, seq: 2, say: ['A high note, thin as wind.'] },
+          { id: 'low', label: 'Reed stone (low note)', verb: 'Play', region: 'amberhold', x: POOL.x, z: POOL.z + 5, seq: 1, say: ['A low note hums out over the water.'] },
+        ] },
+      { text: 'The nøkk has come up out of the pool, calm, with its bridle hanging loose. Take it.',
+        marks: [{ id: 'bridle', label: 'The nøkk\'s bridle', verb: 'Take', region: 'amberhold', x: POOL.x, z: POOL.z,
+          say: ['The water-horse bows its head and lets the bridle slip off into your hands. Then it sinks without a ripple.'], effect: { give: [{ id: 'nokk_bridle', qty: 1 }], stage: 4 } }] },
+      { text: 'Bring the bridle to Ingrid.',
+        talk: { npc: 'ingrid', node: { requires: { id: 'nokk_bridle', qty: 1 }, missing: ['The tune, then the bridle. Low, high, middle.'], lines: [
+          'You played it back. And it gave you the bridle! I\'d never have believed it.',
+          'The shipwright and I will carve a nøkk for your bow and bind the bridle into it. She\'ll ride out anything.',
+          'And this: for the story I\'m going to tell about you.'],
+          effect: { take: [{ id: 'nokk_bridle', qty: 1 }], give: [{ id: 'coins', qty: 400 }], xp: [{ skill: 'sailing', amount: 1200 }, { skill: 'fishing', amount: 600 }], stage: 5, flag: 'nokk_figurehead' } } } },
+      { text: 'Quest complete. Your sloop carries a nøkk figurehead: +10% hull, and she mends twice as fast.' },
     ],
   },
 };

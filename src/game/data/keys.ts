@@ -118,6 +118,10 @@ export const KEYS: KeyDef[] = [
     passive: { kind: 'sea_peace', v: 1, text: 'Crabs and the Drowned never attack first' },
     power: { id: 'bite', name: 'Bite', cooldown: 45, dur: 10, text: 'The foe\'s keyhole snaps shut: no attacks, slams or summons for 10 s' },
     lore: 'A key shaped like a tooth, warm as a living thing. The Broken Ring gave it up.' },
+  { id: 'draugr_key', name: 'Draugr\'s Key', family: 'any', rarity: 'quest',
+    passive: { kind: 'dr', v: 6, text: 'You take 6% less damage' },
+    power: { id: 'ward', name: 'Ward', cooldown: 45, dur: 4, text: 'This foe can\'t hurt you for 4 s' },
+    lore: 'Cold iron from the Barrow King\'s hand. The dead under Goldvein Hill knew its weight.' },
 ];
 
 export const KEY: Record<string, KeyDef> = Object.fromEntries(KEYS.map((k) => [k.id, k]));

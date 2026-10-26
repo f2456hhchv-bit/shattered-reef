@@ -161,7 +161,12 @@ function buildIslandRegion(region: IslandId): IslandLayout {
     { id: 'abena', x: SL.plaza.x - 5, z: SL.plaza.z + 2, facing: 0 },
     { id: 'nana_ayo', x: SL.plaza.x + 6, z: SL.plaza.z + 3, facing: Math.PI },
   );
-  else if (amb) npcs.push({ id: 'jory', x: AL.dockBase.x + 3.2, z: AL.dockBase.z - 1.0, facing: Math.PI / 2 });
+  else if (amb) npcs.push(
+    { id: 'jory', x: AL.dockBase.x + 3.2, z: AL.dockBase.z - 1.0, facing: Math.PI / 2 },
+    // the quest folk (slice 3): Sigrun the skald and Ingrid the fiddler at the landing
+    { id: 'sigrun', x: AL.landing.x - 5, z: AL.landing.z - 2, facing: 0 },
+    { id: 'ingrid', x: AL.landing.x + 5, z: AL.landing.z - 3, facing: Math.PI },
+  );
   else npcs.push({ id: 'mercy', x: WL.dockBase.x + 3.2, z: WL.dockBase.z - 1.0, facing: Math.PI / 2 });
   for (const n of npcs) world.solids.push({ x: n.x, z: n.z, r: 0.35 });
 

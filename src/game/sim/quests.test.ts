@@ -18,9 +18,9 @@ const talk = (g: Game, id: string) => { const n = g.layout.npcs.find((x) => x.id
 const use = (g: Game, quest: string, mark: string) => { const m = g.questMarks().find((x) => x.quest === quest && x.mark.id === mark)!; near(g, m.mark.x, m.mark.z); g.interact(`quest:${quest}:${mark}`); g.step(1 / 30); };
 const run = (g: Game, secs: number, until?: () => boolean) => { for (let t = 0; t < secs; t += 1 / 30) { g.step(1 / 30); if (until?.()) return true; } return false; };
 /** A strong fighter with the foe in reach: beat it the honest way. */
-function beat(g: Game, foe: string) {
-  for (const k of ['attack', 'strength', 'defence', 'hitpoints'] as const) g.p.xp[k] = xpForLevel(40);
-  g.p.equip.weapon = { id: 'cutlass_steel', qty: 1 }; g.recalc(); g.p.hp = g.stats.maxHp;
+function beat(g: Game, foe: string, lvl = 40, weapon = 'cutlass_steel') {
+  for (const k of ['attack', 'strength', 'defence', 'hitpoints'] as const) g.p.xp[k] = xpForLevel(lvl);
+  g.p.equip.weapon = { id: weapon, qty: 1 }; g.recalc(); g.p.hp = g.stats.maxHp;
   run(g, 3, () => g.enemies.some((e) => e.def.id === foe && e.alive));
   const e = g.enemies.find((x) => x.def.id === foe && x.alive)!;
   near(g, e.x + 1.5, e.z);
@@ -134,6 +134,46 @@ describe('Sunreach\'s quests', () => {
     g.setSpell('souc_fire');
     expect(g.s.combat.spell).toBe('souc_fire');
     expect(SPELLS.find((sp) => sp.id === 'souc_fire')!.quest).toBe('souc_done');
+  });
+});
+
+describe('Amberhold\'s quests', () => {
+  const amb = (seed = 7) => { const L = regionLayout('amberhold'); return new Game({ seed, save: { ...defaultSave(L.respawn, L.mooring!), region: 'amberhold' } }); };
+  const quiet = (g: Game) => { for (const e of g.enemies) if (!e.def.id.startsWith('barrow_king')) { e.alive = false; e.respawnAt = Infinity; } };
+
+  it('The Barrow King: light the lamps in the song\'s order, beat the king, take his helm and the Draugr\'s Key', () => {
+    const g = amb();
+    quiet(g);
+    talk(g, 'sigrun');
+    expect(g.questStage('barrow')).toBe(1);
+    use(g, 'barrow', 'ln'); use(g, 'barrow', 'lw'); // sunset before sunrise: wrong
+    use(g, 'barrow', 'le'); use(g, 'barrow', 'ls');
+    expect(g.questStage('barrow')).toBe(1);
+    for (const m of ['ln', 'le', 'lw', 'ls']) use(g, 'barrow', m);
+    expect(g.questStage('barrow')).toBe(2);
+    expect(beat(g, 'barrow_king', 50, 'cutlass_tide')).toBe(true);
+    talk(g, 'sigrun');
+    expect(g.questStage('barrow')).toBe(QUESTS.barrow.stages.length - 1);
+    expect(count(g.p.inv, 'helm_barrow')).toBe(1);
+    expect(g.s.keyring).toContain('draugr_key');
+  });
+
+  it('The Nøkk\'s Fiddle: listen, play the tune back in order, take the bridle; the figurehead toughens the sloop', () => {
+    const g = amb();
+    quiet(g);
+    const hull = g.naval.hullMax();
+    talk(g, 'ingrid');
+    use(g, 'fiddle', 'listen');
+    expect(g.questStage('fiddle')).toBe(2);
+    use(g, 'fiddle', 'high'); // out of order
+    use(g, 'fiddle', 'low'); use(g, 'fiddle', 'high'); use(g, 'fiddle', 'mid');
+    expect(g.questStage('fiddle')).toBe(3);
+    use(g, 'fiddle', 'bridle');
+    expect(count(g.p.inv, 'nokk_bridle')).toBe(1);
+    talk(g, 'ingrid');
+    expect(g.questStage('fiddle')).toBe(QUESTS.fiddle.stages.length - 1);
+    expect(g.s.flags.nokk_figurehead).toBe(true);
+    expect(g.naval.hullMax()).toBeGreaterThan(hull);
   });
 });
 
