@@ -523,3 +523,36 @@ body.portrait .skgrid { grid-template-columns: repeat(4, 1fr); }
 #stormhud span { height: 8px; background: #2a1e0e; border: 1px solid #000; border-radius: 4px; overflow: hidden; }
 #stormhud i { display: block; height: 100%; background: #3fb0a8; transition: width .3s; }
 #stormhud div + div i { background: #c9a050; }
+
+/* ================================================ phone panel, RuneScape's vertical mobile layout (Tom, 2026-10-26):
+   open, the world keeps the top of the screen; below it the open tab scrolls in the middle, up/down buttons on the
+   left, the tab medallions in two columns on the right. Closed, the tabs are one row along the bottom. */
+:root { --panel-h: min(40dvh, 380px); }
+#scroll { display: none; }
+body.portrait.side-open #side { flex-direction: row; align-items: stretch; gap: 6px; height: calc(var(--panel-h) + env(safe-area-inset-bottom, 0px)); padding-top: 12px; }
+body.portrait.side-open #scroll { display: flex; order: 1; flex-direction: column; justify-content: space-between; width: 40px; flex: none; }
+body.portrait.side-open #scroll .btn { width: 40px; min-height: 0; height: 52px; padding: 0; display: grid; place-items: center; color: var(--brass-hi); }
+body.portrait.side-open #scroll .btn svg { width: 22px; height: 22px; }
+body.portrait.side-open #scroll .btn:disabled { opacity: .3; }
+body.portrait.side-open #content { order: 2; flex: 1; min-width: 0; height: auto; margin: 0; padding: 8px; }
+body.portrait.side-open #tabs { order: 3; flex: none; padding-top: 0; grid-template-columns: repeat(2, 46px); grid-auto-rows: 46px; align-content: start; gap: 6px; }
+body.portrait.side-open #tabs button { height: 46px; }
+body.portrait.side-open #tabs button svg { width: 24px; height: 24px; }
+/* the open tab is about as wide as the landscape side panel: use its grids */
+body.portrait.side-open .grid28.pack { grid-template-columns: repeat(5, 1fr); gap: 5px; }
+body.portrait.side-open .grid28 { grid-template-columns: repeat(5, 1fr); }
+body.portrait.side-open .skgrid { grid-template-columns: repeat(3, 1fr); }
+/* the world stays playable above it: minimap, buttons and chat sit over the panel's top edge */
+body.portrait.side-open #mm { display: block; }
+body.portrait.side-open #actions { display: flex; bottom: calc(var(--panel-h) + 14px + env(safe-area-inset-bottom, 0px)); }
+body.portrait.side-open #log { bottom: calc(var(--panel-h) + 14px + env(safe-area-inset-bottom, 0px)); right: 110px; }
+body.portrait.side-open #dialog { bottom: calc(var(--panel-h) + 12px + env(safe-area-inset-bottom, 0px)); }
+/* with the panel open the action buttons pair up, so the column stays clear of the minimap */
+body.portrait.side-open #actions { align-items: flex-end; }
+body.portrait.side-open #abilities { flex-direction: row-reverse; flex-wrap: wrap-reverse; width: 110px; gap: 8px; }
+body.portrait.side-open .ability { width: 50px; height: 50px; }
+body.portrait.side-open .ability svg { width: 27px; height: 27px; }
+body.portrait.side-open .sktile { padding: 4px 5px 6px 4px; gap: 2px; }
+body.portrait.side-open .sktile .ic svg { width: 24px; height: 24px; }
+body.portrait.side-open .sktile .lv { font-size: 17px; }
+body.portrait.side-open .sktile .lv small { font-size: 10px; }
