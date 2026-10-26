@@ -100,6 +100,26 @@ export const SEA_FOES: Record<string, SeaFoeDef> = {
     coins: [20, 50], drops: [{ item: 'shark_tooth', chance: 0.7, qty: [1, 3] }, { item: 'casket', chance: 0.1 }, { item: 'fish_shark_raw', chance: 0.3 }], scale: 1.4, respawn: 90, look: 'serpent' },
 };
 
+/** Weather at sea (docs/ISLANDS.md: from the-shattered-reef). Out of harbour, every few minutes a spell of weather
+ * blows in, telegraphed and fair: it hurts your foes as much as you, so it's something to use. Bellwether's waters are
+ * sheltered; the further out, the wilder. */
+export type WeatherKind = 'gale' | 'fog' | 'thunder';
+export const WEATHER = {
+  /** seconds of open water between spells, and how long a spell lasts */
+  every: [150, 240] as [number, number],
+  lasts: [40, 60] as [number, number],
+  /** which weather each region's waters get */
+  kinds: { bellwether: [], sunreach: ['gale', 'fog'], amberhold: ['gale', 'fog', 'thunder'], wrack: ['gale', 'fog', 'thunder'] } as Partial<Record<RegionId, WeatherKind[]>>,
+  /** a gale pushes ship and foes downwind at this speed (m/s) */
+  gale: 2.2,
+  /** in fog, foes see you at this fraction of their usual range */
+  fogSight: 0.5,
+  /** thunder: a strike every so often near the ship, marked first; it holes hulls and sinks foes alike */
+  strikeEvery: 2.6, strikeWarn: 1.3, strikeRadius: 3, strikeHull: 18, strikeFoe: 90,
+  /** riding a spell out gives a little Sailing XP */
+  xp: 60,
+};
+
 /** The Kraken's first sighting (docs/ISLANDS.md: Amberhold's sea boss is an escape, not a fight). Sail into the North
  * Deep and it rises under you: its arms come down on marked water round the ship. Get clear of the deep to live. */
 export const KRAKEN = (() => {

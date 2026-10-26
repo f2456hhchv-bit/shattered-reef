@@ -64,6 +64,7 @@ export type GameEvent =
   | { type: 'openBank' }
   | { type: 'quest'; id: string; stage: number }
   | { type: 'boss'; state: 'rise' | 'defeat' | 'reset' | 'summon' }
+  | { type: 'weather'; kind: 'gale' | 'fog' | 'thunder' | null }
   | { type: 'board' }
   | { type: 'disembark' }
   | { type: 'discover'; id: string; name: string }
