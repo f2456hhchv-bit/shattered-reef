@@ -1,6 +1,7 @@
 import { StormTide } from './stormtide';
 import { GreenheartFire } from './greenfire';
 import { AmberSeep } from './amberseep';
+import { TreasureHunt } from './treasure';
 import { Naval } from './naval';
 import { AMMO, NAVAL } from '../data/sea';
 import { ACTIVE, type Struck } from '../data/active';
@@ -166,6 +167,7 @@ export class Game {
   storm: StormTide = new StormTide(this);
   fire: GreenheartFire = new GreenheartFire(this);
   seep: AmberSeep = new AmberSeep(this);
+  treasure: TreasureHunt = new TreasureHunt(this);
   private listeners: ((e: GameEvent) => void)[] = [];
 
   // player runtime
@@ -391,6 +393,7 @@ export class Game {
       if (!!d.fromShip !== onShip) continue;
       out.push({ key: `node:${n.uid}`, kind: 'node', x: n.x, z: n.z, range: this.nodeReach(d), label: d.name, verb: d.verb });
     }
+    out.push(...this.treasure.targets());
     if (!onShip) {
       for (const n of this.layout.npcs) out.push({ key: `npc:${n.id}`, kind: 'npc', x: n.x, z: n.z, range: 2.2, label: NPCS[n.id].name, verb: NPCS[n.id].shop ? 'Trade' : NPCS[n.id].bank ? 'Bank' : NPCS[n.id].ferry ? 'Travel' : 'Talk' });
       this.layout.stations.forEach((st, i) => out.push({ key: `station:${i}`, kind: 'station', x: st.x, z: st.z, range: 2.3, label: STATION_NAMES[st.id], verb: st.id === 'fire' ? 'Cook' : st.id === 'furnace' || st.id === 'vent' ? 'Smelt' : st.id === 'bench' ? 'Craft' : 'Forge' }));
@@ -536,7 +539,7 @@ export class Game {
       case 'portal': { const pt = this.layout.portals[Number(t.key.slice(7))]; this.travel({ to: pt.to, how: 'portal', from: this.s.region }); return; }
       case 'mooring': return this.callShip();
       case 'quest': { const [, q, m] = t.key.split(':'); return this.useMark(q, m); }
-      case 'event': return t.key.startsWith('event:gf:') ? this.fire.use(t.key) : t.key.startsWith('event:seep:') ? this.seep.use(t.key) : this.storm.use(t.key);
+      case 'event': return t.key.startsWith('event:gf:') ? this.fire.use(t.key) : t.key.startsWith('event:seep:') ? this.seep.use(t.key) : t.key.startsWith('event:tm:') ? this.treasure.use(t.key) : this.storm.use(t.key);
     }
   }
 
@@ -799,6 +802,7 @@ export class Game {
     const d = item(st.id);
     if (d.heal) return this.eat(i);
     if (d.equip) return this.equip(i);
+    if (d.chart) return this.treasure.read(i);
     if (d.opens) {
       remove(this.p.inv, st.id, 1);
       this.rollLoot(LOOT[d.opens], this.p.x, this.p.z);
@@ -1258,8 +1262,12 @@ export class Game {
     }
     if (want !== null) {
       const diff = Math.atan2(Math.sin(want - sh.heading), Math.cos(want - sh.heading));
-      sh.heading += Math.max(-1, Math.min(1, diff * 2.2)) * 1.25 * dt;
+      const turn = Math.max(-1, Math.min(1, diff * 2.2)) * 1.25 * dt;
       throttle *= Math.max(0.25, Math.cos(diff) * 0.5 + 0.5);
+      // sailing to a tapped spot from a tight berth: if the hull can't swing here, make way ahead until it can
+      // (turning into the quay used to stall the ship with the target silently dropped)
+      if (m > 0.1 || this.hullFits(sh.x, sh.z, sh.heading + turn)) sh.heading += turn;
+      else throttle = Math.max(throttle, 0.45);
     }
     const maxSpeed = 7.5 * (this.activeKey()?.passive.kind === 'ship_speed' ? 1 + this.activeKey()!.passive.v / 100 : 1) * (1 + this.crewV('ship_speed') / 100) * (this.s.flags.toll_pennant ? 1.05 : 1); // the Tollhouse pennant
     const targetSpeed = throttle * maxSpeed;

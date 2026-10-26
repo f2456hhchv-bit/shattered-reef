@@ -199,6 +199,7 @@ export class GameRenderer {
   private markViews = new Map<string, THREE.Group>();
   private stormProps: { serpent: SnakeRig; planks: THREE.Mesh[] } | null = null;
   private seepProps: { crack: THREE.Mesh; supports: THREE.Group[] } | null = null;
+  private treasureBuoy: THREE.Group | null = null;
   private fireProps: { cells: { bush: THREE.Group; fire: THREE.Group; ash: THREE.Mesh; stump: THREE.Mesh }[]; flames: THREE.Mesh[] } | null = null;
   private teleViews = new Map<number, THREE.Group>();
   private flames: THREE.Mesh[] = [];
@@ -312,7 +313,7 @@ export class GameRenderer {
     this.npcs.clear(); this.houses = []; this.walkers = []; this.enemyViews.clear(); this.nodeViews.clear();
     this.dropViews.clear(); this.projViews.clear(); this.teleViews.clear(); this.flames = []; this.glows = [];
     this.seaViews.clear(); this.krakenArms.clear(); this.bolts.clear(); this.ballViews.clear(); this.chargeViews.clear(); this.aimLine = null;
-    this.markViews.clear(); this.stormProps = null; this.fireProps = null; this.seepProps = null;
+    this.markViews.clear(); this.stormProps = null; this.fireProps = null; this.seepProps = null; this.treasureBuoy = null;
     this.grass = null; this.grassTime = [];
     this.scenery = new InstancedField(addSurfaceDetail(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: false, roughness: 0.9 }), PROP_SURFACE));
     this.sceneryState.clear();
@@ -1030,6 +1031,29 @@ export class GameRenderer {
     this.stormProps.planks.forEach((m, k) => { m.visible = st.running && st.broken[k]; });
   }
 
+  /** A treasure map's X (treasure.ts): a red-and-white marker buoy with a pennant, bobbing on the swell. */
+  private syncTreasure(t: number) {
+    const tx = this.game.treasure.here();
+    if (!tx) { if (this.treasureBuoy) this.treasureBuoy.visible = false; return; }
+    if (!this.treasureBuoy) {
+      const b = new THREE.Group(), red = new THREE.MeshStandardMaterial({ color: 0xc8382a }), white = new THREE.MeshStandardMaterial({ color: 0xece4d2 });
+      const float = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.7, 0.7, 12), red);
+      const band = new THREE.Mesh(new THREE.CylinderGeometry(0.57, 0.6, 0.18, 12), white);
+      band.position.y = 0.12;
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.8, 6), new THREE.MeshStandardMaterial({ color: 0x3a2a1a }));
+      pole.position.y = 1.2;
+      const flag = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 0.45), new THREE.MeshStandardMaterial({ color: 0xc8382a, side: THREE.DoubleSide, emissive: 0x6a1a12, emissiveIntensity: 0.4 }));
+      flag.position.set(0.36, 1.85, 0);
+      b.add(float, band, pole, flag);
+      this.region3d.add(b);
+      this.treasureBuoy = b;
+    }
+    const b = this.treasureBuoy;
+    b.visible = true;
+    b.position.set(tx.x, 0.1 + Math.sin(t * 1.4) * 0.12, tx.z);
+    b.rotation.set(Math.sin(t * 1.1) * 0.08, t * 0.2, Math.cos(t * 0.9) * 0.08);
+  }
+
   /** The Amber Seep (amberseep.ts): the crack in Goldvein Hill, glowing while it's open, and its camp. */
   private syncSeep(t: number) {
     const g = this.game, sp = g.seep.spots();
@@ -1452,6 +1476,7 @@ export class GameRenderer {
     this.syncQuestAndStorm(t, dt);
     this.syncFire(t);
     this.syncSeep(t);
+    this.syncTreasure(t);
     this.syncTelegraphs();
 
     for (const f of this.flames) { f.scale.y = 0.8 + Math.sin(t * 12 + f.position.x * 10) * 0.25; f.scale.x = 1 + Math.sin(t * 9 + f.position.z * 7) * 0.12; }

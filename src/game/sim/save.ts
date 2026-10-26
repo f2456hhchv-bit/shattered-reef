@@ -42,6 +42,8 @@ export interface SaveData {
   crew: string[];
   mate: string | null;
   hunterAt: number; // play time of the next bounty-hunter ambush (once your bounty is big enough)
+  /** the treasure map you're following: an X in the water off an island */
+  treasure: { region: RegionId; x: number; z: number } | null;
 }
 
 export const SKILL_IDS: SkillId[] = ['attack', 'strength', 'defence', 'hitpoints', 'ranged', 'magic', 'woodcutting', 'mining', 'fishing', 'smithing', 'gunsmithing', 'fletching', 'cooking', 'crafting', 'sailing'];
@@ -105,6 +107,7 @@ export function defaultSave(spawn: { x: number; z: number }, ship: { x: number; 
     crew: [],
     mate: null,
     hunterAt: 0,
+    treasure: null,
   };
 }
 
@@ -266,6 +269,8 @@ export function parseSave(json: string | null, fallback: SaveData): SaveData | n
   d.crew = Array.isArray(raw.crew) ? [...new Set(raw.crew.filter((c): c is string => typeof c === 'string' && !!CREW_BY[c]))] : [];
   d.mate = typeof raw.mate === 'string' && d.crew.includes(raw.mate) ? raw.mate : null;
   d.hunterAt = num(raw.hunterAt, 0, 0);
+  const tr = raw.treasure as Record<string, unknown> | null | undefined;
+  d.treasure = tr && typeof tr === 'object' && isRegion(tr.region) ? { region: tr.region, x: num(tr.x, 0, -5000, 5000), z: num(tr.z, 0, -5000, 5000) } : null;
   const cb = (raw.combat ?? {}) as Record<string, unknown>;
   d.combat = {
     stance: cb.stance === 'aggressive' || cb.stance === 'defensive' ? cb.stance : 'accurate',
