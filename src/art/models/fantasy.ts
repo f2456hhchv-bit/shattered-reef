@@ -71,7 +71,47 @@ function golem(look: string, seed: number): FantasyRig {
     body.add(leg);
     legs.push(leg);
   }
+  if (look === 'jotunn') jotunnKit(body, arms[1], L, seed);
   return { model: 'golem', root, body, a: arms, b: legs };
+}
+
+/** The Thunder Jötunn's own silhouette: horns, a rimed beard, lightning in the cracks of its chest, a storm hammer. */
+function jotunnKit(body: THREE.Group, hand: THREE.Group, L: (typeof GOLEM)[string], seed: number) {
+  const horn = mat(0xd8d0bc), beard = mat(0x9aa8b4), iron = mat(0x3a3e44), bolt = glow(L.accent, 1.6);
+  for (const s of [-1, 1]) {
+    const h = mesh(new THREE.ConeGeometry(0.08, 0.5, 6), horn);
+    h.position.set(0.2 * s, 1.08, 0.08);
+    h.rotation.set(-0.3, 0, -0.9 * s);
+    const tip = mesh(new THREE.ConeGeometry(0.035, 0.2, 5), horn);
+    tip.position.set(0.42 * s, 1.32, 0.04);
+    tip.rotation.set(-0.2, 0, -0.1 * s);
+    // stone pauldrons: a heavier shoulder line
+    const pad = mesh(jitter(new THREE.IcosahedronGeometry(0.24, 0), 0.04, seed + 9 + s), mat(L.dark));
+    pad.position.set(0.55 * s, 0.72, 0);
+    pad.scale.set(1, 0.7, 1);
+    body.add(h, tip, pad);
+  }
+  const b = mesh(jitter(new THREE.ConeGeometry(0.24, 0.62, 7), 0.03, seed + 11), beard);
+  b.position.set(0, 0.5, 0.36);
+  b.rotation.x = Math.PI + 0.25;
+  body.add(b);
+  // a zigzag of lightning down the chest
+  const zig = [[-0.12, 0.62, 0.5], [0.06, 0.45, 0.6], [-0.08, 0.26, -0.5], [0.08, 0.1, 0.4]] as const;
+  for (const [x, y, rz] of zig) {
+    const seg = mesh(new THREE.BoxGeometry(0.035, 0.2, 0.03), bolt, false);
+    seg.position.set(x, y, 0.44);
+    seg.rotation.z = rz;
+    body.add(seg);
+  }
+  // the storm hammer, held in the right fist so it swings with the arm
+  const handle = mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.9, 6), mat(0x5a4632));
+  handle.position.set(0, -0.66, 0.3);
+  handle.rotation.x = Math.PI / 2;
+  const head = mesh(jitter(new THREE.BoxGeometry(0.32, 0.26, 0.42), 0.02, seed + 13), iron);
+  head.position.set(0, -0.66, 0.78);
+  const band = mesh(new THREE.BoxGeometry(0.34, 0.06, 0.44), bolt, false);
+  band.position.set(0, -0.66, 0.78);
+  hand.add(handle, head, band);
 }
 
 // ---- hounds: lean four-legged hunters

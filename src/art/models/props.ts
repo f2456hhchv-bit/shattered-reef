@@ -45,6 +45,51 @@ export function buildBroadleaf(seed: number): THREE.Group {
   return g;
 }
 
+/** Sunreach's jungle tree: a tall pale trunk on buttress roots, flat layered umbrella canopy, hanging lianas. */
+export function buildJungleTree(seed: number): THREE.Group {
+  const rnd = mulberry32(seed);
+  const g = new THREE.Group();
+  const bark = 0x8a7a5e, roots = 0x6e5f46, leaf = 0x2f6b2c, leafLight = 0x48913a, vine = 0x3c6a2a;
+  const h = 3.0 + rnd() * 0.6;
+  const lean = (rnd() - 0.5) * 0.12;
+  const trunk = mesh(jitter(new THREE.CylinderGeometry(0.13, 0.26, h, 9, 3), 0.03, seed), mat(bark));
+  trunk.position.y = h / 2;
+  trunk.rotation.z = lean;
+  g.add(trunk);
+  // buttress roots: thin fins flaring from the base
+  for (let i = 0; i < 4; i++) {
+    const a = (i / 4) * Math.PI * 2 + rnd() * 0.5;
+    const fin = mesh(new THREE.BoxGeometry(0.07, 0.75, 0.6), mat(roots));
+    fin.position.set(Math.cos(a) * 0.28, 0.32, Math.sin(a) * 0.28);
+    fin.rotation.y = -a + Math.PI / 2;
+    fin.rotation.x = 0.35;
+    g.add(fin);
+  }
+  const topX = Math.sin(-lean) * h;
+  // two or three flat tiers of canopy, widest at the top
+  const tiers = 2 + (rnd() < 0.5 ? 1 : 0);
+  for (let t = 0; t < tiers; t++) {
+    const y = h - t * 0.7 + 0.15, r = 1.5 - t * 0.3 + rnd() * 0.3;
+    for (let k = 0; k < 3; k++) {
+      const a = rnd() * Math.PI * 2, d = t === 0 ? 0.35 : 0.7;
+      const blob = mesh(jitter(new THREE.IcosahedronGeometry(r * (0.7 + rnd() * 0.25), 1), 0.12, seed + t * 7 + k), mat((t + k) % 2 ? leafLight : leaf));
+      blob.position.set(topX + Math.cos(a) * d, y + rnd() * 0.2, Math.sin(a) * d);
+      blob.scale.y = 0.32;
+      g.add(blob);
+    }
+  }
+  // lianas dropping from the canopy edge
+  for (let i = 0; i < 3; i++) {
+    const a = rnd() * Math.PI * 2, len = 0.9 + rnd() * 1.1;
+    const v = mesh(new THREE.CylinderGeometry(0.025, 0.02, len, 4), mat(vine), false);
+    v.position.set(topX + Math.cos(a) * 1.05, h - len / 2 - 0.05, Math.sin(a) * 1.05);
+    g.add(v);
+  }
+  g.scale.setScalar(0.9 + rnd() * 0.3);
+  g.rotation.y = rnd() * Math.PI;
+  return g;
+}
+
 export function buildRock(seed: number, size = 1, colour: 'stone' | 'stoneDark' = 'stone'): THREE.Mesh {
   const rnd = mulberry32(seed);
   const m = mesh(jitter(new THREE.DodecahedronGeometry(size, 1), size * 0.22, seed), mat(colour));
