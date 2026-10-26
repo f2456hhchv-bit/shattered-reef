@@ -87,6 +87,7 @@ export class UI {
   private playerBar!: HTMLElement;
   private gatherBar!: HTMLElement;
   private cueBar!: HTMLElement;
+  private overhead!: HTMLElement;
   private stormHud!: HTMLElement;
   private cuePop!: HTMLElement;
   private cuePopT = 0;
@@ -123,7 +124,6 @@ export class UI {
     const add = (id: string, el: HTMLElement) => { el.id = id; b.appendChild(el); this.el[id] = el; return el; };
     add('overlay', h('div'));
     add('log', h('div', { 'aria-live': 'polite' }));
-    add('xpdrops', h('div'));
     add('banner', h('div'));
     add('bossbar', h('div', {}, '<b></b><div class="bar"><i></i></div>')).hidden = true;
     const mm = add('mm', h('div', { role: 'button', 'aria-label': 'Minimap. Tap to walk there.', tabindex: '0' }, '<canvas></canvas><div id="compass">N</div>'));
@@ -183,6 +183,8 @@ export class UI {
     this.stormHud = h('div', { id: 'stormhud' }, '<div><b>Tide-serpent</b><span><i></i></span></div><div><b>The pier</b><span><i></i></span></div>');
     this.stormHud.hidden = true;
     this.el.overlay.appendChild(this.stormHud);
+    this.overhead = h('div', { class: 'overhead' });
+    this.el.overlay.appendChild(this.overhead);
     this.cuePop = h('div', { class: 'cuepop' });
     this.el.overlay.appendChild(this.cuePop);
     mm.addEventListener('pointerdown', (e) => this.minimapTap(e));
@@ -252,6 +254,7 @@ export class UI {
       case 'msg': this.log(e.text, e.kind); break;
       case 'cue': this.cuePop.textContent = e.text; this.cuePop.className = `cuepop on${e.perfect ? ' good' : ''}`; this.cuePopT = 0.9; break;
       case 'xp': this.xpDrop(e.skill, e.amount); break;
+      case 'gain': this.overheadLine(e.id === 'coins' ? `+${fmt(e.qty)} coins` : `${e.qty} ${esc(e.name.toLowerCase())} gained`, '#efe6cc'); break;
       case 'level': this.levelUp(e.skill, e.level); break;
       case 'discover': { const f = this.game.placeInfo(e.id)?.foes; this.banner(e.name, f ? `Discovered · Foes level ${f[0]}${f[1] > f[0] ? `–${f[1]}` : ''}` : 'Discovered · Peaceful'); break; }
       case 'quest': {
@@ -295,14 +298,18 @@ export class UI {
     setTimeout(() => d.remove(), 7700);
   }
 
+  /** XP and what you just got float up faintly over your head (Tom: "where the player is, alongside 1 tin ore gained"). */
+  private overheadLine(html: string, colour: string) {
+    const d = h('div');
+    d.style.color = colour;
+    d.innerHTML = html;
+    this.overhead.appendChild(d);
+    setTimeout(() => d.remove(), 1900);
+    while (this.overhead.children.length > 4) this.overhead.firstElementChild!.remove();
+  }
   private xpDrop(skill: SkillId, amt: number) {
     const s = SKILLS.find((x) => x.id === skill)!;
-    const d = h('div');
-    d.style.color = s.colour;
-    d.innerHTML = `<span class="xi" style="--c:${s.colour}">${SKILL_ICONS[skill]}</span>+${fmt(amt)} ${s.name}`;
-    this.el.xpdrops.appendChild(d);
-    setTimeout(() => d.remove(), 1900);
-    while (this.el.xpdrops.children.length > 5) this.el.xpdrops.firstElementChild!.remove();
+    this.overheadLine(`<span class="xi" style="--c:${s.colour}">${SKILL_ICONS[skill]}</span>+${fmt(amt)} ${s.name} xp`, `color-mix(in srgb, ${s.colour} 45%, #fff)`);
   }
 
   banner(title: string, sub: string, icon?: SkillId) {
@@ -551,6 +558,8 @@ export class UI {
       this.gatherBar.style.left = `${s.x}px`; this.gatherBar.style.top = `${s.y}px`;
       (this.gatherBar.firstElementChild as HTMLElement).style.width = `${Math.min(1, ga.progress) * 100}%`;
     }
+    // XP and gains float over your head (over the ship when you're aboard)
+    { const s = r.project(g.p.x, (g.p.onShip ? 0 : g.world.standY(g.p.x, g.p.z)) + (g.p.onShip ? 5 : 3.1), g.p.z); this.overhead.style.left = `${s.x}px`; this.overhead.style.top = `${s.y}px`; }
     // active skilling: the timing bar under the player, and the call when you tap
     const cue = g.cueState();
     this.cueBar.style.display = cue ? '' : 'none';
