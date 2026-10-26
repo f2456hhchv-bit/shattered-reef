@@ -23,7 +23,9 @@ export type PerkKind =
   | 'ammo' // ranged: v% chance a shot isn't used
   | 'charms' // magic: v% chance a spell's charms aren't used
   | 'last' // gathering: v% chance a tree, rock or spot doesn't run out when it would
-  | 'spec'; // combat: special attack recharges v% faster
+  | 'spec' // combat: special attack recharges v% faster
+  | 'reload' // sailing: cannons reload v% faster
+  | 'hull'; // sailing: +v% hull
 
 export interface Perk { level: number; name: string; kind: PerkKind; v: number }
 
@@ -47,6 +49,8 @@ export const PERKS: Record<SkillId, Perk[]> = {
     P(60, 'Bowyer', 'fine', 3), P(70, 'Rhythm', 'quick', 10), P(80, 'Frugal', 'save', 5), P(90, 'Master bowyer', 'xp', 5), P(99, 'Mastery', 'extra', 5)],
   cooking: [P(10, 'Watchful', 'burn', 10), P(20, 'Hearty', 'heal', 5), P(30, 'Two pans', 'double', 3), P(40, 'Patience', 'burn', 10), P(50, 'Rich stock', 'heal', 5),
     P(60, 'Three pans', 'double', 4), P(70, 'Never burnt', 'burn', 15), P(80, 'Feast', 'heal', 5), P(90, 'Chef', 'xp', 5), P(99, 'Mastery', 'heal', 10)],
+  sailing: [P(10, 'Gun crew', 'reload', 8), P(20, 'Oak ribs', 'hull', 10), P(30, 'Salvager', 'find', 2), P(40, 'Gun drill', 'reload', 8), P(50, 'Copper bottom', 'hull', 10),
+    P(60, 'Wreck sense', 'find', 3), P(70, 'Broadside', 'reload', 10), P(80, 'Iron ribs', 'hull', 10), P(90, 'Sea dog', 'xp', 5), P(99, 'Mastery', 'reload', 10)],
   crafting: [P(10, 'Thrifty', 'save', 3), P(20, 'Fine stitch', 'fine', 2), P(30, 'Quick needle', 'quick', 10), P(40, 'Waste not', 'save', 4), P(50, 'Jeweller\'s eye', 'fine', 3),
     P(60, 'Rhythm', 'quick', 10), P(70, 'Frugal', 'save', 5), P(80, 'Artisan', 'fine', 4), P(90, 'Master crafter', 'xp', 5), P(99, 'Mastery', 'fine', 5)],
   attack: [P(10, 'Sure strike', 'acc', 2), P(20, 'Footwork', 'acc', 2), P(30, 'Feint', 'acc', 2), P(40, 'Read the blade', 'acc', 2), P(50, 'Clean cut', 'crit', 2),
@@ -74,6 +78,8 @@ const halfProduction = [H('Practised', 'quick', 5), H('Careful', 'save', 2), H('
 const HALF: Record<SkillId, { name: string; kind: PerkKind; v: number }[]> = {
   woodcutting: halfGathering('timber'), mining: halfGathering('veins'), fishing: halfGathering('shoals'),
   smithing: halfProduction, gunsmithing: halfProduction, fletching: halfProduction, crafting: halfProduction,
+  sailing: [H('Sea legs', 'hull', 5), H('Quick match', 'reload', 4), H('Tarred seams', 'hull', 5), H('Hook hand', 'speed', 3), H('Loader', 'reload', 4),
+    H('Planked', 'hull', 5), H('Old salt', 'xp', 3), H('Swift crew', 'reload', 5), H('Doubled hull', 'hull', 5), H('Weathered', 'speed', 5)],
   cooking: [H('Low flame', 'burn', 5), H('Good stock', 'heal', 3), H('Busy galley', 'quick', 10), H('Practised cook', 'burn', 5), H('Seconds', 'double', 2),
     H('Seasoned', 'heal', 3), H('Galley master', 'quick', 10), H('Sure hand', 'burn', 10), H('Feast cook', 'double', 3), H('Signature dish', 'heal', 5)],
   attack: [H('Guarded stance', 'acc', 1), H('Quick recovery', 'spec', 5), H('Measured', 'acc', 1), H('Find the gap', 'crit', 1), H('Tempo', 'spec', 5),
@@ -125,6 +131,8 @@ export function perkText(p: Perk): string {
     case 'charms': return `${v}% chance a spell's charms aren't used`;
     case 'last': return `${v}% chance a spot doesn't run out`;
     case 'spec': return `Special attack recharges ${v}% faster`;
+    case 'reload': return `Cannons reload ${v}% faster`;
+    case 'hull': return `+${v}% hull`;
   }
 }
 
@@ -134,4 +142,5 @@ export const LEVEL_GAIN: Record<SkillId, string> = {
   smithing: '+1% masterwork chance', gunsmithing: '+1% masterwork chance on pistols', fletching: '+1% masterwork chance on bows and crossbows', crafting: '+1% masterwork chance', cooking: 'You burn food less often',
   attack: 'Better accuracy', strength: 'Harder hits', defence: 'Harder to hit', hitpoints: '+1 max health',
   ranged: 'Better aim and stopping power', magic: 'Better accuracy and stronger spells',
+  sailing: 'A tougher hull and harder-hitting broadsides',
 };

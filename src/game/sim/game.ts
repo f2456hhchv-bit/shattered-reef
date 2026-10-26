@@ -1,3 +1,5 @@
+import { Naval } from './naval';
+import { AMMO, NAVAL } from '../data/sea';
 import { ACTIVE } from '../data/active';
 import { mulberry32 } from '../../art/noise';
 import { item, ammoKind, AMMO_NAME, isTwoHanded, offhandBlock, pairGroup, type ItemDef, type Slot, type SkillId, type CombatStyle } from '../data/items';
@@ -44,6 +46,7 @@ export type GameEvent =
   | { type: 'keyTurn'; x: number; z: number; power: string }
   | { type: 'ferryOffer'; npc: string; to: string; price: number }
   | { type: 'cue'; perfect: boolean; text: string }
+  | { type: 'navalFire'; kind: 'broadside' | 'charge'; side?: 1 | -1 }
   | { type: 'roll' }
   | { type: 'dodge'; x: number; z: number }
   | { type: 'shoot'; x: number; z: number; tx: number; tz: number }
@@ -122,7 +125,7 @@ const SAFE_RADIUS = 16;
 /** Condition lost per use: ~1000 swings, ~1250 hits taken, ~2000 gathers from new to worn out. */
 const WEAR = { weapon: 0.1, armour: 0.08, tool: 0.05 };
 /** Rare finds from the gathering perks. */
-const FINDS: Partial<Record<SkillId, string>> = { woodcutting: 'bird_nest', mining: 'geode', fishing: 'casket' };
+const FINDS: Partial<Record<SkillId, string>> = { woodcutting: 'bird_nest', mining: 'geode', fishing: 'casket', sailing: 'casket' };
 
 export const STATION_NAMES: Record<Station, string> = { furnace: 'Furnace', anvil: 'Anvil', fire: 'Cookfire', bench: 'Workbench', vent: 'Vent forge' };
 
@@ -151,7 +154,9 @@ export class Game {
   drops: Drop[] = [];
   projectiles: Projectile[] = [];
   telegraphs: Telegraph[] = [];
-  private nextId = 1;
+  nextId = 1;
+  /** the fight and the work at sea (naval.ts) */
+  naval: Naval = new Naval(this);
   private listeners: ((e: GameEvent) => void)[] = [];
 
   // player runtime
@@ -221,6 +226,7 @@ export class Game {
     this.path = []; this.pending = null; this.target = null; this.action = null; this.shipTarget = null; this.shipRoute = [];
     if (this.shipHere && this.layout.mooring && !this.world.sailable(this.s.ship.x, this.s.ship.z)) Object.assign(this.s.ship, this.layout.mooring);
     if (!this.shipHere || !this.layout.mooring) this.s.player.onShip = false;
+    this.naval.enterRegion();
     if (this.s.player.onShip) { this.s.player.x = this.s.ship.x; this.s.player.z = this.s.ship.z; }
     else if (!this.world.walkable(this.s.player.x, this.s.player.z)) {
       const q = this.world.nearestWalkable(this.s.player.x, this.s.player.z, 3);
@@ -277,7 +283,7 @@ export class Game {
     this.rev++;
   }
 
-  private nearestSea(x: number, z: number): [number, number] | null {
+  nearestSea(x: number, z: number): [number, number] | null {
     for (let r = 0; r <= 30; r += 2) for (let k = 0; k < 16; k++) {
       const a = (k / 16) * Math.PI * 2, px = x + Math.cos(a) * r, pz = z + Math.sin(a) * r;
       if (this.world.seaClear(px, pz)) return [px, pz];
@@ -288,7 +294,7 @@ export class Game {
 
   // ------------------------------------------------------------------ events
   on(fn: (e: GameEvent) => void) { this.listeners.push(fn); return () => { this.listeners = this.listeners.filter((f) => f !== fn); }; }
-  private emit(e: GameEvent) { for (const f of this.listeners) f(e); }
+  emit(e: GameEvent) { for (const f of this.listeners) f(e); }
   msg(text: string, kind: MsgKind = 'info') { this.emit({ type: 'msg', text, kind }); }
 
   get p() { return this.s.player; }
@@ -580,7 +586,13 @@ export class Game {
     this.emit({ type: 'gatherFx', kind: fx, x: n.x, z: n.z, success: ok });
     if (!ok) return;
     let catchOf: { item: string; level: number; xp: number } | null = null;
-    if (d.loot) {
+    if (d.loot && d.fromShip) {
+      // salvage comes up on the hook, straight onto the deck (anything that won't fit goes back to the sea)
+      const before = this.drops.length;
+      this.rollLoot(LOOT[d.loot], n.x, n.z);
+      for (const dr of this.drops.splice(before)) if (canAdd(this.p.inv, dr.stack.id)) this.give(dr.stack.id, dr.stack.qty, dr.stack.inst);
+      this.msg('Your hook drags something up off the wreck.', 'loot');
+    } else if (d.loot) {
       this.rollLoot(LOOT[d.loot], n.x, n.z);
       this.msg('Your spade strikes something! Treasure spills out of the sand.', 'loot');
     } else {
@@ -1776,6 +1788,8 @@ export class Game {
 
   /** Special attack: depends on the weapon type (Whirl, Scatter shot, Squall). */
   specialInfo(): { name: string; cooldown: number; block: string | null } {
+    // aboard, the special is the broadside (or a depth charge over the stern)
+    if (this.p.onShip) { const a = AMMO[this.naval.ammo]; return { name: a.kind === 'charge' ? 'Drop a depth charge' : `Broadside (${a.name.toLowerCase()})`, cooldown: NAVAL.reload, block: this.naval.fireBlock() }; }
     const st = this.stats, sp = PLAYER_BASE.special[st.style];
     let block: string | null = null;
     if (this.level(sp.skill) < sp.level) block = `Needs ${sp.skill[0].toUpperCase() + sp.skill.slice(1)} level ${sp.level}`;
@@ -1785,6 +1799,7 @@ export class Game {
   }
 
   useSpecial() {
+    if (this.p.onShip && !this.dead) { this.naval.fire(); return; }
     if (this.dead || this.p.onShip || this.specialCd > 0) return;
     const info = this.specialInfo();
     if (info.block) { this.msg(`${info.name}: ${info.block.toLowerCase()}.`, 'warn'); return; }
@@ -2482,6 +2497,7 @@ export class Game {
       this.stepBounties();
     }
     this.stepMate(dt);
+    if (this.region.kind === 'island') this.naval.step(dt);
     this.stepEnemies(dt);
     this.stepProjectiles(dt);
     this.stepDrops(dt);

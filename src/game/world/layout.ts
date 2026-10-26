@@ -327,6 +327,8 @@ function buildIslandRegion(region: IslandId): IslandLayout {
       const [x, z] = coastPoint(deg, inset);
       nodes.push({ uid: `n${uid++}`, def, x, z, seed: deg });
     }
+    // sunken wrecks to salvage from the deck (Sailing)
+    for (const [deg, out] of [[140, 15], [330, 17], [245, 15]] as const) { const [x, z] = coastPoint(deg, -out); nodes.push({ uid: `n${uid++}`, def: 'wreck_salvage', x, z, seed: deg }); }
   } else if (wrack) {
     // gloomfish off the Wrack's rocks; the Drowned Spire in open water, mined from the deck; the deep-water grounds
     const wOut = Math.atan2(WL.wreck.z - WRACK.z, WL.wreck.x - WRACK.x);

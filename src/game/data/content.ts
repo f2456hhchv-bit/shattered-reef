@@ -4,7 +4,7 @@ import { GEMS } from './drops';
 
 // Skills, resource nodes, recipes, shop, spells, enemies, loot. All tunable here.
 
-export type SkillGroup = 'Combat' | 'Gathering' | 'Production';
+export type SkillGroup = 'Combat' | 'Gathering' | 'Production' | 'Sea';
 /** Health and damage are shown and stored ×10 (Tom: 100 health at the start, 990 at Hitpoints 99, like RuneScape 3's
  * life points). The data below stays in RuneScape's small numbers; the game multiplies at the point of use. */
 export const HP_SCALE = 10;
@@ -23,6 +23,7 @@ export const SKILLS: { id: SkillId; name: string; colour: string; group: SkillGr
   { id: 'gunsmithing', name: 'Gunsmithing', colour: '#9a8a6a', group: 'Production', blurb: 'Make pistols and shot at the workbench. Two pistols make a pair.' },
   { id: 'fletching', name: 'Fletching', colour: '#8aa04a', group: 'Production', blurb: 'Carve bows from logs, fit crossbows, make arrows and bolts at the workbench.' },
   { id: 'cooking', name: 'Cooking', colour: '#d88a4a', group: 'Production', blurb: 'Cook food that heals you in a fight.' },
+  { id: 'sailing', name: 'Sailing', colour: '#3a8ab0', group: 'Sea', blurb: 'Captain your sloop: fight at sea with broadsides, salvage wrecks, chart the waters. Higher levels toughen the hull and speed the reload.' },
   { id: 'crafting', name: 'Crafting', colour: '#b0785a', group: 'Production', blurb: 'Tan hides and stitch leather, snakeskin, silk and sunscale armour at the workbench; cast jewellery at the furnace; bind spellbooks.' },
 ];
 export const COMBAT_SKILLS: SkillId[] = ['attack', 'strength', 'defence', 'hitpoints', 'ranged', 'magic'];
@@ -90,6 +91,8 @@ export const NODES: Record<string, NodeDef> = Object.fromEntries(([
   { id: 'palm', name: 'Coconut palm', level: 1, xp: 0, item: 'coconut', difficulty: 0, tier: 0, rate: 0.7, yield: [2, 3], respawn: 70, verb: 'Pick' },
   { id: 'kelp_bed', name: 'Kelp bed', level: 1, xp: 0, item: 'kelp', difficulty: 0, tier: 0, rate: 0.8, yield: [2, 4], respawn: 50, verb: 'Gather', reach: 3.4 },
   { id: 'salt_pan', name: 'Salt pan', level: 1, xp: 0, item: 'sea_salt', difficulty: 0, tier: 0, rate: 0.6, yield: [2, 4], respawn: 90, verb: 'Scrape' },
+  // a wreck on the seabed, worked from the deck with a salvage hook (Sailing)
+  { id: 'wreck_salvage', name: 'Sunken wreck', skill: 'sailing', level: 3, xp: 28, item: 'coins', loot: 'salvage', tool: 'salvage_hook', difficulty: 0.4, tier: 0, rate: 0.45, yield: [3, 5], respawn: 150, verb: 'Salvage', fromShip: true },
   { id: 'dig_spot', name: 'Disturbed sand', level: 1, xp: 0, item: 'coins', loot: 'treasure', tool: 'spade', difficulty: 0, tier: 0, rate: 0.45, yield: [1, 1], respawn: 420, verb: 'Dig' },
 ] as NodeDef[]).map((d) => [d.id, d]));
 
@@ -135,6 +138,10 @@ const PISTOL_LVL = [5, 15, 25, 35, 45, 55, 65, 75, 85, 93];
 function buildRecipes(): Recipe[] {
   const out: Recipe[] = [];
   for (const s of SMELT) out.push({ id: `smelt_${s.metal}`, station: s.station, skill: 'smithing', level: s.level, xp: s.xp, inputs: s.inputs, output: { id: `bar_${s.metal}`, qty: 1 } });
+  // ship's stores (Sailing): chain shot, depth charges and the salvage hook, at the anvil
+  out.push({ id: 'forge_chain_shot', station: 'anvil', skill: 'smithing', level: 5, xp: 12, inputs: [{ id: 'bar_bronze', qty: 1 }], output: { id: 'chain_shot', qty: 8 } });
+  out.push({ id: 'forge_salvage_hook', station: 'anvil', skill: 'smithing', level: 3, xp: 20, inputs: [{ id: 'bar_bronze', qty: 2 }], output: { id: 'salvage_hook', qty: 1 } });
+  out.push({ id: 'forge_depth_charge', station: 'anvil', skill: 'smithing', level: 10, xp: 25, inputs: [{ id: 'bar_bronze', qty: 1 }, { id: 'logs_pine', qty: 1 }], output: { id: 'depth_charge', qty: 2 } });
   out.push({ id: 'smelt_gold', station: 'furnace', skill: 'smithing', level: 40, xp: 22.5, inputs: [{ id: 'ore_gold', qty: 1 }], output: { id: 'bar_gold', qty: 1 } });
   // high staffs are smithed too (never drop-only): metal fittings, a rare haft, and charms to wake the focus
   out.push({ id: 'forge_staff_storm', station: 'anvil', skill: 'smithing', level: 52, xp: 140, inputs: [{ id: 'bar_storm', qty: 2 }, { id: 'logs_amber', qty: 1 }, { id: 'charm_tide', qty: 50 }], output: { id: 'staff_storm', qty: 1 }, rarityRoll: true });
@@ -204,6 +211,7 @@ function buildRecipes(): Recipe[] {
   craft('bracelet_gold', 'furnace', 7, 25, [['bar_gold', 1]], 'bracelet_gold');
   craft('amulet_gold', 'furnace', 8, 30, [['bar_gold', 2]], 'amulet_gold');
   craft('cap_leather', 'bench', 9, 18, [['leather', 1]], 'cap_leather');
+  craft('amulet_sharktooth', 'bench', 15, 45, [['shark_tooth', 3], ['leather', 1]], 'amulet_sharktooth');
   // chitin: shore-beetle shell, laced with leather; light armour that turns blades (Bellwether, Crafting 12-18)
   craft('helm_chitin', 'bench', 12, 30, [['chitin', 3], ['leather', 1]], 'helm_chitin');
   craft('legs_chitin', 'bench', 15, 40, [['chitin', 4], ['leather', 1]], 'legs_chitin');
@@ -545,6 +553,8 @@ export const LOOT: Record<string, LootTable> = {
     gear: { chance: 0.4, items: ['cutlass_tide', 'pistol_tide', 'staff_tide', 'plate_abyss', 'ring_gold', 'book_tide', 'wand_tide'], weights: { fine: 50, rare: 40, relic: 10 } } },
   sentinel: { sig: { item: 'sig_stormcaller', chance: 1 / 300 }, coins: [150, 320], drops: [{ item: 'ore_tide', chance: 0.35 }, { item: 'ore_cinder', chance: 0.25 }, { item: 'crystal_geode', chance: 0.2 }, { item: 'ore_storm', chance: 0.5, qty: [1, 3] }, { item: 'charm_tide', chance: 1, qty: [20, 40] }],
     gear: { chance: 0.35, items: ['helm_tide', 'plate_tide', 'cutlass_tide', 'staff_tide', 'book_tide', 'shield_tide', 'bracelet_gold'], weights: { fine: 50, rare: 40, relic: 10 } } },
+  salvage: { coins: [5, 30], drops: [{ item: 'bar_bronze', chance: 0.25 }, { item: 'bar_iron', chance: 0.15 }, { item: 'chain_shot', chance: 0.25, qty: [3, 8] }, { item: 'charm_tide', chance: 0.4, qty: [4, 10] }, { item: 'sea_salt', chance: 0.2, qty: [1, 3] }, { item: 'casket', chance: 0.04 }],
+    gear: { chance: 0.05, items: ['cutlass_iron', 'pistol_flintlock', 'ring_brass', 'amulet_brass'], weights: { common: 55, fine: 37, rare: 8 } } },
   geode: { coins: [10, 60], drops: [{ item: 'crystal_geode', chance: 0.4 }, { item: 'charm_tide', chance: 0.5, qty: [3, 10] }, { item: 'ore_gold', chance: 0.15 }, { item: 'shell_fragment', chance: 0.3 }] },
   nest: { coins: [5, 40], drops: [{ item: 'charm_tide', chance: 0.4, qty: [3, 8] }, { item: 'berries', chance: 0.4, qty: [2, 5] }, { item: 'crystal_geode', chance: 0.08 }],
     gear: { chance: 0.05, items: ['ring_brass', 'ring_gold'], weights: { common: 50, fine: 40, rare: 10 } } },

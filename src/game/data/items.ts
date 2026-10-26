@@ -4,7 +4,8 @@ import { GEMS } from './drops';
 export type SkillId =
   | 'attack' | 'strength' | 'defence' | 'hitpoints' | 'ranged' | 'magic'
   | 'woodcutting' | 'mining' | 'fishing'
-  | 'smithing' | 'gunsmithing' | 'fletching' | 'cooking' | 'crafting';
+  | 'smithing' | 'gunsmithing' | 'fletching' | 'cooking' | 'crafting'
+  | 'sailing';
 export type CombatStyle = 'melee' | 'ranged' | 'magic';
 /** Where an item is worn. Rings fit either ring slot (`ring` / `ring2`); one-handed weapons also fit the off-hand. */
 export type Slot = 'weapon' | 'offhand' | 'ammo' | 'head' | 'body' | 'legs' | 'feet' | 'hands' | 'neck' | 'wrist' | 'ring' | 'ring2';
@@ -258,6 +259,13 @@ function tierItems(): ItemDef[] {
   });
   // fishing tools and magic staffs
   out.push(I({ id: 'lobster_pot', name: 'Lobster pot', desc: 'Wicker and twine. Lobsters walk in; they rarely walk out.', icon: { shape: 'pot', color: '#a8865a' }, stackable: false, value: 25, tool: { skill: 'fishing', power: 0, level: 1 } }));
+  // sea gear (Sailing): ship's ammunition, the salvage hook, and what the sea gives back
+  out.push(I({ id: 'chain_shot', name: 'Chain shot', desc: 'Two balls on a chain. Shreds sails and whole flocks of gulls. Load it at sea (Sailing 5).', icon: { shape: 'shot', color: '#8a8a95', accent: '#5a5a62' }, stackable: true, value: 3 }));
+  out.push(I({ id: 'depth_charge', name: 'Depth charge', desc: 'A powder keg with a fuse. Roll it over the stern; it finds what swims under you (Sailing 10).', icon: { shape: 'pot', color: '#3a3028', accent: '#c84a2a' }, stackable: true, value: 12 }));
+  out.push(I({ id: 'salvage_hook', name: 'Salvage hook', desc: 'A grapnel on a long line. Drags what\'s worth having off a wreck, from the deck.', icon: { shape: 'harpoon', color: '#6a6e72', accent: '#8a5a34' }, stackable: false, value: 40, tool: { skill: 'sailing', power: 0, level: 1 } }));
+  out.push(I({ id: 'shark_tooth', name: 'Shark tooth', desc: 'Serrated and white. Strung on leather it makes a lucky charm.', icon: { shape: 'tooth', color: '#efe8d8' }, stackable: true, value: 10 }));
+  out.push(I({ id: 'amulet_sharktooth', name: 'Sharktooth necklace', desc: 'Shark teeth on a thong. Sailors swear by them.', icon: { shape: 'amulet', color: '#8a5a34', accent: '#efe8d8' }, stackable: false, value: 120,
+    equip: { slot: 'neck', reqs: {}, bonus: { acc: 3, str: 4, defMelee: 1, defRanged: 1, defMagic: 1 }, affixPool: JEWEL_AFFIX } }));
   out.push(I({ id: 'harpoon', name: 'Harpoon', desc: 'For fish that fight back.', icon: { shape: 'harpoon', color: '#9aa0a4' }, stackable: false, value: 60, tool: { skill: 'fishing', power: 0, level: 1 } }));
   const STAFFS: [string, string, number, number, number, string][] = [
     ['staff_coral', 'Coral staff', 20, 14, 5, '#e07a6a'], ['staff_storm', 'Stormsilver staff', 40, 22, 10, '#86b6dc'], ['staff_tide', 'Tidecore staff', 60, 32, 15, '#3cc6c4'],

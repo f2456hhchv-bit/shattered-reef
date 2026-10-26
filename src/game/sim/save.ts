@@ -44,7 +44,7 @@ export interface SaveData {
   hunterAt: number; // play time of the next bounty-hunter ambush (once your bounty is big enough)
 }
 
-export const SKILL_IDS: SkillId[] = ['attack', 'strength', 'defence', 'hitpoints', 'ranged', 'magic', 'woodcutting', 'mining', 'fishing', 'smithing', 'gunsmithing', 'fletching', 'cooking', 'crafting'];
+export const SKILL_IDS: SkillId[] = ['attack', 'strength', 'defence', 'hitpoints', 'ranged', 'magic', 'woodcutting', 'mining', 'fishing', 'smithing', 'gunsmithing', 'fletching', 'cooking', 'crafting', 'sailing'];
 const SLOTS: Slot[] = ['weapon', 'offhand', 'ammo', 'head', 'body', 'legs', 'feet', 'hands', 'neck', 'wrist', 'ring', 'ring2'];
 export const HP_START_XP = xpForLevel(10); // Hitpoints starts at 10, like RuneScape
 

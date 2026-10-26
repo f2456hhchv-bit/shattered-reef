@@ -157,7 +157,7 @@ export class Input {
       }
       case ' ': e.preventDefault(); g.useRoll(); break;
       case 'h': g.quickEat(); break;
-      case 'l': this.ui.toggleLoadout(); break;
+      case 'l': if (g.p.onShip) this.ui.cycleShipAmmo(); else this.ui.toggleLoadout(); break;
       case 'r': case 'f': g.useSpecial(); break;
       case 't': g.useKey(); break; // turn your key
       case 'i': case 'b': this.ui.selectTab('pack', true); break;
