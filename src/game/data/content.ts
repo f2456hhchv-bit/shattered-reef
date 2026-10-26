@@ -404,7 +404,7 @@ export const PLAYER_BASE = {
 // ---- enemies -------------------------------------------------------------------
 export type EnemyModel = 'crab' | 'brigand' | 'gunner' | 'guardian' | 'boar' | 'spider' | 'snake' | 'golem' | 'hound' | 'bat' | 'beetle';
 /** Visual variant: crab shell / humanoid outfit / stone tint, chosen by the renderer. */
-export type EnemyLook = 'reef' | 'mire' | 'ironshell' | 'brigand' | 'gunner' | 'smuggler' | 'poacher' | 'drowned' | 'captain' | 'sentinel' | 'cave' | 'giant' | 'jungle' | 'ember' | 'sunscale' | 'hunter' | 'moon' | 'amber' | 'oak' | 'queen' | 'shore' | 'gull' | 'thorn' | 'knocker' | 'leech' | 'howe' | 'troll' | 'seadraugr' | 'wrecker' | 'ant' | 'mantis' | 'douen' | 'centipede' | 'souc';
+export type EnemyLook = 'reef' | 'mire' | 'ironshell' | 'brigand' | 'gunner' | 'smuggler' | 'poacher' | 'drowned' | 'captain' | 'sentinel' | 'cave' | 'giant' | 'jungle' | 'ember' | 'sunscale' | 'hunter' | 'moon' | 'amber' | 'oak' | 'queen' | 'shore' | 'gull' | 'thorn' | 'knocker' | 'leech' | 'howe' | 'troll' | 'seadraugr' | 'wrecker' | 'ant' | 'mantis' | 'douen' | 'centipede' | 'souc' | 'warg' | 'nokk' | 'hornet' | 'bark' | 'mosstroll' | 'draugr' | 'draugrtroll';
 
 export interface EnemyDef {
   id: string;
@@ -513,10 +513,21 @@ export const ENEMIES: Record<string, EnemyDef> = {
     speed: 4.2, radius: 0.5, aggro: 8, attack: { kind: 'melee', range: 1.6, windup: 0.3, cooldown: 2.0 }, loot: 'cave_bat', respawn: 25, scale: 0.9 },
   ember_bat: { hostile: true, id: 'ember_bat', name: 'Ember bat', model: 'bat', look: 'ember', level: 26, hp: 26, att: 25, def: 16, defBonus: { melee: 15, ranged: -10, magic: 15 }, weakness: 'ranged', style: 'melee', accBonus: 18, maxHit: 4,
     speed: 4.2, radius: 0.5, aggro: 9, attack: { kind: 'melee', range: 1.6, windup: 0.3, cooldown: 2.0 }, loot: 'ember_bat', respawn: 30, scale: 1.1 },
-  moonhound: { hostile: true, id: 'moonhound', name: 'Moonhound', model: 'hound', look: 'moon', level: 36, hp: 42, att: 35, def: 26, defBonus: { melee: 25, ranged: 20, magic: -10 }, weakness: 'magic', style: 'melee', accBonus: 26, maxHit: 6,
-    speed: 4.6, radius: 0.6, aggro: 10, attack: { kind: 'melee', range: 1.8, windup: 0.35, cooldown: 2.2 }, loot: 'moonhound', respawn: 35, scale: 1.2 },
-  amber_golem: { hostile: true, id: 'amber_golem', name: 'Amber golem', model: 'golem', look: 'amber', level: 44, hp: 60, att: 40, def: 40, defBonus: { melee: -10, ranged: 45, magic: 35 }, weakness: 'melee', style: 'melee', accBonus: 30, maxHit: 7,
-    speed: 2.2, radius: 0.9, aggro: 8, attack: { kind: 'melee', range: 2.2, windup: 0.7, cooldown: 3.0 }, loot: 'amber_golem', respawn: 45, scale: 1.1 },
+  // Amberhold (25-50): Norse autumn folklore, trolls, the barrow dead and the amberwood's hives (docs/ISLANDS.md slice 3)
+  amber_hornet: { hostile: true, id: 'amber_hornet', name: 'Amber hornet', model: 'bat', look: 'hornet', level: 30, hp: 30, att: 29, def: 18, defBonus: { melee: 15, ranged: -10, magic: 15 }, weakness: 'ranged', style: 'melee', accBonus: 22, maxHit: 5,
+    speed: 4.4, radius: 0.45, aggro: 9, attack: { kind: 'melee', range: 1.6, windup: 0.3, cooldown: 2.0 }, loot: 'hornet', respawn: 30, scale: 0.9 },
+  bark_beetle: { id: 'bark_beetle', name: 'Bark beetle', model: 'beetle', look: 'bark', level: 34, hp: 42, att: 30, def: 34, defBonus: { melee: 35, ranged: 30, magic: -10 }, weakness: 'magic', style: 'melee', accBonus: 24, maxHit: 5,
+    speed: 2.6, radius: 0.9, aggro: 6, attack: { kind: 'melee', range: 2.0, windup: 0.55, cooldown: 2.6 }, loot: 'bark_beetle', respawn: 35, scale: 1.8 },
+  warg: { hostile: true, id: 'warg', name: 'Warg', model: 'hound', look: 'warg', level: 36, hp: 42, att: 35, def: 26, defBonus: { melee: 25, ranged: 20, magic: -10 }, weakness: 'magic', style: 'melee', accBonus: 26, maxHit: 6,
+    speed: 4.6, radius: 0.6, aggro: 10, attack: { kind: 'melee', range: 1.8, windup: 0.35, cooldown: 2.2 }, loot: 'warg', respawn: 35, scale: 1.25 },
+  nokk: { hostile: true, id: 'nokk', name: 'Nøkk', model: 'hound', look: 'nokk', level: 38, hp: 46, att: 37, def: 28, defBonus: { melee: 30, ranged: -10, magic: 20 }, weakness: 'ranged', style: 'melee', accBonus: 28, maxHit: 6,
+    speed: 4.2, radius: 0.7, aggro: 8, attack: { kind: 'melee', range: 2.0, windup: 0.45, cooldown: 2.4 }, loot: 'nokk', respawn: 40, scale: 1.2 },
+  moss_troll: { hostile: true, id: 'moss_troll', name: 'Moss troll', model: 'golem', look: 'mosstroll', level: 42, hp: 60, att: 38, def: 36, defBonus: { melee: 40, ranged: 30, magic: -10 }, weakness: 'magic', style: 'melee', accBonus: 28, maxHit: 7,
+    speed: 2.2, radius: 0.9, aggro: 8, attack: { kind: 'melee', range: 2.2, windup: 0.7, cooldown: 3.0 }, loot: 'moss_troll', respawn: 45, scale: 1.25 },
+  barrow_draugr: { hostile: true, id: 'barrow_draugr', name: 'Barrow draugr', model: 'brigand', look: 'draugr', level: 44, hp: 55, att: 42, def: 36, defBonus: { melee: 40, ranged: 35, magic: -10 }, weakness: 'magic', style: 'melee', accBonus: 34, maxHit: 7,
+    speed: 2.8, radius: 0.5, aggro: 9, attack: { kind: 'melee', range: 1.9, windup: 0.5, cooldown: 2.6 }, loot: 'draugr', respawn: 45, scale: 1.2 },
+  draugr_troll: { hostile: true, id: 'draugr_troll', name: 'Draugr troll', model: 'golem', look: 'draugrtroll', level: 48, hp: 70, att: 46, def: 42, defBonus: { melee: 45, ranged: -10, magic: 40 }, weakness: 'ranged', style: 'melee', accBonus: 38, maxHit: 8,
+    speed: 2.2, radius: 1.0, aggro: 9, attack: { kind: 'melee', range: 2.4, windup: 0.75, cooldown: 3.0 }, loot: 'draugr_troll', respawn: 60, scale: 1.45 },
   crag_troll: { hostile: true, id: 'crag_troll', name: 'Crag troll', model: 'golem', look: 'troll', level: 58, hp: 70, att: 56, def: 46, defBonus: { melee: 45, ranged: 45, magic: -10 }, weakness: 'magic', style: 'melee', accBonus: 46, maxHit: 9,
     speed: 2.4, radius: 1.0, aggro: 9, attack: { kind: 'melee', range: 2.4, windup: 0.7, cooldown: 3.0 }, loot: 'crag_troll', respawn: 60, scale: 1.3 },
   sea_draugr: { hostile: true, id: 'sea_draugr', name: 'Sea-draugr', model: 'brigand', look: 'seadraugr', level: 66, hp: 72, att: 64, def: 50, defBonus: { melee: 50, ranged: -10, magic: 50 }, weakness: 'ranged', style: 'melee', accBonus: 55, maxHit: 11,
@@ -598,6 +609,15 @@ export const LOOT: Record<string, LootTable> = {
     gear: { chance: 1, items: ['cutlass_storm', 'pistol_storm', 'staff_storm', 'helm_storm', 'plate_storm', 'longbow_amber'], weights: { rare: 65, relic: 35 } } },
   douen_elder: { coins: [40, 80], drops: [{ item: 'charm_tide', chance: 1, qty: [10, 20] }] },
   soucouyant: { coins: [30, 60], drops: [{ item: 'charm_tide', chance: 1, qty: [12, 24] }] },
+  hornet: { coins: [10, 25], drops: [{ item: 'honeycomb', chance: 0.5 }, { item: 'charm_tide', chance: 0.3, qty: [5, 10] }] },
+  bark_beetle: { coins: [8, 20], drops: [{ item: 'chitin', chance: 0.7, qty: [1, 3] }, { item: 'logs_amber', chance: 0.4, qty: [1, 2] }] },
+  warg: { coins: [18, 45], drops: [{ item: 'boar_hide', chance: 0.6, qty: [1, 2] }, { item: 'logs_amber', chance: 0.2 }] },
+  nokk: { coins: [20, 50], drops: [{ item: 'kelp', chance: 0.6, qty: [2, 4] }, { item: 'fish_salmon_raw', chance: 0.4 }], gear: { chance: 0.04, items: ['ring_gold', 'amulet_gold'], weights: { common: 50, fine: 40, rare: 10 } } },
+  moss_troll: { coins: [25, 55], drops: [{ item: 'ore_coal', chance: 0.5, qty: [2, 4] }, { item: 'logs_amber', chance: 0.3 }],
+    gear: { chance: 0.08, items: ['helm_storm', 'plate_storm', 'greatsword_storm', 'shield_storm'], weights: { common: 50, fine: 38, rare: 12 } } },
+  draugr: { coins: [25, 60], drops: [{ item: 'ore_gold', chance: 0.5, qty: [1, 3] }, { item: 'ore_storm', chance: 0.2 }, { item: 'crystal_geode', chance: 0.06 }],
+    gear: { chance: 0.1, items: ['cutlass_storm', 'helm_storm', 'greatsword_storm', 'legs_storm'], weights: { common: 45, fine: 40, rare: 15 } } },
+  draugr_troll: { coins: [40, 90], drops: [{ item: 'ore_gold', chance: 0.6, qty: [1, 3] }, { item: 'bar_storm', chance: 0.3 }, { item: 'crystal_geode', chance: 0.08 }] },
   ant: { coins: [2, 6], drops: [{ item: 'resin', chance: 0.6, qty: [1, 2] }, { item: 'chitin', chance: 0.25 }] },
   mantis: { coins: [4, 10], drops: [{ item: 'mantis_blade', chance: 0.45 }, { item: 'chitin', chance: 0.2 }, { item: 'resin', chance: 0.2 }] },
   douen: { coins: [8, 20], drops: [{ item: 'charm_tide', chance: 0.6, qty: [4, 10] }, { item: 'casket', chance: 0.02 }],
@@ -621,10 +641,6 @@ export const LOOT: Record<string, LootTable> = {
     gear: { chance: 0.08, items: ['cutlass_tide', 'helm_tide', 'book_storm'], weights: { common: 45, fine: 40, rare: 13, relic: 2 } } },
   cave_bat: { coins: [5, 16], drops: [{ item: 'charm_tide', chance: 0.35, qty: [3, 7] }, { item: 'ore_iron', chance: 0.2 }] },
   ember_bat: { coins: [10, 28], drops: [{ item: 'ore_coal', chance: 0.4, qty: [1, 3] }, { item: 'charm_tide', chance: 0.4, qty: [5, 10] }] },
-  moonhound: { coins: [18, 45], drops: [{ item: 'boar_hide', chance: 0.6, qty: [1, 2] }, { item: 'logs_amber', chance: 0.2 }],
-    gear: { chance: 0.08, items: ['dagger_storm', 'boots_storm', 'gloves_storm', 'amulet_gold'], weights: { common: 48, fine: 38, rare: 14 } } },
-  amber_golem: { coins: [25, 60], drops: [{ item: 'ore_gold', chance: 0.5, qty: [1, 3] }, { item: 'ore_storm', chance: 0.2 }, { item: 'crystal_geode', chance: 0.06 }],
-    gear: { chance: 0.08, items: ['helm_storm', 'shield_storm', 'orb_storm', 'pike_storm'], weights: { common: 46, fine: 40, rare: 14 } } },
   oakheart: { coins: [60, 140], drops: [{ item: 'logs_cedar', chance: 0.35 }, { item: 'logs_star', chance: 0.25, qty: [1, 2] }, { item: 'logs_yew', chance: 0.5, qty: [2, 4] }],
     gear: { chance: 0.08, items: ['staff_tide', 'longbow_amber', 'shield_tide'], weights: { common: 45, fine: 40, rare: 13, relic: 2 } } },
   broodmother: { sig: { item: 'sig_skypiercer', chance: 1 / 30 }, coins: [300, 600], drops: [{ item: 'spider_silk', chance: 1, qty: [6, 12] }, { item: 'bar_storm', chance: 0.6, qty: [2, 4] }, { item: 'crystal_geode', chance: 0.5 }, { item: 'charm_tide', chance: 1, qty: [60, 120] }],

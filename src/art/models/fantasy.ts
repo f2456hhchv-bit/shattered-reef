@@ -7,7 +7,7 @@ import { mulberry32 } from '../noise';
 // pivot so bakeRig keeps it animatable. Faces +z. One rig shape for all of them keeps the renderer to a single case.
 
 export type FantasyModel = 'golem' | 'hound' | 'bat' | 'beetle';
-export interface FantasyRig { model: FantasyModel; root: THREE.Group; body: THREE.Group; a: THREE.Group[]; b: THREE.Group[]; form?: 'mantis' }
+export interface FantasyRig { model: FantasyModel; root: THREE.Group; body: THREE.Group; a: THREE.Group[]; b: THREE.Group[]; form?: 'mantis'; /** body height at rest (a horse stands taller than a hound) */ baseY?: number }
 
 const glow = (c: number, k = 1) => mat(c, { emissive: c, emissiveIntensity: k });
 
@@ -18,6 +18,8 @@ const GOLEM: Record<string, { body: number; dark: number; accent: number; eye: n
   oak: { body: 0x4a3a2a, dark: 0x2e241a, accent: 0x3e6a2a, eye: 0xd8f070, leaves: true }, // the Old Wood's heart
   thorn: { body: 0x5a4a2e, dark: 0x3a2e1c, accent: 0x6a8a3a, eye: 0xe8d84a, leaves: true }, // a bramble spriggan: roots, thorns, leaves
   troll: { body: 0x6a7060, dark: 0x4a5044, accent: 0x5a7a3a, eye: 0xe8b84a, leaves: true }, // grey hide grown with moss
+  mosstroll: { body: 0x5a6a44, dark: 0x3a4a2e, accent: 0x7a9a3a, eye: 0xe8d84a, leaves: true }, // Amberhold's: green with moss to the brow
+  draugrtroll: { body: 0x7a8a90, dark: 0x4a5a62, accent: 0x9ab8c0, eye: 0x8ae8ff, spikes: true }, // a troll the barrows kept: grey-blue, rimed
 };
 function golem(look: string, seed: number): FantasyRig {
   const L = GOLEM[look] ?? GOLEM.drift;
@@ -72,14 +74,17 @@ function golem(look: string, seed: number): FantasyRig {
 }
 
 // ---- hounds: lean four-legged hunters
-const HOUND: Record<string, { coat: number; dark: number; eye: number; spots?: number }> = {
-  moon: { coat: 0x9a9aa8, dark: 0x4e4e5c, eye: 0x9ad8ff }, // the amberwood's pale hounds
+const HOUND: Record<string, { coat: number; dark: number; eye: number; spots?: number; horse?: boolean }> = {
+  moon: { coat: 0x9a9aa8, dark: 0x4e4e5c, eye: 0x9ad8ff }, // pale hounds
+  warg: { coat: 0xd8d4c8, dark: 0x6a645a, eye: 0xe8b84a }, // Amberhold's wargs: big, white-grey, amber-eyed
+  nokk: { coat: 0x3a4a44, dark: 0x1e2a26, eye: 0x8affe8, horse: true }, // the nøkk: a dark water-horse, weed for a mane
 };
 function hound(look: string, seed: number): FantasyRig {
   const L = HOUND[look] ?? HOUND.moon;
   const rnd = mulberry32(seed);
   const root = new THREE.Group(), body = new THREE.Group();
-  body.position.y = 0.66;
+  const H = L.horse ? 1.5 : 1; // a horse: the same body on longer legs, its head carried high
+  body.position.y = 0.66 * H;
   root.add(body);
   const torso = mesh(jitter(new THREE.IcosahedronGeometry(0.4, 1), 0.04, seed), mat(L.coat));
   torso.scale.set(0.7, 0.72, 1.6);
@@ -100,7 +105,12 @@ function hound(look: string, seed: number): FantasyRig {
     body.add(b);
   }
   const head = new THREE.Group();
-  head.position.set(0, 0.24, 0.72);
+  head.position.set(0, L.horse ? 0.62 : 0.24, L.horse ? 0.86 : 0.72);
+  if (L.horse) {
+    const neck = mesh(new THREE.CylinderGeometry(0.13, 0.2, 0.62, 6), mat(L.coat));
+    neck.position.set(0, 0.36, 0.66); neck.rotation.x = 0.55;
+    body.add(neck);
+  }
   const skull = mesh(jitter(new THREE.IcosahedronGeometry(0.22, 1), 0.02, seed + 2), mat(L.coat));
   skull.scale.set(0.9, 0.85, 1.1);
   const muzzle = mesh(new THREE.ConeGeometry(0.12, 0.34, 6), mat(L.dark));
@@ -124,15 +134,15 @@ function hound(look: string, seed: number): FantasyRig {
   for (const [x, z] of [[-0.18, 0.48], [0.18, 0.48], [-0.18, -0.45], [0.18, -0.45]]) {
     const leg = new THREE.Group();
     leg.position.set(x, -0.12, z);
-    const l = mesh(new THREE.CylinderGeometry(0.07, 0.05, 0.5, 5), mat(L.coat));
-    l.position.y = -0.25;
+    const l = mesh(new THREE.CylinderGeometry(0.07, 0.05, 0.5 * H + (H - 1) * 0.2, 5), mat(L.coat));
+    l.position.y = -0.25 * H - (H - 1) * 0.1;
     const paw = mesh(new THREE.IcosahedronGeometry(0.07, 0), mat(L.dark));
-    paw.position.set(0, -0.5, 0.03);
+    paw.position.set(0, -0.5 * H - (H - 1) * 0.2, 0.03);
     leg.add(l, paw);
     body.add(leg);
     legs.push(leg);
   }
-  return { model: 'hound', root, body, a: [head], b: legs };
+  return { model: 'hound', root, body, a: [head], b: legs, baseY: 0.66 * H };
 }
 
 // ---- bats: leathery wings, flitting above head height
@@ -141,6 +151,7 @@ const BAT: Record<string, { fur: number; wing: number; eye: number; beak?: numbe
   ember: { fur: 0x2a1a14, wing: 0x9a3a1a, eye: 0xffb040 },
   gull: { fur: 0xeeeeea, wing: 0xb8bcc2, eye: 0x1a1a1a, beak: 0xe8b83a }, // a herring gull: white, grey wings, yellow bill
   souc: { fur: 0xff8a2a, wing: 0xffc04a, eye: 0xfff2c0 }, // the soucouyant: a ball of fire with wings of flame
+  hornet: { fur: 0xd8a02a, wing: 0xe8e4d0, eye: 0x1a1a1a, beak: 0x1a1a14 }, // an amber hornet: gold and black-banded, a sting at the tail
 };
 function bat(look: string, seed: number): FantasyRig {
   const L = BAT[look] ?? BAT.cave;
@@ -153,7 +164,14 @@ function bat(look: string, seed: number): FantasyRig {
   const head = mesh(jitter(new THREE.IcosahedronGeometry(0.15, 0), 0.02, seed + 1), fire ? glow(L.fur, 1.6) : mat(L.fur));
   head.position.set(0, 0.06, 0.28);
   body.add(torso, head);
-  if (L.beak) {
+  if (look === 'hornet') {
+    // black bands round the body and a sting at the tail
+    for (const z of [-0.08, -0.22]) { const b = mesh(new THREE.TorusGeometry(0.19, 0.045, 4, 10), mat(0x1a1a14)); b.position.z = z; body.add(b); }
+    const sting = mesh(new THREE.ConeGeometry(0.05, 0.24, 4), mat(0x1a1a14));
+    sting.rotation.x = -Math.PI / 2; sting.position.z = -0.4;
+    body.add(sting);
+  }
+  if (L.beak && look !== 'hornet') {
     const beak = mesh(new THREE.ConeGeometry(0.05, 0.2, 4), mat(L.beak));
     beak.rotation.x = Math.PI / 2;
     beak.position.set(0, 0.04, 0.5);
@@ -192,6 +210,7 @@ const BEETLE: Record<string, { shell: number; dark: number; leg: number; eye: nu
   shore: { shell: 0xb89a6a, dark: 0x6a5a3e, leg: 0x4a3e2a, eye: 0x1a1a1a }, // sand-coloured, on Bellwether's beaches
   ant: { shell: 0x8a3a1e, dark: 0x5a2414, leg: 0x4a1e10, eye: 0x1a1a1a }, // a Sunreach leafcutter: rust-red, a leaf held high
   mantis: { shell: 0x6a9a3a, dark: 0x4a7a2a, leg: 0x5a8a30, eye: 0xe8e07a }, // a jungle mantis: leaf-green, forelimbs folded
+  bark: { shell: 0x5a4430, dark: 0x3a2c1e, leg: 0x2e2218, eye: 0xe8a83a }, // a bark beetle: the colour of the trees it chews
 };
 function beetle(look: string, seed: number): FantasyRig {
   if (look === 'ant') return ant(seed);
@@ -357,7 +376,7 @@ export function animateFantasy(r: FantasyRig, t: number, moving: boolean, windup
     case 'hound': {
       const f = moving ? 15 : 0;
       r.b.forEach((leg, i) => { leg.rotation.x = moving ? Math.sin(t * f + (i === 0 || i === 3 ? 0 : Math.PI)) * 0.7 : 0; });
-      r.body.position.y = 0.66 + (moving ? Math.abs(Math.sin(t * f)) * 0.06 : Math.sin(t * 2) * 0.01);
+      r.body.position.y = (r.baseY ?? 0.66) + (moving ? Math.abs(Math.sin(t * f)) * 0.06 : Math.sin(t * 2) * 0.01);
       r.a[0].rotation.x = windup ? -0.4 : moving ? 0.15 : Math.sin(t * 1.4) * 0.08; // jaws up before a bite
       break;
     }

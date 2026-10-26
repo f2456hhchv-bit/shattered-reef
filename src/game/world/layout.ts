@@ -660,8 +660,16 @@ function buildIslandRegion(region: IslandId): IslandLayout {
     // boars at the amberwood's edge, ironshells on the shore, poachers on the headland, weavers in the hollow
     const AW = AL.amberwood, CP = AL.camp, HO = AL.hollow;
     for (const [dx, dz] of [[10, 8], [4, 12]]) spawn('boar', AW.x + dx, AW.z + dz);
-    for (const [dx, dz] of [[-6, -8], [-10, 2], [12, -6]]) spawn('moonhound', AW.x + dx, AW.z + dz);
-    for (const [dx, dz] of [[-4, 4], [6, -2], [2, -8]]) spawn('amber_golem', AL.goldhill.x + dx, AL.goldhill.z + dz);
+    // the amberwood's own (slice 3): hornets from the hives, bark beetles chewing the amber trees, wargs on the prowl
+    for (const [dx, dz] of [[-6, -8], [-10, 2], [2, -14]]) spawn('amber_hornet', AW.x + dx, AW.z + dz);
+    for (const [dx, dz] of [[-14, 8], [6, -4]]) spawn('bark_beetle', AW.x + dx, AW.z + dz);
+    for (const [dx, dz] of [[12, -6], [-18, -6]]) spawn('warg', AW.x + dx, AW.z + dz);
+    // nøkk in the pools behind the Ironshell Shore
+    { const IS = AL.ironshore, k = 0.22; for (const o of [-4, 4]) spawn('nokk', IS.x + (AMBER.x - IS.x) * k + o, IS.z + (AMBER.z - IS.z) * k - o); }
+    // Goldvein Hill: moss trolls on its flanks, and the barrow dead walking out of the hill
+    for (const [dx, dz] of [[-6, 6], [8, 2]]) spawn('moss_troll', AL.goldhill.x + dx, AL.goldhill.z + dz);
+    for (const [dx, dz] of [[-2, -6], [5, -9]]) spawn('barrow_draugr', AL.goldhill.x + dx, AL.goldhill.z + dz);
+    spawn('draugr_troll', AL.goldhill.x + 1, AL.goldhill.z - 12);
     for (let k = 0; k < 4; k++) { const [x, z] = amberPoint(-4 + k * 10, 3.5); spawn('ironshell_crab', x, z); }
     spawn('poacher', CP.x - 3, CP.z + 2); spawn('poacher', CP.x + 3, CP.z + 1.5); spawn('poacher', CP.x, CP.z - 3);
     spawn('poacher_gunner', CP.x + 5, CP.z - 3); spawn('poacher_gunner', CP.x - 5, CP.z - 1);

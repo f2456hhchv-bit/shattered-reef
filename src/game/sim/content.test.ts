@@ -486,6 +486,13 @@ describe('end-game content works end to end', () => {
     expect(g.p.inv.some((st) => st?.id === 'dagger_mantis')).toBe(true);
   });
 
+  it('Amberhold\'s folk: hornets, bark beetles and wargs in the amberwood, nøkk by the shore, trolls and draugr on Goldvein Hill', () => {
+    const am = regionLayout('amberhold').spawns.map((sp) => sp.enemy);
+    for (const id of ['amber_hornet', 'bark_beetle', 'warg', 'nokk', 'moss_troll', 'barrow_draugr', 'draugr_troll']) expect(am, id).toContain(id);
+    expect(am).not.toContain('moonhound');
+    expect(LOOT.hornet.drops.some((d) => d.item === 'honeycomb')).toBe(true);
+  });
+
   it('smelts tidecore and forges tidecore plate at the Ironcrag forge', () => {
     const g = maxed();
     g.give('ore_tide', 5); g.give('ore_coal', 40); g.give('sea_salt', 5);
