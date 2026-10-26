@@ -2713,6 +2713,436 @@
   },
   {
    "kind": "items",
+   "id": "sealskin",
+   "name": "Sealskin",
+   "group": "Quest items",
+   "file": "items/sealskin.png",
+   "sha1": "54ba58c083a3a99493fa992b5fac44b955c6991b",
+   "h": 0.17,
+   "w": 0.651
+  },
+  {
+   "kind": "items",
+   "id": "knockers_lamp",
+   "name": "Knocker's lamp",
+   "group": "Jewellery",
+   "file": "items/knockers_lamp.png",
+   "sha1": "27a86af4448f33ef8c134fdff45e13de7806fc68",
+   "h": 0.608,
+   "w": 0.586
+  },
+  {
+   "kind": "items",
+   "id": "ring_selkie",
+   "name": "Selkie's pearl ring",
+   "group": "Jewellery",
+   "file": "items/ring_selkie.png",
+   "sha1": "dc344daeebcd8fc2572d42ace2dfc1526e77a910",
+   "h": 0.418,
+   "w": 0.35
+  },
+  {
+   "kind": "items",
+   "id": "cloak_selkie",
+   "name": "Sealskin cloak",
+   "group": "Armour",
+   "file": "items/cloak_selkie.png",
+   "sha1": "4f1487983b76480de6317a13a544ef039b0a9c72",
+   "h": 0.53,
+   "w": 0.52
+  },
+  {
+   "kind": "items",
+   "id": "helm_barrow",
+   "name": "Barrow King's helm",
+   "group": "Armour",
+   "file": "items/helm_barrow.png",
+   "sha1": "b66a112852d89f6dc6f0339bbd1103a2ba818fc0",
+   "h": 0.389,
+   "w": 0.62
+  },
+  {
+   "kind": "items",
+   "id": "nokk_bridle",
+   "name": "Nøkk's bridle",
+   "group": "Quest items",
+   "file": "items/nokk_bridle.png",
+   "sha1": "4ad89c3ddbf00bf26bde8dd8b582a3dc3fcb948a",
+   "h": 0.608,
+   "w": 0.586
+  },
+  {
+   "kind": "items",
+   "id": "toll_ledger",
+   "name": "Toll ledger",
+   "group": "Quest items",
+   "file": "items/toll_ledger.png",
+   "sha1": "1e63e24f71a44e0a73e7efa9feb1b5395bc53496",
+   "h": 0.111,
+   "w": 0.504
+  },
+  {
+   "kind": "items",
+   "id": "toll_receipt",
+   "name": "Sealed receipt",
+   "group": "Quest items",
+   "file": "items/toll_receipt.png",
+   "sha1": "cfbee2049a75afd9515f318cc40e7ac3fb2b190f",
+   "h": 0.199,
+   "w": 0.518
+  },
+  {
+   "kind": "items",
+   "id": "amber_haul",
+   "name": "Poachers' haul",
+   "group": "Quest items",
+   "file": "items/amber_haul.png",
+   "sha1": "1c240f2c1635e3a4cb925cfcca049d7732a7db90",
+   "h": 0.199,
+   "w": 0.518
+  },
+  {
+   "kind": "items",
+   "id": "poachers_silver",
+   "name": "Pouch of silver",
+   "group": "Quest items",
+   "file": "items/poachers_silver.png",
+   "sha1": "94d261c822bc77487a841acb31501b7bebb63345",
+   "h": 0.061,
+   "w": 0.203
+  },
+  {
+   "kind": "items",
+   "id": "ring_toll",
+   "name": "Toll-keeper's seal",
+   "group": "Jewellery",
+   "file": "items/ring_toll.png",
+   "sha1": "65bc8c0e20536f3e48aa91a3b2021e3c840dc126",
+   "h": 0.418,
+   "w": 0.35
+  },
+  {
+   "kind": "items",
+   "id": "hat_captain",
+   "name": "Drowned Captain's tricorn",
+   "group": "Armour",
+   "file": "items/hat_captain.png",
+   "sha1": "96104ac02add2247f89dad41560b5439b62a363f",
+   "h": 0.201,
+   "w": 0.429
+  },
+  {
+   "kind": "items",
+   "id": "treasure_map",
+   "name": "Treasure map",
+   "group": "Materials",
+   "file": "items/treasure_map.png",
+   "sha1": "2e7131edc6573a65f33477a01a9dabfc1835ca35",
+   "h": 0.298,
+   "w": 0.579
+  },
+  {
+   "kind": "items",
+   "id": "ring_weaver",
+   "name": "Weaver's ring",
+   "group": "Jewellery",
+   "file": "items/ring_weaver.png",
+   "sha1": "f8ab0d97930c562aead02f0949b197480eadbd53",
+   "h": 0.418,
+   "w": 0.35
+  },
+  {
+   "kind": "items",
+   "id": "star_shard",
+   "name": "Singing star-shard",
+   "group": "Quest items",
+   "file": "items/star_shard.png",
+   "sha1": "effa04d7fbd453c6450997c2ecef6e3ff15a4e78",
+   "h": 0.563,
+   "w": 0.535
+  },
+  {
+   "kind": "items",
+   "id": "amulet_starfall",
+   "name": "Starfall pendant",
+   "group": "Jewellery",
+   "file": "items/amulet_starfall.png",
+   "sha1": "aff1dda62392ab211ac832bf527ac3182ea4a0d8",
+   "h": 0.608,
+   "w": 0.586
+  },
+  {
+   "kind": "items",
+   "id": "honeycomb",
+   "name": "Amber honeycomb",
+   "group": "Food & fish",
+   "file": "items/honeycomb.png",
+   "sha1": "5c9a3eb75a24a0ab47e405c5af71bd0cc4e63e8d",
+   "h": 0.31,
+   "w": 0.524
+  },
+  {
+   "kind": "items",
+   "id": "hat_douen",
+   "name": "Douen's straw hat",
+   "group": "Armour",
+   "file": "items/hat_douen.png",
+   "sha1": "e59bc64944a26187b3a070009e8079eb9f25f0a5",
+   "h": 0.2,
+   "w": 0.43
+  },
+  {
+   "kind": "items",
+   "id": "storm_herring_raw",
+   "name": "Raw storm herring",
+   "group": "Materials",
+   "file": "items/storm_herring_raw.png",
+   "sha1": "3c982ebb6ce92bfcf0cca4f5e789e2d3ef98939f",
+   "h": 0.184,
+   "w": 0.609
+  },
+  {
+   "kind": "items",
+   "id": "storm_herring",
+   "name": "Smoked storm herring",
+   "group": "Food & fish",
+   "file": "items/storm_herring.png",
+   "sha1": "38a0aecbce0b0e644680ea2d93d214416996d639",
+   "h": 0.184,
+   "w": 0.609
+  },
+  {
+   "kind": "items",
+   "id": "oilskin_hat",
+   "name": "Sou'wester",
+   "group": "Armour",
+   "file": "items/oilskin_hat.png",
+   "sha1": "d69e20b017eb997e5b08c9b12759e69bb8b34479",
+   "h": 0.201,
+   "w": 0.428
+  },
+  {
+   "kind": "items",
+   "id": "oilskin_coat",
+   "name": "Oilskin coat",
+   "group": "Armour",
+   "file": "items/oilskin_coat.png",
+   "sha1": "20c07c4c207efc864cba8467a89f5cff70e4d560",
+   "h": 0.53,
+   "w": 0.52
+  },
+  {
+   "kind": "items",
+   "id": "oilskin_legs",
+   "name": "Oilskin trousers",
+   "group": "Armour",
+   "file": "items/oilskin_legs.png",
+   "sha1": "0a963972bded105b077d3165878dd213f8a74456",
+   "h": 0.524,
+   "w": 0.352
+  },
+  {
+   "kind": "items",
+   "id": "sea_boots",
+   "name": "Sea boots",
+   "group": "Armour",
+   "file": "items/sea_boots.png",
+   "sha1": "c4dba5e1670284c197c5797d0510da8ce13a9672",
+   "h": 0.29,
+   "w": 0.35
+  },
+  {
+   "kind": "items",
+   "id": "bamboo",
+   "name": "Bamboo",
+   "group": "Quest items",
+   "file": "items/bamboo.png",
+   "sha1": "75e64582bc388a506e039611e96d4930cd55c689",
+   "h": 0.37,
+   "w": 0.642
+  },
+  {
+   "kind": "items",
+   "id": "bucket_bamboo",
+   "name": "Bamboo bucket",
+   "group": "Quest items",
+   "file": "items/bucket_bamboo.png",
+   "sha1": "9f155298916fe3d383a8deaf84a72aab50d16567",
+   "h": 0.364,
+   "w": 0.37
+  },
+  {
+   "kind": "items",
+   "id": "bucket_water",
+   "name": "Bucket of water",
+   "group": "Quest items",
+   "file": "items/bucket_water.png",
+   "sha1": "9f155298916fe3d383a8deaf84a72aab50d16567",
+   "h": 0.364,
+   "w": 0.37
+  },
+  {
+   "kind": "items",
+   "id": "warden_hat",
+   "name": "Fire warden's hat",
+   "group": "Armour",
+   "file": "items/warden_hat.png",
+   "sha1": "a9af7ff0674b6252c756ca35a6d67c6f185d475d",
+   "h": 0.201,
+   "w": 0.43
+  },
+  {
+   "kind": "items",
+   "id": "warden_coat",
+   "name": "Fire warden's coat",
+   "group": "Armour",
+   "file": "items/warden_coat.png",
+   "sha1": "2e8f8dff93b9ae4ff23510b3c6df5c5727d0548c",
+   "h": 0.53,
+   "w": 0.52
+  },
+  {
+   "kind": "items",
+   "id": "warden_legs",
+   "name": "Fire warden's trousers",
+   "group": "Armour",
+   "file": "items/warden_legs.png",
+   "sha1": "84ac2cfaa571346c46bf936066dc001e140e80b4",
+   "h": 0.524,
+   "w": 0.352
+  },
+  {
+   "kind": "items",
+   "id": "warden_boots",
+   "name": "Fire warden's boots",
+   "group": "Armour",
+   "file": "items/warden_boots.png",
+   "sha1": "ce361a88ce11ce98a60072a94da201cd38cad79f",
+   "h": 0.29,
+   "w": 0.35
+  },
+  {
+   "kind": "items",
+   "id": "raw_amber",
+   "name": "Raw amber",
+   "group": "Quest items",
+   "file": "items/raw_amber.png",
+   "sha1": "928ea168ee35f00b0bfd3eaa7f67c0468060dd72",
+   "h": 0.31,
+   "w": 0.524
+  },
+  {
+   "kind": "items",
+   "id": "amber_brace",
+   "name": "Amber brace",
+   "group": "Quest items",
+   "file": "items/amber_brace.png",
+   "sha1": "b4f19a2b78e85903f76987438c0aa595e8dc6896",
+   "h": 0.369,
+   "w": 0.642
+  },
+  {
+   "kind": "items",
+   "id": "prospector_hat",
+   "name": "Prospector's helmet",
+   "group": "Armour",
+   "file": "items/prospector_hat.png",
+   "sha1": "2da90f1cbc1d76ac4430d7241d424000c18e79b8",
+   "h": 0.389,
+   "w": 0.62
+  },
+  {
+   "kind": "items",
+   "id": "prospector_coat",
+   "name": "Prospector's jacket",
+   "group": "Armour",
+   "file": "items/prospector_coat.png",
+   "sha1": "9c540789f5b2e68741caff3c06f8d8cd500483bd",
+   "h": 0.53,
+   "w": 0.52
+  },
+  {
+   "kind": "items",
+   "id": "prospector_legs",
+   "name": "Prospector's trousers",
+   "group": "Armour",
+   "file": "items/prospector_legs.png",
+   "sha1": "cba6be4f53e96303eaf9298dcb3b6e1f198bd3c1",
+   "h": 0.524,
+   "w": 0.352
+  },
+  {
+   "kind": "items",
+   "id": "prospector_boots",
+   "name": "Prospector's boots",
+   "group": "Armour",
+   "file": "items/prospector_boots.png",
+   "sha1": "3f8eba0b11228c06146f068b08705f5076cb3fbe",
+   "h": 0.29,
+   "w": 0.35
+  },
+  {
+   "kind": "items",
+   "id": "chain_shot",
+   "name": "Chain shot",
+   "group": "Materials",
+   "file": "items/chain_shot.png",
+   "sha1": "b0790190dcdb3994f29ff2941029128d9618db7d",
+   "h": 0.25,
+   "w": 0.33
+  },
+  {
+   "kind": "items",
+   "id": "fire_barrel",
+   "name": "Fire barrel",
+   "group": "Materials",
+   "file": "items/fire_barrel.png",
+   "sha1": "91b2ac86cabc7883d614e223a3b57d92eea64a5a",
+   "h": 0.364,
+   "w": 0.37
+  },
+  {
+   "kind": "items",
+   "id": "depth_charge",
+   "name": "Depth charge",
+   "group": "Materials",
+   "file": "items/depth_charge.png",
+   "sha1": "b399260f90d60e9843b7335b98ac9c61db5cabed",
+   "h": 0.364,
+   "w": 0.37
+  },
+  {
+   "kind": "items",
+   "id": "salvage_hook",
+   "name": "Salvage hook",
+   "group": "Tools",
+   "file": "items/salvage_hook.png",
+   "sha1": "347b48ab153313926faf2aa3f57928c63c0cd09e",
+   "h": 0.588,
+   "w": 0.602
+  },
+  {
+   "kind": "items",
+   "id": "shark_tooth",
+   "name": "Shark tooth",
+   "group": "Materials",
+   "file": "items/shark_tooth.png",
+   "sha1": "343ada7d757534f618c0bb69069cb90a1dbdb0c2",
+   "h": 0.557,
+   "w": 0.333
+  },
+  {
+   "kind": "items",
+   "id": "amulet_sharktooth",
+   "name": "Sharktooth necklace",
+   "group": "Jewellery",
+   "file": "items/amulet_sharktooth.png",
+   "sha1": "66c88bfa723fb561e42969b74c9050518c91c318",
+   "h": 0.608,
+   "w": 0.586
+  },
+  {
+   "kind": "items",
    "id": "harpoon",
    "name": "Harpoon",
    "group": "Tools",
@@ -3110,6 +3540,76 @@
    "sha1": "65655af4c37e2f8be948a5721f65af7cbb66a49b",
    "h": 0.169,
    "w": 0.651
+  },
+  {
+   "kind": "items",
+   "id": "chitin",
+   "name": "Chitin",
+   "group": "Materials",
+   "file": "items/chitin.png",
+   "sha1": "7ebf45ce2ebd24baeeeffa264020a582646b7a51",
+   "h": 0.207,
+   "w": 0.467
+  },
+  {
+   "kind": "items",
+   "id": "resin",
+   "name": "Leafcutter resin",
+   "group": "Materials",
+   "file": "items/resin.png",
+   "sha1": "7d5591f0f3589d2d930237c7b923ba33b5536d58",
+   "h": 0.31,
+   "w": 0.524
+  },
+  {
+   "kind": "items",
+   "id": "mantis_blade",
+   "name": "Mantis blade",
+   "group": "Materials",
+   "file": "items/mantis_blade.png",
+   "sha1": "e6b00f8f8b421803371fce7d27997adf2da7efea",
+   "h": 0.393,
+   "w": 0.399
+  },
+  {
+   "kind": "items",
+   "id": "dagger_mantis",
+   "name": "Mantis-blade dagger",
+   "group": "Melee weapons",
+   "file": "items/dagger_mantis.png",
+   "sha1": "e6b00f8f8b421803371fce7d27997adf2da7efea",
+   "h": 0.393,
+   "w": 0.399
+  },
+  {
+   "kind": "items",
+   "id": "helm_chitin",
+   "name": "Chitin helm",
+   "group": "Armour",
+   "file": "items/helm_chitin.png",
+   "sha1": "ae49f1dd0c9e736638e5a004ce3f7311286575e8",
+   "h": 0.389,
+   "w": 0.62
+  },
+  {
+   "kind": "items",
+   "id": "legs_chitin",
+   "name": "Chitin legs",
+   "group": "Armour",
+   "file": "items/legs_chitin.png",
+   "sha1": "bfa8a3aaac2c0752497c2627b842e8c1d153c1ad",
+   "h": 0.524,
+   "w": 0.352
+  },
+  {
+   "kind": "items",
+   "id": "body_chitin",
+   "name": "Chitin body",
+   "group": "Armour",
+   "file": "items/body_chitin.png",
+   "sha1": "0a9b7e700b4a6cf7abce1e8f532a405f2af4dae0",
+   "h": 0.576,
+   "w": 0.671
   },
   {
    "kind": "items",
@@ -3695,7 +4195,7 @@
    "kind": "creatures",
    "id": "smuggler",
    "name": "Smuggler",
-   "group": "Mid game",
+   "group": "Early game",
    "file": "creatures/smuggler.png",
    "sha1": "a35304e69d047b3c454fbf2071f4cd60e61b7e69",
    "h": 2.135,
@@ -3813,9 +4313,19 @@
   },
   {
    "kind": "creatures",
+   "id": "weaver_young",
+   "name": "Young weaver",
+   "group": "Mid game",
+   "file": "creatures/weaver_young.png",
+   "sha1": "ae6eaf2018f9aa52e4d3f4ae7a69a1ab6ce301bf",
+   "h": 0.931,
+   "w": 1.703
+  },
+  {
+   "kind": "creatures",
    "id": "ember_snake",
    "name": "Ember asp",
-   "group": "Late game",
+   "group": "Mid game",
    "file": "creatures/ember_snake.png",
    "sha1": "2930af080f8896f7d119c6a3927d40120a2be271",
    "h": 0.575,
@@ -3830,6 +4340,316 @@
    "sha1": "66eee38600dc95df06d3a90653954760a33ff74b",
    "h": 0.839,
    "w": 2.697
+  },
+  {
+   "kind": "creatures",
+   "id": "shore_beetle",
+   "name": "Shore beetle",
+   "group": "Early game",
+   "file": "creatures/shore_beetle.png",
+   "sha1": "429b32d528b594cb020bd74acc143db4e1f1e857",
+   "h": 0.597,
+   "w": 1.32
+  },
+  {
+   "kind": "creatures",
+   "id": "gull",
+   "name": "Herring gull",
+   "group": "Early game",
+   "file": "creatures/gull.png",
+   "sha1": "274f15acc98e30d2e8ea3870fb03e617d34a5446",
+   "h": 0.632,
+   "w": 1.922
+  },
+  {
+   "kind": "creatures",
+   "id": "spriggan",
+   "name": "Bramble spriggan",
+   "group": "Early game",
+   "file": "creatures/spriggan.png",
+   "sha1": "b9a7ffd2fc43d8b6e7ee82fe5a88dbf72d906702",
+   "h": 2.012,
+   "w": 1.604
+  },
+  {
+   "kind": "creatures",
+   "id": "knocker",
+   "name": "Knocker",
+   "group": "Early game",
+   "file": "creatures/knocker.png",
+   "sha1": "dd2c821b75131c53db832ef3fffa2d0d6ff6b1a9",
+   "h": 2.011,
+   "w": 0.774
+  },
+  {
+   "kind": "creatures",
+   "id": "bog_leech",
+   "name": "Bog leech",
+   "group": "Early game",
+   "file": "creatures/bog_leech.png",
+   "sha1": "359ecc11fef74f9cfb2e3033f1d4444959ba8c81",
+   "h": 0.575,
+   "w": 2.697
+  },
+  {
+   "kind": "creatures",
+   "id": "haugbui",
+   "name": "Haugbui",
+   "group": "Early game",
+   "file": "creatures/haugbui.png",
+   "sha1": "3c7fe4f37683f12b081df107ba83907f600a1f32",
+   "h": 2.005,
+   "w": 1.374
+  },
+  {
+   "kind": "creatures",
+   "id": "leafcutter_ant",
+   "name": "Leafcutter ant",
+   "group": "Early game",
+   "file": "creatures/leafcutter_ant.png",
+   "sha1": "c2040d1d5ff23735ccab0620e5289bbb2955c38d",
+   "h": 0.983,
+   "w": 1.254
+  },
+  {
+   "kind": "creatures",
+   "id": "jungle_mantis",
+   "name": "Jungle mantis",
+   "group": "Mid game",
+   "file": "creatures/jungle_mantis.png",
+   "sha1": "ca8508ada595fc28f5b1eb09efd742750aa41594",
+   "h": 1.098,
+   "w": 1.279
+  },
+  {
+   "kind": "creatures",
+   "id": "douen",
+   "name": "Douen",
+   "group": "Mid game",
+   "file": "creatures/douen.png",
+   "sha1": "f2575ae0eba0c7ea22f8b58577342650af473bf6",
+   "h": 2.229,
+   "w": 1.14
+  },
+  {
+   "kind": "creatures",
+   "id": "giant_centipede",
+   "name": "Giant centipede",
+   "group": "Mid game",
+   "file": "creatures/giant_centipede.png",
+   "sha1": "10112083e3151b99d99ba93ba7022b8cb646d9a4",
+   "h": 0.67,
+   "w": 2.786
+  },
+  {
+   "kind": "creatures",
+   "id": "knocker_elder",
+   "name": "Knocker Elder",
+   "group": "Early game",
+   "file": "creatures/knocker_elder.png",
+   "sha1": "dd2c821b75131c53db832ef3fffa2d0d6ff6b1a9",
+   "h": 2.011,
+   "w": 0.774
+  },
+  {
+   "kind": "creatures",
+   "id": "wrecker_chief",
+   "name": "Wreckers' chief",
+   "group": "Early game",
+   "file": "creatures/wrecker_chief.png",
+   "sha1": "b0e53cfac8445f381b2e30586978d2649918b292",
+   "h": 2.008,
+   "w": 0.776
+  },
+  {
+   "kind": "creatures",
+   "id": "douen_elder",
+   "name": "Douen elder",
+   "group": "Mid game",
+   "file": "creatures/douen_elder.png",
+   "sha1": "f2575ae0eba0c7ea22f8b58577342650af473bf6",
+   "h": 2.229,
+   "w": 1.14
+  },
+  {
+   "kind": "creatures",
+   "id": "soucouyant",
+   "name": "Soucouyant",
+   "group": "Mid game",
+   "file": "creatures/soucouyant.png",
+   "sha1": "773f46b1de9e6ee4eefb990a9990f6b2a2cd0df1",
+   "h": 0.632,
+   "w": 1.922
+  },
+  {
+   "kind": "creatures",
+   "id": "barrow_king",
+   "name": "The Barrow King",
+   "group": "Late game",
+   "file": "creatures/barrow_king.png",
+   "sha1": "edcb26ff8310abf2f3c0bcd273cdec84848f4736",
+   "h": 2.012,
+   "w": 1.604
+  },
+  {
+   "kind": "creatures",
+   "id": "starstruck",
+   "name": "Tobin, star-struck",
+   "group": "Late game",
+   "file": "creatures/starstruck.png",
+   "sha1": "5885c6a766976e809286e0a7053575494b7f588c",
+   "h": 2.005,
+   "w": 0.797
+  },
+  {
+   "kind": "creatures",
+   "id": "key_collector",
+   "name": "The Key Collector",
+   "group": "Late game",
+   "file": "creatures/key_collector.png",
+   "sha1": "00518f871cc33b8ad81f473589675d4b644a94fb",
+   "h": 2.135,
+   "w": 0.776
+  },
+  {
+   "kind": "creatures",
+   "id": "cave_bat",
+   "name": "Cave bat",
+   "group": "Early game",
+   "file": "creatures/cave_bat.png",
+   "sha1": "9cffc4bde7e69d81b96357c575144caae9716236",
+   "h": 0.632,
+   "w": 1.922
+  },
+  {
+   "kind": "creatures",
+   "id": "ember_bat",
+   "name": "Ember bat",
+   "group": "Mid game",
+   "file": "creatures/ember_bat.png",
+   "sha1": "7307e8781c6adf52f1457ac53a3ca1102ab40816",
+   "h": 0.632,
+   "w": 1.922
+  },
+  {
+   "kind": "creatures",
+   "id": "amber_hornet",
+   "name": "Amber hornet",
+   "group": "Mid game",
+   "file": "creatures/amber_hornet.png",
+   "sha1": "390b95d01f9939e804e7b649980434e237a94572",
+   "h": 0.632,
+   "w": 1.922
+  },
+  {
+   "kind": "creatures",
+   "id": "bark_beetle",
+   "name": "Bark beetle",
+   "group": "Mid game",
+   "file": "creatures/bark_beetle.png",
+   "sha1": "8ccf3d3fbe7694d2dafd51f540a324fe52b5c8c6",
+   "h": 0.597,
+   "w": 1.32
+  },
+  {
+   "kind": "creatures",
+   "id": "warg",
+   "name": "Warg",
+   "group": "Mid game",
+   "file": "creatures/warg.png",
+   "sha1": "5ede6dd9fd1773ce6781344b4223f817e5e54efd",
+   "h": 1.263,
+   "w": 2.248
+  },
+  {
+   "kind": "creatures",
+   "id": "nokk",
+   "name": "Nøkk",
+   "group": "Mid game",
+   "file": "creatures/nokk.png",
+   "sha1": "a9ad5f2a37b6e29c880a6a54990f62695871659f",
+   "h": 1.993,
+   "w": 2.388
+  },
+  {
+   "kind": "creatures",
+   "id": "moss_troll",
+   "name": "Moss troll",
+   "group": "Mid game",
+   "file": "creatures/moss_troll.png",
+   "sha1": "c48473c76c275a7c8ffc0f6699894fbd7ae8d38f",
+   "h": 2.012,
+   "w": 1.604
+  },
+  {
+   "kind": "creatures",
+   "id": "barrow_draugr",
+   "name": "Barrow draugr",
+   "group": "Mid game",
+   "file": "creatures/barrow_draugr.png",
+   "sha1": "8de6413f6522bc268a4afc94086c06926e2bb24a",
+   "h": 2.011,
+   "w": 1.374
+  },
+  {
+   "kind": "creatures",
+   "id": "draugr_troll",
+   "name": "Draugr troll",
+   "group": "Mid game",
+   "file": "creatures/draugr_troll.png",
+   "sha1": "edcb26ff8310abf2f3c0bcd273cdec84848f4736",
+   "h": 2.012,
+   "w": 1.604
+  },
+  {
+   "kind": "creatures",
+   "id": "crag_troll",
+   "name": "Crag troll",
+   "group": "Late game",
+   "file": "creatures/crag_troll.png",
+   "sha1": "0dae18d70ca74e7ad7b127cc9ae26acfedd3e6e2",
+   "h": 2.012,
+   "w": 1.604
+  },
+  {
+   "kind": "creatures",
+   "id": "sea_draugr",
+   "name": "Sea-draugr",
+   "group": "Late game",
+   "file": "creatures/sea_draugr.png",
+   "sha1": "cbcd908569484e82994bda310c8d6fb4475bca1d",
+   "h": 2.005,
+   "w": 2.58
+  },
+  {
+   "kind": "creatures",
+   "id": "oakheart",
+   "name": "Oakheart",
+   "group": "Late game",
+   "file": "creatures/oakheart.png",
+   "sha1": "de1112ad6ecd6adb0db9cf86bb4631ceafd271b2",
+   "h": 2.012,
+   "w": 1.604
+  },
+  {
+   "kind": "creatures",
+   "id": "broodmother",
+   "name": "The Broodmother",
+   "group": "Boss",
+   "file": "creatures/broodmother.png",
+   "sha1": "219389798e248dbf8c057dbc2aa14abdea895c8d",
+   "h": 0.931,
+   "w": 1.703
+  },
+  {
+   "kind": "creatures",
+   "id": "storm_jotunn",
+   "name": "The Thunder Jötunn",
+   "group": "Boss",
+   "file": "creatures/storm_jotunn.png",
+   "sha1": "c98940bc79e1f484b930f80ea2e67d0e0123d8ee",
+   "h": 2.317,
+   "w": 1.604
   },
   {
    "kind": "creatures",
@@ -4049,6 +4869,166 @@
    "file": "characters/ines.png",
    "sha1": "d90af735e4ade968103e234dd58c4fc3724c2402",
    "h": 2.005,
+   "w": 0.761
+  },
+  {
+   "kind": "characters",
+   "id": "mercy",
+   "name": "Mercy Gale",
+   "group": "Named NPCs",
+   "file": "characters/mercy.png",
+   "sha1": "72525b6984baa034ab1af827293202e24d9768c5",
+   "h": 2.135,
+   "w": 0.761
+  },
+  {
+   "kind": "characters",
+   "id": "jory",
+   "name": "Jory Penhallow",
+   "group": "Named NPCs",
+   "file": "characters/jory.png",
+   "sha1": "927d530d35f30837144664d31c2f30fa110418df",
+   "h": 2.011,
+   "w": 0.761
+  },
+  {
+   "kind": "characters",
+   "id": "pellow",
+   "name": "Old Pellow",
+   "group": "Named NPCs",
+   "file": "characters/pellow.png",
+   "sha1": "e1201d41033c2ef3d01b0fccdfe907ee17d29bb8",
+   "h": 2.011,
+   "w": 0.774
+  },
+  {
+   "kind": "characters",
+   "id": "muirne",
+   "name": "Muirne",
+   "group": "Named NPCs",
+   "file": "characters/muirne.png",
+   "sha1": "6aee89774c26e45369bc5a6e094ac0ae6291e75b",
+   "h": 2.005,
+   "w": 0.761
+  },
+  {
+   "kind": "characters",
+   "id": "sigrun",
+   "name": "Sigrun",
+   "group": "Named NPCs",
+   "file": "characters/sigrun.png",
+   "sha1": "277137b71aca45e2ff7966a2e005455817036771",
+   "h": 2.005,
+   "w": 0.761
+  },
+  {
+   "kind": "characters",
+   "id": "ingrid",
+   "name": "Ingrid Vale",
+   "group": "Named NPCs",
+   "file": "characters/ingrid.png",
+   "sha1": "d624243487f1ac66815f692256ff5a7a2fd4e836",
+   "h": 2.005,
+   "w": 0.761
+  },
+  {
+   "kind": "characters",
+   "id": "halvard",
+   "name": "Halvard Rask",
+   "group": "Named NPCs",
+   "file": "characters/halvard.png",
+   "sha1": "d10132e6b58eb95f0e6740d7c546be076ff38dba",
+   "h": 2.135,
+   "w": 0.761
+  },
+  {
+   "kind": "characters",
+   "id": "ulla",
+   "name": "Ulla Brenn",
+   "group": "Named NPCs",
+   "file": "characters/ulla.png",
+   "sha1": "65cd7f77649c481e9d3916f9e8cd1de8fa403954",
+   "h": 2.005,
+   "w": 0.808
+  },
+  {
+   "kind": "characters",
+   "id": "brita",
+   "name": "Brita Holm",
+   "group": "Named NPCs",
+   "file": "characters/brita.png",
+   "sha1": "3da0df9bfe34ad73962392ad57a580aafa7ebfd0",
+   "h": 2.005,
+   "w": 0.761
+  },
+  {
+   "kind": "characters",
+   "id": "edda",
+   "name": "Edda Lorne",
+   "group": "Named NPCs",
+   "file": "characters/edda.png",
+   "sha1": "71050dae4ac3aa7911488db24fdb21f9c7261266",
+   "h": 2.005,
+   "w": 0.761
+  },
+  {
+   "kind": "characters",
+   "id": "eir",
+   "name": "Eir Sund",
+   "group": "Named NPCs",
+   "file": "characters/eir.png",
+   "sha1": "397a8ba1e0b76cae3560a44898ed03f94660321e",
+   "h": 2.008,
+   "w": 0.761
+  },
+  {
+   "kind": "characters",
+   "id": "osric",
+   "name": "Osric Vane",
+   "group": "Named NPCs",
+   "file": "characters/osric.png",
+   "sha1": "c67bf5f735345586845526a5b5d7ad3b2671dd04",
+   "h": 2.011,
+   "w": 0.761
+  },
+  {
+   "kind": "characters",
+   "id": "abena",
+   "name": "Abena Owusu",
+   "group": "Named NPCs",
+   "file": "characters/abena.png",
+   "sha1": "26f82dbb9bb5016b34aaec736f1e287eba3fdf7c",
+   "h": 2.008,
+   "w": 0.761
+  },
+  {
+   "kind": "characters",
+   "id": "nana_ayo",
+   "name": "Nana Ayo",
+   "group": "Named NPCs",
+   "file": "characters/nana_ayo.png",
+   "sha1": "1706111b19647a23f8b9d15dcce5d458b3607a67",
+   "h": 2.008,
+   "w": 0.761
+  },
+  {
+   "kind": "characters",
+   "id": "ama",
+   "name": "Ama Boateng",
+   "group": "Named NPCs",
+   "file": "characters/ama.png",
+   "sha1": "c0668f211994a33645ecdeedceede5d63dd849d5",
+   "h": 2.008,
+   "w": 0.774
+  },
+  {
+   "kind": "characters",
+   "id": "dougal",
+   "name": "Dougal Penrose",
+   "group": "Named NPCs",
+   "file": "characters/dougal.png",
+   "sha1": "2e902eb2f14cca2f617b0e1406f109079245c5a5",
+   "h": 2.011,
    "w": 0.761
   },
   {
@@ -4440,6 +5420,46 @@
    "sha1": "48d9c6914abe60e921f9e5cce4465501c7c58668",
    "h": 0.628,
    "w": 3.179
+  },
+  {
+   "kind": "resources",
+   "id": "spot_storm",
+   "name": "Storm shoal",
+   "group": "Fishing spots",
+   "file": "resources/spot_storm.png",
+   "sha1": "3da9c79cd2e5cd731a7e3e60998d52eb76566430",
+   "h": 1.35,
+   "w": 3
+  },
+  {
+   "kind": "resources",
+   "id": "bamboo_fire",
+   "name": "Bamboo stand",
+   "group": "Trees",
+   "file": "resources/bamboo_fire.png",
+   "sha1": "1e753d2465abed1f3de3407d6c76853ae64560cc",
+   "h": 1.787,
+   "w": 3
+  },
+  {
+   "kind": "resources",
+   "id": "amber_seep",
+   "name": "Amber seam",
+   "group": "Rocks & veins",
+   "file": "resources/amber_seep.png",
+   "sha1": "1fe600933a61e884fe57b00a1d40e0bb4d9af293",
+   "h": 1.294,
+   "w": 3.156
+  },
+  {
+   "kind": "resources",
+   "id": "wreck_salvage",
+   "name": "Sunken wreck",
+   "group": "Foraging",
+   "file": "resources/wreck_salvage.png",
+   "sha1": "f3fedfa6228225f6782911a0bb1975e49d1418cc",
+   "h": 0.942,
+   "w": 3
   },
   {
    "kind": "resources",
