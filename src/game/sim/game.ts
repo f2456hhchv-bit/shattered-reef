@@ -1100,6 +1100,7 @@ export class Game {
     for (const x of e.xp ?? []) this.addXp(x.skill, x.amount);
     if (e.flag) this.s.flags[e.flag] = true;
     if (e.flag === 'bell_done') this.giveKey('keels_tooth'); // the Broken Ring gives up its key
+    if (e.key) this.giveKey(e.key);
     if (e.stage !== undefined) this.setStage(questId, e.stage);
     this.rev++;
   }

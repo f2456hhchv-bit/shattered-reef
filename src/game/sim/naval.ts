@@ -50,7 +50,8 @@ export class Naval {
 
   hullMax() {
     const lvl = this.g.level('sailing');
-    return Math.round((NAVAL.hull + NAVAL.hullPerLevel * (lvl - 1)) * (1 + perkTotal('sailing', lvl, 'hull') / 100));
+    const figurehead = this.g.s.flags.nokk_figurehead ? 1.1 : 1; // The Nøkk's Fiddle
+    return Math.round((NAVAL.hull + NAVAL.hullPerLevel * (lvl - 1)) * (1 + perkTotal('sailing', lvl, 'hull') / 100) * figurehead);
   }
   private reloadTime(kind: 'broadside' | 'charge') {
     const base = kind === 'charge' ? NAVAL.charge.reload : NAVAL.reload;
@@ -199,7 +200,7 @@ export class Naval {
       // the hull mends between fights; distance sailed and charted marks give Sailing XP
       // only out of a fight: nothing engaged and nothing has hit you for a while
       const fighting = this.foes.some((f) => f.alive && f.state !== 'idle');
-      if (!fighting && g.time - this.lastHit > NAVAL.mendAfter) this.hull = Math.min(this.hullMax(), this.hull + NAVAL.mend * dt);
+      if (!fighting && g.time - this.lastHit > NAVAL.mendAfter) this.hull = Math.min(this.hullMax(), this.hull + NAVAL.mend * (this.g.s.flags.nokk_figurehead ? 2 : 1) * dt);
       if (this.lastPos) this.sailed += Math.hypot(sh.x - this.lastPos[0], sh.z - this.lastPos[1]);
       this.lastPos = [sh.x, sh.z];
       if (this.sailed >= NAVAL.xpPerMetres) { this.sailed -= NAVAL.xpPerMetres; g.addXp('sailing', 1); }

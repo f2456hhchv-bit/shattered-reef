@@ -508,6 +508,8 @@ export const ENEMIES: Record<string, EnemyDef> = {
     speed: 3.4, radius: 0.45, aggro: 11, attack: { kind: 'melee', range: 1.6, windup: 0.45, cooldown: 2.4 }, loot: 'douen_elder', respawn: 0, scale: 0.95 },
   soucouyant: { hostile: true, id: 'soucouyant', name: 'Soucouyant', model: 'bat', look: 'souc', level: 26, hp: 46, att: 25, def: 18, defBonus: { melee: 20, ranged: 15, magic: -15 }, weakness: 'magic', style: 'melee', accBonus: 20, maxHit: 5,
     speed: 3.8, radius: 0.5, aggro: 12, attack: { kind: 'melee', range: 1.7, windup: 0.4, cooldown: 2.4 }, loot: 'soucouyant', respawn: 0, scale: 1.2 },
+  barrow_king: { hostile: true, id: 'barrow_king', name: 'The Barrow King', model: 'golem', look: 'draugrtroll', level: 50, hp: 55, att: 48, def: 42, defBonus: { melee: 45, ranged: -10, magic: 40 }, weakness: 'ranged', style: 'melee', accBonus: 40, maxHit: 8,
+    speed: 2.3, radius: 1.2, aggro: 12, attack: { kind: 'melee', range: 2.8, windup: 0.75, cooldown: 3.0 }, loot: 'barrow_king', respawn: 0, scale: 1.8 },
   // further out (their islands' slices replace the rest of this list)
   cave_bat: { hostile: true, id: 'cave_bat', name: 'Cave bat', model: 'bat', look: 'cave', level: 17, hp: 16, att: 16, def: 10, defBonus: { melee: 10, ranged: -10, magic: 5 }, weakness: 'ranged', style: 'melee', accBonus: 12, maxHit: 3,
     speed: 4.2, radius: 0.5, aggro: 8, attack: { kind: 'melee', range: 1.6, windup: 0.3, cooldown: 2.0 }, loot: 'cave_bat', respawn: 25, scale: 0.9 },
@@ -607,6 +609,7 @@ export const LOOT: Record<string, LootTable> = {
   weaver_young: { coins: [12, 30], drops: [{ item: 'spider_silk', chance: 0.6, qty: [1, 2] }, { item: 'charm_tide', chance: 0.4, qty: [5, 10] }], gear: { chance: 0.06, items: ['ring_gold', 'dagger_steel', 'wand_storm'], weights: { common: 50, fine: 38, rare: 12 } } },
   serpent: { sig: { item: 'sig_fang', chance: 1 / 40 }, coins: [150, 300], drops: [{ item: 'sunscale', chance: 1, qty: [1, 3] }, { item: 'snake_skin', chance: 1, qty: [3, 6] }, { item: 'bar_storm', chance: 0.5, qty: [1, 3] }, { item: 'charm_tide', chance: 1, qty: [40, 80] }],
     gear: { chance: 1, items: ['cutlass_storm', 'pistol_storm', 'staff_storm', 'helm_storm', 'plate_storm', 'longbow_amber'], weights: { rare: 65, relic: 35 } } },
+  barrow_king: { coins: [150, 300], drops: [{ item: 'bar_storm', chance: 1, qty: [2, 4] }, { item: 'crystal_geode', chance: 0.5 }] },
   douen_elder: { coins: [40, 80], drops: [{ item: 'charm_tide', chance: 1, qty: [10, 20] }] },
   soucouyant: { coins: [30, 60], drops: [{ item: 'charm_tide', chance: 1, qty: [12, 24] }] },
   hornet: { coins: [10, 25], drops: [{ item: 'honeycomb', chance: 0.5 }, { item: 'charm_tide', chance: 0.3, qty: [5, 10] }] },

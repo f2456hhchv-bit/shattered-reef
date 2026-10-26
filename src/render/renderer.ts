@@ -909,7 +909,8 @@ export class GameRenderer {
         mote.position.y = 1.1;
         v.add(ring, mote);
         // the thing itself: a rock face to listen at, turned sand to dig, a lantern to douse
-        const thing = mark.verb === 'Listen' ? buildRock(7, 1.3, 'stoneDark') : mark.verb === 'Dig' ? buildDigSpot(11) : mark.verb === 'Douse' ? buildLanternPost().group : null;
+        const thing = mark.verb === 'Listen' && mark.region !== 'amberhold' ? buildRock(7, 1.3, 'stoneDark') : mark.verb === 'Play' ? buildRock(9, 0.6, 'stone')
+          : mark.verb === 'Dig' ? buildDigSpot(11) : mark.verb === 'Douse' || mark.verb === 'Light' ? buildLanternPost().group : null;
         if (thing) { thing.position.set(mark.verb === 'Listen' ? 0.9 : 0, mark.verb === 'Listen' ? 0.3 : 0, mark.verb === 'Listen' ? -0.9 : 0); v.add(thing); }
         v.position.set(mark.x, g.world.standY(mark.x, mark.z) + 0.06, mark.z);
         this.region3d.add(v);
