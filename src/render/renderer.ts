@@ -67,6 +67,7 @@ export const TREE_LOOK: Record<string, TreeLook> = {
   tree_yew: { kind: 'pine', scale: 1.5, colours: { pine: 0x203c2c, pineLight: 0x2c5038, trunk: 0x4a3a2a } },
   tree_star: { kind: 'pine', scale: 1.55, colours: { pine: 0x3a3f7a, pineLight: 0x5a6ab8, trunk: 0x2e2a40 }, glow: { pineLight: 0.35 } },
   tree_cedar: { kind: 'pine', scale: 2.1, colours: { pine: 0x264630, pineLight: 0x33583c, trunk: 0x8a3a24 } },
+  bamboo_fire: { kind: 'pine', scale: 0.75, squash: 1.3, colours: { pine: 0x7aa84a, pineLight: 0xa8d06a, trunk: 0x9ab85a } }, // the fire camp's bamboo
 };
 export const ORE_TINT: Record<string, [number, number]> = {
   rock_copper: [PAL.copper, 0.12], rock_tin: [0xd6d9d4, 0.12], rock_iron: [0xa5543a, 0.12], rock_coal: [0x202022, 0], rock_gold: [0xe3c25e, 0.25],
@@ -169,6 +170,7 @@ export class GameRenderer {
   // quest spots, and the Storm Tide's quay (bell, cannon, smashed planks, the serpent)
   private markViews = new Map<string, THREE.Group>();
   private stormProps: { serpent: SnakeRig; planks: THREE.Mesh[] } | null = null;
+  private fireProps: { cells: { bush: THREE.Group; fire: THREE.Group; ash: THREE.Mesh; stump: THREE.Mesh }[]; flames: THREE.Mesh[] } | null = null;
   private teleViews = new Map<number, THREE.Group>();
   private flames: THREE.Mesh[] = [];
   private glows: THREE.MeshStandardMaterial[] = [];
@@ -281,7 +283,7 @@ export class GameRenderer {
     this.npcs.clear(); this.houses = []; this.walkers = []; this.enemyViews.clear(); this.nodeViews.clear();
     this.dropViews.clear(); this.projViews.clear(); this.teleViews.clear(); this.flames = []; this.glows = [];
     this.seaViews.clear(); this.ballViews.clear(); this.chargeViews.clear(); this.aimLine = null;
-    this.markViews.clear(); this.stormProps = null;
+    this.markViews.clear(); this.stormProps = null; this.fireProps = null;
     this.grass = null; this.grassTime = [];
     this.scenery = new InstancedField(addSurfaceDetail(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: false, roughness: 0.9 }), PROP_SURFACE));
     this.sceneryState.clear();
@@ -929,6 +931,62 @@ export class GameRenderer {
     this.stormProps.planks.forEach((m, k) => { m.visible = st.running && st.broken[k]; });
   }
 
+  /** The Greenheart Fire (greenfire.ts): the grove's twelve thickets, burning, felled or burnt to ash, and its camp. */
+  private syncFire(t: number) {
+    const g = this.game, sp = g.fire.spots();
+    if (!sp) return;
+    if (!this.fireProps) {
+      const flameMat = new THREE.MeshStandardMaterial({ color: 0xffb04a, emissive: 0xff6a1a, emissiveIntensity: 2.6 });
+      const flames: THREE.Mesh[] = [];
+      const cells = sp.cells.map((p, k) => {
+        const y = g.world.standY(p.x, p.z);
+        const bush = new THREE.Group();
+        for (let j = 0; j < 3; j++) { const b = buildBush(400 + k * 3 + j, false); b.position.set((j - 1) * 0.9, 0, (j % 2) * 0.7 - 0.35); b.scale.setScalar(1.3); bush.add(b); }
+        bush.position.set(p.x, y, p.z);
+        const fire = new THREE.Group();
+        for (let j = 0; j < 5; j++) {
+          const f = new THREE.Mesh(new THREE.ConeGeometry(0.35 - (j % 3) * 0.06, 1.4 - (j % 3) * 0.3, 5), flameMat);
+          f.position.set(Math.cos(j * 1.3) * 0.8, 0.7, Math.sin(j * 1.3) * 0.6);
+          fire.add(f); flames.push(f);
+        }
+        fire.position.set(p.x, y, p.z);
+        fire.scale.setScalar(1.6);
+        // ash: a grey scorch that follows the ground (a flat disc on a slope half-buries itself)
+        const ashGeo = new THREE.CircleGeometry(1.4, 12);
+        ashGeo.rotateX(-Math.PI / 2);
+        const pos = ashGeo.getAttribute('position');
+        for (let i = 0; i < pos.count; i++) pos.setY(i, g.world.standY(p.x + pos.getX(i), p.z + pos.getZ(i)) - y + 0.06);
+        const ash = new THREE.Mesh(ashGeo, new THREE.MeshStandardMaterial({ color: 0x4a443e, roughness: 1, transparent: true, opacity: 0.85, depthWrite: false }));
+        ash.position.set(p.x, y, p.z);
+        const stump = buildStump(500 + k);
+        stump.position.set(p.x, y, p.z);
+        this.region3d.add(bush, fire, ash, stump);
+        return { bush, fire, ash, stump };
+      });
+      const horn = buildGong();
+      horn.position.set(sp.horn.x, g.world.standY(sp.horn.x, sp.horn.z), sp.horn.z);
+      horn.scale.setScalar(0.7);
+      const bench = buildBench();
+      bench.position.set(sp.bench.x, g.world.standY(sp.bench.x, sp.bench.z), sp.bench.z);
+      const trough = buildBarrel(0.45, 0.7);
+      trough.position.set(sp.stream.x, g.world.standY(sp.stream.x, sp.stream.z), sp.stream.z);
+      const water = new THREE.Mesh(new THREE.CircleGeometry(2.2, 16), new THREE.MeshStandardMaterial({ color: 0x3a8aa0, roughness: 0.2, transparent: true, opacity: 0.85 }));
+      water.rotation.x = -Math.PI / 2; water.position.set(sp.stream.x + 1.6, g.world.standY(sp.stream.x, sp.stream.z) + 0.05, sp.stream.z + 0.6);
+      this.region3d.add(horn, bench, trough, water);
+      this.fireProps = { cells, flames };
+    }
+    const f = g.fire;
+    this.fireProps.cells.forEach((c, k) => {
+      const st = f.running ? f.cells[k] : 'green';
+      c.bush.visible = st === 'green' || st === 'fire';
+      c.fire.visible = st === 'fire';
+      c.ash.visible = st === 'ash';
+      c.stump.visible = st === 'break' || st === 'ash';
+      if (st === 'fire' && Math.random() < 0.08) { const p = sp.cells[k]; this.particles.burst(p.x, g.world.standY(p.x, p.z) + 1.6, p.z, 2, 0x6a5a50, { speed: 0.6, up: 2.2, size: 0.18, life: 1.4 }); }
+    });
+    for (const m of this.fireProps.flames) { m.scale.y = 0.75 + Math.sin(t * 11 + m.position.x * 9) * 0.3; m.scale.x = 1 + Math.sin(t * 8 + m.position.z * 7) * 0.15; }
+  }
+
   private makeTelegraph(t: Telegraph): THREE.Group {
     const g = new THREE.Group();
     const red = (o: number) => new THREE.MeshBasicMaterial({ color: 0xe0402a, transparent: true, opacity: o, depthWrite: false, side: THREE.DoubleSide });
@@ -1262,6 +1320,7 @@ export class GameRenderer {
     this.syncProjectiles();
     this.syncSea(t);
     this.syncQuestAndStorm(t, dt);
+    this.syncFire(t);
     this.syncTelegraphs();
 
     for (const f of this.flames) { f.scale.y = 0.8 + Math.sin(t * 12 + f.position.x * 10) * 0.25; f.scale.x = 1 + Math.sin(t * 9 + f.position.z * 7) * 0.12; }

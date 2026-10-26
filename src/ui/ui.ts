@@ -1,3 +1,4 @@
+import { FIRE } from '../game/sim/greenfire';
 import { AMMO, CHART_MARKS, type AmmoId } from '../game/data/sea';
 import { item, RARITY, AFFIXES, METALS, METAL_TRAITS, AMMO_NAME, ammoKind, isTwoHanded, pairGroup, type ItemDef, type Slot, type SkillId, type WeaponKind } from '../game/data/items';
 import { morph, forget } from './morph';
@@ -89,6 +90,7 @@ export class UI {
   private cueBar!: HTMLElement;
   private overhead!: HTMLElement;
   private stormHud!: HTMLElement;
+  private fireHud!: HTMLElement;
   private cuePop!: HTMLElement;
   private cuePopT = 0;
   private bannerT = 0;
@@ -210,6 +212,10 @@ export class UI {
     this.stormHud = h('div', { id: 'stormhud' }, '<div><b>Tide-serpent</b><span><i></i></span></div><div><b>The pier</b><span><i></i></span></div>');
     this.stormHud.hidden = true;
     this.el.overlay.appendChild(this.stormHud);
+    // the Greenheart Fire: same bars, the fire beaten back and the grove still standing
+    this.fireHud = h('div', { id: 'firehud', class: 'stormhud' }, '<div><b>Fires out</b><span><i></i></span></div><div><b>Grove left</b><span><i></i></span></div>');
+    this.fireHud.hidden = true;
+    this.el.overlay.appendChild(this.fireHud);
     this.overhead = h('div', { class: 'overhead' });
     this.el.overlay.appendChild(this.overhead);
     this.cuePop = h('div', { class: 'cuepop' });
@@ -446,6 +452,13 @@ export class UI {
       (b.querySelector('.cd') as HTMLElement).style.setProperty('--cd', `${(cd / max) * 360}deg`);
     }
     if (this.cuePopT > 0 && (this.cuePopT -= dt) <= 0) this.cuePop.className = 'cuepop';
+    const fire = g.fire;
+    this.fireHud.hidden = !fire.running;
+    if (fire.running) {
+      const bars = this.fireHud.querySelectorAll('i');
+      (bars[0] as HTMLElement).style.width = `${(fire.doused / FIRE.win) * 100}%`;
+      (bars[1] as HTMLElement).style.width = `${(1 - fire.ashed / FIRE.lose) * 100}%`;
+    }
     const storm = g.storm;
     this.stormHud.hidden = !storm.running;
     if (storm.running) {

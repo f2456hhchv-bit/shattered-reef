@@ -354,6 +354,8 @@ function buildIslandRegion(region: IslandId): IslandLayout {
     }
     for (const [def, list] of Object.entries(AMBER_SEA_SPOTS)) for (const [x, z] of list) nodes.push({ uid: `n${uid++}`, def, x, z, seed: Math.round(x + z) });
   } else {
+    // the Greenheart Fire's bamboo by the fire camp (it only grows back while the fire burns: greenfire.ts)
+    for (const [dx, dz] of [[-18, 13], [-19, 8], [-15, 16]]) nodes.push({ uid: `n${uid++}`, def: 'bamboo_fire', x: SL.jungle.x + dx, z: SL.jungle.z + dz, seed: 300 + dx });
     // sprat by the harbour, trout and salmon off the reef shore and the north-west rocks
     for (const [def, th] of [['spot_sprat', 120], ['spot_sprat', 150], ['spot_trout', 15], ['spot_salmon', 35], ['spot_salmon', 240]] as const) {
       const [fx, fz] = sunPoint(th, 8), p = shoreSpot(fx, fz, sunOut(th));
@@ -383,7 +385,8 @@ function buildIslandRegion(region: IslandId): IslandLayout {
   const centre = bell ? { x: 0, z: 0 } : sun ? SUN : amb ? AMBER : WRACK;
   const keepClear = bell
     ? [{ x: R.x, z: R.z, r: 11 }, { x: C.x, z: C.z, r: 9 }, { x: LAYOUT.cove.x, z: LAYOUT.cove.z, r: 9 }, { x: X.x, z: X.z, r: 6 }, { x: LAYOUT.howes.x, z: LAYOUT.howes.z, r: 11 }]
-    : sun ? [{ x: SL.temple.x, z: SL.temple.z, r: 11 }, { x: SL.plaza.x, z: SL.plaza.z, r: 12 }, { x: SL.port.x, z: SL.port.z, r: 16 }]
+    : sun ? [{ x: SL.temple.x, z: SL.temple.z, r: 11 }, { x: SL.plaza.x, z: SL.plaza.z, r: 12 }, { x: SL.port.x, z: SL.port.z, r: 16 },
+      { x: SL.jungle.x - 24, z: SL.jungle.z, r: 12 }, { x: SL.jungle.x - 14, z: SL.jungle.z + 11, r: 5 }] // the Greenheart Fire's grove and camp
     : amb ? [{ x: AL.landing.x, z: AL.landing.z, r: 14 }, { x: AL.camp.x, z: AL.camp.z, r: 9 }, { x: AL.hollow.x, z: AL.hollow.z, r: 11 }]
     : [{ x: WL.starfall.x, z: WL.starfall.z, r: 10 }, { x: WL.landing.x, z: WL.landing.z, r: 14 }, { x: WL.crag.x, z: WL.crag.z - 6, r: 7 }];
   if (bell) {

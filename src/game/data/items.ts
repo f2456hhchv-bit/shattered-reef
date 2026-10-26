@@ -278,6 +278,15 @@ function tierItems(): ItemDef[] {
       equip: { slot, reqs: {}, bonus: { defMelee: dm, defRanged: dm, defMagic: dg }, affixPool: [...ARMOUR_AFFIX, 'gather_speed'] }, innate: [{ id: 'gather_speed', v: 2 }] }));
   oil('oilskin_hat', 'Sou\'wester', 'head', 'cap', 2, 2); oil('oilskin_coat', 'Oilskin coat', 'body', 'coat', 4, 3);
   oil('oilskin_legs', 'Oilskin trousers', 'legs', 'legs', 3, 2); oil('sea_boots', 'Sea boots', 'feet', 'boots', 2, 1);
+  // the Greenheart Fire (Sunreach's skilling boss): bamboo, buckets, and the fire wardens' outfit
+  out.push(I({ id: 'bamboo', name: 'Bamboo', desc: 'A length of green bamboo from the fire camp. Two lash into a bucket at the camp bench.', icon: { shape: 'log', color: '#9ab85a', accent: '#d8e89a' }, stackable: true, value: 0, quest: true }));
+  out.push(I({ id: 'bucket_bamboo', name: 'Bamboo bucket', desc: 'Empty. Fill it at the stream below the grove.', icon: { shape: 'pot', color: '#9ab85a', accent: '#6a8a3a' }, stackable: true, value: 0, quest: true }));
+  out.push(I({ id: 'bucket_water', name: 'Bucket of water', desc: 'Full to the brim. Throw it on a burning thicket.', icon: { shape: 'pot', color: '#9ab85a', accent: '#4fa7c2' }, stackable: true, value: 0, quest: true }));
+  const warden = (id: string, name: string, slot: Slot, shape: IconShape, dm: number, dg: number) =>
+    out.push(I({ id, name, desc: 'From the Greenheart fire camp. Every piece of the set makes cutting and gathering a little quicker.', icon: { shape, color: '#7a5a2a', accent: '#d8902a' }, stackable: false, value: 120,
+      equip: { slot, reqs: {}, bonus: { defMelee: dm, defRanged: dm, defMagic: dg }, affixPool: [...ARMOUR_AFFIX, 'gather_speed'] }, innate: [{ id: 'gather_speed', v: 2 }] }));
+  warden('warden_hat', 'Fire warden\'s hat', 'head', 'cap', 2, 2); warden('warden_coat', 'Fire warden\'s coat', 'body', 'coat', 4, 3);
+  warden('warden_legs', 'Fire warden\'s trousers', 'legs', 'legs', 3, 2); warden('warden_boots', 'Fire warden\'s boots', 'feet', 'boots', 2, 1);
   // sea gear (Sailing): ship's ammunition, the salvage hook, and what the sea gives back
   out.push(I({ id: 'chain_shot', name: 'Chain shot', desc: 'Two balls on a chain. Shreds sails and whole flocks of gulls. Load it at sea (Sailing 5).', icon: { shape: 'shot', color: '#8a8a95', accent: '#5a5a62' }, stackable: true, value: 3 }));
   out.push(I({ id: 'depth_charge', name: 'Depth charge', desc: 'A powder keg with a fuse. Roll it over the stern; it finds what swims under you (Sailing 10).', icon: { shape: 'pot', color: '#3a3028', accent: '#c84a2a' }, stackable: true, value: 12 }));

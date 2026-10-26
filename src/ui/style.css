@@ -517,12 +517,12 @@ body.portrait .skgrid { grid-template-columns: repeat(4, 1fr); }
 .hpbar.hull i { background: #c9a050; }
 
 /* the Storm Tide: two bars at the top of the screen */
-#stormhud { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 74px); left: calc(env(safe-area-inset-left, 0px) + 10px); width: min(220px, 56vw); padding: 6px 10px; background: rgba(20, 14, 8, .82); border: 2px solid var(--brass); border-radius: 10px; pointer-events: none; font: 600 11px var(--body); color: var(--ink); }
-#stormhud[hidden] { display: none; }
-#stormhud div { display: grid; grid-template-columns: 80px 1fr; align-items: center; gap: 6px; margin: 2px 0; }
-#stormhud span { height: 8px; background: #2a1e0e; border: 1px solid #000; border-radius: 4px; overflow: hidden; }
-#stormhud i { display: block; height: 100%; background: #3fb0a8; transition: width .3s; }
-#stormhud div + div i { background: #c9a050; }
+#stormhud, #firehud { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 74px); left: calc(env(safe-area-inset-left, 0px) + 10px); width: min(220px, 56vw); padding: 6px 10px; background: rgba(20, 14, 8, .82); border: 2px solid var(--brass); border-radius: 10px; pointer-events: none; font: 600 11px var(--body); color: var(--ink); }
+#stormhud[hidden], #firehud[hidden] { display: none; }
+#stormhud div, #firehud div { display: grid; grid-template-columns: 80px 1fr; align-items: center; gap: 6px; margin: 2px 0; }
+#stormhud span, #firehud span { height: 8px; background: #2a1e0e; border: 1px solid #000; border-radius: 4px; overflow: hidden; }
+#stormhud i, #firehud i { display: block; height: 100%; background: #3fb0a8; transition: width .3s; }
+#stormhud div + div i, #firehud div + div i { background: #c9a050; }
 
 /* ================================================ phone panel, RuneScape's vertical mobile layout (Tom, 2026-10-26)
    Open: the world keeps the top of the screen. Below it, the open tab (scrolling), a slim scrollbar with arrows and a
@@ -591,3 +591,5 @@ body.portrait.side-open #dialog { bottom: calc(var(--panel-h) + 12px + env(safe-
 #ctx small { white-space: normal; max-width: 64px; margin: 2px auto 0; line-height: 1.15; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; text-overflow: clip; }
 #ctx span { max-width: 62px; margin: 0 auto; white-space: nowrap; }
 #ctx small.long { font-size: 9px; }
+#firehud i { background: #4fa7c2; }
+#firehud div + div i { background: #6a9a3a; }
