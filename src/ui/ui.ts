@@ -421,8 +421,10 @@ export class UI {
       (ctx.querySelector('span') as HTMLElement).textContent = t.verb;
       // phones have no hover: the action button says when you can't do it yet
       const needs = g.targetNeeds(t), small = ctx.querySelector('small') as HTMLElement;
-      small.textContent = needs && !needs.ok ? needs.text.replace(/^Needs /, 'Need ').replace(/ \(you have \d+\)/, '') : t.label;
+      // the button is small: "Lagoon trout & fen salmon shoal" reads as "Lagoon trout shoal"
+      small.textContent = needs && !needs.ok ? needs.text.replace(/^Needs /, 'Need ').replace(/ \(you have \d+\)/, '') : t.label.replace(/ & .* (\w+)$/, ' $1');
       small.classList.toggle('no', !!needs && !needs.ok);
+      small.classList.toggle('long', small.textContent!.length > 14 || small.textContent!.split(' ').some((w) => w.length > 10));
       ctx.setAttribute('aria-label', `${t.verb} ${t.label} (E)`);
     }
     const sp = g.specialInfo();
@@ -620,8 +622,8 @@ export class UI {
     }
     (this.el.ctx as HTMLElement).classList.toggle('cue', !!cue && !cue.struck && cue.t >= cue.window[0] && cue.t <= cue.window[1]);
     if (cue) { // mid-swing the button is the timing tap: say so
-      (this.el.ctx.querySelector('span') as HTMLElement).textContent = 'Time it';
-      const sm = this.el.ctx.querySelector('small') as HTMLElement; sm.textContent = 'tap in the gold'; sm.classList.remove('no');
+      (this.el.ctx.querySelector('span') as HTMLElement).textContent = 'Tap!';
+      const sm = this.el.ctx.querySelector('small') as HTMLElement; sm.textContent = 'on the gold'; sm.classList.remove('no', 'long');
     }
   }
 
