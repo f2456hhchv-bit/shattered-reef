@@ -327,6 +327,7 @@ Reflects the actual repository, not the roadmap.
     - Simulation: idle foes more than 120 m from you sleep (they skip movement but still draw their random numbers, so fights stay deterministic).
     - Pathfinding: A* searches a window around the start and goal (up to 1,024 cells a side, so memory doesn't grow with the island). Longer walks route on a coarse 4 m grid first, then walk the legs in fine detail. `world.test.ts`.
     - Checked: 289 tests, both browser tests, a visual tour (ground and grass all present), and the frame budget at all 24 places (146–369 draw calls, all within).
+    - Tom's phone test: 60 fps, no visible pop-in, fights fine. Fixed from his screenshots: settings switches pushed off the edge by long descriptions (the switch no longer shrinks); the smithy shed's roof hid the forge and anvil (its roof now lifts while you stand under it, like the houses); salt pans sank into sloping sand (they now sit on the highest sand under them).
 
 ## Known issues / limitations
 - `touch-e2e` intermittently taps the pack slot 0/3 times (2026-10-24, twice on 2026-10-25). Not root-caused. **Correction:** the low health in those reports (4, 14) was not an attacker: the test sets health to 4 itself, and it regenerates. Ten runs on 2026-10-25 all passed with no level-up card on screen. The test now records what was under the finger on every missed tap, so the next failure names its cause.

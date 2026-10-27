@@ -317,7 +317,7 @@ export class GameRenderer {
     this.water?.uniforms.uHeight.value.dispose();
     this.region3d = new THREE.Group();
     this.scene.add(this.region3d);
-    this.npcs.clear(); this.houses = []; this.walkers = []; this.enemyViews.clear(); this.nodeViews.clear();
+    this.npcs.clear(); this.houses = []; this.sheds = []; this.walkers = []; this.enemyViews.clear(); this.nodeViews.clear();
     this.dropViews.clear(); this.projViews.clear(); this.teleViews.clear(); this.flames = []; this.glows = [];
     this.seaViews.clear(); this.krakenArms.clear(); this.bolts.clear(); this.ballViews.clear(); this.chargeViews.clear(); this.aimLine = null;
     this.markViews.clear(); this.stormProps = null; this.fireProps = null; this.seepProps = null; this.treasureBuoy = null; this.bellView = null; this.bottleView = null; this.raceBuoys = [];
@@ -393,7 +393,17 @@ export class GameRenderer {
       const y = w.ground(b.x, b.z);
       propKey = b.kind;
       if (b.kind === 'tent') place(buildTent(b.seed), b.x, b.z, b.rot, y);
-      else if (b.kind === 'smithy') place(buildSmithyShed(), b.x, b.z, b.rot, y);
+      else if (b.kind === 'smithy') {
+        // kept out of the bake so its roof can lift while you work under it
+        const shed = buildSmithyShed();
+        if (artOverride('props', 'smithy')) place(shed, b.x, b.z, b.rot, y);
+        else {
+          shed.position.set(b.x, y, b.z); shed.rotation.y = b.rot;
+          const roof = shed.children.find((o) => o.userData.roof)!;
+          this.region3d.add(shed);
+          this.sheds.push({ x: b.x, z: b.z, r: Math.max(b.w, b.d) / 2 + 1, roof, k: 0 });
+        }
+      }
     }
     propKey = 'stall';
     for (const st of L.stalls) place(buildStall(st.colour, Math.round(st.x * 7 + st.z)), st.x, st.z, -st.rot);
@@ -505,6 +515,11 @@ export class GameRenderer {
       h.v.trim.visible = h.k < 0.05;
       h.v.interior.visible = h.k > 0;
     }
+    for (const sh of this.sheds) {
+      const want = !p.onShip && Math.hypot(p.x - sh.x, p.z - sh.z) < sh.r ? 1 : 0;
+      sh.k += (want - sh.k) * Math.min(1, dt * 8);
+      sh.roof.visible = sh.k < 0.5;
+    }
     const R = this.streamR();
     for (const wk of this.walkers) {
       const total = wk.cum[wk.cum.length - 1];
@@ -531,6 +546,7 @@ export class GameRenderer {
     this.grassCells = new Map();
     this.region3d.add(this.grass);
   }
+  private sheds: { x: number; z: number; r: number; roof: THREE.Object3D; k: number }[] = [];
   private grassCells = new Map<number, THREE.InstancedMesh | null>();
   /** one cell's clumps, the same every time it's planted (seeded by the cell) */
   private grassPoints(ci: number, cj: number): THREE.Vector3[] {
@@ -649,7 +665,9 @@ export class GameRenderer {
         leapFish.set(n.uid, fish);
         if (def.fromShip) live.scale.setScalar(2.2);
       }
-      const y = def.skill === 'fishing' ? 0.06 : n.def === 'wreck_salvage' ? -0.9 : n.def === 'rock_ori' ? w.ground(n.x, n.z) - 0.05 : w.ground(n.x, n.z) - (def.skill ? 0.05 : 0.02);
+      // a salt pan is 2.2 m across: sit it on the highest sand under it, or the downhill side sinks out of sight
+      const panY = () => Math.max(...[[0, 0], [1.1, 0.9], [-1.1, 0.9], [1.1, -0.9], [-1.1, -0.9]].map(([dx, dz]) => w.ground(n.x + dx, n.z + dz)));
+      const y = def.skill === 'fishing' ? 0.06 : n.def === 'salt_pan' ? panY() : n.def === 'wreck_salvage' ? -0.9 : n.def === 'rock_ori' ? w.ground(n.x, n.z) - 0.05 : w.ground(n.x, n.z) - (def.skill ? 0.05 : 0.02);
       live.position.set(n.x, y, n.z);
       this.region3d.add(live);
       if (dead) { dead.position.set(n.x, y, n.z); dead.visible = false; this.region3d.add(dead); }
