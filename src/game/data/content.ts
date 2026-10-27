@@ -567,6 +567,9 @@ export const ENEMIES: Record<string, EnemyDef> = {
     speed: 3.0, radius: 0.5, aggro: 10, attack: { kind: 'melee', range: 2.0, windup: 0.55, cooldown: 2.6 }, loot: 'undertow_hand', respawn: 80, scale: 1.1 },
   lockshell_crab: { hostile: true, id: 'lockshell_crab', name: 'Lockshell crab', model: 'crab', look: 'ironshell', level: 64, hp: 72, att: 58, def: 56, defBonus: { melee: 55, ranged: 40, magic: -10 }, weakness: 'magic', style: 'melee', accBonus: 48, maxHit: 10,
     speed: 2.4, radius: 1.0, aggro: 8, attack: { kind: 'melee', range: 2.0, windup: 0.55, cooldown: 2.8 }, loot: 'lockshell', respawn: 60, scale: 2.1 },
+  // the Doorwarden (The Third Lock): what the Wardwrights set at the bottom of the Locksmith's Well to keep it shut
+  doorwarden: { hostile: true, id: 'doorwarden', name: 'The Doorwarden', model: 'golem', look: 'sentinel', boss: true, level: 88, hp: 300, att: 84, def: 80, defBonus: { melee: 75, ranged: 70, magic: 20 }, weakness: 'magic', style: 'melee', accBonus: 80, maxHit: 18,
+    speed: 2.2, radius: 1.2, aggro: 16, attack: { kind: 'melee', range: 2.8, windup: 0.75, cooldown: 3.0 }, loot: 'doorwarden', respawn: 0, scale: 1.7 },
   key_collector: { hostile: true, id: 'key_collector', name: 'The Key Collector', model: 'brigand', look: 'hunter', level: 78, hp: 95, att: 74, def: 64, defBonus: { melee: 55, ranged: 45, magic: 30 }, weakness: 'ranged', style: 'melee', accBonus: 66, maxHit: 13,
     speed: 3.8, radius: 0.5, aggro: 14, attack: { kind: 'melee', range: 1.9, windup: 0.4, cooldown: 2.2 }, loot: 'key_collector', respawn: 0, scale: 1.3 },
   // further out (their islands' slices replace the rest of this list)
@@ -681,6 +684,7 @@ export const LOOT: Record<string, LootTable> = {
   corva: { coins: [600, 1200], drops: [{ item: 'orb_lantern', chance: 1 }, { item: 'casket', chance: 1, qty: [2, 3] }] },
   undertow_hand: { coins: [80, 180], drops: [{ item: 'charm_tide', chance: 0.8, qty: [15, 30] }, { item: 'casket', chance: 0.15 }, { item: 'bar_levi', chance: 0.1 }] },
   lockshell: { coins: [30, 80], drops: [{ item: 'fish_lobster_raw', chance: 0.5, qty: [1, 2] }, { item: 'gem_pearl_rough', chance: 0.12 }, { item: 'ore_levi', chance: 0.1 }] },
+  doorwarden: { coins: [1500, 2500], drops: [{ item: 'casket', chance: 1, qty: [3, 4] }, { item: 'bar_ori', chance: 1, qty: [2, 4] }, { item: 'crystal_geode', chance: 1, qty: [3, 5] }] },
   key_collector: { coins: [400, 800], drops: [{ item: 'casket', chance: 1, qty: [2, 3] }, { item: 'crystal_geode', chance: 1, qty: [2, 3] }] },
   barrow_king: { coins: [150, 300], drops: [{ item: 'bar_storm', chance: 1, qty: [2, 4] }, { item: 'crystal_geode', chance: 0.5 }] },
   douen_elder: { coins: [40, 80], drops: [{ item: 'charm_tide', chance: 1, qty: [10, 20] }] },

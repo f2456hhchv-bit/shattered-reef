@@ -56,6 +56,12 @@ export const DIARIES: Diary[] = [
       { id: 'places', text: 'Discover every place on Stormwrack', done: places('wrack') },
       { id: 'lore', text: 'Find every page of Keel\'s Log and every Varrow fragment on Stormwrack', done: lore('wrack') },
       { id: 'combat', text: 'Reach level 60 in Attack, Strength and Defence', done: levels(60, 'attack', 'strength', 'defence') }] },
+  { island: 'lockhaven', name: 'Lockhaven Diary', coins: 6000, xp: [{ skill: 'crafting', amount: 12000 }, { skill: 'smithing', amount: 12000 }, { skill: 'magic', amount: 12000 }],
+    tasks: [q('thirdlock'),
+      { id: 'doors', text: 'Open all four doors in the Field of Doors', done: (g) => ['door', 'fen', 'ears', 'tooth'].every((d) => g.s.flags[`door_${d}`]) },
+      { id: 'places', text: 'Discover every place on Lockhaven', done: places('lockhaven') },
+      { id: 'lore', text: 'Find every page of Keel\'s Log and every Varrow fragment on Lockhaven', done: lore('lockhaven') },
+      { id: 'forge', text: 'Reach level 75 in Mining and Smithing', done: levels(75, 'mining', 'smithing') }] },
 ];
 
 export const diaryOf = (island: RegionId) => DIARIES.find((d) => d.island === island);

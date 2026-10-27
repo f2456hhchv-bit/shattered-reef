@@ -134,6 +134,10 @@ export const KEYS: KeyDef[] = [
     passive: { kind: 'listening', v: 8, text: 'You hear what the song-touched hear: +8% damage to elite foes, and every page of Keel\'s Log shows on your map. They hear you too: elites notice you from half as far again' },
     power: { id: 'lesson', name: 'Eavesdrop', cooldown: 30, dur: 10, v: 25, text: 'You listen at the foe\'s keyhole: its weakness, and your hits in that style do +25% for 10 s' },
     lore: 'Iven Marr\'s grandmother left it with her charts. Turn it in yourself and the keyholes all round you start to whisper.' },
+  { id: 'ilse_key', name: 'Ilse\'s Door Key', family: 'any', rarity: 'quest',
+    passive: { kind: 'dr', v: 6, text: 'Every door holds: 6% less damage from everything' },
+    power: { id: 'ward', name: 'Shut the Door', cooldown: 35, dur: 5, text: 'You shut a door between you and this foe: it can\'t hurt you for 5 s' },
+    lore: 'The Third Lockkey: a plain iron door key, the two-hundred-and-twelfth on Orla Fane\'s ring. Ilse of the Door loved doors more than anyone ever has. It shows.' },
 ];
 
 export const KEY: Record<string, KeyDef> = Object.fromEntries(KEYS.map((k) => [k.id, k]));
