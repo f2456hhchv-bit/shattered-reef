@@ -1,4 +1,4 @@
-import { LAYOUT, SUN_LAYOUT, AMBER_LAYOUT, WRACK_LAYOUT } from '../world/island';
+import { LAYOUT, SUN_LAYOUT, AMBER_LAYOUT, WRACK_LAYOUT, LOCK_LAYOUT } from '../world/island';
 import type { RegionId } from '../world/regions';
 
 // Bell-time (docs/STORY.md glossary: low water, when the Locks are nearest the surface and the bells ring with no
@@ -14,19 +14,20 @@ export const BELLTIME = {
   /** how long the bell rings before the water comes back */
   lasts: 180,
   /** the tithe, by island: coins and tide charms */
-  tithe: { bellwether: [80, 160], sunreach: [200, 380], amberhold: [450, 800], wrack: [900, 1500] } as Partial<Record<RegionId, [number, number]>>,
+  tithe: { bellwether: [80, 160], sunreach: [200, 380], amberhold: [450, 800], wrack: [900, 1500], lockhaven: [1200, 1900] } as Partial<Record<RegionId, [number, number]>>,
 };
 
-const L = LAYOUT, S = SUN_LAYOUT, A = AMBER_LAYOUT, W = WRACK_LAYOUT;
+const L = LAYOUT, S = SUN_LAYOUT, A = AMBER_LAYOUT, W = WRACK_LAYOUT, K = LOCK_LAYOUT;
 /** where a bell can ring on each island (open ground near a shore, a barrow, a grove) */
 export const BELL_SPOTS: Partial<Record<RegionId, { x: number; z: number; where: string }[]>> = {
   bellwether: [{ x: L.strand.x + 3, z: L.strand.z + 2, where: 'on Crab Strand' }, { x: L.howes.x + 4, z: L.howes.z - 3, where: 'among the Howes' }, { x: L.wreck.x - 5, z: L.wreck.z + 5, where: 'below Wreckers\' Point' }],
   sunreach: [{ x: S.palms.x + 7, z: S.palms.z + 5, where: 'in Palm Cove' }, { x: S.temple.x + 9, z: S.temple.z - 3, where: 'by the Sunken Temple' }, { x: S.ember.x - 9, z: S.ember.z + 3, where: 'under Ember Hill' }],
   amberhold: [{ x: A.ironshore.x + 6, z: A.ironshore.z - 3, where: 'on the Ironshell Shore' }, { x: A.amberwood.x - 6, z: A.amberwood.z - 6, where: 'in the Amberwood' }, { x: A.goldhill.x - 9, z: A.goldhill.z, where: 'on Goldvein Hill' }],
   wrack: [{ x: W.starfall.x + 6, z: W.starfall.z + 6, where: 'at the Starfall' }, { x: W.oldwood.x - 8, z: W.oldwood.z - 6, where: 'in the Old Wood' }, { x: W.crag.x + 8, z: W.crag.z + 4, where: 'below Thunder Crag' }],
+  lockhaven: [{ x: K.keywood.x + 8, z: K.keywood.z - 8, where: 'at the edge of the Keywood' }, { x: K.forges.x - 8, z: K.forges.z + 8, where: 'below the Thirteen Forges' }, { x: K.shore.x - 8, z: K.shore.z - 4, where: 'above the Keyhole Shore' }],
 };
 /** what comes up the beach to listen (always song-touched) */
-export const BELL_LISTENERS: Partial<Record<RegionId, string>> = { bellwether: 'haugbui', sunreach: 'douen', amberhold: 'barrow_draugr', wrack: 'drowned' };
+export const BELL_LISTENERS: Partial<Record<RegionId, string>> = { bellwether: 'haugbui', sunreach: 'douen', amberhold: 'barrow_draugr', wrack: 'drowned', lockhaven: 'undertow_deckhand' };
 
 /** what you start to hear, the more bells you answer */
 export const CHOIR: { at: number; title: string; lines: string[] }[] = [

@@ -94,6 +94,26 @@ export function wrackPoint(thetaDeg: number, inset: number): [number, number] {
 }
 const wrackAt = (thetaDeg: number, inset: number) => { const [x, z] = wrackPoint(thetaDeg, inset); return { x, z }; };
 
+// ---- Lockhaven: the Wardwrights' own island, uncharted since the Breaking (levels 60-90, Act III onward) ------
+// A town of thirteen Houses that fell down round their doors: the doors are still standing, in fields, with nothing
+// behind them. The forges where the keys were cut. A wood of starbark the Wardwrights planted. A well with a Lock in it.
+export const LOCK = { x: 1680, z: -20 };
+export const LOCK_RADIUS = 54;
+export function lockCoastR(theta: number): number {
+  const c = Math.cos(theta), s = Math.sin(theta);
+  return LOCK_RADIUS + (fbm(c * 2.3 + 91, s * 2.3 + 91, 4, 41) - 0.5) * 20
+    - lobe(theta, 90, 9, 8) // the Warden's Stair's bay
+    + lobe(theta, 270, 14, 12) // the Keyward Cliffs, north
+    + lobe(theta, 4, 8, 8) // the Thirteenth Point, east
+    - lobe(theta, 186, 8, 6); // a cove under the Keywood
+}
+/** Point on Lockhaven at angle `thetaDeg` round its centre, `inset` metres inside its coast. */
+export function lockPoint(thetaDeg: number, inset: number): [number, number] {
+  const t = deg(thetaDeg), r = lockCoastR(t) - inset;
+  return [LOCK.x + Math.cos(t) * r, LOCK.z + Math.sin(t) * r];
+}
+const lockAt = (thetaDeg: number, inset: number) => { const [x, z] = lockPoint(thetaDeg, inset); return { x, z }; };
+
 /** Which island a point belongs to (the nearer coast). */
 export function islandOf(x: number, z: number): 'bellwether' | 'sunreach' {
   return Math.hypot(x - SUN.x, z - SUN.z) - SUN_RADIUS < Math.hypot(x, z) - ISLAND_RADIUS ? 'sunreach' : 'bellwether';
@@ -137,6 +157,18 @@ export const LAYOUT = {
 const sunQuay = sunAt(90, 0);
 const wrackQuay = wrackAt(90, 0);
 const amberQuay = amberAt(90, 0);
+const lockQuay = lockAt(90, 0);
+/** Lockhaven: the Warden's Stair at the landing; the Field of Doors behind it; forges east, the Keywood west, the
+ * Locksmith's Well under the northern cliffs. */
+export const LOCK_LAYOUT = {
+  dockBase: { x: LOCK.x, z: lockQuay.z - 2.5 },
+  landing: { x: LOCK.x, z: lockQuay.z - 12 }, // the Warden's Stair
+  doorfield: { x: LOCK.x - 4, z: LOCK.z - 6 }, // the Field of Doors: the ruined town, every door still standing
+  forges: { x: LOCK.x + 24, z: LOCK.z - 8 }, // the Thirteen Forges
+  keywood: { x: LOCK.x - 26, z: LOCK.z + 2 }, // the Keywood: starbark and leviathan cedar
+  well: { x: LOCK.x + 2, z: LOCK.z - 32 }, // the Locksmith's Well, under the Keyward Cliffs
+  shore: lockAt(18, 6), // the Keyhole Shore: rock-pools with keyholes worn into them
+};
 /** Amberhold: an outpost at the landing; the amberwood west, Goldvein Hill east, the poachers north. */
 export const AMBER_LAYOUT = {
   dockBase: { x: AMBER.x, z: amberQuay.z - 2.5 },
@@ -174,7 +206,7 @@ const L = LAYOUT;
 export const BELL_TOWN = townPlan(L.village, L.crossroads);
 export const PORT_TOWN = portPlan(SUN_LAYOUT.port);
 export const TOWN = mergePlans(BELL_TOWN, PORT_TOWN);
-const SL = SUN_LAYOUT, WL = WRACK_LAYOUT, AL = AMBER_LAYOUT;
+const SL = SUN_LAYOUT, WL = WRACK_LAYOUT, AL = AMBER_LAYOUT, KL = LOCK_LAYOUT;
 /** Offshore islets: land you reach by ship. */
 export const ISLETS = [{ x: L.islet.x, z: L.islet.z, r: 13 }, { x: WL.islet.x, z: WL.islet.z, r: 13 }];
 export const LAGOON = { x: -34, z: -22, r: 9 };
@@ -205,6 +237,11 @@ export const FLATS: Flat[] = [
   { x: WL.landing.x, z: WL.landing.z, r: 11, h: 1.1 },
   { x: WL.dockBase.x, z: WL.dockBase.z - 1, r: 3, h: 1.0 },
   { x: WL.crag.x, z: WL.crag.z - 6, r: 4.5, h: 'auto' },
+  // Lockhaven: the Warden's Stair, the dock, the well's paved yard, the Field of Doors' old square
+  { x: KL.landing.x, z: KL.landing.z, r: 11, h: 1.1 },
+  { x: KL.dockBase.x, z: KL.dockBase.z - 1, r: 3, h: 1.0 },
+  { x: KL.well.x, z: KL.well.z, r: 6, h: 'auto' },
+  { x: KL.doorfield.x, z: KL.doorfield.z, r: 9, h: 'auto' },
   // a level pad under every town building, at the height of the ground already there (so the quay's stay on the quay)
   ...TOWN.buildings.map((b) => ({ x: b.x, z: b.z, r: Math.hypot(b.w, b.d) / 2 + 0.6, h: 'pad' as const, soft: 2.5 })),
 ];
@@ -232,6 +269,9 @@ export const HILLS: Hill[] = [
   { x: WL.crag.x, z: WL.crag.z - 4, r: 17, h: 12 },
   { x: WL.crag.x + 14, z: WL.crag.z + 6, r: 9, h: 5 },
   { x: WL.oldwood.x - 4, z: WL.oldwood.z - 4, r: 14, h: 3.5 },
+  { x: KL.well.x, z: KL.well.z - 10, r: 16, h: 10 }, // the Keyward Cliffs
+  { x: KL.forges.x + 4, z: KL.forges.z - 6, r: 10, h: 5 },
+  { x: KL.keywood.x - 4, z: KL.keywood.z - 4, r: 13, h: 3 },
 ];
 
 export const DIPS: Dip[] = [{ x: LAGOON.x, z: LAGOON.z, r: LAGOON.r, floor: -1.8 }];
@@ -274,6 +314,12 @@ export const PATHS: PathDef[] = [
   { width: 1.1, pts: [[WL.crag.x - 2, WL.crag.z + 16], [WL.oldwood.x + 10, WL.oldwood.z + 6], [WL.oldwood.x, WL.oldwood.z]] },
   { width: 1.1, pts: [[WL.landing.x + 4, WL.landing.z - 4], [WL.starfall.x - 8, WL.starfall.z + 8], [WL.starfall.x, WL.starfall.z + 5]] },
   { width: 1.1, pts: [[WL.crag.x + 6, WL.crag.z + 10], [WL.wreck.x - 8, WL.wreck.z + 8], [WL.wreck.x, WL.wreck.z]] },
+  // Lockhaven: the old high street from the Stair up through the Field of Doors to the Well; branches to the forges,
+  // the Keywood and the shore
+  { width: 1.5, pts: [[KL.dockBase.x, KL.dockBase.z], [KL.landing.x, KL.landing.z], [KL.doorfield.x + 2, KL.doorfield.z + 10], [KL.doorfield.x, KL.doorfield.z], [KL.well.x - 2, KL.well.z + 12], [KL.well.x, KL.well.z + 5]] },
+  { width: 1.1, pts: [[KL.doorfield.x + 6, KL.doorfield.z + 4], [KL.forges.x - 10, KL.forges.z + 4], [KL.forges.x - 3, KL.forges.z + 2]] },
+  { width: 1.1, pts: [[KL.doorfield.x - 6, KL.doorfield.z + 4], [KL.keywood.x + 10, KL.keywood.z + 2], [KL.keywood.x + 2, KL.keywood.z]] },
+  { width: 1.1, pts: [[KL.landing.x + 5, KL.landing.z - 3], [KL.shore.x - 10, KL.shore.z + 4], [KL.shore.x - 3, KL.shore.z]] },
 ];
 
 function pathDist(p: PathDef, x: number, z: number): number {
@@ -299,7 +345,7 @@ export function nearestPathDist(x: number, z: number): { d: number; width: numbe
 // The coastlines depend only on the angle, so they're tabulated once (the world build asks ~10^6 times)
 const COAST_STEPS = 2048;
 const tabulate = (f: (t: number) => number) => Float32Array.from({ length: COAST_STEPS + 1 }, (_, i) => f((i / COAST_STEPS) * Math.PI * 2 - Math.PI));
-let bellTable: Float32Array | null = null, sunTable: Float32Array | null = null, wrackTable: Float32Array | null = null, amberTable: Float32Array | null = null;
+let bellTable: Float32Array | null = null, sunTable: Float32Array | null = null, wrackTable: Float32Array | null = null, amberTable: Float32Array | null = null, lockTable: Float32Array | null = null;
 function fromTable(t: Float32Array, theta: number): number {
   const f = ((theta + Math.PI) / (Math.PI * 2)) * COAST_STEPS, i = Math.max(0, Math.min(COAST_STEPS - 1, Math.floor(f)));
   return t[i] + (t[i + 1] - t[i]) * (f - i);
@@ -311,9 +357,10 @@ export function coastDist(x: number, z: number): number {
   const b = fromTable(bellTable, Math.atan2(z, x)) - Math.hypot(x, z);
   wrackTable ??= tabulate(wrackCoastR);
   amberTable ??= tabulate(amberCoastR);
-  const dx = x - SUN.x, dz = z - SUN.z, wx = x - WRACK.x, wz = z - WRACK.z, ax = x - AMBER.x, az = z - AMBER.z;
+  lockTable ??= tabulate(lockCoastR);
+  const dx = x - SUN.x, dz = z - SUN.z, wx = x - WRACK.x, wz = z - WRACK.z, ax = x - AMBER.x, az = z - AMBER.z, kx = x - LOCK.x, kz = z - LOCK.z;
   return Math.max(b, fromTable(sunTable, Math.atan2(dz, dx)) - Math.hypot(dx, dz), fromTable(wrackTable, Math.atan2(wz, wx)) - Math.hypot(wx, wz),
-    fromTable(amberTable, Math.atan2(az, ax)) - Math.hypot(ax, az));
+    fromTable(amberTable, Math.atan2(az, ax)) - Math.hypot(ax, az), fromTable(lockTable, Math.atan2(kz, kx)) - Math.hypot(kx, kz));
 }
 
 export function rawHeight(x: number, z: number): number {
@@ -384,6 +431,12 @@ export const WRACK_SEA_SPOTS: Record<string, [number, number][]> = {
   spot_angler: [wrackPoint(180, -26)],
 };
 
+/** Ship-only fishing grounds off Lockhaven (world x, z). */
+export const LOCK_SEA_SPOTS: Record<string, [number, number][]> = {
+  spot_shark: [lockPoint(320, -22)],
+  spot_angler: [lockPoint(200, -24), lockPoint(40, -24)],
+};
+
 // ---- named places (discovery) ------------------------------------------------
 // A place is only listed once it has something to do; new zones join as their content lands.
 export interface Place { id: string; name: string; x: number; z: number; r: number; sea?: boolean; region?: RegionId } // no region: Bellwether
@@ -431,4 +484,13 @@ export const ISLAND_PLACES: Place[] = [
   { id: 'w_spire', name: 'The Drowned Spire', x: WL.spire.x, z: WL.spire.z, r: 14, sea: true, region: 'wrack' },
   ...([['w_swordrun', 'Swordfish Run', 140, -18], ['w_deeps', 'Shark Deeps', 30, -24], ['w_trench', 'Angler\'s Trench', 180, -26]] as const)
     .map(([id, name, a, i]) => { const [x, z] = wrackPoint(a, i); return { id, name, x, z, r: 16, sea: true, region: 'wrack' as RegionId }; }),
+  // Lockhaven (levels 60-90): the Wardwrights' island
+  { id: 'wardenstair', name: 'The Warden\'s Stair', x: KL.landing.x, z: KL.landing.z - 2, r: 16, region: 'lockhaven' },
+  { id: 'doorfield', name: 'The Field of Doors', x: KL.doorfield.x, z: KL.doorfield.z, r: 14, region: 'lockhaven' },
+  { id: 'forges', name: 'The Thirteen Forges', x: KL.forges.x, z: KL.forges.z, r: 13, region: 'lockhaven' },
+  { id: 'keywood', name: 'The Keywood', x: KL.keywood.x, z: KL.keywood.z, r: 15, region: 'lockhaven' },
+  { id: 'lockwell', name: 'The Locksmith\'s Well', x: KL.well.x, z: KL.well.z, r: 10, region: 'lockhaven' },
+  { id: 'keyholeshore', name: 'The Keyhole Shore', x: KL.shore.x, z: KL.shore.z, r: 13, region: 'lockhaven' },
+  ...([['k_deeps', 'The Lockwater', 200, -24]] as const)
+    .map(([id, name, a, i]) => { const [x, z] = lockPoint(a, i); return { id, name, x, z, r: 16, sea: true, region: 'lockhaven' as RegionId }; }),
 ];

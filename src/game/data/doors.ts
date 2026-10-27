@@ -1,4 +1,4 @@
-import { LAYOUT, SUN_LAYOUT, AMBER_LAYOUT, WRACK_LAYOUT } from '../world/island';
+import { LAYOUT, SUN_LAYOUT, AMBER_LAYOUT, WRACK_LAYOUT, LOCK_LAYOUT } from '../world/island';
 import type { RegionId } from '../world/regions';
 
 // Wardwright doors (docs/STORY.md: the Wardwrights kept their work in Houses, one craft to a House). Each House
@@ -17,7 +17,7 @@ export interface WardDoor {
   record: { title: string; lines: string[] };
 }
 
-const L = LAYOUT, S = SUN_LAYOUT, A = AMBER_LAYOUT, W = WRACK_LAYOUT;
+const L = LAYOUT, S = SUN_LAYOUT, A = AMBER_LAYOUT, W = WRACK_LAYOUT, K = LOCK_LAYOUT;
 
 export const DOORS: WardDoor[] = [
   { id: 'green', house: 'the House of the Green Key', label: 'A door grown shut inside a yew', key: 'woodsman', region: 'bellwether', x: L.heartwood.x + 6, z: L.heartwood.z - 5,
@@ -77,6 +77,32 @@ export const DOORS: WardDoor[] = [
       '"A Lock is a bell that hasn\'t been rung. Every bell we hung in the Varrow was cast to answer one Lock, so that if a Lock ever opened, its bell would ring at low water and warn us."',
       '"If you are reading this and the bells are ringing on their own: they\'re not warning you. They\'re counting."',
     ] } },
+  // ---- Lockhaven: the Houses' own front doors, standing in the Field of Doors with nothing left behind them but cellars
+  { id: 'door', house: 'the House of the Door', label: 'A plain oak door, unpainted, in a stone frame on its own', key: 'skeleton', region: 'lockhaven', x: K.doorfield.x - 6, z: K.doorfield.z - 3,
+    reward: [{ id: 'casket', qty: 4 }, { id: 'bar_ori', qty: 3 }, { id: 'coins', qty: 3000 }],
+    record: { title: 'The House of the Door: Ilse\'s rule', lines: [
+      'Chalked on the inside of the door, so you read it as you step through: "A door is a promise that there is another side."',
+      '"Every key we cut keeps that promise for someone. A door that opens onto nothing is the cruellest thing in the world."',
+      'Under it, in a shakier hand, very recent: "The Bottom Door opens onto them. They are not nothing. Forgive me. — I."'] } },
+  { id: 'fen', house: 'the House of the Fen', label: 'A door green with moss, its keyhole full of water', key: 'mire_key', region: 'lockhaven', x: K.doorfield.x + 5, z: K.doorfield.z - 5,
+    reward: [{ id: 'fish_shark_raw', qty: 10 }, { id: 'gem_pearl', qty: 4 }, { id: 'coins', qty: 2500 }],
+    record: { title: 'The House of the Fen: Hask\'s last letter', lines: [
+      '"To whoever comes with my key. If you have it, you have taken it out of Jenny, and she was me."',
+      '"I am glad. I was so hungry, and so cold, and I could not stop swallowing."',
+      '"Don\'t turn it again. Put it back in a fen somewhere warm. Let the next one of me sleep."'] } },
+  { id: 'ears', house: 'the House of Ears', label: 'A door with a brass ear where the knocker should be', key: 'listener', region: 'lockhaven', x: K.doorfield.x - 3, z: K.doorfield.z + 7,
+    reward: [{ id: 'charm_tide', qty: 600 }, { id: 'crystal_geode', qty: 4 }, { id: 'coins', qty: 2500 }],
+    record: { title: 'The House of Ears: Ysolde\'s warning', lines: [
+      'The brass ear on the door is warm. Inside, on the cellar wall, one line, over and over in different years\' handwriting:',
+      '"We listen so the children don\'t have to."',
+      'The last one is different. Small, neat, recent, in a hand you\'ve seen on two letters: "We listen so the children can be told the truth. — C."'] } },
+  { id: 'tooth', house: 'the House of the Tooth', label: 'A door studded with old teeth, like a jaw', key: 'keels_tooth', region: 'lockhaven', x: K.doorfield.x + 8, z: K.doorfield.z + 4,
+    reward: [{ id: 'shark_tooth', qty: 20 }, { id: 'bar_levi', qty: 5 }, { id: 'coins', qty: 3000 }],
+    record: { title: 'The House of the Tooth: Ottilie\'s bargain', lines: [
+      '"Corran. You\'ll come for my key, because it\'s the first and you\'re impatient. Take it."',
+      '"Wear it in your mouth if you like. It will bite you every time the tide turns, and you will deserve every bite."',
+      '"When you are old and the bites have made you sorry, bring it back. I\'ll be in the Spire. I\'ll wait. — O."',
+      'He never came back. You did, with his tooth on your ring.'] } },
 ];
 
 export const DOOR_BY_ID = Object.fromEntries(DOORS.map((d) => [d.id, d]));

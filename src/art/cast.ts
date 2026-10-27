@@ -29,6 +29,8 @@ export const NPC_LOOKS: Record<string, HumanoidLook> = {
   halvard: { skin: 0xd8a888, coat: 0x2a3a5a, coatTrim: 0xc9a050, shirt: 0xe8dcc0, trousers: 0x2a2a30, boots: 'leather', hat: 0x1a1a1a, hair: 0x8a6a4a, hatStyle: 'tricorn', beard: true },
   ulla: { skin: 0xc8946a, coat: 0x445228, coatTrim: 0x7a5a30, shirt: 0x9a8a62, trousers: 0x3a3424, boots: 'leather', hat: 0x5a4024, hair: 0xb8402a, hatStyle: 'none', hairStyle: 'queue', beard: false, held: 'longbow' },
   brita: { skin: 0xf0d0b0, coat: 0x6a3a2a, coatTrim: 0xe8c86a, shirt: 0xe8dcc0, trousers: 0x3a2a24, boots: 'leather', hat: 0xe8c86a, hair: 0xe8c86a, hatStyle: 'none', hairStyle: 'queue', beard: false, apron: 0xd8cfb8 },
+  // Orla Fane, Keeper of the Doors: an old woman in a Wardwright's leather apron, a ring of four hundred keys at her belt
+  orla: { skin: 0xc8a888, coat: 0x5a4a3a, coatTrim: 'brass', shirt: 0xd8ccb0, trousers: 0x3a3028, boots: 'leather', hat: 0x3a3028, hair: 0xd8d4c8, hatStyle: 'none', hairStyle: 'bun', beard: false, spectacles: true, held: 'none' },
   edda: { skin: 0xe0b896, coat: 0x2a3a5a, coatTrim: 0xc8d0d8, shirt: 0xd8ccb0, trousers: 0x2a2a34, boots: 0x2a2420, hat: 0x2a3a5a, hair: 0x8a5a2a, hatStyle: 'none', hairStyle: 'bun', beard: false },
   eir: { skin: 0xf0d0b0, coat: 0x6a7a5a, coatTrim: 0xe8dcc0, shirt: 0xe8dcc0, trousers: 0x3a3a30, boots: 0x3a2a20, hat: 0xe8dcc0, hair: 0xd8c07a, hatStyle: 'bandana', hairStyle: 'queue', beard: false, apron: 0xe8dcc0 },
   gull: { skin: 0xe8d0b8, coat: 0xe8e4d8, coatTrim: 0x8a9aa8, shirt: 0xd8d4c8, trousers: 0x3a4048, boots: 0x2a2a2e, hat: 0xe8e4d8, hair: 0xb8b8b0, hatStyle: 'tricorn', beard: false, held: 'pistol' },

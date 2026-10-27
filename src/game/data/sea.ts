@@ -116,7 +116,7 @@ export const WEATHER = {
   every: [150, 240] as [number, number],
   lasts: [40, 60] as [number, number],
   /** which weather each region's waters get */
-  kinds: { bellwether: [], sunreach: ['gale', 'fog'], amberhold: ['gale', 'fog', 'thunder'], wrack: ['gale', 'fog', 'thunder'] } as Partial<Record<RegionId, WeatherKind[]>>,
+  kinds: { bellwether: [], sunreach: ['gale', 'fog'], amberhold: ['gale', 'fog', 'thunder'], wrack: ['gale', 'fog', 'thunder'], lockhaven: ['fog', 'gale'] } as Partial<Record<RegionId, WeatherKind[]>>,
   /** a gale pushes ship and foes downwind at this speed (m/s) */
   gale: 2.2,
   /** in fog, foes see you at this fraction of their usual range */

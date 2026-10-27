@@ -1429,7 +1429,17 @@ export class Game {
     this.p.z = sh.z;
     this.facing = sh.heading;
     // sailed off a charted edge: on to the next island
-    const lane = edgeCrossed(this.region, sh.x, sh.z);
+    let lane = edgeCrossed(this.region, sh.x, sh.z);
+    const gate = lane && REGIONS[lane.to].gate;
+    if (lane && gate && !this.s.flags[gate.flag]) {
+      // uncharted water: the ship comes about, back inside the chart's edge
+      const b = this.region.bounds, inset = b.half - 22;
+      if (lane.side === 'e') sh.x = Math.min(sh.x, b.cx + inset); else if (lane.side === 'w') sh.x = Math.max(sh.x, b.cx - inset);
+      else if (lane.side === 's') sh.z = Math.min(sh.z, b.cz + inset); else sh.z = Math.max(sh.z, b.cz - inset);
+      sh.heading += Math.PI; this.shipSpeed = 0; this.shipTarget = null; this.shipRoute = [];
+      if (this.time - this.laneHinted > 8) { this.laneHinted = this.time; this.msg(gate.text, 'warn'); }
+      lane = null;
+    }
     if (lane) {
       const b = this.region.bounds;
       this.travel({ to: lane.to, how: 'sail', from: this.s.region, along: lane.side === 'e' || lane.side === 'w' ? sh.z - b.cz : sh.x - b.cx });
@@ -1437,7 +1447,7 @@ export class Game {
       const b = this.region.bounds;
       for (const ex of this.region.exits) {
         const near = ex.side === 'e' ? sh.x > b.cx + b.half - 45 : ex.side === 'w' ? sh.x < b.cx - b.half + 45 : ex.side === 's' ? sh.z > b.cz + b.half - 45 : sh.z < b.cz - b.half + 45;
-        if (near) { this.laneHinted = this.time; this.msg(`Open water. Hold your course ${({ e: 'east', w: 'west', n: 'north', s: 'south' })[ex.side]} to cross to ${REGIONS[ex.to].name}.`, 'info'); }
+        if (near && !(REGIONS[ex.to].gate && !this.s.flags[REGIONS[ex.to].gate!.flag])) { this.laneHinted = this.time; this.msg(`Open water. Hold your course ${({ e: 'east', w: 'west', n: 'north', s: 'south' })[ex.side]} to cross to ${REGIONS[ex.to].name}.`, 'info'); }
       }
     }
   }
@@ -2374,7 +2384,7 @@ export class Game {
       this.stopAction();
       this.target = null;
       this.emit({ type: 'playerDeath' });
-      this.msg(`Oh dear, you are dead. You wake at ${({ bellwether: 'the quay', sunreach: 'Port Halyard', amberhold: 'Tollhouse Landing', wrack: 'Gallows Landing' } as const)[this.region.home]}.`, 'warn');
+      this.msg(`Oh dear, you are dead. You wake at ${({ bellwether: 'the quay', sunreach: 'Port Halyard', amberhold: 'Tollhouse Landing', wrack: 'Gallows Landing', lockhaven: 'the Warden\'s Stair' } as const)[this.region.home]}.`, 'warn');
       if (this.boss) this.resetBoss();
     }
   }

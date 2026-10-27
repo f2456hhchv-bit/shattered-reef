@@ -1,14 +1,14 @@
-import { SUN, WRACK, AMBER } from './island';
+import { SUN, WRACK, AMBER, LOCK } from './island';
 import type { Bounds } from './world';
 
 // The world is split into regions, loaded one at a time (Tom, 2026-10-24: "one island at a time... a threshold
 // crossed and a loading screen"). An island region is the island and its waters; sailing off a charted edge of
 // its square carries you to the next island. Caves are their own regions under the islands, entered on foot.
 
-export type RegionId = 'bellwether' | 'sunreach' | 'amberhold' | 'wrack' | 'smugglers_caves' | 'ember_deep';
+export type RegionId = 'bellwether' | 'sunreach' | 'amberhold' | 'wrack' | 'lockhaven' | 'smugglers_caves' | 'ember_deep';
 /** The islands, in the order you outgrow them (Tom, 2026-10-25: three starter islands at 1-20, 15-30 and 25-50,
  * then islands past 50 with mixed difficulty). */
-export type IslandId = 'bellwether' | 'sunreach' | 'amberhold' | 'wrack';
+export type IslandId = 'bellwether' | 'sunreach' | 'amberhold' | 'wrack' | 'lockhaven';
 export type Side = 'n' | 's' | 'e' | 'w';
 
 export interface RegionDef {
@@ -24,6 +24,8 @@ export interface RegionDef {
   exits: { side: Side; to: RegionId }[];
   /** one line for the loading screen */
   tip: string;
+  /** uncharted until this flag is set: sailing toward it turns you back with this line */
+  gate?: { flag: string; text: string };
 }
 
 export const REGIONS: Record<RegionId, RegionDef> = {
@@ -44,8 +46,14 @@ export const REGIONS: Record<RegionId, RegionDef> = {
   },
   wrack: {
     id: 'wrack', name: 'Stormwrack Isle', kind: 'island', bounds: { cx: WRACK.x, cz: WRACK.z, half: 120 }, home: 'wrack', band: [50, 99],
-    exits: [{ side: 'w', to: 'amberhold' }],
+    exits: [{ side: 'w', to: 'amberhold' }, { side: 'e', to: 'lockhaven' }],
     tip: 'Levels 50 and up, and not in any order. The drowned walk the Wrack; the crag\'s sentinels have never lost.',
+  },
+  lockhaven: {
+    id: 'lockhaven', name: 'Lockhaven', kind: 'island', bounds: { cx: LOCK.x, cz: LOCK.z, half: 115 }, home: 'lockhaven', band: [60, 90],
+    exits: [{ side: 'w', to: 'wrack' }],
+    tip: 'Levels 60 to 90. The Wardwrights\' island: thirteen Houses fell down round their doors, and the doors are still standing.',
+    gate: { flag: 'parley_done', text: 'The chart ends here. Past this line the sea has no soundings, and the swell runs wrong. Not yet: not until someone has charted what lies east.' },
   },
   smugglers_caves: {
     id: 'smugglers_caves', name: 'Smugglers\' Caves', kind: 'cave', bounds: { cx: 0, cz: 1000, half: 46 }, home: 'bellwether', band: [15, 20], exits: [],

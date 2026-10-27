@@ -92,6 +92,11 @@ export const NPCS: Record<string, NpcDef> = {
   marisol: { id: 'marisol', name: 'Marisol Ransom', title: 'Captain of the Dear Hostage', idle: ['I don\'t drink with people I haven\'t robbed yet. Sit down anyway.', 'Every captain on this sea wants Keel\'s Hoard. I just want back what was mine.'] },
   ash: { id: 'ash', name: 'Ash Tolliver', title: 'Captain of the Second Chance', goneWhen: 'tide_ash_crew', idle: ['Sorry. I\'m in your way. I\'m always in someone\'s way.', 'She\'s a good ship, the Second Chance. Built in the same yard as the one that burned. Same plans. I check her timbers every morning anyway.'] },
   ama: { id: 'ama', name: 'Ama Boateng', title: 'Fire-warden of the Greenheart', idle: ['Dry season, lightning season. The Greenheart burns a little every year. My job is to make it a little.'] },
+  // Lockhaven: the last Wardwright on the Wardwrights' island
+  orla: { id: 'orla', name: 'Orla Fane', title: 'Keeper of the Doors', idle: [
+    'Mind where you knock. Half of these doors still open, and you don\'t want to know what\'s behind the other half.',
+    'I oil a different door every morning. There are four hundred and nine. I\'ve been doing it for fifty-one years. You do the sums.',
+    'My mother kept the doors, and hers. We\'re not Wardwrights. We\'re what\'s left when the Wardwrights go into the Locks: the ones who stay and sweep.'] },
   // Amberhold's quests (docs/ISLANDS.md, slice 3)
   sigrun: { id: 'sigrun', name: 'Sigrun', title: 'Skald', idle: ['Every hill on Amberhold has a song. Goldvein Hill\'s is the oldest, and nobody sings it after dark.'] },
   ingrid: { id: 'ingrid', name: 'Ingrid Vale', title: 'Fiddler', idle: ['A fiddle tune can calm a horse, a crowd, or a storm. I\'ve managed two of the three.'] },
@@ -133,7 +138,7 @@ export interface QuestStage {
   waitFlags?: string[];
 }
 
-export interface QuestDef { id: string; name: string; giver: string; stages: QuestStage[]; reward: string; /** the main story (docs/STORY.md): offered ahead of side quests by the same person */ main?: boolean; /** the island it belongs to (the journal groups by it) */ island?: 'bellwether' | 'sunreach' | 'amberhold' | 'wrack' }
+export interface QuestDef { id: string; name: string; giver: string; stages: QuestStage[]; reward: string; /** the main story (docs/STORY.md): offered ahead of side quests by the same person */ main?: boolean; /** the island it belongs to (the journal groups by it) */ island?: 'bellwether' | 'sunreach' | 'amberhold' | 'wrack' | 'lockhaven' }
 
 /** the pool behind the Ironshell Shore where the nøkk live */
 const POOL = { x: AMBER_LAYOUT.ironshore.x + (AMBER.x - AMBER_LAYOUT.ironshore.x) * 0.22, z: AMBER_LAYOUT.ironshore.z + (AMBER.z - AMBER_LAYOUT.ironshore.z) * 0.22 + 6 };

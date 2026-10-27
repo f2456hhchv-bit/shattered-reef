@@ -1,4 +1,4 @@
-import { LAYOUT, SUN_LAYOUT, AMBER_LAYOUT, WRACK_LAYOUT } from '../world/island';
+import { LAYOUT, SUN_LAYOUT, AMBER_LAYOUT, WRACK_LAYOUT, LOCK_LAYOUT } from '../world/island';
 import type { RegionId } from '../world/regions';
 
 // Keel's Log and the Varrow's fragments (docs/STORY.md). Pages of Corran Keel's log, torn out and scattered by the
@@ -17,7 +17,7 @@ export interface LoreEntry {
   lines: string[];
 }
 
-const L = LAYOUT, S = SUN_LAYOUT, A = AMBER_LAYOUT, W = WRACK_LAYOUT;
+const L = LAYOUT, S = SUN_LAYOUT, A = AMBER_LAYOUT, W = WRACK_LAYOUT, K = LOCK_LAYOUT;
 
 export const LORE: LoreEntry[] = [
   // ---- Bellwether
@@ -130,6 +130,26 @@ export const LORE: LoreEntry[] = [
       '"Let any thief who wants it cut it from the belly of the sea."',
       'Below, in a fresher hand: "Tried. Couldn\'t. — C.K."',
     ] },
+
+  // ---- Lockhaven
+  { id: 'keel_7', set: 'keel', title: 'Keel\'s Log, page VII', label: 'A page jammed in a door frame', verb: 'Read', region: 'lockhaven', x: K.doorfield.x + 7, z: K.doorfield.z + 7,
+    lines: [
+      'We found the Wardwrights\' island at last. Not a city. Thirteen Houses round a well, and doors. More doors than any town needs.',
+      'There was nobody to fight. Thirteen old men and women came down to the landing to meet us, and an apprentice girl to carry their bags.',
+      'Their eldest said: "We know what you\'ve come for. You may as well have supper first." I have robbed kings. Nobody ever gave me supper first.',
+      'Hale ate nothing. She went from door to door, all night, with her ear to every one.'] },
+  { id: 'keel_10', set: 'keel', title: 'Keel\'s Log, page X', label: 'A page under a cold anvil', verb: 'Read', region: 'lockhaven', x: K.forges.x - 6, z: K.forges.z + 6,
+    lines: [
+      'The Wardwrights are gone. Every one. Into their Locks, the apprentice says, the night after we sailed. They didn\'t wait for us to take the keys. They went to be what the keys open.',
+      'I had thought I was stealing doors. I\'ve been stealing people.',
+      'The apprentice stayed. Sixteen, with a broom and a ring of four hundred keys. She told me to get off her island. I did.',
+      'I don\'t know her name. I wish I\'d asked.'] },
+  { id: 'varrow_names', set: 'varrow', title: 'The thirteen names (a stone at the well)', label: 'Names cut round the well\'s rim', verb: 'Read', region: 'lockhaven', x: K.well.x + 3, z: K.well.z + 3,
+    lines: [
+      'Thirteen names cut round the rim of the well, worn almost smooth by hands. One for each House.',
+      'Ardith of the Green Key. Bram of the Deep Vein. Saoirse of the Line. Tobiah of the Hearth. Unnamed, of the Anvil: the name scraped out. Mira of the Tide. Fen of the Lantern.',
+      'Corwen of Bells. Ilse of the Door. Hask of the Fen. Ottilie of the Tooth. Ysolde of Ears.',
+      'The thirteenth isn\'t a name. It\'s just: "The Eldest, who stayed outside."'] },
 ];
 
 export const LORE_BY_ID = Object.fromEntries(LORE.map((l) => [l.id, l]));
