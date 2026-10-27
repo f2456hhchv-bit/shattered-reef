@@ -1,4 +1,4 @@
-import { coastPoint, wrackPoint, sunPoint, amberPoint, lockPoint } from '../world/island';
+import { coastPoint, wrackPoint, sunPoint, amberPoint, lockPoint, saltPoint } from '../world/island';
 import type { RegionId } from '../world/regions';
 
 // The Gull Race (the Reef's sailors race for bragging rights, the way every harbour on every sea always has): a
@@ -19,6 +19,7 @@ const wr = (deg: number, out: number) => wrackPoint(deg, -out);
 const su = (deg: number, out: number) => sunPoint(deg, -out);
 const am = (deg: number, out: number) => amberPoint(deg, -out);
 const lk = (deg: number, out: number) => lockPoint(deg, -out);
+const sg = (deg: number, out: number) => saltPoint(deg, -out);
 
 export const RACES: RaceCourse[] = [
   { id: 'bellwether', name: 'the Bellwether Round', region: 'bellwether', sailing: 10,
@@ -36,6 +37,9 @@ export const RACES: RaceCourse[] = [
   { id: 'lockhaven', name: 'the Keepers\' Circuit', region: 'lockhaven', sailing: 70,
     start: lk(110, 18), buoys: [lk(160, 20), lk(210, 22), lk(270, 26), lk(320, 22), lk(4, 24), lk(50, 20)],
     medals: [74, 90, 117], xp: 6000 },
+  { id: 'saltglass', name: 'the Glass Circuit', region: 'saltglass', sailing: 80,
+    start: sg(120, 22), buoys: [sg(160, 20), sg(210, 22), sg(255, 22), sg(300, 24), sg(350, 22), sg(45, 20)],
+    medals: [70, 85, 110], xp: 7500 },
 ];
 export const RACE_BY_REGION = Object.fromEntries(RACES.map((r) => [r.region, r])) as Partial<Record<RegionId, RaceCourse>>;
 /** how close the ship must pass a buoy */

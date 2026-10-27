@@ -1,4 +1,4 @@
-import { LAYOUT, SUN_LAYOUT, AMBER_LAYOUT, WRACK_LAYOUT, LOCK_LAYOUT } from '../world/island';
+import { LAYOUT, SUN_LAYOUT, AMBER_LAYOUT, WRACK_LAYOUT, LOCK_LAYOUT, SALT_LAYOUT } from '../world/island';
 import type { RegionId } from '../world/regions';
 
 // Keel's Log and the Varrow's fragments (docs/STORY.md). Pages of Corran Keel's log, torn out and scattered by the
@@ -17,7 +17,7 @@ export interface LoreEntry {
   lines: string[];
 }
 
-const L = LAYOUT, S = SUN_LAYOUT, A = AMBER_LAYOUT, W = WRACK_LAYOUT, K = LOCK_LAYOUT;
+const L = LAYOUT, S = SUN_LAYOUT, A = AMBER_LAYOUT, W = WRACK_LAYOUT, K = LOCK_LAYOUT, G = SALT_LAYOUT;
 
 export const LORE: LoreEntry[] = [
   // ---- Bellwether
@@ -150,6 +150,19 @@ export const LORE: LoreEntry[] = [
       'Ardith of the Green Key. Bram of the Deep Vein. Saoirse of the Line. Tobiah of the Hearth. Unnamed, of the Anvil: the name scraped out. Mira of the Tide. Fen of the Lantern.',
       'Corwen of Bells. Ilse of the Door. Hask of the Fen. Ottilie of the Tooth. Ysolde of Ears.',
       'The thirteenth isn\'t a name. It\'s just: "The Eldest, who stayed outside."'] },
+
+  // ---- Saltglass
+  { id: 'keel_4', set: 'keel', title: 'Keel\'s Log, page IV', label: 'A page fused into the glass', verb: 'Read', region: 'saltglass', x: G.dunes.x - 8, z: G.dunes.z + 8,
+    lines: [
+      'The glass island. Hale says the star came down here first and bounced, the way a skipped stone does, before it went into the sea for good.',
+      'We anchored off the pool the islanders call the Mirror. I looked in it. I saw myself a breath late, as if the water had to think about me first.',
+      'Hale wouldn\'t look. I asked her why. She said: "Because it\'ll show me what I\'m going to do, Corran, and I\'d rather be surprised."',
+      'I laughed. I wish I hadn\'t.'] },
+  { id: 'varrow_lens', set: 'varrow', title: 'A lens-grinder\'s ledger (a page)', label: 'A ledger page under a cracked lens', verb: 'Read', region: 'saltglass', x: G.lens.x + 4, z: G.lens.z + 3,
+    lines: [
+      'Brask Glassworks, the four-hundredth year after the Breaking. Lenses ground: forty. Lighthouses served: all of them.',
+      'One lens sold to a grey-sailed ship at the spring tide, paid for in coin of the Varrow, which nobody has minted since there was a Varrow.',
+      'Margin, in a newer hand: "Same ship. Same captain. Same coin. Four hundred years. Mother says don\'t ask. I\'m asking."'] },
 ];
 
 export const LORE_BY_ID = Object.fromEntries(LORE.map((l) => [l.id, l]));

@@ -66,6 +66,7 @@ export const DIARIES: Diary[] = [
   { island: 'saltglass', name: 'Saltglass Diary', coins: 8000, xp: [{ skill: 'fishing', amount: 15000 }, { skill: 'ranged', amount: 15000 }, { skill: 'crafting', amount: 15000 }],
     tasks: [q('mirror'),
       { id: 'places', text: 'Discover every place on Saltglass', done: places('saltglass') },
+      { id: 'lore', text: 'Find every page of Keel\'s Log and every Varrow fragment on Saltglass', done: lore('saltglass') },
       { id: 'skills', text: 'Reach level 80 in Fishing and Mining', done: levels(80, 'fishing', 'mining') }] },
 ];
 
