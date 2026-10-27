@@ -342,7 +342,7 @@ export class Game {
   // ------------------------------------------------------------------ xp + items
   addXp(skill: SkillId, amount: number) {
     const keyXp = !COMBAT_SKILLS.includes(skill) && this.activeKey()?.passive.kind === 'skill_xp' ? this.activeKey()!.passive.v / 100 : 0;
-    const amt = Math.round(amount * (1 + (COMBAT_SKILLS.includes(skill) ? 0 : this.stats.xpBonus) + keyXp + perkTotal(skill, this.level(skill), 'xp') / 100) * 10) / 10;
+    const amt = Math.round(amount * (1 + (COMBAT_SKILLS.includes(skill) ? 0 : this.stats.xpBonus) + keyXp + (skill === 'sailing' ? this.crewV('sailing_xp') / 100 : 0) + perkTotal(skill, this.level(skill), 'xp') / 100) * 10) / 10; // Bastian Gull: +10% Sailing
     if (amt <= 0) return;
     const before = this.level(skill);
     this.p.xp[skill] = Math.min(MAX_XP, this.p.xp[skill] + amt);
@@ -400,7 +400,7 @@ export class Game {
     out.push(...this.treasure.targets());
     if (onShip) for (const m of this.questMarks()) if (m.mark.fromShip) out.push({ key: `quest:${m.quest}:${m.mark.id}`, kind: 'quest', x: m.mark.x, z: m.mark.z, range: 6, label: m.mark.label, verb: m.mark.verb });
     if (!onShip) {
-      for (const n of this.layout.npcs) out.push({ key: `npc:${n.id}`, kind: 'npc', x: n.x, z: n.z, range: 2.2, label: NPCS[n.id].name, verb: NPCS[n.id].shop ? 'Trade' : NPCS[n.id].bank ? 'Bank' : NPCS[n.id].ferry ? 'Travel' : 'Talk' });
+      for (const n of this.layout.npcs) if (!(NPCS[n.id].goneWhen && this.s.flags[NPCS[n.id].goneWhen!])) out.push({ key: `npc:${n.id}`, kind: 'npc', x: n.x, z: n.z, range: 2.2, label: NPCS[n.id].name, verb: NPCS[n.id].shop ? 'Trade' : NPCS[n.id].bank ? 'Bank' : NPCS[n.id].ferry ? 'Travel' : 'Talk' });
       this.layout.stations.forEach((st, i) => out.push({ key: `station:${i}`, kind: 'station', x: st.x, z: st.z, range: 2.3, label: STATION_NAMES[st.id], verb: st.id === 'fire' ? 'Cook' : st.id === 'furnace' || st.id === 'vent' ? 'Smelt' : st.id === 'bench' ? 'Craft' : 'Forge' }));
       this.layout.banks.forEach((b, i) => out.push({ key: `bank:${i}`, kind: 'bank', x: b.x, z: b.z, range: 2.2, label: b.booth ? 'Bank counter' : 'Strongbox', verb: b.booth ? 'Bank' : 'Open' }));
       if (this.shipHere) out.push({ key: 'ship', kind: 'ship', x: this.ship.x, z: this.ship.z, range: 4.2, label: 'Your sloop', verb: 'Board' });
@@ -1092,7 +1092,7 @@ export class Game {
     }
     const waiting = (node: DialogueNode) => (node.requires && count(this.p.inv, node.requires.id) < node.requires.qty) || (node.needsFlags ?? []).some((f) => !this.s.flags[f]);
     // a quest you're already on comes before starting a new one
-    const ready = opts.find((o) => !waiting(o.node) && this.questStage(o.q) > 0) ?? opts.find((o) => !waiting(o.node)), first = opts[0];
+    const ready = opts.find((o) => !waiting(o.node) && this.questStage(o.q) > 0) ?? opts.find((o) => !waiting(o.node) && QUESTS[o.q].main) ?? opts.find((o) => !waiting(o.node)), first = opts[0];
     if (ready) {
       this.emit({ type: 'dialog', npc: npcId, lines: ready.node.lines });
       if (ready.node.effect) this.applyEffect(ready.q, ready.node.effect, ready.node);
@@ -1123,6 +1123,12 @@ export class Game {
     if (e.flag === 'bell_done') this.giveKey('keels_tooth'); // the Broken Ring gives up its key
     if (e.key) this.giveKey(e.key);
     if (e.vision) this.emit({ type: 'read', title: e.vision.title, sub: e.vision.sub, lines: e.vision.lines });
+    if (e.crew && CREW_BY[e.crew] && !this.s.crew.includes(e.crew)) {
+      this.s.crew.push(e.crew);
+      if (!this.s.mate) this.s.mate = e.crew;
+      this.recalc();
+      this.msg(`${CREW_BY[e.crew].name} joins your crew as ${CREW_BY[e.crew].role.toLowerCase()}. ${CREW_BY[e.crew].passive.text}.`, 'good');
+    }
     if (e.stage !== undefined) this.setStage(questId, e.stage);
     this.rev++;
   }
@@ -2068,6 +2074,8 @@ export class Game {
   private stepDiaries() {
     if (this.time < this.diaryCheckAt) return;
     this.diaryCheckAt = this.time + 0.5;
+    // quest stages that wait on the world (all their flags set) move on by themselves
+    for (const q of Object.values(QUESTS)) { const st = this.questStage(q.id), w = q.stages[st]?.waitFlags; if (w && w.every((f) => this.s.flags[f])) this.setStage(q.id, st + 1); }
     const quiet = !this.s.flags.diary_seen;
     for (const d of DIARIES) {
       if (this.s.flags[`diary_${d.island}`]) continue;

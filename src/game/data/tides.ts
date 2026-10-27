@@ -1,7 +1,7 @@
 // The Tides (docs/STORY.md): the seven captains racing for the Lockkeys and Keel's Hoard. Their posters hang in
 // every harbour, so their names, ships and bounties are known from the start; what they want, you learn by meeting them.
 
-export type TideStatus = 'poster' | 'met' | 'friend' | 'beaten';
+export type TideStatus = 'poster' | 'met' | 'friend' | 'beaten' | 'crew';
 export interface Tide {
   id: string;
   name: string;
@@ -23,7 +23,9 @@ export const TIDES: Tide[] = [
     rumour: 'Red sails off Sunreach\'s western shore. She takes people, not ships.',
     status: (f, q) => (f.tide_marisol_friend ? 'friend' : f.ransom_pennant ? 'beaten' : (q.ransom ?? 0) >= 1 ? 'met' : 'poster') },
   { id: 'gull', name: 'Bastian Gull', epithet: 'the Pale Wing', ship: 'Pale Wing', bounty: 140000,
-    dream: '', rumour: 'A white cutter that buys charts and never haggles. Iven Marr won\'t say his name.', status: never },
+    dream: 'To chart the whole Reef, every island and every Lock, before the cough he hides kills him. He sails with you now.',
+    rumour: 'A white cutter that buys charts and never haggles. Iven Marr won\'t say his name.',
+    status: (f, q) => (f.tide_gull_crew ? 'crew' : (q.palewing ?? 0) >= 2 ? 'met' : 'poster') },
   { id: 'brine', name: 'Mother Brine', epithet: 'of the Brinewife', ship: 'Brinewife', bounty: 210000,
     dream: '', rumour: 'A barnacled hulk that pays no tolls at Tollhouse, crewed by children.', status: never },
   { id: 'ninefold', name: 'Halvdan Ninefold', epithet: 'the Saga-Seeker', ship: 'Ninefold', bounty: 160000,

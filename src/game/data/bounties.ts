@@ -54,7 +54,7 @@ export interface Contract {
   z?: number;
 }
 
-export type CrewPassive = 'heal' | 'ranged_dmg' | 'ship_speed' | 'max_hp' | 'trade' | 'gather';
+export type CrewPassive = 'heal' | 'ranged_dmg' | 'ship_speed' | 'max_hp' | 'trade' | 'gather' | 'sailing_xp';
 export interface CrewDef {
   id: string;
   name: string;
@@ -66,6 +66,8 @@ export interface CrewDef {
   /** ashore as first mate: how they fight, and how hard (share of your max hit) */
   mate: { style: CombatStyle; held: 'cutlass' | 'pistol' | 'staff' | 'greatsword' | 'dagger' | 'pike'; mul: number; range: number };
   look: { skin: number; coat: number; coatTrim: number; shirt: number; trousers: number; hat: number; hair: number; hatStyle: 'tricorn' | 'bandana' | 'cap' | 'none'; beard?: boolean };
+  /** joins only through a quest (not on the boards) */
+  quest?: boolean;
 }
 
 export const CREW: CrewDef[] = [
@@ -87,5 +89,9 @@ export const CREW: CrewDef[] = [
   { id: 'kettle', name: 'Old Kettle', role: 'Rigger', line: 'Forty years in the rigging. My hands know rope, rock and timber better than my own name.', bounty: 25000, coins: 6000,
     passive: { kind: 'gather', v: 5, text: '+5% gathering success' }, mate: { style: 'melee', held: 'pike', mul: 0.4, range: 2.8 },
     look: { skin: 0xc8946a, coat: 0x3a4a3a, coatTrim: 0xb8b0a0, shirt: 0xb8b0a0, trousers: 0x2e2a26, hat: 0x6a5a3a, hair: 0xd8d8d0, hatStyle: 'tricorn' } },
+  // the Tides who sail with you (docs/STORY.md): they come aboard through their own story, not the board
+  { id: 'gull', name: 'Bastian Gull', role: 'Chartmaster', line: 'I read water the way Iven reads ink. Better, but don\'t tell him.', bounty: 0, coins: 0, quest: true,
+    passive: { kind: 'sailing_xp', v: 10, text: '+10% Sailing experience' }, mate: { style: 'ranged', held: 'pistol', mul: 0.35, range: 7 },
+    look: { skin: 0xe8d0b8, coat: 0xe8e4d8, coatTrim: 0x8a9aa8, shirt: 0xd8d4c8, trousers: 0x3a4048, hat: 0xe8e4d8, hair: 0xb8b8b0, hatStyle: 'tricorn' } },
 ];
 export const CREW_BY: Record<string, CrewDef> = Object.fromEntries(CREW.map((c) => [c.id, c]));

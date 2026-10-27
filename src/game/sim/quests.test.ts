@@ -313,6 +313,36 @@ describe('The First Lock (Act II)', () => {
   });
 });
 
+describe('Charted Waters (Bastian Gull)', () => {
+  it('Iven\'s rival at Wreckers\' Point, four fresh soundings, and Gull signs on as chartmaster', () => {
+    const g = fresh();
+    g.s.quests.bell = QUESTS.bell.stages.length - 1; g.s.flags.bell_done = true;
+    talk(g, 'iven'); // the main story first: The Key Collector
+    expect(g.questStage('collector')).toBe(1);
+    expect(g.questStage('palewing')).toBe(0);
+    talk(g, 'iven'); // the Collector waits on keys; now Iven gets to Gull
+    expect(g.questStage('palewing')).toBe(1);
+    talk(g, 'gull');
+    expect(g.questStage('palewing')).toBe(2);
+    // the soundings: the charting marks, flown over from the deck (the same flags the sea sets)
+    for (const m of ['bw_gullrock', 'bw_eastdeep', 'bw_northdeep']) g.s.flags[`chart_${m}`] = true;
+    run0(g, 2, () => false);
+    expect(g.questStage('palewing')).toBe(2);
+    g.s.flags.chart_bw_wreckers = true;
+    run0(g, 2, () => false);
+    expect(g.questStage('palewing')).toBe(3);
+    talk(g, 'gull');
+    expect(g.s.crew).toContain('gull');
+    const xp = g.p.xp.sailing;
+    g.addXp('sailing', 100);
+    expect(g.p.xp.sailing - xp).toBeGreaterThanOrEqual(109); // +10% from his passive
+    // he's gone from the shore
+    expect(g.targets().some((t) => t.key === 'npc:gull')).toBe(false);
+    talk(g, 'iven');
+    expect(g.questStage('palewing')).toBe(QUESTS.palewing.stages.length - 1);
+  });
+});
+
 describe('The Ransom Note (the first Tide)', () => {
   const sun = () => { const L = regionLayout('sunreach'); const g = new Game({ seed: 9, save: { ...defaultSave(L.respawn, L.mooring!), region: 'sunreach' } }); for (const e of g.enemies) { e.alive = false; e.respawnAt = Infinity; } return g; };
 

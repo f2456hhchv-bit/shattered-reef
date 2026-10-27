@@ -12,6 +12,8 @@ export interface Effect {
   key?: string;
   /** something seen, not said: shown like a page you're reading (a Lock's memory, a letter) */
   vision?: { title: string; sub: string; lines: string[] };
+  /** someone signs on to your crew */
+  crew?: string;
 }
 
 export interface DialogueNode {
@@ -31,6 +33,8 @@ export interface NpcDef {
   shop?: boolean; // keeps a shop (see SHOPS: the shop's keeper)
   bank?: boolean; // talking opens your bank
   heals?: string; // restores you to full health, with this line
+  /** leaves this spot once the flag is set (a Tide who joined your crew isn't standing on the shore any more) */
+  goneWhen?: string;
   ferry?: { to: 'bellwether' | 'sunreach' | 'amberhold' | 'wrack'; price: number }[]; // offers passage to other harbours
 }
 
@@ -73,6 +77,7 @@ export const NPCS: Record<string, NpcDef> = {
   // Sunreach's quests (docs/ISLANDS.md, slice 2)
   abena: { id: 'abena', name: 'Abena Owusu', title: 'Fruit seller', idle: ['Mangoes, limes, soursop. Mind the jungle edge after dark, captain.'] },
   nana_ayo: { id: 'nana_ayo', name: 'Nana Ayo', title: 'Herb woman', idle: ['Bush tea for the fever, salt for what comes at night. I keep both.'] },
+  gull: { id: 'gull', name: 'Bastian Gull', title: 'Captain of the Pale Wing', goneWhen: 'tide_gull_crew', idle: ['The Reef\'s never been charted whole. Not once, not since the Breaking. I mean to be the one.', 'Iven still draws his fives like fishhooks. I\'d know them anywhere.'] },
   marisol: { id: 'marisol', name: 'Marisol Ransom', title: 'Captain of the Dear Hostage', idle: ['I don\'t drink with people I haven\'t robbed yet. Sit down anyway.', 'Every captain on this sea wants Keel\'s Hoard. I just want back what was mine.'] },
   ama: { id: 'ama', name: 'Ama Boateng', title: 'Fire-warden of the Greenheart', idle: ['Dry season, lightning season. The Greenheart burns a little every year. My job is to make it a little.'] },
   // Amberhold's quests (docs/ISLANDS.md, slice 3)
@@ -112,9 +117,11 @@ export interface QuestStage {
   wrong?: string;
   /** beat `count` of this foe (a sea foe with `sea`); with `spawn`, a quest foe that waits there, once */
   kill?: { foe: string; count: number; sea?: boolean; spawn?: { region: string; x: number; z: number } };
+  /** moves on by itself once all of these are true in the world (charted marks, a flag set elsewhere) */
+  waitFlags?: string[];
 }
 
-export interface QuestDef { id: string; name: string; giver: string; stages: QuestStage[]; reward: string; /** the island it belongs to (the journal groups by it) */ island?: 'bellwether' | 'sunreach' | 'amberhold' | 'wrack' }
+export interface QuestDef { id: string; name: string; giver: string; stages: QuestStage[]; reward: string; /** the main story (docs/STORY.md): offered ahead of side quests by the same person */ main?: boolean; /** the island it belongs to (the journal groups by it) */ island?: 'bellwether' | 'sunreach' | 'amberhold' | 'wrack' }
 
 /** the pool behind the Ironshell Shore where the nøkk live */
 const POOL = { x: AMBER_LAYOUT.ironshore.x + (AMBER.x - AMBER_LAYOUT.ironshore.x) * 0.22, z: AMBER_LAYOUT.ironshore.z + (AMBER.z - AMBER_LAYOUT.ironshore.z) * 0.22 + 6 };
@@ -122,6 +129,7 @@ const POOL = { x: AMBER_LAYOUT.ironshore.x + (AMBER.x - AMBER_LAYOUT.ironshore.x
 export const QUESTS: Record<string, QuestDef> = {
   bell: {
     id: 'bell',
+    main: true,
     island: 'bellwether',
     name: 'The Bell at Low Water',
     giver: 'iven',
@@ -490,6 +498,46 @@ export const QUESTS: Record<string, QuestDef> = {
       { text: 'Quest complete. The fire camp hands you four full buckets each time.' },
     ],
   },
+  palewing: {
+    id: 'palewing',
+    name: 'Charted Waters',
+    island: 'bellwether',
+    giver: 'iven',
+    reward: 'Bastian Gull joins your crew as chartmaster (+10% Sailing XP); 1200 coins, 2500 Sailing XP; a lead on the Second Lock',
+    stages: [
+      { text: 'Speak with Iven Marr at Bellwether Quay, once The Bell at Low Water is done.',
+        talk: { npc: 'iven', node: { needsFlags: ['bell_done'], missing: ['Not now, captain. I\'m re-checking every chart in the house, and I don\'t know why yet.'], lines: [
+          'Someone broke into my chart house last night. Took nothing. Moved nothing. Except this: my chart of Bellwether\'s waters, corrected in white ink.',
+          'Every sounding redone. Every one right. Only one man alive draws a depth mark like that. Bastian Gull.',
+          'He was my apprentice, before the poster. Before he decided charts were worth more stolen than drawn.',
+          'He\'ll be at Wreckers\' Point. He always liked to look at the place ships die. Find out what he wants. And don\'t let him charm you; he\'s good at it.'],
+          effect: { stage: 1 } } } },
+      { text: 'Find Bastian Gull at Wreckers\' Point, on Bellwether\'s north-east shore.',
+        talk: { npc: 'gull', node: { lines: [
+          'Iven sent you. Of course he did. He never could come and say a thing himself.',
+          'Don\'t mind the cough. Sea air.',
+          'Here\'s what I want, and it isn\'t his charts. The seabed\'s moving. Round the Locks the bottom of the sea is rising, a hand\'s width a year, like something underneath is taking a breath.',
+          'I need fresh soundings at all four of Bellwether\'s charting marks, and I can\'t bring the Pale Wing in close: half the Compact\'s watching her. You can. Sail them, and bring me the numbers.'],
+          effect: { stage: 2 } } } },
+      { text: 'Take fresh soundings at all four of Bellwether\'s charting marks: Gull Rock, the East Deep, the North Deep and the Wreckers\' channel.',
+        waitFlags: ['chart_bw_gullrock', 'chart_bw_eastdeep', 'chart_bw_northdeep', 'chart_bw_wreckers'] },
+      { text: 'Bring the soundings to Bastian Gull at Wreckers\' Point.',
+        talk: { npc: 'gull', node: { lines: [
+          'Let me see. There. And there. And off the North Deep, most of all.',
+          'It isn\'t rising evenly. It\'s rising toward something. Toward the Mirewater Fen, of all places. That lagoon\'s been fresh water for a thousand years, and it\'s going salt.',
+          'That\'s where your Second Lock is, captain. I\'d stake the Pale Wing on it.',
+          'Why do I care? I\'ve been coughing blood for a year. I want one chart on the wall of Iven\'s house that\'s whole: every island, every Lock, the Reef as it really is. Then they can bury me under it.',
+          'So take me on. Not as a captain; as your chartmaster. The Pale Wing can sail herself home, and you need someone who reads water the way I do.'],
+          effect: { crew: 'gull', flag: 'tide_gull_crew', stage: 4 } } } },
+      { text: 'Tell Iven Marr that Bastian Gull has joined your crew.',
+        talk: { npc: 'iven', node: { lines: [
+          'He\'s on your crew? Bastian Gull. On a deck with my chart on the table.',
+          '...Is he well? He never was, you know. Even as a boy. Don\'t tell him I asked.',
+          'The Fen going salt. I\'ll look into it. If he\'s right, the Second Lock is under Bellwether\'s nose, and has been for a thousand years.'],
+          effect: { give: [{ id: 'coins', qty: 1200 }], xp: [{ skill: 'sailing', amount: 2500 }], stage: 5, flag: 'palewing_done' } } } },
+      { text: 'Quest complete. Bastian Gull sails with you. The Mirewater Fen is going salt.' },
+    ],
+  },
   ransom: {
     id: 'ransom',
     name: 'The Ransom Note',
@@ -635,6 +683,7 @@ export const QUESTS: Record<string, QuestDef> = {
   },
   firstlock: {
     id: 'firstlock',
+    main: true,
     name: 'The First Lock',
     island: 'wrack',
     giver: 'iven',
@@ -690,6 +739,7 @@ export const QUESTS: Record<string, QuestDef> = {
   },
   collector: {
     id: 'collector',
+    main: true,
     name: 'The Key Collector',
     island: 'wrack',
     giver: 'iven',

@@ -38,6 +38,7 @@ import { BillboardBatch } from './billboards';
 import { buildPine, buildBroadleaf, buildJungleTree, collapse, buildRock, buildOreRock, buildCrate, buildLanternPost, buildDock, buildPalm, buildGrass, buildBush, buildKelp } from '../art/models/props';
 import { buildBench, buildFurnace, buildAnvil, buildCookfire, buildTent, buildSmithyShed, buildPillar, buildPlinth, buildStrongbox, buildDigSpot, buildGuardian, buildStump, buildRipples, type GuardianRig } from '../art/models/world';
 import { LORE } from '../game/data/lore';
+import { NPCS } from '../game/data/quests';
 import { DOORS } from '../game/data/doors';
 import { buildLootShard, buildItemModel, SHARD_TINT, type LootShard, type ShardKind } from '../art/models/items';
 import { NODES, PLAYER_BASE, SKILLS } from '../game/data/content';
@@ -1485,6 +1486,7 @@ export class GameRenderer {
     // npcs: look toward the player when close
     for (const n of g.layout.npcs) {
       const rig = this.npcs.get(n.id)!;
+      const gone = NPCS[n.id]?.goneWhen; rig.root.visible = !(gone && g.s.flags[gone]);
       const d = Math.hypot(p.x - n.x, p.z - n.z);
       const want = d < 6 && !p.onShip ? Math.atan2(p.z - n.z, p.x - n.x) : n.facing;
       const cur = Math.PI / 2 - rig.root.rotation.y;
