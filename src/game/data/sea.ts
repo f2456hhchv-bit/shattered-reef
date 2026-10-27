@@ -72,7 +72,7 @@ export interface SeaFoeDef {
   boss?: boolean;
   respawn: number;
   /** how it's drawn when its behaviour doesn't say: a serpent swims like a shark; ships fly their colours */
-  look?: 'serpent' | 'pirate' | 'fireship' | 'ransom' | 'longship' | 'lantern';
+  look?: 'serpent' | 'pirate' | 'fireship' | 'ransom' | 'longship' | 'lantern' | 'undertow';
 }
 
 export const SEA_FOES: Record<string, SeaFoeDef> = {
@@ -102,6 +102,10 @@ export const SEA_FOES: Record<string, SeaFoeDef> = {
   // Leviathan's Rest. It hunts like a shark (under, then up and at you): only depth charges reach it under the water
   leviathan: { id: 'leviathan', name: 'The Leviathan', level: 92, hp: 3200, counter: 'depth_charge', behaviour: 'shark', speed: 7.5, damage: 58, aggro: 30, cooldown: 4.6, xp: 2400,
     coins: [0, 0], drops: [{ item: 'shark_tooth', chance: 1, qty: [8, 14] }, { item: 'casket', chance: 1, qty: [3, 5] }], scale: 3.2, boss: true, respawn: 0, look: 'serpent' },
+  // the Undertow (Act IV): Corran Keel's ship, Vesper Hale's now. Bone-grey sails, a crew that doesn't age, a hull that
+  // nothing on this sea has ever holed. You don't fight her. You get away from her
+  undertow: { id: 'undertow', name: 'The Undertow', level: 99, hp: 999999, counter: 'cannonball', behaviour: 'brig', speed: 5.6, damage: 24, aggro: 40, cooldown: 3.0, xp: 0,
+    coins: [0, 0], drops: [], scale: 1.9, boss: true, respawn: 0, look: 'undertow' },
   // Sister Corva's black brig (The Lantern Burns Low): no flag, no drum, no shouting; a pale lamp at the bow that never gutters
   lantern: { id: 'lantern', name: 'The Lantern', level: 70, hp: 1400, counter: 'fire_barrel', behaviour: 'brig', speed: 4.4, damage: 20, aggro: 26, cooldown: 3.4, xp: 900,
     coins: [400, 700], drops: [{ item: 'casket', chance: 1, qty: [2, 3] }, { item: 'fire_barrel', chance: 1, qty: [8, 14] }, { item: 'charm_tide', chance: 1, qty: [30, 60] }], scale: 1.6, boss: true, respawn: 0, look: 'lantern' },

@@ -42,5 +42,5 @@ export const TIDES: Tide[] = [
     rumour: 'Sister-ship to a fire ship that burnt a harbour. He hasn\'t stopped apologising since.',
     status: (f, q) => (f.tide_ash_crew ? 'crew' : (q.secondchance ?? 0) >= 1 ? 'met' : 'poster') },
   { id: 'undertow', name: '???', epithet: 'the Captain of the Undertow', ship: 'Undertow', bounty: 0,
-    dream: '', rumour: 'There is no poster. Nobody will print one.', status: (f) => (f.hale_letter ? 'enemy' : f.thirteenth_held ? 'met' : 'poster') },
+    dream: '', rumour: 'There is no poster. Nobody will print one.', status: (f) => (f.thirteenth_given ? 'friend' : f.hale_letter ? 'enemy' : f.thirteenth_held ? 'met' : 'poster') },
 ];

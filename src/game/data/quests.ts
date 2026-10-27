@@ -1,5 +1,5 @@
 import type { SkillId } from './items';
-import { LAGOON, LAYOUT, SUN_LAYOUT, AMBER_LAYOUT, AMBER, WRACK_LAYOUT, LOCK_LAYOUT, SALT_LAYOUT, coastPoint } from '../world/island';
+import { LAGOON, LAYOUT, SUN_LAYOUT, AMBER_LAYOUT, AMBER, WRACK_LAYOUT, LOCK_LAYOUT, SALT_LAYOUT, coastPoint, saltPoint } from '../world/island';
 // NPCs and the first quest, as data. Dialogue is chosen by quest stage; effects are interpreted by the quest system.
 
 export interface Effect {
@@ -141,6 +141,8 @@ export interface QuestStage {
   kill?: { foe: string; count: number; sea?: boolean; spawn?: { region: string; x: number; z: number } };
   /** moves on by itself once all of these are true in the world (charted marks, a flag set elsewhere) */
   waitFlags?: string[];
+  /** a ship that hunts you while this stage lasts (it can't be sunk; it leaves when the stage does) */
+  chase?: { foe: string; spawn: { region: string; x: number; z: number } };
 }
 
 export interface QuestDef { id: string; name: string; giver: string; stages: QuestStage[]; reward: string; /** the main story (docs/STORY.md): offered ahead of side quests by the same person */ main?: boolean; /** the island it belongs to (the journal groups by it) */ island?: 'bellwether' | 'sunreach' | 'amberhold' | 'wrack' | 'lockhaven' | 'saltglass' }
@@ -1459,6 +1461,65 @@ export const QUESTS: Record<string, QuestDef> = {
           after: ['Four Locks open. Hale will have felt it. She\'ll have felt it in her teeth.'],
           effect: { give: [{ id: 'coins', qty: 15000 }], xp: [{ skill: 'ranged', amount: 15000 }, { skill: 'magic', amount: 15000 }, { skill: 'crafting', amount: 15000 }], stage: 6, flag: 'mirror_done', key: 'mira_key' } } } },
       { text: 'Quest complete. Four Locks open, nine to go. This one took your reflection.' },
+    ],
+  },
+  undertow: {
+    id: 'undertow',
+    main: true,
+    name: 'The Undertow',
+    island: 'saltglass',
+    giver: 'sunniva',
+    reward: '20,000 coins, 20,000 Sailing XP, and a choice the rest of the story remembers',
+    stages: [
+      { text: 'Speak with Sunniva Brask at Glasswater Steps, once The Drowned Mirror is done.',
+        talk: { npc: 'sunniva', node: { needsFlags: ['mirror_done'], missing: ['Four Locks open. Hale will have felt it in her teeth.'], lines: [
+          'She\'s here. Spring tide. The Undertow came in on the fog this morning and dropped anchor off the north shore, where she always does.',
+          'She sent a boy in a rowboat with a note. He didn\'t speak. He didn\'t blink, either. The note says: "Tell the captain with my key that I\'d like a word. From their deck to mine. No guns."',
+          'I wouldn\'t. I\'m not you.'],
+          effect: { stage: 1 } } } },
+      { text: 'Sail out to the Undertow\'s anchorage off Saltglass\'s north shore and hail her from your deck.',
+        marks: [{ id: 'hail', label: 'The Undertow at anchor, bone-grey sails furled', verb: 'Hail her', region: 'saltglass', x: saltPoint(270, -24)[0], z: saltPoint(270, -24)[1], fromShip: true,
+          effect: { stage: 2, vision: { title: 'Ship to ship', sub: 'The Undertow, off Saltglass', lines: [
+            'She comes to the rail herself. Black hair with no grey in it. A quartermaster\'s ledger under her arm, a thousand years old and not a page loose.',
+            '"Captain." Her voice carries across the water without her raising it. "I was at the twelfth Lock with Corran. I put my ear to the water and I heard them, and I\'ve never once stopped hearing them."',
+            '"They\'re so tired. Do you know what it\'s like to be a song nobody will finish? Thirteen people bound in thirteen doors, and under them, all of them, waiting."',
+            '"Here is my offer. Give me the thirteenth key, the Eldest\'s, and I\'ll take it to the Bottom Door myself. I won\'t ask you to turn another Lock. The nine left can sleep for all I care. Only the door."',
+            '"Or keep it, and I\'ll take it from you, and I\'m afraid I\'ll have to be quick about it."'],
+            react: [
+              { flags: ['tide_corva_turned'], lines: ['"And tell my sister, when you see her, that I\'m sorry about the water. I am. It was necessary."'] },
+              { flags: ['lanternrelit_3_k0'], lines: ['"You killed my sister. I watched from the fog. I didn\'t stop you. I want you to know I could have."'] },
+            ] } } }] },
+      { text: 'Answer Vesper Hale. Refuse her, or give her the thirteenth Lockkey.',
+        marks: [
+          { id: 'refuse', label: 'Your own rail, facing hers', verb: 'Refuse her', region: 'saltglass', x: saltPoint(262, -22)[0], z: saltPoint(262, -22)[1], fromShip: true,
+            say: ['"No."', 'Hale nods, like a teacher whose pupil has got the answer wrong in exactly the way she expected. "Then I\'m sorry."', 'Her gun-ports open. All of them, at once, with no one standing behind them.'],
+            effect: { flag: 'hale_refused', stage: 3 } },
+          { id: 'give', label: 'The thirteenth Lockkey, warm in your hand', verb: 'Give it to her', region: 'saltglass', x: saltPoint(278, -22)[0], z: saltPoint(278, -22)[1], fromShip: true,
+            requires: { id: 'thirteenth_key', qty: 1 }, missing: ['You don\'t have it on you. Hale\'s smile says she knows exactly where it is.'],
+            say: ['You throw it. It turns over and over in the air between the two ships, humming the rhyme, and she catches it without looking.',
+              '"Thank you," Vesper Hale says, and means it. "I\'ll make it quick. For them, I mean. You won\'t feel a thing for years."',
+              'The Undertow weighs anchor without anyone touching the capstan and slides into the fog. The sea feels very slightly heavier.'],
+            effect: { take: [{ id: 'thirteenth_key', qty: 1 }], flag: 'thirteenth_given', stage: 4 } },
+        ] },
+      { text: 'The Undertow is coming for you. You can\'t sink her. Run for the fog bank off Saltglass\'s west shore and lose her in it.',
+        chase: { foe: 'undertow', spawn: { region: 'saltglass', x: saltPoint(285, -40)[0], z: saltPoint(285, -40)[1] } },
+        marks: [{ id: 'fog', label: 'A fog bank, thick as wool, off the west shore', verb: 'Sail into the fog', region: 'saltglass', x: saltPoint(200, -30)[0], z: saltPoint(200, -30)[1], fromShip: true,
+          say: ['The fog closes behind you like a door. You hear the Undertow\'s guns once more, far off and to the wrong side, and then nothing but your own bow-wave.', 'When it thins, she\'s gone. You still have the key.'],
+          effect: { stage: 4 } }] },
+      { text: 'Go home to Iven Marr at Bellwether Quay and tell him what you said to Vesper Hale.',
+        talk: { npc: 'iven', node: { lines: ['You talked to her. To Hale. Ship to ship.'],
+          react: [
+            { flags: ['hale_refused'], lines: [
+              'And you said no, and she opened every gun she had, and you outran the Undertow in fog. Nobody\'s ever outrun the Undertow. They\'ll sing that one in the north.',
+              'She\'ll come again. She said so. Every Lock we open now, she\'ll be waiting at. But the Eldest\'s key is still ours, and while it\'s ours the Bottom Door can\'t open.'] },
+            { flags: ['thirteenth_given'], lines: [
+              'You gave it to her.',
+              '...I\'m not going to shout. I\'ve thought about it. Every night since the leviathan. Whether anyone has the right to keep a thousand-year-old woman from finishing a song.',
+              'I don\'t know if you were wrong. I know she has it now, and the Door has its key, and we have nine Locks left and no time. If we\'re going to stop her, we have to be at the Bottom Door before she is.'] },
+          ],
+          after: ['Rest tonight. Tomorrow we go further out than anybody\'s charted. That\'s where the last Locks are, and that\'s where she\'s going.'],
+          effect: { give: [{ id: 'coins', qty: 20000 }], xp: [{ skill: 'sailing', amount: 20000 }], stage: 5, flag: 'undertow_done' } } } },
+      { text: 'Quest complete. You\'ve spoken to Vesper Hale, ship to ship, and given her your answer. The rest of the story will remember it.' },
     ],
   },
 };
