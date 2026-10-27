@@ -1006,7 +1006,19 @@ export class UI {
     }).join('');
     const collection = `<p class="muted" style="font-size:12px;margin:0 0 6px">${have} of ${total} found. Everything worth keeping that each foe, chest and casket can give you.</p>${colRows}`;
     const feats = `<p class="muted" style="font-size:12px;margin:0 0 6px">${pts} of ${FEATS.reduce((a, f) => a + f.pts, 0)} points. Harder ways to beat the arena bosses; points earn lasting edges.</p><ul class="diary">${tierRows}</ul>${featRows}`;
-    return `<h2 class="title">Quests</h2>${qs}<div class="brass-rule"></div><h2 class="title">The Tides</h2>${tides}<div class="brass-rule"></div><h2 class="title">Feats</h2>${feats}<div class="brass-rule"></div><h2 class="title">Collection log</h2>${collection}<div class="brass-rule"></div><h2 class="title">Keel's Log</h2>${lore}<div class="brass-rule"></div><h2 class="title">Island diaries</h2>${diaries}<div class="brass-rule"></div><h2 class="title">Your bounty</h2>${poster}<div class="brass-rule"></div><h2 class="title">Places (${g.s.discovered.length}/${PLACES.length})</h2>${disc}`;
+    // the captain's record: the whole game at a glance
+    const allQ = Object.values(QUESTS), doneQ = allQ.filter((q) => g.questStage(q.id) >= q.stages.length - 1).length;
+    const totalLv = SKILLS.reduce((a, k) => a + g.level(k.id), 0);
+    const locks = ['firstlock_opened', 'fen_opened', 'thirdlock_opened', 'mirror_opened'].filter((f) => g.s.flags[f]).length;
+    const tidesKnown = TIDES.filter((t) => t.status(g.s.flags, g.s.quests) !== 'poster').length;
+    const colTotal = collectionGroups().reduce((a, gr) => a + gr.items.length, 0);
+    const rec: [string, string][] = [
+      ['Total level', `${totalLv}`], ['Quests', `${doneQ}/${allQ.length}`], ['Locks opened', `${locks}/13`], ['Tides known', `${tidesKnown}/${TIDES.length}`],
+      ['Feat points', `${g.featPoints()}`], ['Collection', `${(g.s.collected ?? []).length}/${colTotal}`], ['Bells answered', `${g.s.bellsRung ?? 0}`],
+      ['Bottles', `${(g.s.bottles ?? []).length}/${BOTTLES.length}`], ['Places', `${g.s.discovered.length}/${PLACES.length}`], ['Bounty', g.s.bounty.toLocaleString('en-GB')],
+    ];
+    const record = `<div class="record-grid">${rec.map(([k, v]) => `<div><small>${esc(k)}</small><b>${esc(v)}</b></div>`).join('')}</div>`;
+    return `<h2 class="title">Captain's record</h2>${record}<div class="brass-rule"></div><h2 class="title">Quests</h2>${qs}<div class="brass-rule"></div><h2 class="title">The Tides</h2>${tides}<div class="brass-rule"></div><h2 class="title">Feats</h2>${feats}<div class="brass-rule"></div><h2 class="title">Collection log</h2>${collection}<div class="brass-rule"></div><h2 class="title">Keel's Log</h2>${lore}<div class="brass-rule"></div><h2 class="title">Island diaries</h2>${diaries}<div class="brass-rule"></div><h2 class="title">Your bounty</h2>${poster}<div class="brass-rule"></div><h2 class="title">Places (${g.s.discovered.length}/${PLACES.length})</h2>${disc}`;
   }
 
   private settingsHtml() {

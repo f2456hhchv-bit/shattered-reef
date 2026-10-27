@@ -617,3 +617,7 @@ ul.diary li.diary-done { color: #8fd07a; }
 .col-item .slot { width: 40px; height: 40px; pointer-events: none; }
 .col-item:not(.got) .slot { filter: grayscale(1) brightness(.45); opacity: .6; }
 #racechip { font: 700 12px var(--body, sans-serif); color: #1a120a; background: #e8c040; border: 1px solid var(--brass); border-radius: 10px; padding: 3px 8px; white-space: nowrap; box-shadow: 0 1px 3px rgba(0,0,0,.5); }
+.record-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 6px; margin: 2px 0 6px; }
+.record-grid div { background: rgba(0,0,0,.2); border-radius: 8px; padding: 6px 8px; display: flex; flex-direction: column; gap: 2px; }
+.record-grid small { font-size: 11px; opacity: .75; }
+.record-grid b { font: 700 15px var(--display, serif); color: #f2dcae; }
