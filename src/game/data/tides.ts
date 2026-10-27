@@ -15,7 +15,6 @@ export interface Tide {
   status: (flags: Record<string, boolean>, quests: Record<string, number>) => TideStatus;
 }
 
-const never = (): TideStatus => 'poster';
 
 export const TIDES: Tide[] = [
   { id: 'marisol', name: 'Marisol Ransom', epithet: 'the Red Ransom', ship: 'Dear Hostage', bounty: 180000,
@@ -43,5 +42,5 @@ export const TIDES: Tide[] = [
     rumour: 'Sister-ship to a fire ship that burnt a harbour. He hasn\'t stopped apologising since.',
     status: (f, q) => (f.tide_ash_crew ? 'crew' : (q.secondchance ?? 0) >= 1 ? 'met' : 'poster') },
   { id: 'undertow', name: '???', epithet: 'the Captain of the Undertow', ship: 'Undertow', bounty: 0,
-    dream: '', rumour: 'There is no poster. Nobody will print one.', status: never },
+    dream: '', rumour: 'There is no poster. Nobody will print one.', status: (f) => (f.thirteenth_held ? 'met' : 'poster') },
 ];

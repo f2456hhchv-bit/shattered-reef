@@ -674,3 +674,53 @@ describe('Second Chance (the Tides: Ash Tolliver)', () => {
     expect(g.crewV('cannon')).toBe(8);
   }, 120_000);
 });
+
+describe('Thirteen\'s in the Belly (Act II ends)', () => {
+  it('compass at the ribs, Sigrun\'s horn for honey, the horn blown from the deck, the leviathan beaten, the thirteenth Lockkey home to Iven', () => {
+    let g = fresh();
+    for (const q of ['bell', 'collector', 'firstlock', 'palewing', 'fen', 'lantern']) { g.s.quests[q] = QUESTS[q].stages.length - 1; g.s.flags[`${q}_done`] = true; }
+    g.s.flags.iven_taken = true; g.s.flags.iven_back = true;
+    talk(g, 'iven');
+    expect(g.questStage('belly')).toBe(1);
+    const hop = (to: 'wrack' | 'amberhold' | 'bellwether') => {
+      const L = regionLayout(to), sv = g.serialize();
+      sv.player.x = L.respawn.x; sv.player.z = L.respawn.z; sv.player.onShip = false;
+      Object.assign(sv.ship, { ...L.mooring!, region: to });
+      g = new Game({ seed: 7, save: { ...JSON.parse(JSON.stringify(sv)), region: to } });
+      for (const e of g.enemies) { e.alive = false; e.respawnAt = Infinity; }
+      g.naval.foes.forEach((f) => { f.alive = false; f.respawnAt = Infinity; });
+    };
+    hop('wrack');
+    use(g, 'belly', 'ribs');
+    run(g, 20, () => g.questStage('belly') === 2);
+    expect(g.questStage('belly')).toBe(2);
+    hop('amberhold');
+    talk(g, 'sigrun');
+    expect(g.questStage('belly')).toBe(2); // no honey, no horn
+    g.give('honeycomb', 5);
+    talk(g, 'sigrun');
+    expect(g.questStage('belly')).toBe(3);
+    expect(count(g.p.inv, 'sleeper_horn')).toBe(1);
+    hop('wrack');
+    g.p.onShip = true; g.p.x = g.ship.x; g.p.z = g.ship.z;
+    g.interact('quest:belly:deep');
+    run(g, 60, () => g.questStage('belly') === 4);
+    expect(g.questStage('belly')).toBe(4);
+    g.step(1 / 30);
+    const lev = g.naval.foes.find((f) => f.def.id === 'leviathan')!;
+    expect(lev).toBeTruthy();
+    (g.naval as unknown as { sink(f: unknown): void }).sink(lev);
+    expect(g.questStage('belly')).toBe(5);
+    const seen: string[] = [];
+    g.on((e) => { if (e.type === 'read') seen.push(e.title); });
+    g.interact('quest:belly:cough');
+    run(g, 60, () => g.questStage('belly') === 6);
+    expect(count(g.p.inv, 'thirteenth_key')).toBe(1);
+    expect(seen).toContain('The thirteenth Lockkey');
+    hop('bellwether');
+    talk(g, 'iven');
+    expect(g.questStage('belly')).toBe(QUESTS.belly.stages.length - 1);
+    expect(g.s.flags.belly_done).toBe(true);
+    expect(count(g.p.inv, 'thirteenth_key')).toBe(1); // kept, not turned
+  }, 120_000);
+});
