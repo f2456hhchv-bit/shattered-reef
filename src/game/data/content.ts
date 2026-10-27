@@ -559,6 +559,14 @@ export const ENEMIES: Record<string, EnemyDef> = {
   // the Undertow's crew (A Parley of Tides): sailors who stopped ageing at the twelfth Lock; they don't hurry, and they don't stop
   undertow_hand: { hostile: true, id: 'undertow_hand', name: 'Hand of the Undertow', model: 'brigand', look: 'seadraugr', level: 78, hp: 115, att: 74, def: 66, defBonus: { melee: 55, ranged: 50, magic: 35 }, weakness: 'magic', style: 'melee', accBonus: 70, maxHit: 14,
     speed: 3.2, radius: 0.5, aggro: 16, attack: { kind: 'melee', range: 2.0, windup: 0.55, cooldown: 2.3 }, loot: 'undertow_hand', respawn: 0, scale: 1.15 },
+  // Lockhaven's own (levels 60-90): Hushed pilgrims at the doors, the Undertow's deckhands on the shore, crabs whose
+  // shells have grown keyholes
+  hushed_pilgrim: { hostile: true, id: 'hushed_pilgrim', name: 'Hushed pilgrim', model: 'brigand', look: 'hushed', level: 62, hp: 70, att: 60, def: 48, defBonus: { melee: 45, ranged: 30, magic: 50 }, weakness: 'ranged', style: 'melee', accBonus: 52, maxHit: 10,
+    speed: 3.0, radius: 0.5, aggro: 10, attack: { kind: 'melee', range: 1.8, windup: 0.5, cooldown: 2.6 }, loot: 'hushed', respawn: 60, scale: 1.05 },
+  undertow_deckhand: { hostile: true, id: 'undertow_deckhand', name: 'Undertow deckhand', model: 'brigand', look: 'seadraugr', level: 72, hp: 90, att: 66, def: 60, defBonus: { melee: 55, ranged: 40, magic: 30 }, weakness: 'magic', style: 'melee', accBonus: 60, maxHit: 12,
+    speed: 3.0, radius: 0.5, aggro: 10, attack: { kind: 'melee', range: 2.0, windup: 0.55, cooldown: 2.6 }, loot: 'undertow_hand', respawn: 80, scale: 1.1 },
+  lockshell_crab: { hostile: true, id: 'lockshell_crab', name: 'Lockshell crab', model: 'crab', look: 'ironshell', level: 64, hp: 72, att: 58, def: 56, defBonus: { melee: 55, ranged: 40, magic: -10 }, weakness: 'magic', style: 'melee', accBonus: 48, maxHit: 10,
+    speed: 2.4, radius: 1.0, aggro: 8, attack: { kind: 'melee', range: 2.0, windup: 0.55, cooldown: 2.8 }, loot: 'lockshell', respawn: 60, scale: 2.1 },
   key_collector: { hostile: true, id: 'key_collector', name: 'The Key Collector', model: 'brigand', look: 'hunter', level: 78, hp: 95, att: 74, def: 64, defBonus: { melee: 55, ranged: 45, magic: 30 }, weakness: 'ranged', style: 'melee', accBonus: 66, maxHit: 13,
     speed: 3.8, radius: 0.5, aggro: 14, attack: { kind: 'melee', range: 1.9, windup: 0.4, cooldown: 2.2 }, loot: 'key_collector', respawn: 0, scale: 1.3 },
   // further out (their islands' slices replace the rest of this list)
@@ -672,6 +680,7 @@ export const LOOT: Record<string, LootTable> = {
   starstruck: { coins: [0, 0], drops: [{ item: 'ore_sky', chance: 1, qty: [2, 3] }] },
   corva: { coins: [600, 1200], drops: [{ item: 'orb_lantern', chance: 1 }, { item: 'casket', chance: 1, qty: [2, 3] }] },
   undertow_hand: { coins: [80, 180], drops: [{ item: 'charm_tide', chance: 0.8, qty: [15, 30] }, { item: 'casket', chance: 0.15 }, { item: 'bar_levi', chance: 0.1 }] },
+  lockshell: { coins: [30, 80], drops: [{ item: 'fish_lobster_raw', chance: 0.5, qty: [1, 2] }, { item: 'gem_pearl_rough', chance: 0.12 }, { item: 'ore_levi', chance: 0.1 }] },
   key_collector: { coins: [400, 800], drops: [{ item: 'casket', chance: 1, qty: [2, 3] }, { item: 'crystal_geode', chance: 1, qty: [2, 3] }] },
   barrow_king: { coins: [150, 300], drops: [{ item: 'bar_storm', chance: 1, qty: [2, 4] }, { item: 'crystal_geode', chance: 0.5 }] },
   douen_elder: { coins: [40, 80], drops: [{ item: 'charm_tide', chance: 1, qty: [10, 20] }] },
