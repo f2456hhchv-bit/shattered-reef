@@ -42,6 +42,8 @@ export interface SaveData {
   boards: Record<string, { offers: Contract[]; refreshAt: number }>;
   contracts: Contract[];
   crew: string[];
+  /** bells answered at bell-time (data/belltime.ts) */
+  bellsRung?: number;
   /** the shipwright's refits: tier per part (data/shipyard.ts) */
   shipyard?: Partial<Record<'hull' | 'sails' | 'guns' | 'plating', number>>;
   mate: string | null;

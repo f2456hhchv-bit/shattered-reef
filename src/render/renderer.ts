@@ -315,7 +315,7 @@ export class GameRenderer {
     this.npcs.clear(); this.houses = []; this.walkers = []; this.enemyViews.clear(); this.nodeViews.clear();
     this.dropViews.clear(); this.projViews.clear(); this.teleViews.clear(); this.flames = []; this.glows = [];
     this.seaViews.clear(); this.krakenArms.clear(); this.bolts.clear(); this.ballViews.clear(); this.chargeViews.clear(); this.aimLine = null;
-    this.markViews.clear(); this.stormProps = null; this.fireProps = null; this.seepProps = null; this.treasureBuoy = null;
+    this.markViews.clear(); this.stormProps = null; this.fireProps = null; this.seepProps = null; this.treasureBuoy = null; this.bellView = null;
     this.grass = null; this.grassTime = [];
     this.scenery = new InstancedField(addSurfaceDetail(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: false, roughness: 0.9 }), PROP_SURFACE));
     this.sceneryState.clear();
@@ -1096,6 +1096,39 @@ export class GameRenderer {
     this.stormProps.planks.forEach((m, k) => { m.visible = st.running && st.broken[k]; });
   }
 
+  /** Bell-time (belltime.ts): a bell ringing where there is no bell. You see the sound more than the bell: rings of
+   * bronze light spreading over the sand, and the ghost of a bell swinging in the air above them. */
+  private bellView: THREE.Group | null = null;
+  private syncBell(t: number) {
+    const b = this.game.belltime.here();
+    if (!b) { if (this.bellView) this.bellView.visible = false; return; }
+    if (!this.bellView || !this.bellView.parent) {
+      const v = new THREE.Group();
+      const glow = new THREE.MeshBasicMaterial({ color: 0xe8a850, transparent: true, opacity: 0.5, depthWrite: false, side: THREE.DoubleSide });
+      for (let k = 0; k < 3; k++) { const r = new THREE.Mesh(new THREE.RingGeometry(0.5, 0.62, 32), glow.clone()); r.rotation.x = -Math.PI / 2; r.name = `ring${k}`; v.add(r); }
+      const ghost = new THREE.MeshStandardMaterial({ color: 0xc9a050, metalness: 0.6, roughness: 0.4, transparent: true, opacity: 0.55, emissive: 0x6a4a1a, emissiveIntensity: 0.6 });
+      const bell = new THREE.Group(); bell.name = 'bell';
+      const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.42, 0.6, 16, 1, true), ghost); cup.position.y = -0.3;
+      const crown = new THREE.Mesh(new THREE.SphereGeometry(0.19, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), ghost);
+      const clapper = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), ghost); clapper.position.y = -0.55;
+      bell.add(cup, crown, clapper);
+      bell.position.y = 2.1;
+      v.add(bell);
+      this.region3d.add(v);
+      this.bellView = v;
+    }
+    const v = this.bellView;
+    v.visible = true;
+    v.position.set(b.x, this.game.world.standY(b.x, b.z) + 0.05, b.z);
+    for (let k = 0; k < 3; k++) {
+      const r = v.getObjectByName(`ring${k}`) as THREE.Mesh, p = ((t * 0.6 + k / 3) % 1);
+      r.scale.setScalar(1 + p * 4); ((r.material as THREE.MeshBasicMaterial).opacity = 0.55 * (1 - p));
+    }
+    const bell = v.getObjectByName('bell')!;
+    bell.rotation.z = Math.sin(t * 3.2) * 0.35;
+    bell.position.y = 2.1 + Math.sin(t * 1.3) * 0.08;
+  }
+
   /** A treasure map's X (treasure.ts): a red-and-white marker buoy with a pennant, bobbing on the swell. */
   private syncTreasure(t: number) {
     const tx = this.game.treasure.here();
@@ -1544,6 +1577,7 @@ export class GameRenderer {
     this.syncFire(t);
     this.syncSeep(t);
     this.syncTreasure(t);
+    this.syncBell(t);
     this.syncTelegraphs();
 
     for (const f of this.flames) { f.scale.y = 0.8 + Math.sin(t * 12 + f.position.x * 10) * 0.25; f.scale.x = 1 + Math.sin(t * 9 + f.position.z * 7) * 0.12; }
