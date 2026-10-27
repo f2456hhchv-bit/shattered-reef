@@ -611,3 +611,8 @@ ul.diary li.diary-done { color: #8fd07a; }
 .lore-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; width: 100%; text-align: left; padding: 8px 10px; margin: 0 0 4px; border-radius: 8px; border: 1px solid rgba(201,160,80,.35); background: rgba(239,226,191,.06); color: inherit; font: inherit; cursor: pointer; }
 .lore-row small { opacity: .7; white-space: nowrap; }
 #mealchip { font: 600 11px var(--body, sans-serif); color: #f2dcae; background: rgba(18,11,6,.78); border: 1px solid var(--brass); border-radius: 10px; padding: 3px 8px; white-space: nowrap; max-width: 46vw; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 1px #000; }
+.col-group { margin: 4px 0; padding: 4px 6px; border-radius: 8px; background: rgba(0,0,0,.18); }
+.col-group summary { cursor: pointer; font-size: 13px; padding: 4px 0; min-height: 28px; }
+.col-items { display: flex; flex-wrap: wrap; gap: 4px; padding: 4px 0; }
+.col-item .slot { width: 40px; height: 40px; pointer-events: none; }
+.col-item:not(.got) .slot { filter: grayscale(1) brightness(.45); opacity: .6; }

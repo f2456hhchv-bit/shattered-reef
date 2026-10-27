@@ -8,6 +8,7 @@ import { DOORS } from '../game/data/doors';
 import { SHIPYARD, SHIP_PARTS, type ShipPart } from '../game/data/shipyard';
 import { FEATS, FEAT_TIERS } from '../game/data/feats';
 import { BOTTLES, BOTTLE_BY } from '../game/data/bottles';
+import { collectionGroups } from '../game/data/collection';
 import { TIDES } from '../game/data/tides';
 import { MEAL_TEXT, item, RARITY, AFFIXES, METALS, METAL_TRAITS, AMMO_NAME, ammoKind, isTwoHanded, pairGroup, type ItemDef, type Slot, type SkillId, type WeaponKind } from '../game/data/items';
 import { morph, forget } from './morph';
@@ -986,8 +987,16 @@ export class UI {
       return `<div class="quest"><b>${esc(ENEMIES[boss]?.name ?? boss)}</b> <small class="muted">beaten ${kills}×</small><ul class="diary">${list.map((f) => `<li class="${done.has(f.id) ? 'done' : ''}">${done.has(f.id) ? '✓' : '○'} <b>${esc(f.name)}</b> (${f.pts}) <small class="muted">${esc(f.text)}</small></li>`).join('')}</ul></div>`;
     }).join('');
     const tierRows = FEAT_TIERS.map((t) => `<li class="${pts >= t.pts ? 'done' : ''}">${pts >= t.pts ? '✓' : '○'} <b>${t.pts} points: ${esc(t.name)}</b> <small class="muted">${esc(t.text)}</small></li>`).join('');
+    // the collection log: every source's notable drops, ticked off the first time they land in your pack
+    const got = new Set(g.s.collected ?? []), groups = collectionGroups();
+    const total = groups.reduce((a, gr) => a + gr.items.length, 0), have = groups.reduce((a, gr) => a + gr.items.filter((i) => got.has(i)).length, 0);
+    const colRows = groups.map((gr) => {
+      const n = gr.items.filter((i) => got.has(i)).length;
+      return `<details class="col-group"><summary><b>${esc(gr.name)}</b> <small class="muted">${n}/${gr.items.length}</small></summary><div class="col-items">${gr.items.map((i) => `<span class="col-item ${got.has(i) ? 'got' : ''}" title="${esc(item(i).name)}">${this.slotHtml({ id: i, qty: 1 }, 'disabled tabindex="-1"')}</span>`).join('')}</div></details>`;
+    }).join('');
+    const collection = `<p class="muted" style="font-size:12px;margin:0 0 6px">${have} of ${total} found. Everything worth keeping that each foe, chest and casket can give you.</p>${colRows}`;
     const feats = `<p class="muted" style="font-size:12px;margin:0 0 6px">${pts} of ${FEATS.reduce((a, f) => a + f.pts, 0)} points. Harder ways to beat the arena bosses; points earn lasting edges.</p><ul class="diary">${tierRows}</ul>${featRows}`;
-    return `<h2 class="title">Quests</h2>${qs}<div class="brass-rule"></div><h2 class="title">The Tides</h2>${tides}<div class="brass-rule"></div><h2 class="title">Feats</h2>${feats}<div class="brass-rule"></div><h2 class="title">Keel's Log</h2>${lore}<div class="brass-rule"></div><h2 class="title">Island diaries</h2>${diaries}<div class="brass-rule"></div><h2 class="title">Your bounty</h2>${poster}<div class="brass-rule"></div><h2 class="title">Places (${g.s.discovered.length}/${PLACES.length})</h2>${disc}`;
+    return `<h2 class="title">Quests</h2>${qs}<div class="brass-rule"></div><h2 class="title">The Tides</h2>${tides}<div class="brass-rule"></div><h2 class="title">Feats</h2>${feats}<div class="brass-rule"></div><h2 class="title">Collection log</h2>${collection}<div class="brass-rule"></div><h2 class="title">Keel's Log</h2>${lore}<div class="brass-rule"></div><h2 class="title">Island diaries</h2>${diaries}<div class="brass-rule"></div><h2 class="title">Your bounty</h2>${poster}<div class="brass-rule"></div><h2 class="title">Places (${g.s.discovered.length}/${PLACES.length})</h2>${disc}`;
   }
 
   private settingsHtml() {
