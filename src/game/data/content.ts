@@ -308,7 +308,7 @@ function buildUnlocks(): Record<SkillId, Unlock[]> {
     if (!it.equip) continue;
     for (const [k, v] of Object.entries(it.equip.reqs)) if ((v ?? 0) > 1) put(k, v!, ITEMS[it.id].name, madeCat(it.id), it.id);
   }
-  for (const sp of SPELLS) put('magic', sp.level, `${sp.name} (max hit ${sp.maxHit * HP_SCALE})`, 'Spells', sp.element ? SHARD[sp.element] : SHARD.tide);
+  for (const sp of SPELLS) put('magic', sp.level, `${sp.name} (max hit ${Math.max(HP_SCALE, Math.round(sp.maxHit * HP_SCALE * MAGIC_DMG))})`, 'Spells', sp.element ? SHARD[sp.element] : SHARD.tide);
   for (const b of BOOK) put('magic', b.level, `${b.name}: ${b.text}`, 'Spells', b.kind === 'teleport' ? 'shard_compass' : b.kind === 'curse' ? 'shard_bone' : 'shard_root');
   for (const x of Object.values(UTILITY_SPELLS)) put('magic', x.level, `${x.name} (${x === UTILITY_SPELLS.alchemy ? 'turn an item into coins' : 'teleport to Bellwether'})`, 'Spells', x === UTILITY_SPELLS.alchemy ? 'coins' : 'charm_tide');
   for (const e of Object.values(ENEMIES)) if (!e.boss) put('attack', Math.max(1, Math.round(e.level * 0.8)), `Fight: ${e.name} (level ${e.level})`, 'Foes');
@@ -450,6 +450,8 @@ export const SPELL_ALIAS: Record<string, string> = {
   riptide: 'ember_blast', lance: 'tide_wave', maelstrom: 'ember_wave', tempest: 'gale_surge', wrath: 'stone_surge', deluge: 'ember_surge',
 };
 export const spellById = (id: string) => SPELLS.find((x) => x.id === (SPELL_ALIAS[id] ?? id));
+/** Spells' max hits against RuneScape's table (Tom, 2026-10-28: "trim magic by about 15%"). */
+export const MAGIC_DMG = 0.85;
 /** A spell in a foe's weak element: this much more accuracy and max hit (RuneScape's elemental weakness). */
 export const ELEMENT_BONUS = 0.2;
 /** Which element each foe is weak to. Plants, bugs, spiders and the dead burn; fire and stone are quenched or worn by
