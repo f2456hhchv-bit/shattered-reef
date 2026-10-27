@@ -122,6 +122,8 @@ describe('reachability audit', () => {
         // a foe inside the landing's safe circle (16 m: SAFE_RADIUS in game.ts) breaks off and goes home: it can't be fought
         else if (Math.hypot(at[0] - L.respawn.x, at[1] - L.respawn.z) < 18) bad.push(`quest foe ${st.kill!.foe} in the safe harbour`); } }
       for (const sp of L.spawns) if (!onIslet(sp.x, sp.z) && !ok(sp.x, sp.z, 1.6)) bad.push(`foe ${sp.enemy}@${Math.round(sp.x)},${Math.round(sp.z)}`);
+      // and never inside the landing's safe circle (16 m round where you stand), where a foe breaks off: it could never be fought
+      for (const sp of L.spawns) if (Math.hypot(sp.x - L.respawn.x, sp.z - L.respawn.z) < 16) bad.push(`foe ${sp.enemy}@${Math.round(sp.x)},${Math.round(sp.z)} in the safe harbour`);
       expect(bad).toEqual([]);
     }, 120_000);
   }

@@ -825,6 +825,9 @@ function buildIslandRegion(region: IslandId): IslandLayout {
     // bog leeches in the fen's shallows; beetles on the strand; spriggans in the oak grove; knockers in Ironcrag
     for (let k = 0; k < 3; k++) { const a = (k / 3) * Math.PI * 2 + 0.2; spawn('bog_leech', LAGOON.x + Math.cos(a) * (LAGOON.r + 4), LAGOON.z + Math.sin(a) * (LAGOON.r + 4)); }
     for (let k = 0; k < 4; k++) { const [x, z] = coastPoint(150 + k * 8, 3.5); spawn('shore_beetle', x, z); }
+    // a second gull flock on the empty west strand past the beetles: a step between level 2 and the level-9
+    // brigands (a playtest found nothing in between but the three gulls out at Wreckers' Point)
+    for (let k = 0; k < 4; k++) { const [x, z] = coastPoint(182 + k * 6, 4); spawn('gull', x, z); }
     for (const [dx, dz] of [[-8, -3], [-6, -9], [-12, 2]]) spawn('spriggan', GV.x + dx, GV.z + dz); // the grove's far side, away from Saltpine Wood
     for (const [dx, dz] of [[-7, 10], [6, 12], [-3, 2]]) spawn('knocker', M.x + dx, M.z + dz);
     // the Howes: the haugbui keep their grave goods

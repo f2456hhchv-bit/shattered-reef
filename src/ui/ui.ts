@@ -964,7 +964,9 @@ export class UI {
         const status = r === 1 ? '<span class="status todo">New</span>' : '<span class="status active">In progress</span>';
         const pinned = g.trackedQuest() === q.id;
         const track = r === 0 ? `<button class="btn trackbtn${pinned ? ' on' : ''}" data-track="${q.id}">${pinned ? 'Tracking' : 'Track'}</button>` : '';
-        return `<div class="quest"><b>${esc(q.name)}</b>${status}<p style="margin:6px 0">${esc(q.stages[st].text)}</p><small class="muted">Reward: ${esc(q.reward)}</small>${track}</div>`;
+        const rec = g.questCombat(q.id), low = rec !== null && g.stats.combatLevel < rec - 2;
+        const recLine = rec ? `<small class="${low ? 'rec low' : 'rec'}">Combat ${rec} recommended${low ? ` (you're ${g.stats.combatLevel})` : ''}</small><br>` : '';
+        return `<div class="quest"><b>${esc(q.name)}</b>${status}<p style="margin:6px 0">${esc(q.stages[st].text)}</p>${recLine}<small class="muted">Reward: ${esc(q.reward)}</small>${track}</div>`;
       }).join('');
       return `<h3 class="title" style="font-size:14px;margin:12px 0 6px">${esc(name)} <small class="muted">${done}/${list.length} done</small></h3>${rows}`;
     }).join('');
@@ -1483,12 +1485,15 @@ export class UI {
   private updateTracker() {
     const g = this.game, el = this.el.track, id = g.trackedQuest(), goal = id ? g.questGoal(id) : null;
     const away = goal?.region && goal.region !== g.s.region ? REGIONS[goal.region as RegionId]?.name : null;
-    const key = `${id}|${goal?.text}|${away}|${!!g.dead}`;
+    // the warning only on a step that's a fight (the journal always gives the level)
+    const stg = id ? QUESTS[id].stages[g.questStage(id)] : null, fight = !!stg && ((!!stg.kill && !stg.kill.sea) || !!stg.at?.arena);
+    const rec = id && fight ? g.questCombat(id) : null, low = rec !== null && g.stats.combatLevel < rec - 2;
+    const key = `${id}|${goal?.text}|${away}|${!!g.dead}|${low}`;
     if (key === this.trackKey) return;
     this.trackKey = key;
     el.hidden = !id || !goal || !!g.dead;
     if (el.hidden) return;
-    el.innerHTML = `<b>${esc(QUESTS[id!].name)}</b><span>${esc(goal!.text)}</span>${away ? `<small>In ${esc(away)}</small>` : ''}`;
+    el.innerHTML = `<b>${esc(QUESTS[id!].name)}</b><span>${esc(goal!.text)}</span>${away ? `<small>In ${esc(away)}</small>` : ''}${low ? `<small class="rec low">Combat ${rec} recommended</small>` : ''}`;
   }
 
   /** The tracked quest's goal on a map: a gold ring where it is, or (minimap) a gold arrow at the rim pointing to it. */
