@@ -195,13 +195,13 @@ export const FISH = [
 const ORES = [
   { id: 'ore_coal', name: 'Coal', desc: 'Black, crumbly, burns long. Smelting stronger metals needs it.', accent: '#1d1d1f', value: 22 },
   { id: 'ore_gold', name: 'Gold ore', desc: 'Soft and bright.', accent: '#e3c25e', value: 40 },
-  { id: 'ore_storm', name: 'Stormsilver ore', desc: 'Crackles faintly when you hold it.', accent: '#8fc0e8', value: 70 },
-  { id: 'ore_abyss', name: 'Abyssite ore', desc: 'Green-black, cold as deep water.', accent: '#3f8f6e', value: 120 },
-  { id: 'ore_tide', name: 'Tidecore ore', desc: 'It pulls toward the sea like a compass needle.', accent: '#3fd8d0', value: 220 },
-  { id: 'ore_cinder', name: 'Cinderite ore', desc: 'Still warm from the vent. Only volcanic heat will melt it.', accent: '#e0582a', value: 340 },
-  { id: 'ore_sky', name: 'Skyglass ore', desc: 'A shard of the fallen star. It hums when you hold it to the sky.', accent: '#a99aff', value: 520 },
-  { id: 'ore_levi', name: 'Leviathite', desc: 'Bone turned to metal over a thousand years on the seabed.', accent: '#efe6cf', value: 800 },
-  { id: 'ore_ori', name: 'Orichalcum ore', desc: 'Sunken gold from the drowned spire. It never tarnishes.', accent: '#f2b84a', value: 1200 },
+  { id: 'ore_storm', name: 'Stormsilver ore', desc: 'Stormsilver ore. Smelt it with coal.', accent: '#8fc0e8', value: 70 },
+  { id: 'ore_abyss', name: 'Abyssite ore', desc: 'Abyssite ore. Smelt it with coal and kelp ash.', accent: '#3f8f6e', value: 120 },
+  { id: 'ore_tide', name: 'Tidecore ore', desc: 'Tidecore ore. Smelt it with coal and sea salt.', accent: '#3fd8d0', value: 220 },
+  { id: 'ore_cinder', name: 'Cinderite ore', desc: 'Cinderite ore. Only the vent forge is hot enough to smelt it.', accent: '#e0582a', value: 340 },
+  { id: 'ore_sky', name: 'Skyglass ore', desc: 'Skyglass ore, from the fallen star. Needs a geode crystal to smelt.', accent: '#a99aff', value: 520 },
+  { id: 'ore_levi', name: 'Leviathite', desc: 'Leviathite ore, from the seabed. Needs sea salt to smelt.', accent: '#efe6cf', value: 800 },
+  { id: 'ore_ori', name: 'Orichalcum ore', desc: 'Orichalcum ore, from the drowned spire. Needs a geode crystal to smelt.', accent: '#f2b84a', value: 1200 },
 ];
 
 function tierItems(): ItemDef[] {
@@ -212,19 +212,19 @@ function tierItems(): ItemDef[] {
   out.push(I({ id: 'sea_salt', name: 'Sea salt', desc: 'Scraped from the salt pans. Tidecore and Leviathite need it to smelt clean.', icon: { shape: 'salt', color: '#efeae0' }, stackable: true, value: 15 }));
   out.push(I({ id: 'crystal_geode', name: 'Geode crystal', desc: 'A clear crystal from a cracked geode. Skyglass and Orichalcum will not smelt without one.', icon: { shape: 'crystal', color: '#9fe8ff' }, stackable: true, value: 120 }));
   // rare finds from the gathering perks
-  out.push(I({ id: 'bird_nest', name: 'Bird\'s nest', desc: 'Knocked from the branches. Something glints inside. Tap it and Search.', icon: { shape: 'nest', color: '#7a5a34', accent: '#e9e3d0' }, stackable: true, value: 30, opens: 'nest' }));
-  out.push(I({ id: 'casket', name: 'Sunken casket', desc: 'Barnacled and locked with rust. Tap it and Prise open.', icon: { shape: 'casket', color: '#5a4030', accent: '#c9a050' }, stackable: true, value: 60, opens: 'treasure' }));
-  out.push(I({ id: 'bar_gold', name: 'Gold bar', desc: 'Too soft for blades. Perfect for rings.', icon: { shape: 'bar', color: '#e3c25e' }, stackable: true, value: 90 }));
-  out.push(I({ id: 'ring_gold', name: 'Gold signet', desc: 'Smith-made. Gold takes enchantment well.', icon: { shape: 'ring', color: '#e3c25e', accent: '#d8442a' }, stackable: false, value: 160,
+  out.push(I({ id: 'bird_nest', name: 'Bird\'s nest', desc: 'Knocked out of a tree. Tap it and choose Search.', icon: { shape: 'nest', color: '#7a5a34', accent: '#e9e3d0' }, stackable: true, value: 30, opens: 'nest' }));
+  out.push(I({ id: 'casket', name: 'Sunken casket', desc: 'A rusty locked casket. Tap it and choose Prise open.', icon: { shape: 'casket', color: '#5a4030', accent: '#c9a050' }, stackable: true, value: 60, opens: 'treasure' }));
+  out.push(I({ id: 'bar_gold', name: 'Gold bar', desc: 'A bar of gold. Used to make jewellery.', icon: { shape: 'bar', color: '#e3c25e' }, stackable: true, value: 90 }));
+  out.push(I({ id: 'ring_gold', name: 'Gold signet', desc: 'A plain gold ring.', icon: { shape: 'ring', color: '#e3c25e', accent: '#d8442a' }, stackable: false, value: 160,
     equip: { slot: 'ring', reqs: { defence: 1 }, bonus: { acc: 2, defMelee: 1, defRanged: 1, defMagic: 2 }, affixPool: JEWEL_AFFIX } }));
   METALS.forEach((mt, m) => {
     const col = mt.color, nm = mt.name, tr = METAL_TRAITS[mt.key];
     const wTrait = tr?.weapon, aTrait = tr?.armour, tTrait = toolTrait(m);
     if (m >= 2) out.push(I({ id: `bar_${mt.key}`, name: `${nm} bar`, desc: `A bar of ${nm.toLowerCase()}.`, icon: { shape: 'bar', color: col }, stackable: true, value: BAR_VALUE[m] }));
     if (m >= 2) {
-      out.push(I({ id: `hatchet_${mt.key}`, name: `${nm} hatchet`, desc: 'A better edge fells trees faster.', icon: { shape: 'hatchet', color: col }, stackable: false, value: BAR_VALUE[m] * 2, tool: { skill: 'woodcutting', power: m + 1, level: mt.toolReq }, innate: tTrait }));
-      out.push(I({ id: `pickaxe_${mt.key}`, name: `${nm} pickaxe`, desc: 'A harder point bites harder rock.', icon: { shape: 'pickaxe', color: col }, stackable: false, value: BAR_VALUE[m] * 2, tool: { skill: 'mining', power: m + 1, level: mt.toolReq }, innate: tTrait }));
-      out.push(I({ id: `cutlass_${mt.key}`, name: `${nm} cutlass`, desc: `A ${nm.toLowerCase()} blade, balanced for boarding fights.`, icon: { shape: 'cutlass', color: col }, stackable: false, value: BAR_VALUE[m] * 3,
+      out.push(I({ id: `hatchet_${mt.key}`, name: `${nm} hatchet`, desc: 'Chops faster than the hatchet before it.', icon: { shape: 'hatchet', color: col }, stackable: false, value: BAR_VALUE[m] * 2, tool: { skill: 'woodcutting', power: m + 1, level: mt.toolReq }, innate: tTrait }));
+      out.push(I({ id: `pickaxe_${mt.key}`, name: `${nm} pickaxe`, desc: 'Mines faster than the pickaxe before it.', icon: { shape: 'pickaxe', color: col }, stackable: false, value: BAR_VALUE[m] * 2, tool: { skill: 'mining', power: m + 1, level: mt.toolReq }, innate: tTrait }));
+      out.push(I({ id: `cutlass_${mt.key}`, name: `${nm} cutlass`, desc: `${/^[aeiou]/i.test(nm) ? 'An' : 'A'} ${nm.toLowerCase()} cutlass.`, icon: { shape: 'cutlass', color: col }, stackable: false, value: BAR_VALUE[m] * 3,
         equip: { slot: 'weapon', reqs: { attack: mt.req }, style: 'melee', speed: 2.4, bonus: { acc: CUT.acc[m], str: CUT.str[m] }, affixPool: [...MELEE_AFFIX, 'leech'] }, innate: wTrait }));
       out.push(I({ id: `shot_${mt.key}`, name: `${nm} shot`, desc: 'Pistol balls. Equip in the ammo slot.', icon: { shape: 'shot', color: col }, stackable: true, value: Math.ceil(BAR_VALUE[m] / 12),
         equip: { slot: 'ammo', reqs: { ranged: mt.req }, bonus: { rangedStr: SHOT_STR[m] }, affixPool: [] } }));
@@ -238,7 +238,7 @@ function tierItems(): ItemDef[] {
     melee('dagger', 'dagger', 'Quick and sure: stabs land often, but light.', 1.8, 1.15, 0.65, 1.4, { attack: mt.req }, 1);
     melee('pike', 'boarding pike', 'Long reach: strikes from further off and runs through whatever stands behind.', 3.0, 0.95, 1.1, 2.8, { attack: mt.req }, 2.5);
     melee('greatsword', 'greatsword', 'Two hands, slow and brutal: every swing cleaves the crowd around your target.', 3.6, 0.9, 1.55, 1.9, { attack: mt.req, strength: mt.req }, 4);
-    out.push(I({ id: `crossbow_${mt.key}`, name: `${nm} crossbow`, desc: 'Slow to wind, rarely misses. Fires bolts.', icon: { shape: 'crossbow', color: '#6a4a30', accent: col }, stackable: false, value: BAR_VALUE[m] * 3,
+    out.push(I({ id: `crossbow_${mt.key}`, name: `${nm} crossbow`, desc: 'Slow to load, but accurate. Fires bolts.', icon: { shape: 'crossbow', color: '#6a4a30', accent: col }, stackable: false, value: BAR_VALUE[m] * 3,
       equip: { slot: 'weapon', reqs: { ranged: mt.req }, style: 'ranged', kind: 'crossbow', speed: 3.0, range: 11 + Math.floor(m / 3), bonus: { acc: Math.round(PISTOL.acc[m] * 1.2) }, affixPool: RANGED_AFFIX }, innate: wTrait }));
     out.push(I({ id: `arrow_${mt.key}`, name: `${nm} arrows`, desc: 'For shortbows and longbows. Equip in the ammo slot.', icon: { shape: 'arrow', color: col, accent: '#e9e3d0' }, stackable: true, value: Math.max(1, Math.ceil(BAR_VALUE[m] / 15)),
       equip: { slot: 'ammo', ammo: 'arrow', reqs: { ranged: mt.req }, bonus: { rangedStr: Math.round(SHOT_STR[m] * 0.85) }, affixPool: [] } }));
@@ -257,12 +257,12 @@ function tierItems(): ItemDef[] {
   });
   // bows: one shortbow and one longbow per wood (Fletching), firing arrows
   WOODS.forEach((w, t) => {
-    out.push(I({ id: `shortbow_${w.key}`, name: `${w.name} shortbow`, desc: 'Quick to draw: arrows come fast. Fires arrows from your ammo slot.', icon: { shape: 'bow', color: w.color, accent: w.accent }, stackable: false, value: w.value * 6 + 10,
+    out.push(I({ id: `shortbow_${w.key}`, name: `${w.name} shortbow`, desc: 'Fast to shoot. Fires arrows from your ammo slot.', icon: { shape: 'bow', color: w.color, accent: w.accent }, stackable: false, value: w.value * 6 + 10,
       equip: { slot: 'weapon', reqs: { ranged: BOW_REQ[t] }, style: 'ranged', kind: 'shortbow', speed: 1.8, range: 9 + Math.floor(t / 2), bonus: { acc: BOW_ACC[t] }, affixPool: RANGED_AFFIX } }));
-    out.push(I({ id: `longbow_${w.key}`, name: `${w.name} longbow`, desc: 'Slow, sure and far: out-ranges anything that shoots back. Fires arrows.', icon: { shape: 'bow', color: w.color, accent: w.accent }, stackable: false, value: w.value * 9 + 15,
+    out.push(I({ id: `longbow_${w.key}`, name: `${w.name} longbow`, desc: 'Slow but long range. Fires arrows.', icon: { shape: 'bow', color: w.color, accent: w.accent }, stackable: false, value: w.value * 9 + 15,
       equip: { slot: 'weapon', reqs: { ranged: BOW_REQ[t] }, style: 'ranged', kind: 'longbow', speed: 3.0, range: 13 + Math.floor(t / 2), bonus: { acc: Math.round(BOW_ACC[t] * 1.3) }, affixPool: RANGED_AFFIX } }));
   });
-  WOODS.forEach((w, t) => { if (t >= 2) out.push(I({ id: `logs_${w.key}`, name: `${w.name} logs`, desc: 'Prized by smiths for hafts and stocks.', icon: { shape: 'log', color: w.color, accent: w.accent }, stackable: true, value: w.value })); });
+  WOODS.forEach((w, t) => { if (t >= 2) out.push(I({ id: `logs_${w.key}`, name: `${w.name} logs`, desc: 'Used for bows, hafts and stocks.', icon: { shape: 'log', color: w.color, accent: w.accent }, stackable: true, value: w.value })); });
   FISH.forEach((f, t) => {
     if (t < 2) return;
     const shape = f.key === 'lobster' ? 'lobster' : 'fish';
@@ -270,19 +270,19 @@ function tierItems(): ItemDef[] {
     out.push(I({ id: `fish_${f.key}`, name: f.cooked, desc: `Heals ${f.heal}.`, icon: { shape, color: f.done }, stackable: true, value: Math.round(f.value * 1.8), heal: f.heal }));
   });
   // fishing tools and magic staffs
-  out.push(I({ id: 'lobster_pot', name: 'Lobster pot', desc: 'Wicker and twine. Lobsters walk in; they rarely walk out.', icon: { shape: 'pot', color: '#a8865a' }, stackable: false, value: 25, tool: { skill: 'fishing', power: 0, level: 1 } }));
+  out.push(I({ id: 'lobster_pot', name: 'Lobster pot', desc: 'For catching lobsters.', icon: { shape: 'pot', color: '#a8865a' }, stackable: false, value: 25, tool: { skill: 'fishing', power: 0, level: 1 } }));
   // Bellwether's quest rewards and the Storm Tide (docs/ISLANDS.md, slice 1)
-  out.push(I({ id: 'sealskin', name: 'Sealskin', desc: 'Soft as a pelt can be, and cold, and smelling of the sea. It isn\'t yours.', icon: { shape: 'hide', color: '#6a6e72', accent: '#3a3e42' }, stackable: false, value: 0, quest: true }));
-  out.push(I({ id: 'knockers_lamp', name: 'Knocker\'s lamp', desc: 'Old Pellow\'s miner\'s lamp. The knockers know its light and show you the good seams.', icon: { shape: 'amulet', color: '#c9a050', accent: '#ffd35a' }, stackable: false, value: 150,
+  out.push(I({ id: 'sealskin', name: 'Sealskin', desc: 'A selkie\'s skin. It belongs to Muirne.', icon: { shape: 'hide', color: '#6a6e72', accent: '#3a3e42' }, stackable: false, value: 0, quest: true }));
+  out.push(I({ id: 'knockers_lamp', name: 'Knocker\'s lamp', desc: 'Old Pellow\'s mining lamp. Helps you find better ore.', icon: { shape: 'amulet', color: '#c9a050', accent: '#ffd35a' }, stackable: false, value: 150,
     equip: { slot: 'neck', reqs: {}, bonus: { defMelee: 1, defRanged: 1, defMagic: 1 }, affixPool: JEWEL_AFFIX }, innate: [{ id: 'gather_speed', v: 4 }] }));
-  out.push(I({ id: 'ring_selkie', name: 'Selkie\'s pearl ring', desc: 'A pearl from under the sea, on a band of silver. Fish come to whoever wears it.', icon: { shape: 'ring', color: '#cfd5d8', accent: '#efe6dc' }, stackable: false, value: 300,
+  out.push(I({ id: 'ring_selkie', name: 'Selkie\'s pearl ring', desc: 'A silver ring set with a sea pearl. Helps you fish.', icon: { shape: 'ring', color: '#cfd5d8', accent: '#efe6dc' }, stackable: false, value: 300,
     equip: { slot: 'ring', reqs: {}, bonus: { defMagic: 2 }, affixPool: JEWEL_AFFIX }, innate: [{ id: 'gather_speed', v: 3 }, { id: 'xp_bonus', v: 2 }] }));
-  out.push(I({ id: 'cloak_selkie', name: 'Sealskin cloak', desc: 'Made from a selkie\'s skin. Warm as a seal in winter, and spells slide off it like water.', icon: { shape: 'coat', color: '#6a6e72', accent: '#3a3e42' }, stackable: false, value: 400,
+  out.push(I({ id: 'cloak_selkie', name: 'Sealskin cloak', desc: 'A cloak made from a selkie\'s skin. Good against magic.', icon: { shape: 'coat', color: '#6a6e72', accent: '#3a3e42' }, stackable: false, value: 400,
     equip: { slot: 'body', reqs: { defence: 10 }, bonus: { defMelee: 6, defRanged: 8, defMagic: 14 }, affixPool: ARMOUR_AFFIX }, innate: [{ id: 'regen', v: 1 }] }));
   // Amberhold's quest rewards (slice 3)
   out.push(I({ id: 'helm_barrow', name: 'Barrow King\'s helm', desc: 'A grave-king\'s helm, rimed with barrow frost. Blows slide off it.', icon: { shape: 'helm', color: '#8a9aa0', accent: '#c9a050' }, stackable: false, value: 1500,
     equip: { slot: 'head', reqs: { defence: 40 }, bonus: { defMelee: 32, defRanged: 30, defMagic: 12, str: 3 }, affixPool: ARMOUR_AFFIX } }));
-  out.push(I({ id: 'nokk_bridle', name: 'Nøkk\'s bridle', desc: 'Woven of river-weed and silver wire, always wet. Ingrid will know what to do with it.', icon: { shape: 'amulet', color: '#3a6a5a', accent: '#cfd5d8' }, stackable: false, value: 0, quest: true }));
+  out.push(I({ id: 'nokk_bridle', name: 'Nøkk\'s bridle', desc: 'A bridle of river weed and silver wire. Take it to Ingrid.', icon: { shape: 'amulet', color: '#3a6a5a', accent: '#cfd5d8' }, stackable: false, value: 0, quest: true }));
   out.push(I({ id: 'toll_ledger', name: 'Toll ledger', desc: 'Tollhouse\'s ledger, heavy with seals. For Sefa Odun at Port Halyard.', icon: { shape: 'book', color: '#5a3a24', accent: '#c9a050' }, stackable: false, value: 0, quest: true }));
   out.push(I({ id: 'toll_receipt', name: 'Sealed receipt', desc: 'Port Halyard\'s seal on the toll ledger. For Halvard at Tollhouse.', icon: { shape: 'parcel', color: '#e6dcc0', accent: '#a83a2a' }, stackable: false, value: 0, quest: true }));
   out.push(I({ id: 'amber_haul', name: 'Poachers\' haul', desc: 'Sacks of uncut amber, knotted the poachers\' way. For Tamsin at Port Halyard.', icon: { shape: 'parcel', color: '#8a6a3a', accent: '#e8902a' }, stackable: false, value: 0, quest: true }));
@@ -290,76 +290,76 @@ function tierItems(): ItemDef[] {
   out.push(I({ id: 'ring_toll', name: 'Toll-keeper\'s seal', desc: 'Tollhouse\'s seal in gold. Traders look twice at it, and charge you less.', icon: { shape: 'ring', color: '#e3c25e', accent: '#5a3a24' }, stackable: false, value: 400,
     equip: { slot: 'ring', reqs: {}, bonus: { acc: 3, defMelee: 2, defRanged: 2, defMagic: 2 }, affixPool: JEWEL_AFFIX } }));
   // Stormwrack's quest reward
-  out.push(I({ id: 'hat_captain', name: 'Drowned Captain\'s tricorn', desc: 'Black felt gone green at the edges, still dripping. The drowned know it, and spells slide off it.', icon: { shape: 'cap', color: '#1a1a1a', accent: '#c9a050' }, stackable: false, value: 2500,
+  out.push(I({ id: 'hat_captain', name: 'Drowned Captain\'s tricorn', desc: 'The Drowned Captain\'s hat. Good against magic.', icon: { shape: 'cap', color: '#1a1a1a', accent: '#c9a050' }, stackable: false, value: 2500,
     equip: { slot: 'head', reqs: { defence: 60 }, bonus: { defMelee: 40, defRanged: 38, defMagic: 30, acc: 4 }, affixPool: ARMOUR_AFFIX } }));
   // treasure maps: dug up or found in caskets; read one and sail to the X
-  out.push(I({ id: 'treasure_map', name: 'Treasure map', desc: 'Stained, torn, and an X in the water off some coast. Tap it and Read it on the island it shows.', icon: { shape: 'map', color: '#d8c49a', accent: '#a83a2a' }, stackable: true, value: 80, chart: true }));
+  out.push(I({ id: 'treasure_map', name: 'Treasure map', desc: 'A treasure map. Read it on the island it shows.', icon: { shape: 'map', color: '#d8c49a', accent: '#a83a2a' }, stackable: true, value: 80, chart: true }));
   // Halvdan Ninefold's sword, if you gave him the death he asked for
-  out.push(I({ id: 'sword_ninefold', name: 'Ninefold', desc: 'Halvdan\'s greatsword: nine notches in the blade for nine fights, and a tenth, fresh, for you. It\'s lighter than it looks. He said it would be.', icon: { shape: 'greatsword', color: '#b8c0c8', accent: '#8a3a2a' }, stackable: false, value: 30000,
+  out.push(I({ id: 'sword_ninefold', name: 'Ninefold', desc: 'Halvdan\'s greatsword, with a notch for every fight he won.', icon: { shape: 'greatsword', color: '#b8c0c8', accent: '#8a3a2a' }, stackable: false, value: 30000,
     equip: { slot: 'weapon', reqs: { attack: 75, strength: 75 }, style: 'melee', kind: 'greatsword', speed: 3.6, range: 1.9, bonus: { acc: 99, str: 170 }, affixPool: MELEE_AFFIX } }));
   // The Salt in the Fen: the Second Lockkey, cut out of Jenny Greenteeth
-  out.push(I({ id: 'fen_lockkey', name: 'A key of green bronze', desc: 'Slick with weed and warm from where it was. It hums when you hold it near water. A Lockkey.', icon: { shape: 'tooth', color: '#5a7a3a', accent: '#c9a050' }, stackable: false, value: 0, quest: true }));
+  out.push(I({ id: 'fen_lockkey', name: 'A key of green bronze', desc: 'A green bronze key from the fen. One of the Lockkeys.', icon: { shape: 'tooth', color: '#5a7a3a', accent: '#c9a050' }, stackable: false, value: 0, quest: true }));
   // Wardwright keycutting (Smithing at any anvil, 55+): small keys with one turn in them, cut from the high metals
-  out.push(I({ id: 'key_mend', name: 'Mending key', desc: 'Kelp jade set in tidecore. Turn it in the air and something closes: your cuts, mostly. Heals 30% of your health over 10 seconds. One turn.', icon: { shape: 'tooth', color: '#3cc6c4', accent: '#3e9a5a' }, stackable: true, value: 300, turn: 'mend' }));
-  out.push(I({ id: 'key_hush', name: 'Hush key', desc: 'A pearl in cinderite. Turn it and everything near you stops to listen: foes within 12 m stand rooted for 6 seconds (not bosses). One turn.', icon: { shape: 'tooth', color: '#b8452a', accent: '#efe6dc' }, stackable: true, value: 380, turn: 'hush' }));
-  out.push(I({ id: 'key_gust', name: 'Gust key', desc: 'Skyglass round a geode crystal. Turn it on deck and the wind turns with it: your ship sails 30% faster for 30 seconds. One turn.', icon: { shape: 'tooth', color: '#8a7ae0', accent: '#9fe8ff' }, stackable: true, value: 420, turn: 'gust' }));
-  out.push(I({ id: 'key_home', name: 'Harbour key', desc: 'Leviathite and a coral ruby. Turn it and you\'re standing on this island\'s landing, as if you\'d always been. One turn.', icon: { shape: 'tooth', color: '#d8cdb4', accent: '#d8442a' }, stackable: true, value: 500, turn: 'home' }));
+  out.push(I({ id: 'key_mend', name: 'Mending key', desc: 'A one-use key. Turn it to heal 30% of your health over 10 seconds.', icon: { shape: 'tooth', color: '#3cc6c4', accent: '#3e9a5a' }, stackable: true, value: 300, turn: 'mend' }));
+  out.push(I({ id: 'key_hush', name: 'Hush key', desc: 'A one-use key. Turn it to freeze foes within 12 m for 6 seconds (not bosses).', icon: { shape: 'tooth', color: '#b8452a', accent: '#efe6dc' }, stackable: true, value: 380, turn: 'hush' }));
+  out.push(I({ id: 'key_gust', name: 'Gust key', desc: 'A one-use key. Turn it on deck to sail 30% faster for 30 seconds.', icon: { shape: 'tooth', color: '#8a7ae0', accent: '#9fe8ff' }, stackable: true, value: 420, turn: 'gust' }));
+  out.push(I({ id: 'key_home', name: 'Harbour key', desc: 'A one-use key. Turn it to return to this island\'s landing.', icon: { shape: 'tooth', color: '#d8cdb4', accent: '#d8442a' }, stackable: true, value: 500, turn: 'home' }));
   // The galley (One Piece's bar: a good cook is half a crew): meals that do something for a while after you eat them
-  out.push(I({ id: 'grog', name: 'Bramble grog', desc: 'Bramble juice, salt and a splash of something. Sharpens the eye. Eat at full health for the effect alone.', icon: { shape: 'mug', color: '#7a2a5a', accent: '#d8b07a' }, stackable: true, value: 30, heal: 4, meal: { kind: 'acc', v: 5, secs: 360 } }));
-  out.push(I({ id: 'stargazy_pie', name: 'Stargazy pie', desc: 'A Bellwether pie with the sprats\' heads poking through the crust, looking up. Good luck for the hands that work.', icon: { shape: 'pie', color: '#c99b5c', accent: '#9ab0c4' }, stackable: true, value: 60, heal: 12, meal: { kind: 'gather', v: 6, secs: 600 } }));
-  out.push(I({ id: 'honey_salmon', name: 'Honey-glazed salmon', desc: 'Amber honey caramelised over salmon. You feel it mending you for a long while after.', icon: { shape: 'fish', color: '#e8a83a', accent: '#d86a4a' }, stackable: true, value: 120, heal: 18, meal: { kind: 'regen', v: 1, secs: 480 } }));
-  out.push(I({ id: 'pepperpot', name: 'Pepperpot', desc: 'Sunreach\'s black stew, boar simmered with bramble and salt until it\'s darker than coffee. Puts fire in your arm.', icon: { shape: 'bowl', color: '#3a2218', accent: '#c84a2a' }, stackable: true, value: 160, heal: 20, meal: { kind: 'maxhit', v: 6, secs: 480 } }));
-  out.push(I({ id: 'fiskesuppe', name: 'Northman\'s fish soup', desc: 'Salmon and lobster in a cream the colour of fog, the way they make it on Amberhold. Hits bounce off you.', icon: { shape: 'bowl', color: '#e8e0c8', accent: '#d86a4a' }, stackable: true, value: 220, heal: 22, meal: { kind: 'dr', v: 5, secs: 480 } }));
-  out.push(I({ id: 'bosun_chowder', name: 'Bosun\'s chowder', desc: 'Lobster, crab and salt in a bowl you could stand a spoon in. The crew fight over the last of it.', icon: { shape: 'bowl', color: '#e8d8b0', accent: '#d84a2a' }, stackable: true, value: 300, heal: 26, meal: { kind: 'maxhit', v: 9, secs: 600 } }));
+  out.push(I({ id: 'grog', name: 'Bramble grog', desc: 'A strong drink. Raises your accuracy for a while. You can drink it at full health.', icon: { shape: 'mug', color: '#7a2a5a', accent: '#d8b07a' }, stackable: true, value: 30, heal: 4, meal: { kind: 'acc', v: 5, secs: 360 } }));
+  out.push(I({ id: 'stargazy_pie', name: 'Stargazy pie', desc: 'A Bellwether fish pie. Speeds up gathering for a while.', icon: { shape: 'pie', color: '#c99b5c', accent: '#9ab0c4' }, stackable: true, value: 60, heal: 12, meal: { kind: 'gather', v: 6, secs: 600 } }));
+  out.push(I({ id: 'honey_salmon', name: 'Honey-glazed salmon', desc: 'Salmon glazed with honey. Heals you slowly for a while.', icon: { shape: 'fish', color: '#e8a83a', accent: '#d86a4a' }, stackable: true, value: 120, heal: 18, meal: { kind: 'regen', v: 1, secs: 480 } }));
+  out.push(I({ id: 'pepperpot', name: 'Pepperpot', desc: 'Sunreach boar stew. Raises your damage for a while.', icon: { shape: 'bowl', color: '#3a2218', accent: '#c84a2a' }, stackable: true, value: 160, heal: 20, meal: { kind: 'maxhit', v: 6, secs: 480 } }));
+  out.push(I({ id: 'fiskesuppe', name: 'Northman\'s fish soup', desc: 'Amberhold fish soup. Raises your defence for a while.', icon: { shape: 'bowl', color: '#e8e0c8', accent: '#d86a4a' }, stackable: true, value: 220, heal: 22, meal: { kind: 'dr', v: 5, secs: 480 } }));
+  out.push(I({ id: 'bosun_chowder', name: 'Bosun\'s chowder', desc: 'A thick lobster and crab chowder.', icon: { shape: 'bowl', color: '#e8d8b0', accent: '#d84a2a' }, stackable: true, value: 300, heal: 26, meal: { kind: 'maxhit', v: 9, secs: 600 } }));
   // The Lantern Relit: what Corva leaves you, either way
-  out.push(I({ id: 'hale_charts', name: 'Hale\'s charts', desc: 'Corva\'s copies of the Undertow\'s charts: every anchorage Hale has used in forty years, in a hand that shakes toward the end. Iven will want these.', icon: { shape: 'map', color: '#bcb8b0', accent: '#3a3a3a' }, stackable: false, value: 0, quest: true }));
+  out.push(I({ id: 'hale_charts', name: 'Hale\'s charts', desc: 'Copies of Captain Hale\'s charts. Take them to Iven.', icon: { shape: 'map', color: '#bcb8b0', accent: '#3a3a3a' }, stackable: false, value: 0, quest: true }));
   // The Drowned Mirror: Sunniva's lens, and the Fourth Lockkey
-  out.push(I({ id: 'saltglass_lens', name: 'Sunniva\'s great lens', desc: 'A lens the size of a cartwheel, ground from the island\'s own glass. It weighs nothing. It shouldn\'t.', icon: { shape: 'orb', color: '#c8f0ff', accent: '#ffffff' }, stackable: false, value: 0, quest: true }));
-  out.push(I({ id: 'mirror_lockkey', name: 'A key of clear glass', desc: 'It was in your reflection\'s hand. When you look at it, you see the whole sky in it, and not yourself.', icon: { shape: 'tooth', color: '#c8f0ff', accent: '#ffffff' }, stackable: false, value: 0, quest: true }));
+  out.push(I({ id: 'saltglass_lens', name: 'Sunniva\'s great lens', desc: 'A huge lens ground from Saltglass glass. It is lighter than it looks.', icon: { shape: 'orb', color: '#c8f0ff', accent: '#ffffff' }, stackable: false, value: 0, quest: true }));
+  out.push(I({ id: 'mirror_lockkey', name: 'A key of clear glass', desc: 'The Lockkey your reflection was holding.', icon: { shape: 'tooth', color: '#c8f0ff', accent: '#ffffff' }, stackable: false, value: 0, quest: true }));
   // The Line: Saoirse's line and the Fifth Lockkey
-  out.push(I({ id: 'saoirse_line', name: 'Saoirse\'s line', desc: 'Brass wire fine as hair, on a whalebone reel, a lure of Finfolk silver at its end. The Line House\'s last line. It hums against your palm.', icon: { shape: 'rod', color: '#c9a050', accent: '#d8dce0' }, stackable: false, value: 0, quest: true }));
-  out.push(I({ id: 'line_lockkey', name: 'A brass key with a hook in its bow', desc: 'It came out of the Line-fish\'s gill. Salt-bright, and silent: no sea-hum in it at all.', icon: { shape: 'tooth', color: '#c9a050', accent: '#d8dce0' }, stackable: false, value: 0, quest: true }));
+  out.push(I({ id: 'saoirse_line', name: 'Saoirse\'s line', desc: 'Saoirse\'s fishing line, with a Finfolk silver lure.', icon: { shape: 'rod', color: '#c9a050', accent: '#d8dce0' }, stackable: false, value: 0, quest: true }));
+  out.push(I({ id: 'line_lockkey', name: 'A brass key with a hook in its bow', desc: 'A Lockkey, found in the Line-fish\'s gill.', icon: { shape: 'tooth', color: '#c9a050', accent: '#d8dce0' }, stackable: false, value: 0, quest: true }));
   // Ingirid: a wedding band thirty years under the sea
-  out.push(I({ id: 'ring_ingirid', name: 'Ingirid\'s band', desc: 'A plain silver wedding band, worn thin, with a fish-scale grown into the metal. The Finfolk let it come ashore. The sea is kinder to you while you wear it.', icon: { shape: 'ring', color: '#d8dce0', accent: '#8aa89a' }, stackable: false, value: 5000,
+  out.push(I({ id: 'ring_ingirid', name: 'Ingirid\'s band', desc: 'Ingirid\'s silver wedding ring.', icon: { shape: 'ring', color: '#d8dce0', accent: '#8aa89a' }, stackable: false, value: 5000,
     equip: { slot: 'ring', reqs: { fishing: 80 }, bonus: { acc: 6, defMelee: 8, defRanged: 8, defMagic: 8 }, affixPool: JEWEL_AFFIX }, innate: [{ id: 'gather_speed', v: 4 }] }));
   // The Name on the Frame: the Keepers' ring
-  out.push(I({ id: 'ring_keeper', name: 'Keeper\'s ring', desc: 'A plain iron ring made from the two-hundred-and-thirteenth key on Orla\'s hoop. "Every Keeper wears one. You\'ve kept something. Wear it."', icon: { shape: 'ring', color: '#6a6a6e', accent: '#c9a050' }, stackable: false, value: 4000,
+  out.push(I({ id: 'ring_keeper', name: 'Keeper\'s ring', desc: 'An iron ring made from one of Orla\'s keys. Every Keeper wears one.', icon: { shape: 'ring', color: '#6a6a6e', accent: '#c9a050' }, stackable: false, value: 4000,
     equip: { slot: 'ring', reqs: { defence: 60 }, bonus: { acc: 5, defMelee: 8, defRanged: 8, defMagic: 10 }, affixPool: JEWEL_AFFIX }, innate: [{ id: 'regen', v: 1 }] }));
   // The Third Lock: Orla's ring of four hundred and nine keys, and the one that turns
-  out.push(I({ id: 'orla_ring', name: 'Orla\'s key-ring', desc: 'Four hundred and nine keys on an iron hoop the size of a dinner plate. One of them belongs to the Third Lock. Orla doesn\'t know which.', icon: { shape: 'ring', color: '#8a8a86', accent: '#c9a050' }, stackable: false, value: 0, quest: true }));
-  out.push(I({ id: 'door_lockkey', name: 'A plain iron door key', desc: 'The two-hundred-and-twelfth key on Orla\'s ring. Warm. When you hold it you want to knock on something.', icon: { shape: 'tooth', color: '#5a5a5e', accent: '#c9a050' }, stackable: false, value: 0, quest: true }));
+  out.push(I({ id: 'orla_ring', name: 'Orla\'s key-ring', desc: 'Orla\'s hoop of 409 keys. One of them opens the Third Lock.', icon: { shape: 'ring', color: '#8a8a86', accent: '#c9a050' }, stackable: false, value: 0, quest: true }));
+  out.push(I({ id: 'door_lockkey', name: 'A plain iron door key', desc: 'Key 212 from Orla\'s hoop. One of the Lockkeys.', icon: { shape: 'tooth', color: '#5a5a5e', accent: '#c9a050' }, stackable: false, value: 0, quest: true }));
   // Thirteen's in the Belly: Sigrun's horn, and the thirteenth Lockkey
-  out.push(I({ id: 'sleeper_horn', name: 'The sleeper\'s horn', desc: 'A ram\'s horn bound in bronze, older than Tollhouse. Sigrun says it plays one note, and only the deep hears it.', icon: { shape: 'tooth', color: '#d8c8a0', accent: '#c08a4a' }, stackable: false, value: 0, quest: true }));
-  out.push(I({ id: 'thirteenth_key', name: 'The thirteenth Lockkey', desc: 'Black iron, warm as a hand, and it hums the rhyme the children carve in trees. It isn\'t yours. It isn\'t anyone\'s. Don\'t put it to your ear.', icon: { shape: 'tooth', color: '#2a2a30', accent: '#bcd8ff' }, stackable: false, value: 0, quest: true }));
+  out.push(I({ id: 'sleeper_horn', name: 'The sleeper\'s horn', desc: 'An old ram\'s horn bound in bronze. Sigrun says only the deep can hear it.', icon: { shape: 'tooth', color: '#d8c8a0', accent: '#c08a4a' }, stackable: false, value: 0, quest: true }));
+  out.push(I({ id: 'thirteenth_key', name: 'The thirteenth Lockkey', desc: 'The thirteenth Lockkey, made of black iron.', icon: { shape: 'tooth', color: '#2a2a30', accent: '#bcd8ff' }, stackable: false, value: 0, quest: true }));
   // The Eighty-First Child (Mother Brine): wax for the ears, in a locket
-  out.push(I({ id: 'brine_locket', name: 'Brine\'s locket', desc: 'A tin locket full of beeswax, the kind Mother Brine gives every child who hears the song. Plug your ears with it and the world goes soft. You mend while it\'s quiet.', icon: { shape: 'amulet', color: '#9aa0a4', accent: '#e8c060' }, stackable: false, value: 3500,
+  out.push(I({ id: 'brine_locket', name: 'Brine\'s locket', desc: 'Mother Brine\'s locket, full of beeswax. It blocks out the song, and you heal while it\'s quiet.', icon: { shape: 'amulet', color: '#9aa0a4', accent: '#e8c060' }, stackable: false, value: 3500,
     equip: { slot: 'neck', reqs: { hitpoints: 50 }, bonus: { acc: 6, defMelee: 6, defRanged: 6, defMagic: 14 }, affixPool: JEWEL_AFFIX }, innate: [{ id: 'regen', v: 1 }] }));
   // Coral Key (Marisol Ransom): the Compact's first sale, and Marisol's hat
-  out.push(I({ id: 'coral_deed', name: 'The deed to Coral Key', desc: 'A thousand years old and still crisp. "An island the size of a breath, with a well and nine goats." Four spaces for four harbourmasters\' seals.', icon: { shape: 'map', color: '#e8dcc0', accent: '#c8382a' }, stackable: false, value: 0, quest: true }));
-  out.push(I({ id: 'hat_ransom', name: 'Ransom\'s tricorn', desc: 'Red felt gone soft as a cat, a gull\'s feather in the band. Marisol wore it eleven years. She says it\'s lucky. She says it like a threat.', icon: { shape: 'cap', color: '#a82a22', accent: '#d8b84a' }, stackable: false, value: 5000,
+  out.push(I({ id: 'coral_deed', name: 'The deed to Coral Key', desc: 'The old deed to Coral Key. It needs four harbourmasters\' seals.', icon: { shape: 'map', color: '#e8dcc0', accent: '#c8382a' }, stackable: false, value: 0, quest: true }));
+  out.push(I({ id: 'hat_ransom', name: 'Ransom\'s tricorn', desc: 'Marisol\'s red hat with a gull feather. She says it\'s lucky.', icon: { shape: 'cap', color: '#a82a22', accent: '#d8b84a' }, stackable: false, value: 5000,
     equip: { slot: 'head', reqs: { defence: 55 }, bonus: { defMelee: 34, defRanged: 40, defMagic: 26, acc: 8, str: 4 }, affixPool: ARMOUR_AFFIX } }));
   // Second Chance (Ash Tolliver): the letter he can't deliver himself
-  out.push(I({ id: 'ash_letter', name: 'Ash Tolliver\'s letter', desc: 'Folded small and sealed with candle wax. He wrote it eleven times. This is the one he didn\'t burn.', icon: { shape: 'book', color: '#e8dcc0', accent: '#8a3a1a' }, stackable: false, value: 0, quest: true }));
+  out.push(I({ id: 'ash_letter', name: 'Ash Tolliver\'s letter', desc: 'Ash\'s letter, sealed with candle wax.', icon: { shape: 'book', color: '#e8dcc0', accent: '#8a3a1a' }, stackable: false, value: 0, quest: true }));
   // The Lantern Burns Low: Corva's lantern and the letter in her coat
-  out.push(I({ id: 'corva_letter', name: 'A letter signed "V. H."', desc: 'Found in Sister Corva\'s coat. The hand is older than the paper. Iven should see it.', icon: { shape: 'book', color: '#d8ccb0', accent: '#3a3a3a' }, stackable: false, value: 0, quest: true }));
-  out.push(I({ id: 'orb_lantern', name: 'Corva\'s lantern', desc: 'Off-hand, beside a wand. It burns without oil, and its flame leans toward every keyhole you pass. Your spells burn hotter; your shards go further.', icon: { shape: 'orb', color: '#d8e8ff', accent: '#e8c060' }, stackable: false, value: 6000,
+  out.push(I({ id: 'corva_letter', name: 'A letter signed "V. H."', desc: 'A letter found in Sister Corva\'s coat. Show it to Iven.', icon: { shape: 'book', color: '#d8ccb0', accent: '#3a3a3a' }, stackable: false, value: 0, quest: true }));
+  out.push(I({ id: 'orb_lantern', name: 'Corva\'s lantern', desc: 'Corva\'s lantern. Off-hand, beside a wand: stronger spells, and fewer shards used.', icon: { shape: 'orb', color: '#d8e8ff', accent: '#e8c060' }, stackable: false, value: 6000,
     equip: { slot: 'offhand', off: 'orb', reqs: { magic: 75 }, bonus: { acc: 15, magicDmg: 9, defMagic: 6 }, affixPool: MAGIC_AFFIX }, innate: [{ id: 'charm_save', v: 10 }] }));
   // The First Lock: the Compact's tide table (bell-time at the Drowned Spire)
-  out.push(I({ id: 'tide_table', name: 'Compact tide table', desc: 'Mercy Gale\'s copy, the Spire\'s low water circled in red ink. "A tide table isn\'t a side," she said.', icon: { shape: 'book', color: '#3a5a6a', accent: '#d8442a' }, stackable: false, value: 0, quest: true }));
+  out.push(I({ id: 'tide_table', name: 'Compact tide table', desc: 'Mercy Gale\'s tide table, with the Spire\'s low water marked in red.', icon: { shape: 'book', color: '#3a5a6a', accent: '#d8442a' }, stackable: false, value: 0, quest: true }));
   // The Broodmother (Amberhold): Eir's silk ring
-  out.push(I({ id: 'ring_weaver', name: 'Weaver\'s ring', desc: 'Weaver silk, knotted tight around a band of amber. Eir says the silk knits flesh: you mend as you go.', icon: { shape: 'ring', color: '#e8e4d8', accent: '#e8a83a' }, stackable: false, value: 3000,
+  out.push(I({ id: 'ring_weaver', name: 'Weaver\'s ring', desc: 'A ring of weaver silk and amber. You heal slowly while you wear it.', icon: { shape: 'ring', color: '#e8e4d8', accent: '#e8a83a' }, stackable: false, value: 3000,
     equip: { slot: 'ring', reqs: { hitpoints: 40 }, bonus: { acc: 6, defMelee: 4, defRanged: 4, defMagic: 6 }, affixPool: JEWEL_AFFIX }, innate: [{ id: 'regen', v: 1 }] }));
   // Star-Struck (Stormwrack): the crater's shard, quenched
-  out.push(I({ id: 'star_shard', name: 'Singing star-shard', desc: 'Warm, humming, and it won\'t stop. Quench it in the vent forge on Thunder Crag.', icon: { shape: 'crystal', color: '#9ad8ff', accent: '#ffffff' }, stackable: false, value: 0, quest: true }));
-  out.push(I({ id: 'amulet_starfall', name: 'Starfall pendant', desc: 'A quenched star-shard on a silver chain. Still faintly warm; spells come easier with it on.', icon: { shape: 'amulet', color: '#c8d0d8', accent: '#9ad8ff' }, stackable: false, value: 4000,
+  out.push(I({ id: 'star_shard', name: 'Singing star-shard', desc: 'A piece of the fallen star. Cool it in the vent forge on Thunder Crag.', icon: { shape: 'crystal', color: '#9ad8ff', accent: '#ffffff' }, stackable: false, value: 0, quest: true }));
+  out.push(I({ id: 'amulet_starfall', name: 'Starfall pendant', desc: 'A star shard on a silver chain. Improves your magic.', icon: { shape: 'amulet', color: '#c8d0d8', accent: '#9ad8ff' }, stackable: false, value: 4000,
     equip: { slot: 'neck', reqs: { magic: 55 }, bonus: { acc: 10, str: 6, defMelee: 4, defRanged: 4, defMagic: 10, magicDmg: 4 }, affixPool: JEWEL_AFFIX } }));
   // Amberhold's hives (slice 3): the hornets carry comb back from the amberwood
-  out.push(I({ id: 'honeycomb', name: 'Amber honeycomb', desc: 'Dark amber honey in the comb, from the hornets of the amberwood. Heals 100.', icon: { shape: 'gem', color: '#e8a83a', accent: '#f8d86a' }, stackable: true, value: 40, heal: 10 }));
+  out.push(I({ id: 'honeycomb', name: 'Amber honeycomb', desc: 'Amberwood honeycomb. Heals 1000.', icon: { shape: 'gem', color: '#e8a83a', accent: '#f8d86a' }, stackable: true, value: 40, heal: 10 }));
   // Sunreach's quest rewards (docs/ISLANDS.md, slice 2)
-  out.push(I({ id: 'hat_douen', name: 'Douen\'s straw hat', desc: 'A wide straw hat from the Greenheart glade. Whoever wears it walks the jungle like they were born there.', icon: { shape: 'cap', color: '#d8c07a', accent: '#5a4a2a' }, stackable: false, value: 300,
+  out.push(I({ id: 'hat_douen', name: 'Douen\'s straw hat', desc: 'A wide straw hat from the Greenheart glade.', icon: { shape: 'cap', color: '#d8c07a', accent: '#5a4a2a' }, stackable: false, value: 300,
     equip: { slot: 'head', reqs: {}, bonus: { defMelee: 3, defRanged: 3, defMagic: 3 }, affixPool: [...ARMOUR_AFFIX, 'gather_speed'] }, innate: [{ id: 'gather_speed', v: 4 }] }));
-  out.push(I({ id: 'storm_herring_raw', name: 'Raw storm herring', desc: 'Silver herring the storm drives up to the quay. Fire them at the serpent, or cook them first: cooked ones hit twice as hard.', icon: { shape: 'fish', color: '#9ab8c8' }, stackable: true, value: 1 }));
-  out.push(I({ id: 'storm_herring', name: 'Smoked storm herring', desc: 'Hot from the quay fire. Heals 4, or loads the quay cannon for a double blow.', icon: { shape: 'fish', color: '#b8885a' }, stackable: true, value: 3, heal: 4 }));
+  out.push(I({ id: 'storm_herring_raw', name: 'Raw storm herring', desc: 'Herring washed up by the storm. Fire it at the serpent, or cook it first to hit twice as hard.', icon: { shape: 'fish', color: '#9ab8c8' }, stackable: true, value: 1 }));
+  out.push(I({ id: 'storm_herring', name: 'Smoked storm herring', desc: 'Heals 40, or loads the quay cannon for a double hit.', icon: { shape: 'fish', color: '#b8885a' }, stackable: true, value: 3, heal: 4 }));
   // the storm outfit: oilskins for the Storm Tide; every piece makes fishing a little surer
   const oil = (id: string, name: string, slot: Slot, shape: IconShape, dm: number, dg: number) =>
     out.push(I({ id, name, desc: 'Oilskin from the Storm Tide\'s reward chest. Every piece of the set makes fishing a little surer.', icon: { shape, color: '#d8b83a', accent: '#3a3428' }, stackable: false, value: 120,
@@ -376,8 +376,8 @@ function tierItems(): ItemDef[] {
   warden('warden_hat', 'Fire warden\'s hat', 'head', 'cap', 2, 2); warden('warden_coat', 'Fire warden\'s coat', 'body', 'coat', 4, 3);
   warden('warden_legs', 'Fire warden\'s trousers', 'legs', 'legs', 3, 2); warden('warden_boots', 'Fire warden\'s boots', 'feet', 'boots', 2, 1);
   // the Amber Seep (Amberhold's skilling boss): amber, braces, and the prospectors' outfit
-  out.push(I({ id: 'raw_amber', name: 'Raw amber', desc: 'A lump of amber from the seep, warm to the touch. Tip it in the cart, or set it in a brace.', icon: { shape: 'gem', color: '#e8902a', accent: '#f8c86a' }, stackable: true, value: 0, quest: true }));
-  out.push(I({ id: 'amber_brace', name: 'Amber brace', desc: 'A log bound with amber, hard as iron. Hammer it into a groaning support.', icon: { shape: 'log', color: '#8a5a2a', accent: '#e8902a' }, stackable: true, value: 0, quest: true }));
+  out.push(I({ id: 'raw_amber', name: 'Raw amber', desc: 'Amber from the seep. Put it in the cart, or make a brace with it.', icon: { shape: 'gem', color: '#e8902a', accent: '#f8c86a' }, stackable: true, value: 0, quest: true }));
+  out.push(I({ id: 'amber_brace', name: 'Amber brace', desc: 'A log bound with amber. Hammer it in under a failing support.', icon: { shape: 'log', color: '#8a5a2a', accent: '#e8902a' }, stackable: true, value: 0, quest: true }));
   const prospector = (id: string, name: string, slot: Slot, shape: IconShape, dm: number, dg: number) =>
     out.push(I({ id, name, desc: 'From the Amber Seep\'s cart. Every piece of the set makes mining and gathering a little quicker.', icon: { shape, color: '#6a5a3a', accent: '#e8902a' }, stackable: false, value: 120,
       equip: { slot, reqs: {}, bonus: { defMelee: dm, defRanged: dm, defMagic: dg }, affixPool: [...ARMOUR_AFFIX, 'gather_speed'] }, innate: [{ id: 'gather_speed', v: 2 }] }));
@@ -388,28 +388,28 @@ function tierItems(): ItemDef[] {
   out.push(I({ id: 'fire_barrel', name: 'Fire barrel', desc: 'A cask of resin and pitch with a lit fuse. Sets wooden ships ablaze. Fire it from your broadside (Sailing 20).', icon: { shape: 'pot', color: '#6a4a2a', accent: '#e8702a' }, stackable: true, value: 18 }));
   out.push(I({ id: 'depth_charge', name: 'Depth charge', desc: 'A powder keg with a fuse. Roll it over the stern; it finds what swims under you (Sailing 10).', icon: { shape: 'pot', color: '#3a3028', accent: '#c84a2a' }, stackable: true, value: 12 }));
   out.push(I({ id: 'salvage_hook', name: 'Salvage hook', desc: 'A grapnel on a long line. Drags what\'s worth having off a wreck, from the deck.', icon: { shape: 'harpoon', color: '#6a6e72', accent: '#8a5a34' }, stackable: false, value: 40, tool: { skill: 'sailing', power: 0, level: 1 } }));
-  out.push(I({ id: 'shark_tooth', name: 'Shark tooth', desc: 'Serrated and white. Strung on leather it makes a lucky charm.', icon: { shape: 'tooth', color: '#efe8d8' }, stackable: true, value: 10 }));
-  out.push(I({ id: 'amulet_sharktooth', name: 'Sharktooth necklace', desc: 'Shark teeth on a thong. Sailors swear by them.', icon: { shape: 'amulet', color: '#8a5a34', accent: '#efe8d8' }, stackable: false, value: 120,
+  out.push(I({ id: 'shark_tooth', name: 'Shark tooth', desc: 'A shark\'s tooth. Used to make a sharktooth necklace.', icon: { shape: 'tooth', color: '#efe8d8' }, stackable: true, value: 10 }));
+  out.push(I({ id: 'amulet_sharktooth', name: 'Sharktooth necklace', desc: 'A necklace of shark teeth.', icon: { shape: 'amulet', color: '#8a5a34', accent: '#efe8d8' }, stackable: false, value: 120,
     equip: { slot: 'neck', reqs: {}, bonus: { acc: 3, str: 4, defMelee: 1, defRanged: 1, defMagic: 1 }, affixPool: JEWEL_AFFIX } }));
-  out.push(I({ id: 'harpoon', name: 'Harpoon', desc: 'For fish that fight back.', icon: { shape: 'harpoon', color: '#9aa0a4' }, stackable: false, value: 60, tool: { skill: 'fishing', power: 0, level: 1 } }));
+  out.push(I({ id: 'harpoon', name: 'Harpoon', desc: 'For catching big fish such as swordfish and sharks.', icon: { shape: 'harpoon', color: '#9aa0a4' }, stackable: false, value: 60, tool: { skill: 'fishing', power: 0, level: 1 } }));
   const STAFFS: [string, string, number, number, number, string][] = [
     ['staff_coral', 'Coral staff', 20, 14, 5, '#e07a6a'], ['staff_storm', 'Stormsilver staff', 40, 22, 10, '#86b6dc'], ['staff_tide', 'Tidecore staff', 60, 32, 15, '#3cc6c4'],
   ];
   // the living island: foraging, treasure
-  out.push(I({ id: 'berries', name: 'Bramble berries', desc: 'Heals 2. Sharp, sweet, slightly squashed.', icon: { shape: 'berries', color: '#7a2a5a', accent: '#3e7a3a' }, stackable: true, value: 2, heal: 2 }));
-  out.push(I({ id: 'coconut', name: 'Coconut', desc: 'Heals 5. Crack it on a rock; drink, then eat.', icon: { shape: 'coconut', color: '#6a4a2a', accent: '#f2ece0' }, stackable: true, value: 4, heal: 5 }));
-  out.push(I({ id: 'kelp', name: 'Sea kelp', desc: 'Wrap fish in it before cooking: it keeps them moist and doubles the goodness.', icon: { shape: 'kelp', color: '#4a6a2a', accent: '#8a9a3a' }, stackable: true, value: 3 }));
-  out.push(I({ id: 'geode', name: 'Geode', desc: 'A plain stone that rattles. Tap it and Crack open.', icon: { shape: 'geode', color: '#8a8478', accent: '#9fe8ff' }, stackable: true, value: 20, opens: 'geode' }));
-  out.push(I({ id: 'spade', name: 'Spade', desc: 'For disturbed sand. Somebody always buries something.', icon: { shape: 'spade', color: '#9aa0a4' }, stackable: false, value: 12 }));
+  out.push(I({ id: 'berries', name: 'Bramble berries', desc: 'Heals 20.', icon: { shape: 'berries', color: '#7a2a5a', accent: '#3e7a3a' }, stackable: true, value: 2, heal: 2 }));
+  out.push(I({ id: 'coconut', name: 'Coconut', desc: 'Heals 50.', icon: { shape: 'coconut', color: '#6a4a2a', accent: '#f2ece0' }, stackable: true, value: 4, heal: 5 }));
+  out.push(I({ id: 'kelp', name: 'Sea kelp', desc: 'Wrap fish in it before cooking to make them heal more.', icon: { shape: 'kelp', color: '#4a6a2a', accent: '#8a9a3a' }, stackable: true, value: 3 }));
+  out.push(I({ id: 'geode', name: 'Geode', desc: 'A stone with something inside. Tap it and choose Crack open.', icon: { shape: 'geode', color: '#8a8478', accent: '#9fe8ff' }, stackable: true, value: 20, opens: 'geode' }));
+  out.push(I({ id: 'spade', name: 'Spade', desc: 'For digging up buried things.', icon: { shape: 'spade', color: '#9aa0a4' }, stackable: false, value: 12 }));
   out.push(I({ id: 'parcel_sprat', name: 'Kelp-wrapped sprat', desc: 'Heals 6.', icon: { shape: 'parcel', color: '#4a6a2a', accent: '#c9934f' }, stackable: true, value: 14, heal: 6 }));
-  out.push(I({ id: 'ale', name: 'Bellwether ale', desc: 'Heals 4. Brewed in the inn\'s cellar, from what, nobody says.', icon: { shape: 'mug', color: '#8a6a40', accent: '#d8a030' }, stackable: true, value: 5, heal: 4 }));
-  out.push(I({ id: 'pie_berry', name: 'Bramble pie', desc: 'Heals 9. Berries baked into a loaf: better than either.', icon: { shape: 'pie', color: '#c9934f', accent: '#7a2a5a' }, stackable: true, value: 18, heal: 9 }));
-  out.push(I({ id: 'crab_cakes', name: 'Crab cakes', desc: 'Heals 12. Crab and crumbs, fried golden.', icon: { shape: 'bread', color: '#d0903f' }, stackable: true, value: 30, heal: 12 }));
-  out.push(I({ id: 'fish_pie', name: 'Fisherman\'s pie', desc: 'Heals 20. Trout and salmon under a crust.', icon: { shape: 'pie', color: '#d8a860', accent: '#e8d8b8' }, stackable: true, value: 70, heal: 20 }));
-  out.push(I({ id: 'lobster_bisque', name: 'Lobster bisque', desc: 'Heals 26. Rich, red and salty.', icon: { shape: 'bowl', color: '#8a5a3a', accent: '#d8442a' }, stackable: true, value: 120, heal: 26 }));
-  out.push(I({ id: 'sword_kelp', name: 'Kelp-wrapped swordfish', desc: 'Heals 28. Steamed in its own wrap of kelp.', icon: { shape: 'parcel', color: '#3e5a26', accent: '#a8703a' }, stackable: true, value: 160, heal: 28 }));
-  out.push(I({ id: 'captains_feast', name: 'Captain\'s feast', desc: 'Heals 34. Shark and angler, salted and roasted. Fit for a captain.', icon: { shape: 'pie', color: '#a87a5a', accent: '#d88a4a' }, stackable: true, value: 260, heal: 34 }));
-  out.push(I({ id: 'fish_stew', name: 'Fisherman\'s stew', desc: 'Heals 18. Salmon, kelp and sea salt, slow-cooked.', icon: { shape: 'bowl', color: '#9a6a40', accent: '#d88a4a' }, stackable: true, value: 55, heal: 18 }));
+  out.push(I({ id: 'ale', name: 'Bellwether ale', desc: 'Heals 40.', icon: { shape: 'mug', color: '#8a6a40', accent: '#d8a030' }, stackable: true, value: 5, heal: 4 }));
+  out.push(I({ id: 'pie_berry', name: 'Bramble pie', desc: 'Heals 90.', icon: { shape: 'pie', color: '#c9934f', accent: '#7a2a5a' }, stackable: true, value: 18, heal: 9 }));
+  out.push(I({ id: 'crab_cakes', name: 'Crab cakes', desc: 'Heals 120.', icon: { shape: 'bread', color: '#d0903f' }, stackable: true, value: 30, heal: 12 }));
+  out.push(I({ id: 'fish_pie', name: 'Fisherman\'s pie', desc: 'Heals 200.', icon: { shape: 'pie', color: '#d8a860', accent: '#e8d8b8' }, stackable: true, value: 70, heal: 20 }));
+  out.push(I({ id: 'lobster_bisque', name: 'Lobster bisque', desc: 'Heals 260.', icon: { shape: 'bowl', color: '#8a5a3a', accent: '#d8442a' }, stackable: true, value: 120, heal: 26 }));
+  out.push(I({ id: 'sword_kelp', name: 'Kelp-wrapped swordfish', desc: 'Heals 280.', icon: { shape: 'parcel', color: '#3e5a26', accent: '#a8703a' }, stackable: true, value: 160, heal: 28 }));
+  out.push(I({ id: 'captains_feast', name: 'Captain\'s feast', desc: 'Heals 340.', icon: { shape: 'pie', color: '#a87a5a', accent: '#d88a4a' }, stackable: true, value: 260, heal: 34 }));
+  out.push(I({ id: 'fish_stew', name: 'Fisherman\'s stew', desc: 'Heals 180.', icon: { shape: 'bowl', color: '#9a6a40', accent: '#d88a4a' }, stackable: true, value: 55, heal: 18 }));
   out.push(I({ id: 'parcel_trout', name: 'Kelp-wrapped trout', desc: 'Heals 11.', icon: { shape: 'parcel', color: '#3e5a26', accent: '#b8834a' }, stackable: true, value: 30, heal: 11 }));
   for (const [id, name, req, acc, dmg, col] of STAFFS) out.push(I({ id, name, desc: `Casts your chosen spell. +${dmg}% spell damage.`, icon: { shape: 'staff', color: '#6a4a30', accent: col }, stackable: false, value: req * 12,
     equip: { slot: 'weapon', reqs: { magic: req }, style: 'magic', speed: 2.4, range: 9 + Math.floor(req / 30), bonus: { acc, magicDmg: dmg, defMagic: 4 + req / 5 }, affixPool: MAGIC_AFFIX } }));
@@ -424,21 +424,21 @@ function tierItems(): ItemDef[] {
   const ORB_NAME = ['Sea-glass orb', 'Coral orb', 'Storm orb', 'Tidecore orb'], ORB_ID = ['glass', 'coral', 'storm', 'tide'];
   const BOOK_NAME = ['Sailor\'s almanac', 'Coral codex', 'Storm log', 'Tidecaller\'s grimoire'], BOOK_ID = ['almanac', 'coral', 'storm', 'tide'];
   MAGIC_TIERS.forEach((t, k) => {
-    out.push(I({ id: `wand_${t.key}`, name: WAND_NAME[k], desc: 'One-handed: casts your chosen spell and leaves the off-hand free for an orb, a book, a shield or a second wand.', icon: { shape: 'wand', color: t.wood, accent: t.glow }, stackable: false, value: Math.max(20, t.req * 10),
+    out.push(I({ id: `wand_${t.key}`, name: WAND_NAME[k], desc: 'One-handed. Casts your chosen spell and leaves your off-hand free.', icon: { shape: 'wand', color: t.wood, accent: t.glow }, stackable: false, value: Math.max(20, t.req * 10),
       equip: { slot: 'weapon', reqs: { magic: t.req }, style: 'magic', kind: 'wand', speed: 2.4, range: 8 + Math.floor(t.req / 30), bonus: { acc: WAND.acc[k], magicDmg: WAND.dmg[k], defMagic: 2 + k * 2 }, affixPool: MAGIC_AFFIX } }));
     out.push(I({ id: `orb_${ORB_ID[k]}`, name: ORB_NAME[k], desc: `Off-hand, beside a wand. Focuses your spells: +${ORB.dmg[k]}% spell damage.`, icon: { shape: 'orb', color: t.glow, accent: '#e9fbff' }, stackable: false, value: Math.max(20, t.req * 9),
       equip: { slot: 'offhand', off: 'orb', reqs: { magic: t.req }, bonus: { acc: ORB.acc[k], magicDmg: ORB.dmg[k] }, affixPool: MAGIC_AFFIX } }));
-    out.push(I({ id: `book_${BOOK_ID[k]}`, name: BOOK_NAME[k], desc: 'Off-hand, beside a wand. Its pages ward off spells, and its rites waste fewer shards.', icon: { shape: 'book', color: k === 0 ? '#7a5534' : '#3a4a6a', accent: t.glow }, stackable: false, value: Math.max(20, t.req * 9),
+    out.push(I({ id: `book_${BOOK_ID[k]}`, name: BOOK_NAME[k], desc: 'Off-hand, beside a wand. Some magic defence, and fewer shards used.', icon: { shape: 'book', color: k === 0 ? '#7a5534' : '#3a4a6a', accent: t.glow }, stackable: false, value: Math.max(20, t.req * 9),
       equip: { slot: 'offhand', off: 'book', reqs: { magic: t.req }, bonus: { magicDmg: BOOK.dmg[k], defMagic: BOOK.def[k] }, affixPool: ['max_hp', 'regen', 'xp_bonus', 'accuracy'] }, innate: [{ id: 'charm_save', v: BOOK.save[k] }] }));
   });
   // jewellery: a pendant and a bangle beside the rings (gold ones are forged; Crafting will take jewellery over)
   out.push(I({ id: 'amulet_brass', name: 'Brass pendant', desc: 'A wave stamped in brass, on a cord.', icon: { shape: 'amulet', color: '#d4b25a' }, stackable: false, value: 45,
     equip: { slot: 'neck', reqs: {}, bonus: { defMelee: 1, defRanged: 1, defMagic: 2 }, affixPool: JEWEL_AFFIX } }));
-  out.push(I({ id: 'amulet_gold', name: 'Gold amulet', desc: 'Heavy gold on a chain. Gold takes enchantment well.', icon: { shape: 'amulet', color: '#e3c25e', accent: '#d8442a' }, stackable: false, value: 200,
+  out.push(I({ id: 'amulet_gold', name: 'Gold amulet', desc: 'A plain gold amulet.', icon: { shape: 'amulet', color: '#e3c25e', accent: '#d8442a' }, stackable: false, value: 200,
     equip: { slot: 'neck', reqs: { defence: 1 }, bonus: { acc: 3, str: 3, defMelee: 2, defRanged: 2, defMagic: 3 }, affixPool: JEWEL_AFFIX } }));
   out.push(I({ id: 'bracelet_brass', name: 'Brass bangle', desc: 'A plain band for the wrist.', icon: { shape: 'bracelet', color: '#d4b25a' }, stackable: false, value: 35,
     equip: { slot: 'wrist', reqs: {}, bonus: { defMelee: 1, defRanged: 1, defMagic: 1 }, affixPool: JEWEL_AFFIX } }));
-  out.push(I({ id: 'bracelet_gold', name: 'Gold bracelet', desc: 'A twisted gold band. Gold takes enchantment well.', icon: { shape: 'bracelet', color: '#e3c25e', accent: '#59d0c4' }, stackable: false, value: 180,
+  out.push(I({ id: 'bracelet_gold', name: 'Gold bracelet', desc: 'A plain gold bracelet.', icon: { shape: 'bracelet', color: '#e3c25e', accent: '#59d0c4' }, stackable: false, value: 180,
     equip: { slot: 'wrist', reqs: { defence: 1 }, bonus: { acc: 2, defMelee: 2, defRanged: 2, defMagic: 2 }, affixPool: JEWEL_AFFIX } }));
   // leather: light, cheap, kind to spellcasters (a full leather set with the cap and padded coat)
   out.push(I({ id: 'chaps_leather', name: 'Leather chaps', desc: 'Light. Good against shot.', icon: { shape: 'legs', color: '#7a5534' }, stackable: false, value: 20,
@@ -448,46 +448,46 @@ function tierItems(): ItemDef[] {
   out.push(I({ id: 'gloves_leather', name: 'Leather gloves', desc: 'Supple gloves. A surer grip on a trigger or a blade.', icon: { shape: 'gloves', color: '#7a5534' }, stackable: false, value: 12,
     equip: { slot: 'hands', reqs: {}, bonus: { acc: 2, defMelee: 1, defRanged: 1, defMagic: 1 }, affixPool: [...ARMOUR_AFFIX, 'gather_speed'] } }));
   // ---- Crafting (Tom, 2026-10-25): leather, snakeskin, spider silk, sunscale and jewellery for the new slots
-  out.push(I({ id: 'boar_hide', name: 'Boar hide', desc: 'A bristly Greenheart hide. Tan it at a workbench with sea salt.', icon: { shape: 'hide', color: '#8a5a3a', accent: '#5a3a24' }, stackable: true, value: 14 }));
+  out.push(I({ id: 'boar_hide', name: 'Boar hide', desc: 'A Greenheart boar hide. Tan it at a workbench with sea salt.', icon: { shape: 'hide', color: '#8a5a3a', accent: '#5a3a24' }, stackable: true, value: 14 }));
   out.push(I({ id: 'leather', name: 'Leather', desc: 'Tanned hide, ready to cut and stitch.', icon: { shape: 'hide', color: '#a8784a', accent: '#7a5534' }, stackable: true, value: 24 }));
   // a whole set per material: [id, name, slot, shape, defMelee, defRanged, defMagic, extra bonus]
   type Piece = [string, string, Slot, IconShape, number, number, number, Bonuses?];
   const set = (pieces: Piece[], col: string, acc: string, reqs: (k: number) => Partial<Record<SkillId, number>>, desc: string, pool: string[], value: number) =>
     pieces.forEach(([id, name, slot, shape, dm, dr, dg, extra], k) => out.push(I({ id, name, desc, icon: { shape, color: col, accent: acc }, stackable: false, value: value * (k + 2),
       equip: { slot, off: slot === 'offhand' ? 'shield' : undefined, reqs: reqs(k), bonus: { defMelee: dm, defRanged: dr, defMagic: dg, ...extra }, affixPool: pool } })));
-  out.push(I({ id: 'chitin', name: 'Chitin', desc: 'A plate of shore-beetle shell. Light and hard; lace it into armour at a workbench.', icon: { shape: 'shell', color: '#7a6a4a', accent: '#c8b088' }, stackable: true, value: 9 }));
+  out.push(I({ id: 'chitin', name: 'Chitin', desc: 'A plate of beetle shell. Used to make light armour at a workbench.', icon: { shape: 'shell', color: '#7a6a4a', accent: '#c8b088' }, stackable: true, value: 9 }));
   // Sunreach's insects (docs/ISLANDS.md slice 2): leafcutter resin, mantis blades, and the dagger made of them
-  out.push(I({ id: 'resin', name: 'Leafcutter resin', desc: 'Sticky amber resin the ants carry. Sets hard as horn; good for a grip.', icon: { shape: 'gem', color: '#d8902a', accent: '#f2c86a' }, stackable: true, value: 12 }));
-  out.push(I({ id: 'mantis_blade', name: 'Mantis blade', desc: 'A jungle mantis\'s forelimb, edged like a saw. Set two in resin at a workbench.', icon: { shape: 'dagger', color: '#6a9a3a', accent: '#c8e07a' }, stackable: true, value: 28 }));
-  out.push(I({ id: 'dagger_mantis', name: 'Mantis-blade dagger', desc: 'Two mantis forelimbs set in resin. Lighter and quicker than any metal dagger.', icon: { shape: 'dagger', color: '#6a9a3a', accent: '#d8902a' }, stackable: false, value: 220,
+  out.push(I({ id: 'resin', name: 'Leafcutter resin', desc: 'Hard ant resin. Used to make grips.', icon: { shape: 'gem', color: '#d8902a', accent: '#f2c86a' }, stackable: true, value: 12 }));
+  out.push(I({ id: 'mantis_blade', name: 'Mantis blade', desc: 'A jungle mantis forelimb with a saw edge. Set two in resin at a workbench.', icon: { shape: 'dagger', color: '#6a9a3a', accent: '#c8e07a' }, stackable: true, value: 28 }));
+  out.push(I({ id: 'dagger_mantis', name: 'Mantis-blade dagger', desc: 'Two mantis forelimbs set in resin. Quicker than any metal dagger.', icon: { shape: 'dagger', color: '#6a9a3a', accent: '#d8902a' }, stackable: false, value: 220,
     equip: { slot: 'weapon', reqs: { attack: 20 }, style: 'melee', kind: 'dagger', speed: 1.6, range: 1.4, bonus: { acc: 50, str: 27 }, affixPool: [...MELEE_AFFIX, 'leech'] } }));
   // chitin: shore-beetle shell on leather; turns blades, light enough to run in (Defence 10-15)
   set([
     ['helm_chitin', 'Chitin helm', 'head', 'helm', 5, 3, 1], ['legs_chitin', 'Chitin legs', 'legs', 'legs', 8, 5, 2], ['body_chitin', 'Chitin body', 'body', 'plate', 12, 8, 3],
-  ], '#7a6a4a', '#c8b088', (k) => ({ defence: [10, 12, 15][k] }), 'Shore-beetle shell laced on leather. It turns a blade and weighs next to nothing.', ARMOUR_AFFIX, 30);
+  ], '#7a6a4a', '#c8b088', (k) => ({ defence: [10, 12, 15][k] }), 'Light armour made of beetle shell on leather.', ARMOUR_AFFIX, 30);
   // snakeskin: archers' armour, tough against shot and spells, light against blades (Ranged 30-45)
   set([
     ['vambraces_snake', 'Snakeskin vambraces', 'hands', 'gloves', 2, 4, 2, { acc: 6 }], ['boots_snake', 'Snakeskin boots', 'feet', 'boots', 3, 5, 2],
     ['chaps_snake', 'Snakeskin chaps', 'legs', 'legs', 10, 18, 7], ['cowl_snake', 'Snakeskin cowl', 'head', 'cap', 5, 9, 4], ['body_snake', 'Snakeskin body', 'body', 'coat', 18, 30, 12],
-  ], '#7a9a3a', '#d8b84a', (k) => ({ ranged: [30, 33, 37, 40, 45][k], defence: 20 }), 'Gold-and-green jungle snakeskin. Light, supple, hard for shot to pierce.', [...ARMOUR_AFFIX, 'accuracy', 'crit'], 60);
+  ], '#7a9a3a', '#d8b84a', (k) => ({ ranged: [30, 33, 37, 40, 45][k], defence: 20 }), 'Light jungle-snakeskin armour. Good for archers and gunners.', [...ARMOUR_AFFIX, 'accuracy', 'crit'], 60);
   // spider silk: casters' robes, no penalty to magic, every piece adds spell damage (Magic 25-55)
   set([
     ['hood_silk', 'Silk hood', 'head', 'cap', 2, 2, 6, { magicDmg: 1 }], ['gloves_silk', 'Silk gloves', 'hands', 'gloves', 1, 1, 4, { acc: 3 }], ['boots_silk', 'Silk boots', 'feet', 'boots', 1, 1, 4, { magicDmg: 1 }],
     ['skirt_silk', 'Silk robe bottom', 'legs', 'legs', 4, 4, 12, { magicDmg: 2 }], ['robe_silk', 'Silk robe top', 'body', 'coat', 6, 6, 20, { magicDmg: 3 }],
-  ], '#e8e6dc', '#59d0c4', (k) => ({ magic: [25, 30, 35, 45, 55][k] }), 'Woven from cave-spider silk. Spells pass through it as if it were water.', [...ARMOUR_AFFIX, 'dmg_pct', 'xp_bonus'], 70);
+  ], '#e8e6dc', '#59d0c4', (k) => ({ magic: [25, 30, 35, 45, 55][k] }), 'Robes woven from cave-spider silk. Good for spellcasters.', [...ARMOUR_AFFIX, 'dmg_pct', 'xp_bonus'], 70);
   // sunscale: the temple serpent's scales; heavy armour with no weakness to magic (Defence 60)
   set([
     ['shield_sunscale', 'Sunscale shield', 'offhand', 'shield', 30, 30, 20], ['legs_sunscale', 'Sunscale legs', 'legs', 'legs', 34, 34, 20],
     ['body_sunscale', 'Sunscale body', 'body', 'plate', 70, 70, 40], ['helm_sunscale', 'Sunscale helm', 'head', 'helm', 20, 20, 12],
-  ], '#e8b83a', '#a86a1a', () => ({ defence: 60 }), 'Scales from the temple serpent, bright as hammered gold. Spells slide off it.', [...ARMOUR_AFFIX, 'elite_dmg'], 500);
+  ], '#e8b83a', '#a86a1a', () => ({ defence: 60 }), 'Armour made from the temple serpent\'s scales.', [...ARMOUR_AFFIX, 'elite_dmg'], 500);
   // jewellery: gold set with a geode crystal, then sunscale (plain gold ones are above)
   const jewel = (id: string, name: string, slot: Slot, shape: IconShape, col: string, acc: string, bonus: Bonuses, value: number, desc: string) =>
     out.push(I({ id, name, desc, icon: { shape, color: col, accent: acc }, stackable: false, value, equip: { slot, reqs: {}, bonus, affixPool: JEWEL_AFFIX } }));
-  jewel('ring_crystal', 'Crystal ring', 'ring', 'ring', '#e3c25e', '#9fe8ff', { acc: 4, defMagic: 3 }, 420, 'Gold set with a geode crystal. It hums faintly.');
+  jewel('ring_crystal', 'Crystal ring', 'ring', 'ring', '#e3c25e', '#9fe8ff', { acc: 4, defMagic: 3 }, 420, 'A gold ring set with a geode crystal.');
   jewel('bracelet_crystal', 'Crystal bracelet', 'wrist', 'bracelet', '#e3c25e', '#9fe8ff', { acc: 4, defMelee: 3, defRanged: 3, defMagic: 3 }, 460, 'Gold set with geode crystals.');
-  jewel('amulet_crystal', 'Crystal amulet', 'neck', 'amulet', '#e3c25e', '#9fe8ff', { acc: 6, str: 6, defMelee: 3, defRanged: 3, defMagic: 4 }, 600, 'A geode crystal in a gold cage. It throws light on the deck.');
+  jewel('amulet_crystal', 'Crystal amulet', 'neck', 'amulet', '#e3c25e', '#9fe8ff', { acc: 6, str: 6, defMelee: 3, defRanged: 3, defMagic: 4 }, 600, 'A geode crystal on a gold chain.');
   jewel('ring_sunscale', 'Sunscale ring', 'ring', 'ring', '#e8b83a', '#d8442a', { acc: 6, str: 4, defMagic: 3 }, 1400, 'A band cut from one of the serpent\'s scales.');
-  jewel('amulet_sunscale', 'Sunscale amulet', 'neck', 'amulet', '#e8b83a', '#d8442a', { acc: 10, str: 10, defMelee: 5, defRanged: 5, defMagic: 5 }, 2400, 'The serpent\'s brightest scale, on a gold chain. Warm against the skin.');
+  jewel('amulet_sunscale', 'Sunscale amulet', 'neck', 'amulet', '#e8b83a', '#d8442a', { acc: 10, str: 10, defMelee: 5, defRanged: 5, defMagic: 5 }, 2400, 'The serpent\'s best scale on a gold chain.');
   // ---- gems (drops.ts): rough from any creature's gem table or from mining; polished at the bench; set in gold at
   // the furnace as a ring, bracelet or amulet (better gem, better piece)
   GEMS.forEach((g, t) => {
@@ -504,26 +504,26 @@ function tierItems(): ItemDef[] {
   // ---- enchanted jewellery (data/spellbook.ts: Enchant I-V): the same piece, its gem woken with a star shard. It keeps
   // the gold piece's bonuses and gains a lasting trait (Tom, 2026-10-27: "start building the enchanting jewellery")
   const ENCH: Record<(typeof GEMS)[number]['key'], Record<'ring' | 'bracelet' | 'amulet', [string, { id: string; v: number }[], string]>> = {
-    pearl: { ring: ['Ring of the Shallows', [{ id: 'gather_speed', v: 6 }], 'The pearl remembers the sea floor. Things come easier to your hand.'],
-      bracelet: ['Tidewatcher\'s bangle', [{ id: 'regen', v: 1 }], 'Cool on the wrist, like a rising tide. Small hurts close on their own.'],
-      amulet: ['Amulet of the Deep', [{ id: 'charm_save', v: 10 }], 'The pearl drinks a little of every spell, and gives some back.'] },
-    jade: { ring: ['Ring of Plenty', [{ id: 'xp_bonus', v: 3 }], 'Kelp jade, green as a held breath. Whatever you do, you learn a little more from it.'],
-      bracelet: ['Kelpweaver\'s bracelet', [{ id: 'gather_speed', v: 8 }], 'The jade hums when your work goes well, which is often.'],
-      amulet: ['Amulet of Mending', [{ id: 'regen', v: 2 }], 'Green light pools under the stone. Wounds knit while you walk.'] },
-    ruby: { ring: ['Reaver\'s ring', [{ id: 'leech', v: 3 }], 'The coral ruby warms when blood is spilled, and gives some of it back to you.'],
-      bracelet: ['Emberwrist', [{ id: 'crit', v: 3 }], 'A red coal at the wrist. Now and then a blow lands with everything behind it.'],
-      amulet: ['Amulet of Fury', [{ id: 'dmg_pct', v: 4 }], 'The ruby burns in its cage. So do you.'] },
-    diamond: { ring: ['Ring of Warding', [{ id: 'armour', v: 6 }], 'Storm diamond: blows turn on it like rain on glass.'],
-      bracelet: ['Stormguard bracelet', [{ id: 'max_hp', v: 3 }], 'The diamond holds a storm, and lends you its weather.'],
-      amulet: ['Amulet of Power', [{ id: 'accuracy', v: 8 }, { id: 'dmg_pct', v: 3 }], 'Cold light, and a steadiness in the hand that wasn\'t yours before.'] },
-    eye: { ring: ['Leviathan\'s signet', [{ id: 'elite_dmg', v: 8 }], 'The eye watches the strongest thing in any fight. So do you, and you hit it harder.'],
-      bracelet: ['Leviathan\'s grasp', [{ id: 'leech', v: 4 }, { id: 'crit', v: 3 }], 'It tightens a little when you strike. You are fed by it.'],
-      amulet: ['Eye of the Deep', [{ id: 'xp_bonus', v: 5 }, { id: 'charm_save', v: 10 }], 'The Leviathan\'s eye, open. It has seen everything twice, and shows you some of it.'] },
+    pearl: { ring: ['Ring of the Shallows', [{ id: 'gather_speed', v: 6 }], 'Faster gathering.'],
+      bracelet: ['Tidewatcher\'s bangle', [{ id: 'regen', v: 1 }], 'You heal slowly over time.'],
+      amulet: ['Amulet of the Deep', [{ id: 'charm_save', v: 10 }], 'Spells sometimes use no shards.'] },
+    jade: { ring: ['Ring of Plenty', [{ id: 'xp_bonus', v: 3 }], 'A little more skill XP.'],
+      bracelet: ['Kelpweaver\'s bracelet', [{ id: 'gather_speed', v: 8 }], 'Faster gathering.'],
+      amulet: ['Amulet of Mending', [{ id: 'regen', v: 2 }], 'You heal over time.'] },
+    ruby: { ring: ['Reaver\'s ring', [{ id: 'leech', v: 3 }], 'Heals you for some of the damage you deal.'],
+      bracelet: ['Emberwrist', [{ id: 'crit', v: 3 }], 'More maximum hits.'],
+      amulet: ['Amulet of Fury', [{ id: 'dmg_pct', v: 4 }], 'Higher max hit.'] },
+    diamond: { ring: ['Ring of Warding', [{ id: 'armour', v: 6 }], 'More defence against everything.'],
+      bracelet: ['Stormguard bracelet', [{ id: 'max_hp', v: 3 }], 'More maximum health.'],
+      amulet: ['Amulet of Power', [{ id: 'accuracy', v: 8 }, { id: 'dmg_pct', v: 3 }], 'Higher accuracy and max hit.'] },
+    eye: { ring: ['Leviathan\'s signet', [{ id: 'elite_dmg', v: 8 }], 'More damage to elites and bosses.'],
+      bracelet: ['Leviathan\'s grasp', [{ id: 'leech', v: 4 }, { id: 'crit', v: 3 }], 'Heals you for some of the damage you deal, and more maximum hits.'],
+      amulet: ['Eye of the Deep', [{ id: 'xp_bonus', v: 5 }, { id: 'charm_save', v: 10 }], 'More skill XP, and spells sometimes use no shards.'] },
   };
   GEMS.forEach((g) => {
     for (const kind of ['ring', 'bracelet', 'amulet'] as const) {
       const base = out.find((x) => x.id === `${kind}_${g.key}`)!, [name, innate, desc] = ENCH[g.key][kind];
-      out.push(I({ ...base, id: `ench_${kind}_${g.key}`, name, desc: `${desc} (Enchanted ${base.name.toLowerCase()}.)`, value: Math.round(base.value * 1.6), innate,
+      out.push(I({ ...base, id: `ench_${kind}_${g.key}`, name, desc: `An enchanted ${base.name.toLowerCase()}. ${desc}`, value: Math.round(base.value * 1.6), innate,
         icon: { ...base.icon, accent: g.colour, color: '#f2d878' } }));
     }
   });
@@ -532,86 +532,86 @@ function tierItems(): ItemDef[] {
   const sig = (id: string, name: string, desc: string, shape: IconShape, col: string, acc: string, style: CombatStyle, kind: WeaponKind, reqs: Partial<Record<SkillId, number>>, speed: number, range: number | undefined, bonus: Bonuses, s: { id: SigId; text: string }) =>
     out.push(I({ id, name, desc, icon: { shape, color: col, accent: acc }, stackable: false, value: 60000, sig: s,
       equip: { slot: 'weapon', reqs, style, kind, speed, range, bonus, affixPool: SIG_AFFIX[style] } }));
-  sig('sig_lash', 'Undertow Lash', 'A whip of living kelp with a barbed tip. It never quite stops moving.', 'cutlass', '#3e7a3a', '#59d0c4', 'melee', 'cutlass', { attack: 70 }, 2.4, 3.0, { acc: 112, str: 90 },
+  sig('sig_lash', 'Undertow Lash', 'A whip made of kelp, with a barbed tip.', 'cutlass', '#3e7a3a', '#59d0c4', 'melee', 'cutlass', { attack: 70 }, 2.4, 3.0, { acc: 112, str: 90 },
     { id: 'lash', text: 'Reaches 3 m; every hit drags the foe toward you and slows it for 2 s' });
   sig('sig_jaw', 'Leviathan\'s Jaw', 'A greatsword ground from a leviathan\'s jawbone, teeth still in it.', 'greatsword', '#efe6cf', '#a8203a', 'melee', 'greatsword', { attack: 80, strength: 80 }, 3.6, 1.9, { acc: 104, str: 180 },
     { id: 'jaw', text: 'Every fourth swing bites twice and heals you 5% of the damage' });
   sig('sig_bell', 'Bellbreaker', 'A boarding pike capped with a cracked bronze bell. It rings when it hits.', 'pike', '#c08a4a', '#e3c25e', 'melee', 'pike', { attack: 75 }, 3.0, 2.8, { acc: 100, str: 124 },
     { id: 'bell', text: 'Hits have a 25% chance to stun the foe for 1.5 s' });
-  sig('sig_fang', 'Sunscale Fang', 'A dagger made from the temple serpent\'s fang. Its venom never dried.', 'dagger', '#e8b83a', '#4f9a52', 'melee', 'dagger', { attack: 72 }, 1.8, 1.4, { acc: 128, str: 74 },
+  sig('sig_fang', 'Sunscale Fang', 'A dagger made from the temple serpent\'s fang.', 'dagger', '#e8b83a', '#4f9a52', 'melee', 'dagger', { attack: 72 }, 1.8, 1.4, { acc: 128, str: 74 },
     { id: 'venom', text: 'Hits poison: the foe loses 1% of its health a second for 4 s and can\'t heal' });
-  sig('sig_locksmith', 'Locksmith\'s Blade', 'A cutlass with a keyhole through the blade. Whatever it cuts, it opens.', 'cutlass', '#d9b25a', '#59d0c4', 'melee', 'cutlass', { attack: 85 }, 2.4, undefined, { acc: 118, str: 116 },
+  sig('sig_locksmith', 'Locksmith\'s Blade', 'A cutlass with a keyhole through the blade.', 'cutlass', '#d9b25a', '#59d0c4', 'melee', 'cutlass', { attack: 85 }, 2.4, undefined, { acc: 118, str: 116 },
     { id: 'locksmith', text: '+25% damage to foes under a key power; every kill takes 5 s off your key\'s cooldown' });
-  sig('sig_flintlock', 'Drowned Man\'s Flintlock', 'Barnacled, wet, and it still fires. Shots skip like stones on water.', 'pistol', '#3a4a44', '#bfeee4', 'ranged', 'pistol', { ranged: 75 }, 2.4, 14, { acc: 140 },
+  sig('sig_flintlock', 'Drowned Man\'s Flintlock', 'An old barnacled pistol that still fires.', 'pistol', '#3a4a44', '#bfeee4', 'ranged', 'pistol', { ranged: 75 }, 2.4, 14, { acc: 140 },
     { id: 'ricochet', text: 'Shots ricochet to a second foe within 5 m for half damage' });
-  sig('sig_stormcaller', 'Stormcaller', 'A crossbow with a stormsilver prod. The air smells of rain around it.', 'crossbow', '#2a3a5a', '#b8c6ff', 'ranged', 'crossbow', { ranged: 85 }, 3.0, 14, { acc: 172 },
+  sig('sig_stormcaller', 'Stormcaller', 'A crossbow with a stormsilver bow.', 'crossbow', '#2a3a5a', '#b8c6ff', 'ranged', 'crossbow', { ranged: 85 }, 3.0, 14, { acc: 172 },
     { id: 'storm', text: 'Every bolt arcs lightning to 2 more foes within 5 m for 30%' });
-  sig('sig_skypiercer', 'Skypiercer', 'A longbow strung with weaver silk. Its arrows don\'t stop at the first thing they hit.', 'bow', '#46486a', '#e8e6dc', 'ranged', 'longbow', { ranged: 85 }, 3.0, 18, { acc: 152 },
+  sig('sig_skypiercer', 'Skypiercer', 'A longbow strung with weaver silk.', 'bow', '#46486a', '#e8e6dc', 'ranged', 'longbow', { ranged: 85 }, 3.0, 18, { acc: 152 },
     { id: 'pierce', text: 'Arrows pierce every foe in a line behind the target (70%)' });
-  sig('sig_maelstrom', 'Maelstrom Staff', 'Driftwood wrapped round a whirlpool trapped in glass.', 'staff', '#2a4a5a', '#3cc6c4', 'magic', 'staff', { magic: 80 }, 2.4, 11, { acc: 46, magicDmg: 20, defMagic: 20 },
+  sig('sig_maelstrom', 'Maelstrom Staff', 'A driftwood staff with a whirlpool held in a glass ball.', 'staff', '#2a4a5a', '#3cc6c4', 'magic', 'staff', { magic: 80 }, 2.4, 11, { acc: 46, magicDmg: 20, defMagic: 20 },
     { id: 'maelstrom', text: 'Spells open a whirlpool: foes within 2.5 m are dragged in and take half the hit' });
   return out;
 }
 
 export const ITEMS: Record<string, ItemDef> = Object.fromEntries(
   [
-    I({ id: 'coins', name: 'Coins', desc: 'Bellwether silver, stamped with a bell.', icon: { shape: 'coins', color: '#e3c25e' }, stackable: true, value: 1 }),
+    I({ id: 'coins', name: 'Coins', desc: 'Coins. Spend them in any shop.', icon: { shape: 'coins', color: '#e3c25e' }, stackable: true, value: 1 }),
     // ---- resources
-    I({ id: 'logs_pine', name: 'Saltpine logs', desc: 'Resinous and light. Burns hot.', icon: { shape: 'log', color: '#8a6440', accent: '#d6b07a' }, stackable: true, value: 4 }),
-    I({ id: 'logs_oak', name: 'Sea-oak logs', desc: 'Dense wind-twisted oak.', icon: { shape: 'log', color: '#6b4a30', accent: '#c49a64' }, stackable: true, value: 10 }),
-    I({ id: 'ore_copper', name: 'Copper ore', desc: 'Green-flecked copper.', icon: { shape: 'ore', color: '#6c6a66', accent: '#d07a42' }, stackable: true, value: 5 }),
-    I({ id: 'ore_tin', name: 'Tin ore', desc: 'Pale, soft tin.', icon: { shape: 'ore', color: '#6c6a66', accent: '#c9ccc8' }, stackable: true, value: 5 }),
-    I({ id: 'ore_iron', name: 'Iron ore', desc: 'Rust-red and heavy.', icon: { shape: 'ore', color: '#5a5552', accent: '#a5543a' }, stackable: true, value: 14 }),
-    I({ id: 'bar_bronze', name: 'Bronze bar', desc: 'Copper and tin, married in fire.', icon: { shape: 'bar', color: '#c08a4a' }, stackable: true, value: 18 }),
-    I({ id: 'bar_iron', name: 'Iron bar', desc: 'Grey and honest.', icon: { shape: 'bar', color: '#8f9396' }, stackable: true, value: 40 }),
-    I({ id: 'shell_fragment', name: 'Reef shell', desc: 'Barnacle-crusted shell. Traders like it.', icon: { shape: 'shell', color: '#d8c7a8', accent: '#c04a2c' }, stackable: true, value: 7 }),
+    I({ id: 'logs_pine', name: 'Saltpine logs', desc: 'Pine logs. Burn them, or use them for fletching and smithing.', icon: { shape: 'log', color: '#8a6440', accent: '#d6b07a' }, stackable: true, value: 4 }),
+    I({ id: 'logs_oak', name: 'Sea-oak logs', desc: 'Oak logs. Heavier and stronger than pine.', icon: { shape: 'log', color: '#6b4a30', accent: '#c49a64' }, stackable: true, value: 10 }),
+    I({ id: 'ore_copper', name: 'Copper ore', desc: 'Copper ore. Smelt it with tin to make a bronze bar.', icon: { shape: 'ore', color: '#6c6a66', accent: '#d07a42' }, stackable: true, value: 5 }),
+    I({ id: 'ore_tin', name: 'Tin ore', desc: 'Tin ore. Smelt it with copper to make a bronze bar.', icon: { shape: 'ore', color: '#6c6a66', accent: '#c9ccc8' }, stackable: true, value: 5 }),
+    I({ id: 'ore_iron', name: 'Iron ore', desc: 'Iron ore. Smelt it into iron, or with coal into steel.', icon: { shape: 'ore', color: '#5a5552', accent: '#a5543a' }, stackable: true, value: 14 }),
+    I({ id: 'bar_bronze', name: 'Bronze bar', desc: 'A bar of bronze. Smith it into tools, weapons and armour.', icon: { shape: 'bar', color: '#c08a4a' }, stackable: true, value: 18 }),
+    I({ id: 'bar_iron', name: 'Iron bar', desc: 'A bar of iron. Smith it into tools, weapons and armour.', icon: { shape: 'bar', color: '#8f9396' }, stackable: true, value: 40 }),
+    I({ id: 'shell_fragment', name: 'Reef shell', desc: 'A piece of shell. Traders buy it.', icon: { shape: 'shell', color: '#d8c7a8', accent: '#c04a2c' }, stackable: true, value: 7 }),
     // ---- shards: magic's runes. Four elements, a catalyst for each tier of spell, root and compass
-    I({ id: 'charm_tide', name: 'Tide shard', desc: 'Sea-glass that never dries. The water element: every tide spell burns some.', icon: { shape: 'charm', color: '#59d0c4', accent: '#2a7f78' }, stackable: true, value: 1 }),
-    I({ id: 'shard_gale', name: 'Gale shard', desc: 'A sliver of clouded glass that hums in wind. The air element: nearly every spell needs some.', icon: { shape: 'charm', color: '#d8e8ee', accent: '#8aa8b4' }, stackable: true, value: 1 }),
-    I({ id: 'shard_stone', name: 'Stone shard', desc: 'A flake of basalt, heavier than it looks. The earth element.', icon: { shape: 'charm', color: '#9a8a6a', accent: '#5a4a32' }, stackable: true, value: 1 }),
-    I({ id: 'shard_ember', name: 'Ember shard', desc: 'Volcanic glass, warm to hold. The fire element.', icon: { shape: 'charm', color: '#e8743a', accent: '#8a2a14' }, stackable: true, value: 1 }),
-    I({ id: 'shard_whisper', name: 'Whisper shard', desc: 'Pale and faintly singing. Every strike spell needs one.', icon: { shape: 'charm', color: '#e8d8f0', accent: '#9a7ab4' }, stackable: true, value: 1 }),
-    I({ id: 'shard_squall', name: 'Squall shard', desc: 'Storm-dark glass with lightning trapped in it. Every bolt spell needs one.', icon: { shape: 'charm', color: '#6a7ab4', accent: '#e8e070' }, stackable: true, value: 3 }),
-    I({ id: 'shard_grave', name: 'Grave shard', desc: 'Black glass from a barrow floor. Every blast spell needs one.', icon: { shape: 'charm', color: '#3a3a44', accent: '#9aa0b4' }, stackable: true, value: 6 }),
-    I({ id: 'shard_heart', name: 'Heart shard', desc: 'Red glass that beats if you hold it long enough. Every wave spell needs one.', icon: { shape: 'charm', color: '#b42a3a', accent: '#f0a0a8' }, stackable: true, value: 10 }),
-    I({ id: 'shard_wrath', name: 'Wrath shard', desc: 'Glass cut from the Leviathan\'s grave. Every surge spell needs one.', icon: { shape: 'charm', color: '#7a1a6a', accent: '#f0c040' }, stackable: true, value: 16 }),
-    I({ id: 'shard_star', name: 'Star shard', desc: 'A splinter of fallen star, cold and bright. Enchanting needs one.', icon: { shape: 'charm', color: '#f2ecd0', accent: '#3a4a8a' }, stackable: true, value: 15 }),
-    I({ id: 'shard_bone', name: 'Bone shard', desc: 'Milk-white glass that feels like a knuckle. Curses need one.', icon: { shape: 'charm', color: '#ece4d2', accent: '#8a7a5a' }, stackable: true, value: 6 }),
-    I({ id: 'shard_root', name: 'Root shard', desc: 'Green glass grown through with root. Alchemy needs one.', icon: { shape: 'charm', color: '#4a8a3a', accent: '#b4d870' }, stackable: true, value: 20 }),
-    I({ id: 'shard_compass', name: 'Compass shard', desc: 'Glass with a needle in it that always finds home. Teleports need one.', icon: { shape: 'charm', color: '#c8a85a', accent: '#3a2a14' }, stackable: true, value: 30 }),
+    I({ id: 'charm_tide', name: 'Tide shard', desc: 'The water element. Used to cast tide spells.', icon: { shape: 'charm', color: '#59d0c4', accent: '#2a7f78' }, stackable: true, value: 1 }),
+    I({ id: 'shard_gale', name: 'Gale shard', desc: 'The air element. Almost every spell uses some.', icon: { shape: 'charm', color: '#d8e8ee', accent: '#8aa8b4' }, stackable: true, value: 1 }),
+    I({ id: 'shard_stone', name: 'Stone shard', desc: 'The earth element. Used to cast stone spells.', icon: { shape: 'charm', color: '#9a8a6a', accent: '#5a4a32' }, stackable: true, value: 1 }),
+    I({ id: 'shard_ember', name: 'Ember shard', desc: 'The fire element. Used to cast ember spells.', icon: { shape: 'charm', color: '#e8743a', accent: '#8a2a14' }, stackable: true, value: 1 }),
+    I({ id: 'shard_whisper', name: 'Whisper shard', desc: 'Used to cast Strike spells.', icon: { shape: 'charm', color: '#e8d8f0', accent: '#9a7ab4' }, stackable: true, value: 1 }),
+    I({ id: 'shard_squall', name: 'Squall shard', desc: 'Used to cast Bolt spells.', icon: { shape: 'charm', color: '#6a7ab4', accent: '#e8e070' }, stackable: true, value: 3 }),
+    I({ id: 'shard_grave', name: 'Grave shard', desc: 'Used to cast Blast spells.', icon: { shape: 'charm', color: '#3a3a44', accent: '#9aa0b4' }, stackable: true, value: 6 }),
+    I({ id: 'shard_heart', name: 'Heart shard', desc: 'Used to cast Wave spells.', icon: { shape: 'charm', color: '#b42a3a', accent: '#f0a0a8' }, stackable: true, value: 10 }),
+    I({ id: 'shard_wrath', name: 'Wrath shard', desc: 'Used to cast Surge spells.', icon: { shape: 'charm', color: '#7a1a6a', accent: '#f0c040' }, stackable: true, value: 16 }),
+    I({ id: 'shard_star', name: 'Star shard', desc: 'Used to enchant jewellery.', icon: { shape: 'charm', color: '#f2ecd0', accent: '#3a4a8a' }, stackable: true, value: 15 }),
+    I({ id: 'shard_bone', name: 'Bone shard', desc: 'Used to cast curses.', icon: { shape: 'charm', color: '#ece4d2', accent: '#8a7a5a' }, stackable: true, value: 6 }),
+    I({ id: 'shard_root', name: 'Root shard', desc: 'Used for alchemy, binds and skilling spells.', icon: { shape: 'charm', color: '#4a8a3a', accent: '#b4d870' }, stackable: true, value: 20 }),
+    I({ id: 'shard_compass', name: 'Compass shard', desc: 'Used to cast teleports.', icon: { shape: 'charm', color: '#c8a85a', accent: '#3a2a14' }, stackable: true, value: 30 }),
     // ---- food (heals are RuneScape-scale: you start with 10 health)
-    I({ id: 'fish_sprat_raw', name: 'Raw reef sprat', desc: 'Small, silver, wriggling.', icon: { shape: 'fish', color: '#9fb7bf' }, stackable: true, value: 3 }),
+    I({ id: 'fish_sprat_raw', name: 'Raw reef sprat', desc: 'A raw sprat. Needs cooking.', icon: { shape: 'fish', color: '#9fb7bf' }, stackable: true, value: 3 }),
     I({ id: 'fish_sprat', name: 'Grilled sprat', desc: 'Heals 3.', icon: { shape: 'fish', color: '#c9934f' }, stackable: true, value: 6, heal: 3 }),
-    I({ id: 'fish_bell_raw', name: 'Raw bellfish', desc: 'Its swim bladder hums faintly.', icon: { shape: 'fish', color: '#6f9fbf', accent: '#e3c25e' }, stackable: true, value: 14 }),
+    I({ id: 'fish_bell_raw', name: 'Raw bellfish', desc: 'A raw bellfish. Needs cooking.', icon: { shape: 'fish', color: '#6f9fbf', accent: '#e3c25e' }, stackable: true, value: 14 }),
     I({ id: 'fish_bell', name: 'Seared bellfish', desc: 'Heals 8.', icon: { shape: 'fish', color: '#b77a3e', accent: '#e3c25e' }, stackable: true, value: 26, heal: 8 }),
     I({ id: 'crab_meat_raw', name: 'Raw crab meat', desc: 'Needs cooking.', icon: { shape: 'meat', color: '#e7a58a' }, stackable: true, value: 4 }),
     I({ id: 'crab_meat', name: 'Cooked crab meat', desc: 'Heals 5.', icon: { shape: 'meat', color: '#d0703f' }, stackable: true, value: 10, heal: 5 }),
     I({ id: 'boar_meat_raw', name: 'Raw boar meat', desc: 'A thick cut from a Greenheart boar. Needs cooking.', icon: { shape: 'meat', color: '#c9605a', accent: '#f2e0d0' }, stackable: true, value: 16 }),
-    I({ id: 'boar_meat', name: 'Roast boar', desc: 'Heals 11. Crackling and all.', icon: { shape: 'meat', color: '#9a5a2c', accent: '#e8c27a' }, stackable: true, value: 34, heal: 11 }),
-    I({ id: 'spider_silk', name: 'Spider silk', desc: 'A skein of cave-spider silk, strong as wire. Tamsin buys it for sailcloth.', icon: { shape: 'parcel', color: '#e8e6dc', accent: '#b8b4a8' }, stackable: true, value: 22 }),
-    I({ id: 'snake_skin', name: 'Snakeskin', desc: 'A shed jungle-snake skin, patterned gold and green.', icon: { shape: 'parcel', color: '#7a9a3a', accent: '#d8b84a' }, stackable: true, value: 18 }),
-    I({ id: 'sunscale', name: 'Sunscale', desc: 'A scale from the temple serpent, bright as hammered gold. Worth a fortune.', icon: { shape: 'shell', color: '#e8b83a', accent: '#a86a1a' }, stackable: true, value: 420 }),
-    I({ id: 'burnt_food', name: 'Burnt food', desc: 'A lesson in patience.', icon: { shape: 'burnt', color: '#2c2622' }, stackable: true, value: 0 }),
-    I({ id: 'bread', name: 'Ship\'s bread', desc: 'Heals 4. Hard as a hull plank.', icon: { shape: 'bread', color: '#c99b5c' }, stackable: true, value: 6, heal: 4 }),
+    I({ id: 'boar_meat', name: 'Roast boar', desc: 'Heals 110.', icon: { shape: 'meat', color: '#9a5a2c', accent: '#e8c27a' }, stackable: true, value: 34, heal: 11 }),
+    I({ id: 'spider_silk', name: 'Spider silk', desc: 'Cave-spider silk. Used to craft robes. Tamsin buys it for sailcloth.', icon: { shape: 'parcel', color: '#e8e6dc', accent: '#b8b4a8' }, stackable: true, value: 22 }),
+    I({ id: 'snake_skin', name: 'Snakeskin', desc: 'A jungle snake skin. Used to craft light armour.', icon: { shape: 'parcel', color: '#7a9a3a', accent: '#d8b84a' }, stackable: true, value: 18 }),
+    I({ id: 'sunscale', name: 'Sunscale', desc: 'A scale from the temple serpent. Valuable.', icon: { shape: 'shell', color: '#e8b83a', accent: '#a86a1a' }, stackable: true, value: 420 }),
+    I({ id: 'burnt_food', name: 'Burnt food', desc: 'Burnt. It can\'t be eaten.', icon: { shape: 'burnt', color: '#2c2622' }, stackable: true, value: 0 }),
+    I({ id: 'bread', name: 'Ship\'s bread', desc: 'Heals 40.', icon: { shape: 'bread', color: '#c99b5c' }, stackable: true, value: 6, heal: 4 }),
     // ---- tools
-    I({ id: 'hatchet_chipped', name: 'Chipped hatchet', desc: 'It still cuts. Mostly.', icon: { shape: 'hatchet', color: '#7d7a74' }, stackable: false, value: 4, tool: { skill: 'woodcutting', power: 0, level: 1 } }),
+    I({ id: 'hatchet_chipped', name: 'Chipped hatchet', desc: 'A worn hatchet. It chops slowly.', icon: { shape: 'hatchet', color: '#7d7a74' }, stackable: false, value: 4, tool: { skill: 'woodcutting', power: 0, level: 1 } }),
     I({ id: 'hatchet_bronze', name: 'Bronze hatchet', desc: 'Chops faster than a chipped one.', icon: { shape: 'hatchet', color: '#c08a4a' }, stackable: false, value: 30, tool: { skill: 'woodcutting', power: 1, level: 1 } }),
-    I({ id: 'hatchet_iron', name: 'Iron hatchet', desc: 'Bites deep into sea-oak.', icon: { shape: 'hatchet', color: '#9aa0a4' }, stackable: false, value: 80, tool: { skill: 'woodcutting', power: 2, level: 10 } }),
-    I({ id: 'pickaxe_chipped', name: 'Chipped pickaxe', desc: 'Blunt, but stubborn.', icon: { shape: 'pickaxe', color: '#7d7a74' }, stackable: false, value: 4, tool: { skill: 'mining', power: 0, level: 1 } }),
+    I({ id: 'hatchet_iron', name: 'Iron hatchet', desc: 'Chops faster than a bronze hatchet.', icon: { shape: 'hatchet', color: '#9aa0a4' }, stackable: false, value: 80, tool: { skill: 'woodcutting', power: 2, level: 10 } }),
+    I({ id: 'pickaxe_chipped', name: 'Chipped pickaxe', desc: 'A worn pickaxe. It mines slowly.', icon: { shape: 'pickaxe', color: '#7d7a74' }, stackable: false, value: 4, tool: { skill: 'mining', power: 0, level: 1 } }),
     I({ id: 'pickaxe_bronze', name: 'Bronze pickaxe', desc: 'Mines faster than a chipped one.', icon: { shape: 'pickaxe', color: '#c08a4a' }, stackable: false, value: 30, tool: { skill: 'mining', power: 1, level: 1 } }),
-    I({ id: 'pickaxe_iron', name: 'Iron pickaxe', desc: 'Makes short work of iron veins.', icon: { shape: 'pickaxe', color: '#9aa0a4' }, stackable: false, value: 80, tool: { skill: 'mining', power: 2, level: 10 } }),
-    I({ id: 'fishing_rod', name: 'Fishing rod', desc: 'Driftwood rod and gut line.', icon: { shape: 'rod', color: '#8a6440' }, stackable: false, value: 8, tool: { skill: 'fishing', power: 0, level: 1 } }),
+    I({ id: 'pickaxe_iron', name: 'Iron pickaxe', desc: 'Mines faster than a bronze pickaxe.', icon: { shape: 'pickaxe', color: '#9aa0a4' }, stackable: false, value: 80, tool: { skill: 'mining', power: 2, level: 10 } }),
+    I({ id: 'fishing_rod', name: 'Fishing rod', desc: 'For fishing from the shore.', icon: { shape: 'rod', color: '#8a6440' }, stackable: false, value: 8, tool: { skill: 'fishing', power: 0, level: 1 } }),
     // ---- melee weapons (Attack requirement, Strength for damage)
-    I({ id: 'cutlass_rusty', name: 'Rusty cutlass', desc: 'Your father\'s. It has seen better tides.', icon: { shape: 'cutlass', color: '#8d7a66' }, stackable: false, value: 5,
+    I({ id: 'cutlass_rusty', name: 'Rusty cutlass', desc: 'Your father\'s old cutlass. Rusty, but it still cuts.', icon: { shape: 'cutlass', color: '#8d7a66' }, stackable: false, value: 5,
       equip: { slot: 'weapon', reqs: {}, style: 'melee', speed: 2.4, bonus: { acc: 4, str: 3 }, affixPool: [] } }),
-    I({ id: 'cutlass_bronze', name: 'Bronze cutlass', desc: 'A proper blade.', icon: { shape: 'cutlass', color: '#c08a4a' }, stackable: false, value: 40,
+    I({ id: 'cutlass_bronze', name: 'Bronze cutlass', desc: 'A bronze cutlass.', icon: { shape: 'cutlass', color: '#c08a4a' }, stackable: false, value: 40,
       equip: { slot: 'weapon', reqs: { attack: 1 }, style: 'melee', speed: 2.4, bonus: { acc: 9, str: 8 }, affixPool: MELEE_AFFIX } }),
-    I({ id: 'cutlass_brigand', name: 'Brigand\'s hanger', desc: 'Short, curved, quick. Nicked from use.', icon: { shape: 'cutlass', color: '#b9b2a2', accent: '#7a2e22' }, stackable: false, value: 60,
+    I({ id: 'cutlass_brigand', name: 'Brigand\'s hanger', desc: 'A brigand\'s cutlass, nicked from use.', icon: { shape: 'cutlass', color: '#b9b2a2', accent: '#7a2e22' }, stackable: false, value: 60,
       equip: { slot: 'weapon', reqs: { attack: 5 }, style: 'melee', speed: 1.8, bonus: { acc: 10, str: 9 }, affixPool: [...MELEE_AFFIX, 'leech'] } }),
-    I({ id: 'cutlass_iron', name: 'Iron cutlass', desc: 'Heavier, meaner.', icon: { shape: 'cutlass', color: '#9aa0a4' }, stackable: false, value: 110,
+    I({ id: 'cutlass_iron', name: 'Iron cutlass', desc: 'An iron cutlass. Hits harder than bronze.', icon: { shape: 'cutlass', color: '#9aa0a4' }, stackable: false, value: 110,
       equip: { slot: 'weapon', reqs: { attack: 10 }, style: 'melee', speed: 2.4, bonus: { acc: 14, str: 13 }, affixPool: [...MELEE_AFFIX, 'leech'] } }),
     // ---- ranged (Ranged requirement; damage comes from the shot)
-    I({ id: 'pistol_flintlock', name: 'Flintlock pistol', desc: 'Loud, smoky, honest. Fires shot from your ammo slot.', icon: { shape: 'pistol', color: '#8a6440', accent: '#9aa0a4' }, stackable: false, value: 45,
+    I({ id: 'pistol_flintlock', name: 'Flintlock pistol', desc: 'A flintlock pistol. Fires shot from your ammo slot.', icon: { shape: 'pistol', color: '#8a6440', accent: '#9aa0a4' }, stackable: false, value: 45,
       equip: { slot: 'weapon', reqs: { ranged: 1 }, style: 'ranged', speed: 2.4, range: 9, bonus: { acc: 10 }, affixPool: RANGED_AFFIX } }),
     I({ id: 'pistol_iron', name: 'Iron-banded pistol', desc: 'A longer barrel and a truer aim.', icon: { shape: 'pistol', color: '#6b4a30', accent: '#c9ccc8' }, stackable: false, value: 140,
       equip: { slot: 'weapon', reqs: { ranged: 15 }, style: 'ranged', speed: 2.4, range: 10, bonus: { acc: 22 }, affixPool: RANGED_AFFIX } }),
@@ -623,10 +623,10 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(
     I({ id: 'staff_driftwood', name: 'Driftwood staff', desc: 'Casts your chosen spell from your shards.', icon: { shape: 'staff', color: '#8a6440', accent: '#59d0c4' }, stackable: false, value: 30,
       equip: { slot: 'weapon', reqs: { magic: 1 }, style: 'magic', speed: 2.4, range: 9, bonus: { acc: 8, defMagic: 4 }, affixPool: MAGIC_AFFIX } }),
     // elemental staves: each supplies its element's shards without end (RuneScape's staff of air, water, earth, fire)
-    ...([['gale', 'Gale staff', '#d8e8ee', 'Ash-wood, bound with a hollow glass that whistles. Every gale shard your spells need, it supplies.'],
-      ['tide', 'Tide staff', '#59d0c4', 'Driftwood capped with sea-glass that never dries. Every tide shard your spells need, it supplies.'],
-      ['stone', 'Stone staff', '#9a8a6a', 'Blackthorn shod with basalt. Every stone shard your spells need, it supplies.'],
-      ['ember', 'Ember staff', '#e8743a', 'Charred oak with a coal in its head that never goes out. Every ember shard your spells need, it supplies.']] as const).map(([el, name, col, desc]) =>
+    ...([['gale', 'Gale staff', '#d8e8ee', 'Supplies all the gale shards your spells need.'],
+      ['tide', 'Tide staff', '#59d0c4', 'Supplies all the tide shards your spells need.'],
+      ['stone', 'Stone staff', '#9a8a6a', 'Supplies all the stone shards your spells need.'],
+      ['ember', 'Ember staff', '#e8743a', 'Supplies all the ember shards your spells need.']] as const).map(([el, name, col, desc]) =>
       I({ id: `staff_el_${el}`, name, desc, icon: { shape: 'staff', color: '#6a5034', accent: col }, stackable: false, value: 150, elemental: el,
         equip: { slot: 'weapon', reqs: { magic: 1 }, style: 'magic', speed: 2.4, range: 9, bonus: { acc: 8, defMagic: 4 }, affixPool: MAGIC_AFFIX } })),
     // ---- armour (Defence requirement)
@@ -634,13 +634,13 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(
       equip: { slot: 'head', reqs: { defence: 1 }, bonus: { defMelee: 2, defRanged: 4, defMagic: 2 }, affixPool: [...ARMOUR_AFFIX, 'gather_speed'] } }),
     I({ id: 'coat_padded', name: 'Padded coat', desc: 'Quilted and patched. Good against shot.', icon: { shape: 'coat', color: '#5a4636' }, stackable: false, value: 30,
       equip: { slot: 'body', reqs: { defence: 1 }, bonus: { defMelee: 4, defRanged: 8, defMagic: 3 }, affixPool: ARMOUR_AFFIX } }),
-    I({ id: 'lockplate', name: 'Lockbound plate', desc: 'Brass armour from the Guardian\'s chest. The keyhole still hums.', icon: { shape: 'coat', color: '#b08a3e', accent: '#59d0c4' }, stackable: false, value: 300,
+    I({ id: 'lockplate', name: 'Lockbound plate', desc: 'Brass armour taken from the Lockbound Guardian.', icon: { shape: 'coat', color: '#b08a3e', accent: '#59d0c4' }, stackable: false, value: 300,
       equip: { slot: 'body', reqs: { defence: 10 }, bonus: { defMelee: 12, defRanged: 10, defMagic: -4 }, affixPool: [...ARMOUR_AFFIX, 'elite_dmg', 'dmg_pct'] } }),
     I({ id: 'ring_brass', name: 'Brass ring', desc: 'Engraved with waves.', icon: { shape: 'ring', color: '#d4b25a' }, stackable: false, value: 40,
       equip: { slot: 'ring', reqs: {}, bonus: {}, affixPool: JEWEL_AFFIX } }),
     // ---- quest
     I({ id: 'tuning_bell', name: 'Tuning bell', desc: 'Cast by Iven Marr from your bronze. Ring it at the Broken Ring.', icon: { shape: 'bell', color: '#c08a4a' }, stackable: false, value: 0, quest: true }),
-    I({ id: 'keels_tooth', name: 'Keel\'s Tooth', desc: 'A key shaped like a tooth, warm as a living thing.', icon: { shape: 'tooth', color: '#efe3c4', accent: '#59d0c4' }, stackable: false, value: 0, quest: true }),
+    I({ id: 'keels_tooth', name: 'Keel\'s Tooth', desc: 'A key shaped like a tooth. The Guardian was protecting it.', icon: { shape: 'tooth', color: '#efe3c4', accent: '#59d0c4' }, stackable: false, value: 0, quest: true }),
     ...tierItems(),
   ].map((d) => [d.id, d]),
 );
