@@ -3,6 +3,7 @@ import { GreenheartFire } from './greenfire';
 import { AmberSeep } from './amberseep';
 import { TreasureHunt } from './treasure';
 import { BellTime } from './belltime';
+import { FEATS, FEAT_BY, FEAT_TIERS } from '../data/feats';
 import { Naval } from './naval';
 import { AMMO, NAVAL } from '../data/sea';
 import { SHIPYARD, type ShipPart } from '../data/shipyard';
@@ -213,6 +214,8 @@ export class Game {
 
   // boss
   boss: Enemy | null = null;
+  /** the arena fight in progress, for feats: when it rose, food eaten, marked attacks that caught you */
+  fight: { boss: string; start: number; ate: number; caught: number } | null = null;
   bossArena: Arena | null = null;
   bossCast = 0;
   bossSummons = 0;
@@ -342,6 +345,8 @@ export class Game {
     // Steal: an elite's power for a while
     if (this.stolen?.affix === 'barnacled') st.dr += 0.33;
     if (this.stolen?.affix === 'frenzied') st.speed /= 1.4;
+    // feats: the edges your points have earned
+    for (const t of this.featTiers()) { st.eliteDmg += t.eliteDmg; st.healBonus += t.healBonus; }
     // a galley meal, while it lasts
     const meal = this.s.meal && this.s.meal.left > 0 ? item(this.s.meal.id).meal : undefined;
     if (meal?.kind === 'maxhit') st.maxHit = Math.floor(st.maxHit * (1 + meal.v / 100));
@@ -957,6 +962,7 @@ export class Game {
     if (st.qty <= 0) this.p.inv[i] = null;
     this.p.hp = Math.min(this.stats.maxHp, this.p.hp + heal);
     this.eatCd = 1.2;
+    if (this.fight) this.fight.ate++;
     if (meal) {
       const was = this.s.meal && this.s.meal.left > 0 && this.s.meal.id !== st.id ? item(this.s.meal.id).name : null;
       this.s.meal = { id: st.id, left: meal.secs };
@@ -2554,6 +2560,7 @@ export class Game {
     e.t = 2.2;
     this.boss = e;
     this.bossArena = a;
+    this.fight = { boss: a.boss, start: this.time, ate: 0, caught: 0 };
     this.bossCast = 3.5;
     this.bossSummons = 0;
     this.emit({ type: 'boss', state: 'rise' });
@@ -2645,9 +2652,34 @@ export class Game {
     this.telegraphs = this.telegraphs.filter((t) => t.source !== b.id);
     this.boss = null;
     this.bossArena = null;
+    this.fight = null;
     this.emit({ type: 'boss', state: 'reset' });
     if (b.def.id === 'storm_jotunn') { this.msg('The Jötunn sinks back into the stones in a crack of thunder. Sound the horn to call it again.', 'combat'); return; }
     this.msg(b.def.id === 'temple_serpent' ? 'The Sunscale slides back under the flagstones. Strike the gong to face it again.' : b.def.id === 'broodmother' ? 'The Broodmother draws back into the dark. Disturb the bones to call her out again.' : 'The Guardian sinks back into the stone. Ring the bell to try again.', 'combat');
+  }
+
+  /** Feats (data/feats.ts): your points, and the lasting edges they've earned. */
+  featPoints() { return (this.s.feats ?? []).reduce((a, id) => a + (FEAT_BY[id]?.pts ?? 0), 0); }
+  featTiers() { const p = this.featPoints(); return FEAT_TIERS.filter((t) => p >= t.pts); }
+  private scoreFeats(boss: string) {
+    const f = this.fight;
+    this.fight = null;
+    const kills = { ...(this.s.bossKills ?? {}) };
+    kills[boss] = (kills[boss] ?? 0) + 1;
+    this.s.bossKills = kills;
+    const done = new Set(this.s.feats ?? []), tiers0 = this.featTiers().length;
+    for (const ft of FEATS) {
+      if (ft.boss !== boss || done.has(ft.id)) continue;
+      const ok = ft.kind === 'kills' ? kills[boss] >= (ft.n ?? 1)
+        : !f || f.boss !== boss ? false
+        : ft.kind === 'nofood' ? f.ate === 0 : ft.kind === 'speed' ? this.time - f.start <= (ft.n ?? 0) : f.caught === 0;
+      if (!ok) continue;
+      done.add(ft.id);
+      this.msg(`Feat: ${ft.name}. ${ft.text} (+${ft.pts} point${ft.pts > 1 ? 's' : ''})`, 'good');
+    }
+    this.s.feats = [...done];
+    const tiers = this.featTiers();
+    if (tiers.length > tiers0) { const t = tiers[tiers.length - 1]; this.msg(`${t.name}: ${t.text}, from now on.`, 'good'); this.emit({ type: 'banner', title: t.name, sub: t.text }); this.recalc(); }
   }
 
   private bossDefeated(e: Enemy) {
@@ -2656,6 +2688,7 @@ export class Game {
     this.enemies = this.enemies.filter((x) => x !== e);
     for (const c of this.enemies) if (c.summoned && c.alive) { c.alive = false; this.emit({ type: 'enemyDeath', id: c.id, x: c.x, z: c.z, elite: false, boss: false }); }
     this.enemies = this.enemies.filter((x) => !x.summoned);
+    this.scoreFeats(e.def.id);
     const LINE: Record<string, string> = { guardian: 'The Broken Ring falls silent', temple_serpent: 'The Sunken Temple is still', storm_jotunn: 'The storm over the crag breaks', broodmother: 'Weaver Hollow goes quiet' };
     this.emit({ type: 'boss', state: 'defeat', name: `${e.def.name} defeated`, sub: LINE[e.def.id] ?? 'It won\'t rise again today' });
     if (e.def.id === 'temple_serpent') {
@@ -2701,7 +2734,7 @@ export class Game {
       if (t.t < t.dur) continue;
       const src = this.enemies.find((e) => e.id === t.source);
       const warded = !!src && src.fx.ward > 0, rusted = !!src && src.fx.weak > 0;
-      if (t.damage > 0 && !warded && this.insideTelegraph(t, this.p.x, this.p.z)) this.damagePlayer(rusted ? t.damage / 2 : t.damage);
+      if (t.damage > 0 && !warded && this.insideTelegraph(t, this.p.x, this.p.z)) { if (this.fight && this.rollT <= 0 && t.source === this.boss?.id) this.fight.caught++; this.damagePlayer(rusted ? t.damage / 2 : t.damage); }
       if (t.kind === 'circle' && t.damage > 0) this.emit({ type: 'explode', x: t.x, z: t.z, r: t.r });
     }
     this.telegraphs = this.telegraphs.filter((t) => t.t < t.dur);

@@ -44,6 +44,9 @@ export interface SaveData {
   crew: string[];
   /** bells answered at bell-time (data/belltime.ts) */
   bellsRung?: number;
+  /** feats done (data/feats.ts), and how often you've beaten each arena boss */
+  feats?: string[];
+  bossKills?: Record<string, number>;
   /** the shipwright's refits: tier per part (data/shipyard.ts) */
   shipyard?: Partial<Record<'hull' | 'sails' | 'guns' | 'plating', number>>;
   mate: string | null;
