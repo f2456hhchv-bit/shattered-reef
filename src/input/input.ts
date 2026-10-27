@@ -119,6 +119,8 @@ export class Input {
    */
   private local(x: number, y: number): [number, number] {
     this.r.keepSized();
+    const [ox, oy] = this.ui.touchOffset(); // set by Settings > Recalibrate touch
+    x -= ox; y -= oy;
     const b = this.canvas.getBoundingClientRect();
     if (!b.width || !b.height) return [x, y];
     return [(x - b.left) * (this.canvas.clientWidth / b.width), (y - b.top) * (this.canvas.clientHeight / b.height)];
