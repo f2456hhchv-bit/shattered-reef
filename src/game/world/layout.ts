@@ -155,6 +155,7 @@ function buildIslandRegion(region: IslandId): IslandLayout {
     { id: 'pellow', x: M.x - 1.5, z: M.z + 23.5, facing: Math.PI / 2 },
     { id: 'muirne', x: coastPoint(136, 2.6)[0], z: coastPoint(136, 2.6)[1], facing: Math.atan2(coastPoint(136, -5)[1] - coastPoint(136, 2.6)[1], coastPoint(136, -5)[0] - coastPoint(136, 2.6)[0]) },
     { id: 'dougal', x: LAYOUT.strand.x + 7, z: LAYOUT.strand.z - 4, facing: Math.PI },
+    { id: 'gull', x: LAYOUT.wreck.x - 9, z: LAYOUT.wreck.z + 6, facing: Math.PI }, // Bastian Gull, watching the place ships die
   );
   else if (sun) npcs.push(
     { id: 'halyard_watch', x: SL.plaza.x + 3, z: SL.plaza.z - 7, facing: Math.PI / 2 },

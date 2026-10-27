@@ -958,7 +958,7 @@ export class UI {
     // the Tides: every harbour has their posters; what they want, you learn by meeting them
     const tides = TIDES.map((t) => {
       const st = t.status(g.s.flags, g.s.quests);
-      const tag = st === 'friend' ? '<span class="status done">Owes you</span>' : st === 'beaten' ? '<span class="status done">Beaten</span>' : st === 'met' ? '<span class="status active">Met</span>' : '<span class="status todo">Wanted</span>';
+      const tag = st === 'crew' ? '<span class="status done">In your crew</span>' : st === 'friend' ? '<span class="status done">Owes you</span>' : st === 'beaten' ? '<span class="status done">Beaten</span>' : st === 'met' ? '<span class="status active">Met</span>' : '<span class="status todo">Wanted</span>';
       const known = st !== 'poster';
       return `<div class="quest tide"><b>${esc(t.name)}</b> <small class="muted">${esc(t.epithet)}</small>${tag}<p style="margin:4px 0;font-size:12.5px"><b>${t.bounty ? t.bounty.toLocaleString('en-GB') : '—'}</b> · the ${esc(t.ship)}</p><small class="muted">${esc(known && t.dream ? t.dream : t.rumour)}</small></div>`;
     }).join('');
@@ -1164,7 +1164,7 @@ export class UI {
       body = `${poster}<h3 class="title" style="font-size:13px">Your contracts (${g.s.contracts.length}/${BOUNTY_CONFIG.maxActive})</h3>${mine || '<p class="muted">None yet. Take one below.</p>'}
         <h3 class="title" style="font-size:13px">On the board</h3>${offers || '<p class="muted">Nothing posted. Come back later.</p>'}<p class="muted" style="font-size:12px">New contracts are posted every ${BOUNTY_CONFIG.refreshS / 60} minutes. Contracts pay out the moment they're done.</p>`;
     } else if (tab === 'crew') {
-      const rows = CREW.map((c) => {
+      const rows = CREW.filter((c) => !c.quest || g.s.crew.includes(c.id)).map((c) => {
         const signed = g.s.crew.includes(c.id), mate = g.s.mate === c.id, block = g.recruitBlock(c.id);
         const btn = signed ? (mate ? '<span class="tag">First mate</span>' : `<button class="btn" data-mate="${c.id}">Bring ashore</button>`)
           : `<button class="btn primary" data-recruit="${c.id}" ${block ? `disabled title="${esc(block)}"` : ''}>Sign (${c.coins.toLocaleString('en-GB')}c)</button>`;

@@ -27,7 +27,7 @@ const q = (id: string): DiaryTask => ({ id: `q_${id}`, text: `Finish ${QUESTS[id
 
 export const DIARIES: Diary[] = [
   { island: 'bellwether', name: 'Bellwether Diary', coins: 600, xp: [{ skill: 'woodcutting', amount: 1500 }, { skill: 'mining', amount: 1500 }, { skill: 'fishing', amount: 1500 }],
-    tasks: [q('bell'), q('knock'), q('selkie'), q('wreckers'),
+    tasks: [q('bell'), q('knock'), q('selkie'), q('wreckers'), q('palewing'),
       { id: 'storm', text: 'Calm the Storm Tide at Bellwether\'s pier', done: flag('storm_tide_won') },
       { id: 'guardian', text: 'Beat the Guardian of the Broken Ring', done: flag('guardian_defeated') },
       { id: 'charts', text: 'Chart all of Bellwether\'s waters', done: charts('bellwether') },
