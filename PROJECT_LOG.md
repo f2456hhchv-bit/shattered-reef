@@ -74,7 +74,8 @@ Reflects the actual repository, not the roadmap.
 ## Systems in the build
 | System | Where | Notes |
 |---|---|---|
-| World + collision + A* pathing | `src/game/world/` | 300 m world: 0.5 m walk grid, 1 m sail grid, hull-clearance sea grid; one A* (reused buffers) for walking and for ship routes round headlands |
+| World + collision + A* pathing | `src/game/world/` | 0.5 m walk grid, 1 m sail grid, hull-clearance sea grid; windowed A* (≤1,024 cells a side) for walking and ship routes, a coarse 4 m grid for long walks |
+| Streaming | `render/terrainMesh.ts`, `renderer.ts` `streamWorld` | ground chunks, grass cells and foe models built near the camera and freed when far; NPCs/walkers/nodes past the fog hidden; idle foes >120 m away sleep |
 | Content tiers (data) | `data/items.ts`, `data/content.ts` | generated from tier tables: 6 metals, 7 woods, 9 fish, 7 ores, 7 spells, 13 enemies (lvl 2–80). Unlock lists are generated too. `content.test.ts` enforces: no missing items, no level gap > 15 in any skill, everything placed and reachable |
 | Living island | `layout.ts`, `render/instanced.ts` | every ordinary tree (saltpine/sea-oak) and boulder (copper/tin + rare geode) is usable; bramble bushes, kelp beds, ~30 wandering dig spots (spade, treasure table). Drawn as instanced meshes in 70 m buckets; stumps/rubble/picked bushes swap per instance |
 | Strongbox (bank) | `sim/game.ts` deposit/withdraw, save v3 | quay + Ironcrag camp; tools stay in the pack |
@@ -319,6 +320,13 @@ Reflects the actual repository, not the roadmap.
     1. A streaming engine: terrain, scenery, buildings and creatures load in chunks around the player, so the whole island is never rendered at once; pathfinding scaled to match.
     2. Bellwether at 4.5× each side, with a port city, towns, villages, roads, far more NPCs and creatures, and the Bellwether quests reworked with real multi-step content (the Selkie quest took 10 seconds).
     3. The other islands, one at a time.
+  - **Slice 1 built: the streaming engine** (2026-10-28). Nothing changes in what you see on today's islands; it's what lets a 4.5× island run on a phone.
+    - Ground: terrain is made in 40 m chunks only when the camera comes near (within the fog distance, at least 120 m), three a frame, and freed 40 m past that. A teleport or region load builds the whole view at once, so you never land on missing ground.
+    - Grass: planted per 40 m cell within 90 m, two cells a frame, pulled up when you leave. Each cell is seeded by its position, so it looks the same each time.
+    - Creatures: a foe gets a 3D model only near the camera (four new models a frame in a crowd), freed 30 m past the view. NPCs, town walkers and resource spots beyond the view are hidden and not animated.
+    - Simulation: idle foes more than 120 m from you sleep (they skip movement but still draw their random numbers, so fights stay deterministic).
+    - Pathfinding: A* searches a window around the start and goal (up to 1,024 cells a side, so memory doesn't grow with the island). Longer walks route on a coarse 4 m grid first, then walk the legs in fine detail. `world.test.ts`.
+    - Checked: 289 tests, both browser tests, a visual tour (ground and grass all present), and the frame budget at all 24 places (146–369 draw calls, all within).
 
 ## Known issues / limitations
 - `touch-e2e` intermittently taps the pack slot 0/3 times (2026-10-24, twice on 2026-10-25). Not root-caused. **Correction:** the low health in those reports (4, 14) was not an attacker: the test sets health to 4 itself, and it regenerates. Ten runs on 2026-10-25 all passed with no level-up card on screen. The test now records what was under the finger on every missed tap, so the next failure names its cause.
