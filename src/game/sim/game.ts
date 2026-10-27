@@ -2186,7 +2186,9 @@ export class Game {
     // Mark: the next hits land at their maximum, no roll
     const marked = e.fx.marks > 0;
     if (marked) e.fx.marks--;
-    if (!marked && this.rnd() >= hitChance(attRoll, defRoll)) return { dmg: 0, crit: false };
+    const h = hitChance(attRoll, defRoll);
+    // fewer misses than RuneScape on everyday foes (PLAYER_BASE.missCut); bosses keep the roll they were tuned to
+    if (!marked && this.rnd() >= (e.def.boss ? h : h + (1 - h) * PLAYER_BASE.missCut)) return { dmg: 0, crit: false };
     const crit = marked || this.rnd() < st.crit;
     // a successful hit always lands at least 1, so a 0 always means a miss
     // a landed hit does HP_SCALE..max (RuneScape's 1..max, ×10), so average damage is exactly the unscaled game's

@@ -476,6 +476,10 @@ export const UTILITY_SPELLS = {
 
 // ---- player tuning -------------------------------------------------------------
 export const PLAYER_BASE = {
+  /** Your attacks only: this share of what RuneScape's roll would miss lands anyway (Tom, 2026-10-27: "it's the amount
+   * of misses for definite"). An even fight goes from ~40% misses to ~24%. Not on bosses (each is tuned and tested
+   * to RuneScape's roll); foes' aim at you is unchanged. */
+  missCut: 0.4,
   speed: 4.6,
   meleeReach: 1.6,
   regenEvery: 6, // seconds per 1 health out of combat
