@@ -25,12 +25,20 @@ const { chromium } = require(path.join(require('child_process').execSync('npm ro
   const res = {};
 
   // 1) tap a tree
-  const tree = await p.evaluate(() => { const r = window.__reef, g = r.game, n = g.nodes.find((n) => n.def === 'tree_pine' && !g.enemies.some((e) => Math.hypot(e.x - n.x, e.z - n.z) < 25)); const q = g.world.nearestWalkable(n.x + 3, n.z + 2, 6); g.p.x = q[0]; g.p.z = q[1]; r.renderer.snapCamera(); return { x: n.x, z: n.z }; });
-  await waitGame(0.3);
-  const ts = await p.evaluate((n) => { const r = window.__reef; return r.renderer.project(n.x, r.game.world.ground(n.x, n.z) + 0.9, n.z); }, tree);
+  // a quiet tree that lands on open world under the finger: the pack panel (open by default on phones) and the HUD
+  // buttons cover parts of the screen, and which tree is quiet depends on where foes have wandered (the old flake)
+  let tree = null, ts = null;
+  for (let k = 0; k < 12 && !ts; k++) {
+    tree = await p.evaluate((k) => { const r = window.__reef, g = r.game; const pines = g.nodes.filter((n) => n.def === 'tree_pine' && !g.enemies.some((e) => e.alive && Math.hypot(e.x - n.x, e.z - n.z) < 25)); const n = pines[k % pines.length]; const q = g.world.nearestWalkable(n.x + 3, n.z + 2, 6); g.p.x = q[0]; g.p.z = q[1]; r.renderer.snapCamera(); return { x: n.x, z: n.z }; }, k);
+    await waitGame(0.3);
+    const at = await p.evaluate((n) => { const r = window.__reef; return r.renderer.project(n.x, r.game.world.ground(n.x, n.z) + 0.9, n.z); }, tree);
+    const clear = await p.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.tagName === 'CANVAS', at);
+    if (clear) ts = at;
+  }
   await tap(ts.x, ts.y);
   await waitGame(3);
   res.chopping = await p.evaluate(() => window.__reef.game.action?.type === 'gather'); // the tap registered
+  if (!res.chopping) res.chopDiag = await p.evaluate(({ x, y }) => { const g = window.__reef.game, el = document.elementFromPoint(x, y); return { under: el ? `${el.tagName}.${el.className}`.slice(0, 50) : null, pending: g.pending, path: g.path.length, action: g.action?.type ?? null, hp: g.p.hp }; }, ts);
 
   // 2) pack slot + Eat while the game changes every frame
   if (!(await p.evaluate(() => window.__reef.ui.sideOpen && window.__reef.ui.tab === 'pack'))) await tap(...Object.values(await center('#tabs button')), 120); // phones now start with the pack open
