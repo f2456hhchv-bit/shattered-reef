@@ -866,3 +866,34 @@ describe('The Third Lock (Act IV, Lockhaven)', () => {
     expect(g.s.keyring).toContain('ilse_key');
   }, 120_000);
 });
+
+describe('The Name on the Frame (Lockhaven)', () => {
+  it('Keel\'s page, the blank on the Keepers\' frame, Mercy\'s register, Maud\'s name given back', () => {
+    let g: Game;
+    const go = (to: 'wrack' | 'lockhaven') => {
+      const L = regionLayout(to), sv = g ? g.serialize() : { ...defaultSave(L.respawn, L.mooring!) };
+      sv.player.x = L.respawn.x; sv.player.z = L.respawn.z; sv.player.onShip = false;
+      Object.assign(sv.ship, { ...L.mooring!, region: to });
+      g = new Game({ seed: 7, save: { ...JSON.parse(JSON.stringify(sv)), region: to } });
+      for (const e of g.enemies) { e.alive = false; e.respawnAt = Infinity; }
+    };
+    go('lockhaven');
+    g!.s.flags.thirdlock_done = true; g!.s.quests.thirdlock = QUESTS.thirdlock.stages.length - 1;
+    talk(g!, 'orla');
+    expect(g!.questStage('maud')).toBe(0); // hasn't read page X
+    g!.s.flags.lore_keel_10 = true;
+    talk(g!, 'orla');
+    expect(g!.questStage('maud')).toBe(1);
+    use(g!, 'maud', 'frame');
+    run(g!, 10, () => g!.questStage('maud') === 2);
+    talk(g!, 'orla');
+    expect(g!.questStage('maud')).toBe(3);
+    go('wrack');
+    talk(g!, 'mercy');
+    expect(g!.questStage('maud')).toBe(4);
+    go('lockhaven');
+    talk(g!, 'orla');
+    expect(g!.questStage('maud')).toBe(QUESTS.maud.stages.length - 1);
+    expect(count(g!.p.inv, 'ring_keeper')).toBe(1);
+  }, 120_000);
+});
