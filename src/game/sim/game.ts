@@ -2427,7 +2427,7 @@ export class Game {
       this.stopAction();
       this.target = null;
       this.emit({ type: 'playerDeath' });
-      this.msg(`Oh dear, you are dead. You wake at ${({ bellwether: 'the quay', sunreach: 'Port Halyard', amberhold: 'Tollhouse Landing', wrack: 'Gallows Landing', lockhaven: 'the Warden\'s Stair', saltglass: 'Glasswater Steps' } as const)[this.region.home]}.`, 'warn');
+      this.msg(`Oh dear, you are dead. You wake at ${({ bellwether: 'the quay', sunreach: 'Port Halyard', amberhold: 'Tollhouse Landing', wrack: 'Gallows Landing', lockhaven: 'the Warden\'s Stair', saltglass: 'Glasswater Steps', longstrand: 'Weir Landing' } as const)[this.region.home]}.`, 'warn');
       if (this.boss) this.resetBoss();
     }
   }

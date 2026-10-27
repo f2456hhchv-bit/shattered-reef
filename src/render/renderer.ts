@@ -42,7 +42,7 @@ import { DOORS } from '../game/data/doors';
 import { buildLootShard, buildItemModel, SHARD_TINT, type LootShard, type ShardKind } from '../art/models/items';
 import { NODES, PLAYER_BASE, SKILLS } from '../game/data/content';
 import type { Game, GameEvent, Enemy, Telegraph } from '../game/sim/game';
-import { coastDist, nearestPathDist, BEACH, SUN, SUN_LAYOUT, WRACK, AMBER, LOCK, SALT } from '../game/world/island';
+import { coastDist, nearestPathDist, BEACH, SUN, SUN_LAYOUT, WRACK, AMBER, LOCK, SALT, LONG } from '../game/world/island';
 import { HCELL } from '../game/world/world';
 import { buildTerrainMesh } from './terrainMesh';
 import { bakeRig, bakeStatic, bakeFlat, mergeColoured } from './bake';
@@ -524,7 +524,7 @@ export class GameRenderer {
     const CELL = 40, buckets = new Map<string, THREE.Vector3[]>();
     let made = 0;
     // where each island's grass grows: its centre, the square it fills, how many clumps
-    const GRASS: Record<string, [number, number, number, number]> = { bellwether: [0, 0, 200, 9000], sunreach: [SUN.x, SUN.z, 140, 4500], amberhold: [AMBER.x, AMBER.z, 140, 4000], wrack: [WRACK.x, WRACK.z, 130, 3000], lockhaven: [LOCK.x, LOCK.z, 125, 3500], saltglass: [SALT.x, SALT.z, 115, 1600] };
+    const GRASS: Record<string, [number, number, number, number]> = { bellwether: [0, 0, 200, 9000], sunreach: [SUN.x, SUN.z, 140, 4500], amberhold: [AMBER.x, AMBER.z, 140, 4000], wrack: [WRACK.x, WRACK.z, 130, 3000], lockhaven: [LOCK.x, LOCK.z, 125, 3500], saltglass: [SALT.x, SALT.z, 115, 1600], longstrand: [LONG.x, LONG.z, 100, 1800] };
     const [cx, cz, span, most] = GRASS[this.game.s.region] ?? GRASS.bellwether;
     for (let i = 0; i < 130000 && made < most; i++) {
       const x = cx + (rnd() - 0.5) * span, z = cz + (rnd() - 0.5) * span;
