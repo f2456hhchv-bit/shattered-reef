@@ -21,7 +21,7 @@ import type { Stance } from '../game/sim/gear';
 import { NPCS, QUESTS } from '../game/data/quests';
 import { coastDist, nearestPathDist, FLATS, SUN, WRACK, AMBER, LOCK, SALT, LONG, coastR, sunCoastR, wrackCoastR, amberCoastR, lockCoastR, saltCoastR, longCoastR, LAYOUT, SUN_LAYOUT } from '../game/world/island';
 import { PLACES, placeRegion } from '../game/world/places';
-import { REGIONS } from '../game/world/regions';
+import { REGIONS, type RegionId } from '../game/world/regions';
 import { count, displayName, stackValue, INV_SIZE, type Stack } from '../game/sim/inventory';
 import { levelForXp, levelProgress, xpForLevel, MAX_LEVEL } from '../game/sim/xp';
 import { type Game, type GameEvent, type MsgKind } from '../game/sim/game';
@@ -147,6 +147,10 @@ export class UI {
     this.mmCtx = (mm.querySelector('canvas') as HTMLCanvasElement).getContext('2d')!;
     add('orbs', h('div', {}, `<div class="orb" id="hp" title="Health"><div class="fill"></div><div class="txt"></div><span class="oic">${SKILL_ICONS.hitpoints}</span></div><div class="orb lvl" title="Combat level"><div class="fill"></div><div class="txt" id="cbl"></div><span class="oic">${SKILL_ICONS.attack}</span></div>`));
     this.el.hp = document.getElementById('hp')!;
+    // the quest tracker: what the pinned quest wants next; tap it for the journal
+    const trackEl = add('track', h('div', { role: 'button', tabindex: '0', 'aria-label': 'Tracked quest. Tap for the journal.' }));
+    trackEl.hidden = true; // until the first frame fills it
+    onTap(trackEl, '#track', () => this.selectTab('quests', true));
     const side = add('side', h('div', { class: 'panel' }));
     const tabs = h('div', { id: 'tabs', role: 'tablist' });
     const SHORT: Partial<Record<Tab, string>> = { gear: 'Gear', settings: 'Options' };
@@ -260,6 +264,8 @@ export class UI {
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     cv.width = cv.height = Math.round(mm * dpr);
     requestAnimationFrame(() => {
+      // the quest tracker sits just under the orbs (portrait), wherever their size puts them
+      document.documentElement.style.setProperty('--track-top', `${Math.round(document.getElementById('orbs')?.getBoundingClientRect().bottom ?? 66) + 6}px`);
       this.r.resize();
       this.r.coveredBottom = this.portrait && this.sideOpen ? this.el.side.getBoundingClientRect().height : 0;
       this.scrollButtons();
@@ -319,6 +325,7 @@ export class UI {
     switch (e.type) {
       case 'keyFound': this.lvQueue.push({ key: e.id }); if (!this.lvEl) this.showLevelCard(); break;
       case 'msg': this.log(e.text, e.kind); break;
+      case 'packFull': this.packFull(e.node); break;
       case 'cue': this.cuePop.textContent = e.text; this.cuePop.className = `cuepop on${e.perfect ? ' good' : ''}`; this.cuePopT = 0.9; break;
       case 'xp': this.xpDrop(e.skill, e.amount); break;
       case 'gain': this.overheadLine(e.id === 'coins' ? `+${fmt(e.qty)} coins` : `${e.qty} ${esc(e.name.toLowerCase())} gained`, '#efe6cc'); break;
@@ -441,6 +448,7 @@ export class UI {
     (hp.querySelector('.fill') as HTMLElement).style.transform = `scaleY(${Math.max(0, p.hp / g.stats.maxHp)})`;
     (hp.querySelector('.txt') as HTMLElement).textContent = `${Math.ceil(p.hp)}`;
     document.getElementById('cbl')!.textContent = String(g.stats.combatLevel);
+    this.updateTracker();
     // context + ability
     const t = g.contextTarget();
     const ctx = this.el.ctx as HTMLButtonElement;
@@ -733,6 +741,14 @@ export class UI {
     hv.style.top = `${y + 18}px`;
   }
 
+  /** Hold-to-inspect on a phone: the same card as hover, but above the finger (which hides what's below it). */
+  showInspect(x: number, y: number, verb: string, label: string, enemy: boolean, needs: { text: string; ok: boolean; detail?: string } | null) {
+    this.showHover(x, y, verb, label, enemy, needs);
+    const hv = this.el.hover;
+    hv.style.left = `${Math.max(8, Math.min(x - hv.offsetWidth / 2, window.innerWidth - hv.offsetWidth - 8))}px`;
+    hv.style.top = `${Math.max(8, y - hv.offsetHeight - 56)}px`;
+  }
+
   // ------------------------------------------------------------------ tabs
   private renderTab() {
     const c = this.el.content;
@@ -761,7 +777,7 @@ export class UI {
   /** One set of handlers on the tab panel for its whole life (content is patched, never re-bound). */
   private bindContent(c: HTMLElement) {
     const g = this.game;
-    onTap(c, '[data-door], [data-lore], [data-bottle], [data-diary], [data-slot], [data-equip], [data-stance], [data-spell], [data-q], [data-dmg], [data-music], [data-sfx], [data-fps], [data-lv], [data-skill], [data-skillback], [data-gcat], [data-sort], [data-home], [data-mapview], [data-key], [data-devkeys], #saveNow, #resetSave, #calibrate', (t, pointer) => {
+    onTap(c, '[data-door], [data-lore], [data-bottle], [data-diary], [data-slot], [data-equip], [data-stance], [data-spell], [data-q], [data-dmg], [data-music], [data-sfx], [data-fps], [data-lv], [data-skill], [data-skillback], [data-gcat], [data-sort], [data-home], [data-mapview], [data-key], [data-devkeys], #saveNow, #resetSave, #calibrate, [data-track]', (t, pointer) => {
       if (t.dataset.home) { g.teleportHome(); return; }
       if (t.dataset.lore) { g.readLore(t.dataset.lore); return; }
       if (t.dataset.bottle) { g.bottles.reread(t.dataset.bottle); return; }
@@ -793,6 +809,7 @@ export class UI {
       else if (t.dataset.skill) { this.skillView = t.dataset.skill as SkillId; this.guideCat = null; this.skillScroll = true; this.lastRev = -1; }
       else if (t.dataset.skillback !== undefined) { this.skillView = null; this.lastRev = -1; }
       else if (t.id === 'calibrate') this.calibrate();
+      else if (t.dataset.track) { g.trackQuest(t.dataset.track); this.lastRev = -1; }
       else if (t.id === 'saveNow') { this.onSave(); this.log('Voyage saved.', 'good'); this.lastRev = -1; }
       else if (t.id === 'resetSave') this.confirm('Erase your progress and start again?', 'Erase and restart', () => this.onReset());
     });
@@ -810,7 +827,8 @@ export class UI {
     const q = item(s.id).stackable && s.qty > 1 ? `<span class="q">${s.qty >= 100000 ? Math.floor(s.qty / 1000) + 'k' : s.qty}</span>` : '';
     const c = condOf(s);
     const condBar = c < 100 ? `<i class="cond${c <= 0 ? ' out' : c <= 20 ? ' low' : ''}" style="--c:${Math.max(4, c)}%"></i>` : '';
-    return `<button class="slot${rar ? ' rar' : ''}" style="--rc:${rarityColour(s)}" ${attrs} aria-label="${esc(displayName(s))}${s.qty > 1 ? ' × ' + s.qty : ''}" title="${esc(displayName(s))}"><img src="${itemIcon(s.id, s.qty)}" alt="">${q}${condBar}${label ? `<span class="lbl">${label}</span>` : ''}</button>`;
+    const junk = this.game.isJunk(s.id) && attrs.startsWith('data-slot') ? '<i class="junk" aria-hidden="true"></i>' : '';
+    return `<button class="slot${rar ? ' rar' : ''}${junk ? ' isjunk' : ''}" style="--rc:${rarityColour(s)}" ${attrs} aria-label="${esc(displayName(s))}${s.qty > 1 ? ' × ' + s.qty : ''}" title="${esc(displayName(s))}"><img src="${itemIcon(s.id, s.qty)}" alt="">${q}${condBar}${junk}${label ? `<span class="lbl">${label}</span>` : ''}</button>`;
   }
 
   private packHtml() {
@@ -944,7 +962,9 @@ export class UI {
         const st = g.questStage(q.id), r = rank(q);
         if (r === 2) return `<div class="quest done"><b>${esc(q.name)}</b><span class="status done">Complete</span></div>`;
         const status = r === 1 ? '<span class="status todo">New</span>' : '<span class="status active">In progress</span>';
-        return `<div class="quest"><b>${esc(q.name)}</b>${status}<p style="margin:6px 0">${esc(q.stages[st].text)}</p><small class="muted">Reward: ${esc(q.reward)}</small></div>`;
+        const pinned = g.trackedQuest() === q.id;
+        const track = r === 0 ? `<button class="btn trackbtn${pinned ? ' on' : ''}" data-track="${q.id}">${pinned ? 'Tracking' : 'Track'}</button>` : '';
+        return `<div class="quest"><b>${esc(q.name)}</b>${status}<p style="margin:6px 0">${esc(q.stages[st].text)}</p><small class="muted">Reward: ${esc(q.reward)}</small>${track}</div>`;
       }).join('');
       return `<h3 class="title" style="font-size:14px;margin:12px 0 6px">${esc(name)} <small class="muted">${done}/${list.length} done</small></h3>${rows}`;
     }).join('');
@@ -1115,6 +1135,7 @@ export class UI {
       }
       if (this.bankOpen) acts.unshift('<button class="btn primary" data-a="deposit">Deposit</button>');
       if (!d.quest) acts.push('<button class="btn" data-a="drop">Drop</button>');
+      if (!d.quest && st.id !== 'coins') acts.push(`<button class="btn" data-a="junk">${g.isJunk(st.id) ? 'Not junk' : 'Mark junk'}</button>`);
     }
     const req = e && g.equipBlock(st);
     morph(el, `<button class="x" aria-label="Close" style="position:absolute;right:6px;top:6px;width:34px;height:34px;border-radius:8px;background:#2a1e14;border:1px solid #120b06">×</button>
@@ -1138,6 +1159,7 @@ export class UI {
       if (a === 'use') { g.useSlot(i); if (!g.p.inv[i] || item(g.p.inv[i]!.id).equip) this.closePop(); }
       if (a === 'offhand') { g.equip(i, true); this.closePop(); }
       if (a === 'drop') { g.dropSlot(i); this.closePop(); }
+      if (a === 'junk') { g.toggleJunk(g.p.inv[i]!.id); this.renderPop(); this.lastRev = -1; }
       if (a === 'alch') { g.alchemy(i); if (!g.p.inv[i]) this.closePop(); else this.renderPop(); }
       if (a === 'deposit') { g.deposit(i); this.closePop(); }
       if (a === 'sell1') g.sell(i, false);
@@ -1437,6 +1459,58 @@ export class UI {
 
   get dialogOpen() { return !!this.dialog; }
 
+  // ------------------------------------------------------------------ pack full
+  /** Gathering stopped on a full pack: offer the two ways on (it goes when the pack has room or after a while). */
+  private packFull(node: string) {
+    const g = this.game, n = g.junkSlots();
+    let el = document.getElementById('packfull');
+    if (!el) { el = h('div', { id: 'packfull', class: 'panel', role: 'alert' }); document.body.appendChild(el); }
+    el.innerHTML = `<b>Pack full</b><div class="acts"><button class="btn primary" data-pf="bank">Bank</button><button class="btn" data-pf="junk" ${n ? '' : 'disabled'}>${n ? `Drop junk (${n})` : 'No junk marked'}</button><button class="btn x" data-pf="close" aria-label="Close">×</button></div>${n ? '' : '<small class="muted">Mark junk in an item\'s details</small>'}`;
+    const box = el;
+    onTap(box, '[data-pf]', (b) => {
+      const k = b.dataset.pf;
+      if (k === 'bank') g.goToBank();
+      if (k === 'junk') g.dropJunk(node);
+      box.remove();
+    });
+    const born = performance.now();
+    const check = () => { if (!box.isConnected) return; if (performance.now() - born > 20000 || g.p.inv.includes(null)) { box.remove(); return; } setTimeout(check, 500); };
+    setTimeout(check, 500);
+  }
+
+  // ------------------------------------------------------------------ quest tracker
+  private trackKey = '';
+  private updateTracker() {
+    const g = this.game, el = this.el.track, id = g.trackedQuest(), goal = id ? g.questGoal(id) : null;
+    const away = goal?.region && goal.region !== g.s.region ? REGIONS[goal.region as RegionId]?.name : null;
+    const key = `${id}|${goal?.text}|${away}|${!!g.dead}`;
+    if (key === this.trackKey) return;
+    this.trackKey = key;
+    el.hidden = !id || !goal || !!g.dead;
+    if (el.hidden) return;
+    el.innerHTML = `<b>${esc(QUESTS[id!].name)}</b><span>${esc(goal!.text)}</span>${away ? `<small>In ${esc(away)}</small>` : ''}`;
+  }
+
+  /** The tracked quest's goal on a map: a gold ring where it is, or (minimap) a gold arrow at the rim pointing to it. */
+  private drawGoal(c: CanvasRenderingContext2D, toPx: (x: number, z: number) => [number, number], W: number, rim: boolean) {
+    const g = this.game, id = g.trackedQuest(), goal = id ? g.questGoal(id) : null;
+    if (!goal || goal.region !== g.s.region || goal.x === undefined || goal.z === undefined) return;
+    let [px, py] = toPx(goal.x, goal.z);
+    const cx = W / 2, R = W / 2 - 9, dx = px - cx, dy = py - cx, d = Math.hypot(dx, dy);
+    const pulse = 1 + 0.18 * Math.sin(performance.now() / 220);
+    if (rim && d > R) {
+      px = cx + (dx / d) * R; py = cx + (dy / d) * R;
+      c.save(); c.translate(px, py); c.rotate(Math.atan2(dy, dx));
+      const s = (W / 140) * 7 * pulse;
+      c.beginPath(); c.moveTo(s, 0); c.lineTo(-s * 0.7, s * 0.75); c.lineTo(-s * 0.35, 0); c.lineTo(-s * 0.7, -s * 0.75); c.closePath();
+      c.fillStyle = '#ffd34a'; c.fill(); c.lineWidth = 1.5; c.strokeStyle = '#1a120a'; c.stroke();
+      c.restore();
+      return;
+    }
+    const r = (rim ? W / 140 : 1.6) * 6 * pulse;
+    c.beginPath(); c.arc(px, py, r, 0, 7); c.lineWidth = 4; c.strokeStyle = '#1a120a'; c.stroke(); c.lineWidth = 2; c.strokeStyle = '#ffd34a'; c.stroke();
+  }
+
   // ------------------------------------------------------------------ touch calibration
   /** How far this phone's taps land from the finger, per orientation (kept on the device, not in the save). */
   touchOffset(): [number, number] {
@@ -1643,6 +1717,7 @@ export class UI {
     c.drawImage(this.mmBase, (cx - R - w.ox) * k, (cz - R - w.oz) * k, R * 2 * k, R * 2 * k, 0, 0, W, W);
     const toPx = (x: number, z: number): [number, number] => [((x - cx) / (R * 2) + 0.5) * W, ((z - cz) / (R * 2) + 0.5) * W];
     this.drawMarkers(c, toPx, W / 140, false);
+    this.drawGoal(c, toPx, W, true);
   }
 
   private minimapTap(e: PointerEvent) {
@@ -1684,6 +1759,7 @@ export class UI {
       c.lineWidth = 2.5; c.strokeStyle = '#ffd35a'; c.stroke();
     }
     this.drawMarkers(c, toPx, 1.6, true);
+    this.drawGoal(c, toPx, W, false);
   }
 
   /** The map is square: on a phone's half-height sheet it must shrink to the sheet's height, not run off the bottom. */

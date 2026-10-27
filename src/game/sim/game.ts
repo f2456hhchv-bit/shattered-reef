@@ -59,6 +59,8 @@ export type GameEvent =
   | { type: 'keyTurn'; x: number; z: number; power: string }
   | { type: 'ferryOffer'; npc: string; to: string; price: number }
   | { type: 'cue'; perfect: boolean; text: string }
+  /** gathering stopped because the pack is full (the UI offers Bank / Drop junk) */
+  | { type: 'packFull'; node: string }
   | { type: 'navalFire'; kind: 'broadside' | 'charge'; side?: 1 | -1 }
   | { type: 'roll' }
   | { type: 'dodge'; x: number; z: number }
@@ -121,7 +123,8 @@ export interface Enemy {
 export interface Mate { id: string; x: number; z: number; facing: number; cd: number; moving: boolean }
 
 
-export interface Drop { id: number; x: number; z: number; stack: Stack; t: number; home?: boolean } // home: loot from your kill, flies to you
+export interface Drop { id: number; x: number; z: number; stack: Stack; t: number; home?: boolean; left?: boolean; armed?: boolean } // home: loot from your kill, flies to you
+// left: you dropped it yourself. It never flies back; once you've walked away (armed) you can step on it to take it again
 export interface Projectile { id: number; x: number; z: number; vx: number; vz: number; life: number; damage: number; from: 'player' | 'enemy'; kind?: 'shot' | 'magic' | 'arrow'; crit?: boolean; style?: CombatStyle; spellBase?: number; knock?: number }
 export interface Telegraph { id: number; kind: 'circle' | 'cone' | 'line'; x: number; z: number; r: number; angle: number; width: number; t: number; dur: number; damage: number; source: number }
 
@@ -640,7 +643,7 @@ export class Game {
     if (d.skill && this.level(d.skill) < d.level) { this.msg(`You need ${d.skill} level ${d.level} for ${d.name.toLowerCase()}.`, 'warn'); return; }
     const tool = this.gatherTool(d);
     if (!tool) { this.msg(`You need ${d.tool ? `a ${item(d.tool).name.toLowerCase()}${d.tool === 'spade' ? ' (Marta sells them)' : ''}` : d.skill === 'woodcutting' ? 'a hatchet' : 'a pickaxe'}.`, 'warn'); return; }
-    if (!d.loot && !canAdd(this.p.inv, d.item)) { this.msg('Your pack is full.', 'warn'); return; }
+    if (!d.loot && !canAdd(this.p.inv, d.item)) { this.msg('Your pack is full.', 'warn'); this.emit({ type: 'packFull', node: uid }); return; }
     this.action = { type: 'gather', node: uid, next: this.time + DT_GATHER * 0.6, progress: this.rnd() * 0.25, from: this.time, lucky: this.time >= this.luckyAt };
     this.msg(d.verb === 'Dig' ? 'You start digging...' : d.verb === 'Pick' || d.verb === 'Gather' ? `You reach into the ${d.name.toLowerCase()}...` : d.skill === 'fishing' ? 'You cast your line...' : `You swing at the ${d.name.toLowerCase()}...`);
   }
@@ -701,7 +704,7 @@ export class Game {
     } else {
       catchOf = d.catches ? this.pickCatch(d.catches) : null;
       const got = catchOf ? catchOf.item : d.drops ? this.weighted(d.drops) : d.item;
-      if (!canAdd(this.p.inv, got)) { this.msg('Your pack is full.', 'warn'); this.stopAction(); return; }
+      if (!canAdd(this.p.inv, got)) { this.msg('Your pack is full.', 'warn'); this.stopAction(); this.emit({ type: 'packFull', node: a.node }); return; }
       let n = 0;
       while (n < times && canAdd(this.p.inv, got)) { this.give(got, 1); n++; }
       if (d.bonus && this.rnd() < d.bonus.chance) { this.give(d.bonus.item, 1); this.msg(`You find a ${item(d.bonus.item).name.toLowerCase()}!`, 'loot'); }
@@ -1097,12 +1100,40 @@ export class Game {
     this.p.hp = Math.min(this.p.hp, this.stats.maxHp);
   }
 
+  // ------------------------------------------------------------------ junk (the pack-full prompt)
+  isJunk(id: string) { return !!this.s.junk?.includes(id); }
+  /** Mark or unmark an item as junk (quest items can't be). */
+  toggleJunk(id: string) {
+    if (item(id).quest || id === 'coins') return;
+    this.s.junk = this.isJunk(id) ? this.s.junk!.filter((x) => x !== id) : [...(this.s.junk ?? []), id];
+    this.rev++;
+  }
+  /** How many pack slots hold junk. */
+  junkSlots() { return this.p.inv.filter((st) => st && this.isJunk(st.id)).length; }
+  /** Drop every stack you've marked as junk; then, if you were gathering, carry on. */
+  dropJunk(resume?: string) {
+    let n = 0;
+    this.p.inv.forEach((st, i) => { if (st && this.isJunk(st.id)) { this.dropSlot(i); n++; } });
+    if (!n) return 0;
+    this.msg(`You drop ${n} stack${n > 1 ? 's' : ''} of junk.`, 'info');
+    if (resume && this.nodes.some((x) => x.uid === resume && x.depletedUntil <= this.time)) this.interact(`node:${resume}`, true);
+    return n;
+  }
+  /** Walk to the nearest bank here and open it (false if this region has none). */
+  goToBank() {
+    let best = -1, bd = Infinity;
+    this.layout.banks.forEach((b, i) => { const d = Math.hypot(b.x - this.p.x, b.z - this.p.z); if (d < bd) { bd = d; best = i; } });
+    if (best < 0) { this.msg('There\'s no bank on this island.', 'warn'); return false; }
+    return this.interact(`bank:${best}`);
+  }
+
   dropSlot(i: number) {
     const st = this.p.inv[i];
     if (!st) return;
     if (item(st.id).quest) { this.msg('You should keep that.', 'warn'); return; }
     this.p.inv[i] = null;
     this.dropAt(this.p.x, this.p.z, st, 4);
+    this.drops[this.drops.length - 1].left = true;
     this.rev++;
   }
 
@@ -1312,6 +1343,44 @@ export class Game {
     }
     if (e.stage !== undefined) this.setStage(questId, e.stage);
     this.rev++;
+  }
+
+  // ------------------------------------------------------------------ quest tracker (the HUD line and minimap arrow)
+  /** A quest you've started and not finished. */
+  questActive(id: string) { const q = QUESTS[id], st = this.questStage(id); return !!q && st > 0 && st < q.stages.length - 1; }
+  /** The quest on the tracker: the one you pinned, else the main story in progress, else any in progress. */
+  trackedQuest(): string | null {
+    if (this.s.track && this.questActive(this.s.track)) return this.s.track;
+    const on = Object.values(QUESTS).filter((q) => this.questActive(q.id));
+    // nothing under way: the main story you haven't begun on this island (its first stage says who to see)
+    return (on.find((q) => q.main) ?? on[0] ?? Object.values(QUESTS).find((q) => q.main && this.questStage(q.id) === 0 && (q.island ?? 'bellwether') === this.s.region))?.id ?? null;
+  }
+  /** Pin a quest to the tracker (again to unpin). */
+  trackQuest(id: string) { this.s.track = this.s.track === id ? undefined : id; this.rev++; }
+  /**
+   * Where the tracked quest's stage wants you: who to talk to, the nearest quest spot not yet used (a puzzle's
+   * order is never given away: decoys count as spots), or where its foe waits. Null where: a stage that waits on
+   * the world, or a person in a region not visited this session.
+   */
+  questGoal(id: string): { text: string; region?: string; x?: number; z?: number } | null {
+    const q = QUESTS[id], st = this.questStage(id), stage = q?.stages[st];
+    if (!stage) return null;
+    const out: { text: string; region?: string; x?: number; z?: number } = { text: stage.text };
+    const near = (pts: { region: string; x: number; z: number }[]) => {
+      const here = pts.filter((p) => p.region === this.s.region);
+      const pick = (here.length ? here : pts).reduce<(typeof pts)[number] | null>((b, p) => (!b || Math.hypot(p.x - this.p.x, p.z - this.p.z) < Math.hypot(b.x - this.p.x, b.z - this.p.z) ? p : b), null);
+      if (pick) Object.assign(out, { region: pick.region, x: pick.x, z: pick.z });
+    };
+    if (stage.talk || stage.also) {
+      const who = [stage.talk, ...(stage.also ?? [])].filter((t): t is NonNullable<typeof t> => !!t).map((t) => t.npc).filter((n) => !this.npcGone(n));
+      const pts: { region: string; x: number; z: number }[] = [];
+      for (const r of Object.keys(REGIONS) as RegionId[]) { const L = r === this.s.region ? this.layout : cachedLayout(r); for (const n of L?.npcs ?? []) if (who.includes(n.id)) pts.push({ region: r, x: n.x, z: n.z }); }
+      near(pts);
+    } else if (stage.marks?.length) {
+      const used = (m: QuestMark) => m.seq !== undefined && !!this.s.flags[`${id}_${st}_s${m.seq}`];
+      near(stage.marks.filter((m) => !used(m)));
+    } else if (stage.kill?.spawn) near([stage.kill.spawn]);
+    return out;
   }
 
   /** The quest spots open right now in this region (the stage you're on in each quest). */
@@ -2903,7 +2972,8 @@ export class Game {
       d.t += dt;
       if (d.t < 0.6) continue;
       const dx = this.p.x - d.x, dz = this.p.z - d.z, dist = Math.hypot(dx, dz);
-      const reach = d.home ? 16 : 3, speed = d.home ? 10 : 6;
+      if (d.left) { if (dist > 3) d.armed = true; if (!d.armed) continue; } // dropped junk stays dropped while you work
+      const reach = d.left ? 0 : d.home ? 16 : 3, speed = d.home ? 10 : 6;
       if (dist < reach && dist > 0.01) { d.x += (dx / dist) * Math.min(dist, speed * dt); d.z += (dz / dist) * Math.min(dist, speed * dt); }
       if (dist < 0.8) {
         if (!canAdd(this.p.inv, d.stack.id)) {
