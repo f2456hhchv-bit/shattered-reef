@@ -8,6 +8,7 @@ import { SUN } from '../world/island';
 import { KEY, STARTER_KEY } from '../data/keys';
 import { BOARDS, CREW_BY, BOUNTY_CONFIG, type Contract } from '../data/bounties';
 import { ENEMIES } from '../data/content';
+import { SHIPYARD, type ShipPart } from '../data/shipyard';
 
 // Versioned, validated save. Anything invalid is dropped or defaulted, never trusted.
 
@@ -58,6 +59,8 @@ export interface SaveData {
   shipyard?: Partial<Record<'hull' | 'sails' | 'guns' | 'plating', number>>;
   mate: string | null;
   hunterAt: number; // play time of the next bounty-hunter ambush (once your bounty is big enough)
+  /** the quest pinned to the HUD tracker (none: the game picks the main quest in progress) */
+  track?: string;
   /** the treasure map you're following: an X in the water off an island */
   treasure: { region: RegionId; x: number; z: number } | null;
 }
@@ -287,6 +290,27 @@ export function parseSave(json: string | null, fallback: SaveData): SaveData | n
   d.hunterAt = num(raw.hunterAt, 0, 0);
   const tr = raw.treasure as Record<string, unknown> | null | undefined;
   d.treasure = tr && typeof tr === 'object' && isRegion(tr.region) ? { region: tr.region, x: num(tr.x, 0, -5000, 5000), z: num(tr.z, 0, -5000, 5000) } : null;
+  // the optional records added after v1 (these were dropped on every reload until 2026-10-27: a save kept them,
+  // a load threw them away)
+  const ids = (v: unknown, max: number) => (Array.isArray(v) ? [...new Set(v.filter((x): x is string => typeof x === 'string' && x.length <= 64))].slice(0, max) : undefined);
+  const nums = (v: unknown, min: number, max: number, round = false) => {
+    if (!v || typeof v !== 'object' || Array.isArray(v)) return undefined;
+    const out: Record<string, number> = {};
+    for (const [k, x] of Object.entries(v as Record<string, unknown>).slice(0, 200)) if (typeof x === 'number' && Number.isFinite(x)) out[k] = round ? Math.floor(num(x, 0, min, max)) : num(x, 0, min, max);
+    return out;
+  };
+  d.collected = ids(raw.collected, 2000);
+  d.bottles = ids(raw.bottles, 500);
+  d.feats = ids(raw.feats, 500);
+  d.bossKills = nums(raw.bossKills, 0, 1e7, true);
+  d.races = nums(raw.races, 0, 1e5);
+  d.raceMedals = nums(raw.raceMedals, 0, 2, true);
+  const yard = nums(raw.shipyard, 0, 20, true);
+  if (yard) d.shipyard = Object.fromEntries(Object.entries(yard).filter(([k]) => k in SHIPYARD).map(([k, t]) => [k, Math.min(t, SHIPYARD[k as ShipPart].tiers.length)]));
+  if (raw.bellsRung !== undefined) d.bellsRung = Math.floor(num(raw.bellsRung, 0, 0, 1e7));
+  const ml = raw.meal as Record<string, unknown> | undefined;
+  if (ml && typeof ml === 'object' && typeof ml.id === 'string' && ITEMS[ml.id]) d.meal = { id: ml.id, left: num(ml.left, 0, 0, 36000) };
+  if (typeof raw.track === 'string' && QUESTS[raw.track]) d.track = raw.track;
   const cb = (raw.combat ?? {}) as Record<string, unknown>;
   d.combat = {
     stance: cb.stance === 'aggressive' || cb.stance === 'defensive' ? cb.stance : 'accurate',
