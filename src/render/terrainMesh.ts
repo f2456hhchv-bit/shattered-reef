@@ -8,7 +8,15 @@ import { CAVE_FLOOR } from '../game/world/caves';
 // Smooth terrain from the simulation's height grid: shared vertices, smooth normals,
 // colours blended per vertex (no triangle checkerboard), plus drifting cloud shadows.
 
-export interface TerrainView { group: THREE.Group; uniforms: { uTime: { value: number } } }
+export interface TerrainView {
+  group: THREE.Group; uniforms: { uTime: { value: number } };
+  /** Keep the chunks round (x, z) built and drop the far ones; `budget` chunks at most this call (all if Infinity). */
+  stream: (x: number, z: number, budget?: number, loadR?: number) => void;
+  /** every chunk, built now (tests, map shots) */
+  buildAll: () => void;
+}
+/** chunks within this many metres of the player are built; past UNLOAD_R they're freed */
+export const LOAD_R = 120, UNLOAD_R = 160;
 
 const CHUNK = 32; // cells per chunk side (40 m): off-screen chunks are frustum-culled
 
@@ -21,9 +29,6 @@ export function buildTerrainMesh(world: World, look: Look, cave = false): Terrai
   const meadow = C(0x86ad55), moss = C(0x4f7a3a);
   const cobble = C(0xb3a486), cobbleD = C(0x9a8c72);
   const R = HN + 1, H = world.heights;
-  const pos = new Float32Array(R * R * 3);
-  const col = new Float32Array(R * R * 3);
-  const cob = new Float32Array(R * R); // cobblestone mask for the village square
   // cobbled squares (Bellwether's quay, Port Halyard's) and paved ruins (the Broken Ring, the Sunken Temple)
   const squares = [FLATS[0], FLATS.find((f) => f.x === SUN_LAYOUT.port.x && f.z === SUN_LAYOUT.port.z)!, FLATS.find((f) => f.x === WRACK_LAYOUT.landing.x && f.z === WRACK_LAYOUT.landing.z)!, FLATS.find((f) => f.x === AMBER_LAYOUT.landing.x && f.z === AMBER_LAYOUT.landing.z)!];
   const paved = [LAYOUT.ruin, SUN_LAYOUT.temple];
@@ -40,25 +45,23 @@ export function buildTerrainMesh(world: World, look: Look, cave = false): Terrai
     const h = (a: number, b: number) => H[Math.max(0, Math.min(HN, b)) * R + Math.max(0, Math.min(HN, a))];
     return Math.hypot(h(i + 1, j) - h(i - 1, j), h(i, j + 1) - h(i, j - 1)) / (2 * HCELL);
   };
-  for (let j = 0; j < R; j++) {
-    for (let i = 0; i < R; i++) {
+  // one vertex's colour (into tmp) and cobble weight: the same for a chunk built now or later
+  const colourAt = (i: number, j: number): number => {
+    {
       const x = OX + i * HCELL, z = OZ + j * HCELL, y = H[j * R + i];
-      const k = (j * R + i) * 3;
-      pos[k] = x; pos[k + 1] = y; pos[k + 2] = z;
       if (cave) {
         const n = fbm(x * 0.12, z * 0.12, 3, 5), n2 = fbm(x * 0.4 + 9, z * 0.4 + 9, 2, 6), up = y - CAVE_FLOOR;
         tmp.copy(caveFloor).lerp(caveFloorD, smooth(n, 0.35, 0.75)).lerp(caveWall, smooth(up, 0.25, 0.9)).lerp(caveTop, smooth(up, 1.2, 2.2));
         if (world.cz > 900 && world.cx > 200) tmp.lerp(ember, 0.25 * (1 - smooth(up, 0.2, 1.2)) * smooth(n2, 0.4, 0.8)); // the Ember Deep runs hot
         tmp.multiplyScalar(0.92 + n2 * 0.16);
-        col[k] = tmp.r; col[k + 1] = tmp.g; col[k + 2] = tmp.b;
-        continue;
+        return 0;
       }
       if (y < -0.05) {
         // seabed: no land detail to work out (most of the world)
         tmp.copy(bed).lerp(bedD, smooth(-y, 0.3, 3.5));
-        col[k] = tmp.r; col[k + 1] = tmp.g; col[k + 2] = tmp.b;
-        continue;
+        return 0;
       }
+      let cobW = 0;
       const d = coastDist(x, z);
       const n = fbm(x * 0.05, z * 0.05, 3, 5); // large soft patches
       const n2 = fbm(x * 0.22 + 9, z * 0.22 + 9, 2, 6); // small variation
@@ -77,7 +80,7 @@ export function buildTerrainMesh(world: World, look: Look, cave = false): Terrai
         tmp.lerp(wet, 1 - smooth(y, 0.05, 0.35));
         let cw = 0;
         for (const sq of squares) cw = Math.max(cw, 1 - smooth(Math.hypot(x - sq.x, z - sq.z), sq.r - 3, sq.r + 0.5));
-        cob[j * R + i] = cw;
+        cobW = cw;
         tmp.lerp(cobble.clone().lerp(cobbleD, n2), cw);
         for (const rp of paved) tmp.lerp(rock.clone().lerp(grassD, 0.3 + n2 * 0.3), 1 - smooth(Math.hypot(x - rp.x, z - rp.z), 6, 9));
         const pd = nearestPathDist(x, z);
@@ -86,57 +89,53 @@ export function buildTerrainMesh(world: World, look: Look, cave = false): Terrai
       // altitude: grass thins to scree, then bare rock toward Ironcrag's summit
       if (y > 5) tmp.lerp(rock.clone().lerp(grassD, 0.35 * n2), smooth(y + (n2 - 0.5) * 2.5, 5.5, 9.5) * 0.85);
       if (y > 0.25) tmp.lerp(rock.clone().lerp(rockD, smooth(slope, 0.9, 1.6)), smooth(slope, 0.55, 0.95));
-      col[k] = tmp.r; col[k + 1] = tmp.g; col[k + 2] = tmp.b;
+      return cobW;
     }
-  }
+  };
   // baked ambient occlusion: (1) horizon occlusion from the terrain itself, so hollows and valley floors
   // sit in soft shade; (2) contact shadows where every tree, rock and building meets the ground
-  const ao = new Float32Array(R * R).fill(1);
   const DIRS = 8, STEPS = [1.25, 2.5, 4, 6.5, 10];
-  for (let j = 0; j < R; j++)
-    for (let i = 0; i < R; i++) {
-      const x = OX + i * HCELL, z = OZ + j * HCELL, y = H[j * R + i];
-      if (y < -1) continue; // deep seabed is under water anyway
-      let occ = 0;
-      for (let k = 0; k < DIRS; k++) {
-        const a = (k / DIRS) * Math.PI * 2, cx = Math.cos(a), cz = Math.sin(a);
-        let m = 0;
-        for (const d of STEPS) m = Math.max(m, (world.ground(x + cx * d, z + cz * d) - y) / d);
-        occ += Math.atan(m) / (Math.PI / 2);
-      }
-      ao[j * R + i] = 1 - 0.7 * (occ / DIRS);
+  /** horizon occlusion at one vertex: hollows and valley floors sit in soft shade */
+  const horizonAo = (i: number, j: number) => {
+    const x = OX + i * HCELL, z = OZ + j * HCELL, y = H[j * R + i];
+    if (y < -1) return 1; // deep seabed is under water anyway
+    let occ = 0;
+    for (let k = 0; k < DIRS; k++) {
+      const a = (k / DIRS) * Math.PI * 2, cx = Math.cos(a), cz = Math.sin(a);
+      let m = 0;
+      for (const d of STEPS) m = Math.max(m, (world.ground(x + cx * d, z + cz * d) - y) / d);
+      occ += Math.atan(m) / (Math.PI / 2);
     }
+    return 1 - 0.7 * (occ / DIRS);
+  };
+  // contact shadows where every tree, rock and building meets the ground: solids bucketed by chunk, so a chunk only
+  // looks at the ones that reach it
+  const nC = Math.ceil(HN / CHUNK), CM = CHUNK * HCELL;
+  const solidsBy = new Map<number, { x: number; z: number; r: number; ext: number }[]>();
   for (const so of world.solids) {
-    const r = 'r' in so ? so.r : Math.hypot(so.w, so.d) * 0.42;
-    const ext = r + 1.4;
-    const i0 = Math.max(0, Math.floor((so.x - ext - OX) / HCELL)), i1 = Math.min(HN, Math.ceil((so.x + ext - OX) / HCELL));
-    const j0 = Math.max(0, Math.floor((so.z - ext - OZ) / HCELL)), j1 = Math.min(HN, Math.ceil((so.z + ext - OZ) / HCELL));
-    for (let j = j0; j <= j1; j++)
-      for (let i = i0; i <= i1; i++) {
-        const d = Math.hypot(OX + i * HCELL - so.x, OZ + j * HCELL - so.z);
-        ao[j * R + i] *= 1 - 0.32 * (1 - smooth(d, r * 0.5, ext));
+    const r = 'r' in so ? so.r : Math.hypot(so.w, so.d) * 0.42, ext = r + 1.4;
+    for (let cj = Math.max(0, Math.floor((so.z - ext - OZ) / CM)); cj <= Math.min(nC - 1, Math.floor((so.z + ext - OZ) / CM)); cj++)
+      for (let ci = Math.max(0, Math.floor((so.x - ext - OX) / CM)); ci <= Math.min(nC - 1, Math.floor((so.x + ext - OX) / CM)); ci++) {
+        const k = cj * nC + ci; let l = solidsBy.get(k); if (!l) solidsBy.set(k, (l = [])); l.push({ x: so.x, z: so.z, r, ext });
       }
   }
-  for (let v = 0; v < R * R; v++) { col[v * 3] *= ao[v]; col[v * 3 + 1] *= ao[v]; col[v * 3 + 2] *= ao[v]; }
-
   // smooth normals straight from the height grid, so chunk edges match exactly
-  const nrm = new Float32Array(R * R * 3);
   const hAt = (a: number, b: number) => H[Math.max(0, Math.min(HN, b)) * R + Math.max(0, Math.min(HN, a))];
-  for (let j = 0; j < R; j++)
-    for (let i = 0; i < R; i++) {
-      const nx = hAt(i - 1, j) - hAt(i + 1, j), nz = hAt(i, j - 1) - hAt(i, j + 1), ny = 2 * HCELL;
-      const l = Math.hypot(nx, ny, nz), k = (j * R + i) * 3;
-      nrm[k] = nx / l; nrm[k + 1] = ny / l; nrm[k + 2] = nz / l;
-    }
   const chunkGeo = (ci: number, cj: number) => {
     const i0 = ci * CHUNK, j0 = cj * CHUNK, i1 = Math.min(HN, i0 + CHUNK), j1 = Math.min(HN, j0 + CHUNK);
     const cw = i1 - i0 + 1, chh = j1 - j0 + 1;
     const P = new Float32Array(cw * chh * 3), N = new Float32Array(cw * chh * 3), Cc = new Float32Array(cw * chh * 3), B = new Float32Array(cw * chh);
+    const near = solidsBy.get(cj * nC + ci) ?? [];
     for (let j = 0; j < chh; j++)
       for (let i = 0; i < cw; i++) {
-        const src = (j0 + j) * R + i0 + i, dst = j * cw + i;
-        for (let c = 0; c < 3; c++) { P[dst * 3 + c] = pos[src * 3 + c]; N[dst * 3 + c] = nrm[src * 3 + c]; Cc[dst * 3 + c] = col[src * 3 + c]; }
-        B[dst] = cob[src];
+        const gi = i0 + i, gj = j0 + j, dst = j * cw + i, x = OX + gi * HCELL, z = OZ + gj * HCELL;
+        P[dst * 3] = x; P[dst * 3 + 1] = H[gj * R + gi]; P[dst * 3 + 2] = z;
+        B[dst] = colourAt(gi, gj);
+        let ao = horizonAo(gi, gj);
+        for (const so of near) { const d = Math.hypot(x - so.x, z - so.z); if (d < so.ext) ao *= 1 - 0.32 * (1 - smooth(d, so.r * 0.5, so.ext)); }
+        Cc[dst * 3] = tmp.r * ao; Cc[dst * 3 + 1] = tmp.g * ao; Cc[dst * 3 + 2] = tmp.b * ao;
+        const nx = hAt(gi - 1, gj) - hAt(gi + 1, gj), nz = hAt(gi, gj - 1) - hAt(gi, gj + 1), ny = 2 * HCELL, l = Math.hypot(nx, ny, nz);
+        N[dst * 3] = nx / l; N[dst * 3 + 1] = ny / l; N[dst * 3 + 2] = nz / l;
       }
     const idx = new Uint32Array((cw - 1) * (chh - 1) * 6);
     let p = 0;
@@ -193,13 +192,38 @@ ${cave ? '' : `vec2 cuv = vCloudUv * 0.018 + vec2(uTime * 0.006, uTime * 0.004);
 float cloud = cNoise(cuv) * 0.65 + cNoise(cuv * 2.3) * 0.35;
 gl_FragColor.rgb *= 1.0 - smoothstep(0.55, 0.75, cloud) * 0.18;`}`);
   };
+  // streaming (Tom: big islands that load in as you go): chunks are built when you come near, freed when you leave
   const group = new THREE.Group();
-  const nC = Math.ceil(HN / CHUNK);
-  for (let cj = 0; cj < nC; cj++)
-    for (let ci = 0; ci < nC; ci++) {
-      const mesh = new THREE.Mesh(chunkGeo(ci, cj), mat);
-      mesh.receiveShadow = true;
-      group.add(mesh);
+  const live = new Map<number, THREE.Mesh>();
+  const build = (ci: number, cj: number) => {
+    const k = cj * nC + ci;
+    if (live.has(k)) return;
+    const mesh = new THREE.Mesh(chunkGeo(ci, cj), mat);
+    mesh.receiveShadow = true;
+    group.add(mesh);
+    live.set(k, mesh);
+  };
+  const centre = (ci: number, cj: number): [number, number] => [OX + (ci + 0.5) * CM, OZ + (cj + 0.5) * CM];
+  const stream = (x: number, z: number, budget = Infinity, loadR = LOAD_R) => {
+    const unloadR = loadR + (UNLOAD_R - LOAD_R);
+    // drop the far ones
+    for (const [k, mesh] of live) {
+      const [cx, cz] = centre(k % nC, (k / nC) | 0);
+      if (Math.hypot(cx - x, cz - z) > unloadR + CM * 0.7) { group.remove(mesh); mesh.geometry.dispose(); live.delete(k); }
     }
-  return { group, uniforms };
+    // build the near ones, nearest first, up to the budget
+    const want: [number, number, number][] = [];
+    const r = Math.ceil((loadR + CM) / CM);
+    const pci = Math.floor((x - OX) / CM), pcj = Math.floor((z - OZ) / CM);
+    for (let cj = Math.max(0, pcj - r); cj <= Math.min(nC - 1, pcj + r); cj++)
+      for (let ci = Math.max(0, pci - r); ci <= Math.min(nC - 1, pci + r); ci++) {
+        if (live.has(cj * nC + ci)) continue;
+        const [cx, cz] = centre(ci, cj), d = Math.hypot(cx - x, cz - z);
+        if (d < loadR + CM * 0.7) want.push([d, ci, cj]);
+      }
+    want.sort((a, b) => a[0] - b[0]);
+    for (let n = 0; n < Math.min(budget, want.length); n++) build(want[n][1], want[n][2]);
+  };
+  const buildAll = () => { for (let cj = 0; cj < nC; cj++) for (let ci = 0; ci < nC; ci++) build(ci, cj); };
+  return { group, uniforms, stream, buildAll };
 }

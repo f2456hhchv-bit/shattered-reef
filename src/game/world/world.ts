@@ -4,6 +4,10 @@
 export const HCELL = 1.25; // terrain height grid spacing (also the render mesh spacing)
 export const WCELL = 0.5; // walk grid spacing
 export const SCELL = 1; // sail grid spacing
+/** the biggest A* search window, in cells a side (an island's whole grid up to now fits); and the margin round a route */
+const MAX_WINDOW = 1024, WINDOW_MARGIN = 96;
+/** fine walk cells per coarse cell, for planning long routes on big islands (4 m) */
+const WALK_COARSE = 8;
 
 export const WATER_WALK_MIN = 0.14; // ground must be above this to walk on
 export const SAIL_MAX_H = -0.9; // seabed must be below this to sail over
@@ -29,11 +33,14 @@ export class World {
   /** Ground above this can't be walked on (a cave's rock mass between its tunnels). */
   walkMaxH = Infinity;
   // A* scratch, reused between searches: a cell's g/came/closed are valid only if stamp[n] === gen
-  private readonly pg: Float32Array;
-  private readonly pcame: Int32Array;
-  private readonly pstamp: Uint32Array;
-  private readonly pclosed: Uint32Array;
+  // sized to the search window, not the whole map: a 4.5x island's full grid would need ~120 MB of scratch
+  private pg = new Float32Array(0);
+  private pcame = new Int32Array(0);
+  private pstamp = new Uint32Array(0);
+  private pclosed = new Uint32Array(0);
   private gen = 0;
+  /** coarse walk grid (WALK_COARSE fine cells a side) for planning long routes on big islands; built on first need */
+  private coarse: Uint8Array | null = null;
 
   constructor(b: Bounds, height: (x: number, z: number) => number) {
     this.cx = b.cx; this.cz = b.cz; this.half = b.half;
@@ -44,7 +51,6 @@ export class World {
     this.walk = new Uint8Array(WN * WN);
     this.sail = new Uint8Array(this.SN * this.SN);
     this.sea = new Uint8Array(this.SN * this.SN);
-    this.pg = new Float32Array(WN * WN); this.pcame = new Int32Array(WN * WN); this.pstamp = new Uint32Array(WN * WN); this.pclosed = new Uint32Array(WN * WN);
     for (let j = 0; j <= HN; j++)
       for (let i = 0; i <= HN; i++) this.heights[j * (HN + 1) + i] = height(this.ox + i * HCELL, this.oz + j * HCELL);
   }
@@ -145,7 +151,42 @@ export class World {
     if (!goal) return null;
     const start = this.nearestWalkable(sx, sz, 2);
     if (!start) return null;
+    // a long walk on a big island: plan it on the coarse grid, then walk it out leg by leg on the fine one
+    if (Math.max(Math.abs(goal[0] - start[0]), Math.abs(goal[1] - start[1])) / WCELL > MAX_WINDOW - 2 * WINDOW_MARGIN) return this.longPath(start, goal, maxNodes);
     return this.astar(this.walk, this.WN, WCELL, start, goal, maxNodes);
+  }
+
+  /** A route too long for one search window: coarse A* for the line of it, then fine A* between waypoints. */
+  private longPath(start: [number, number], goal: [number, number], maxNodes: number): [number, number][] | null {
+    const C = WALK_COARSE, CN = Math.ceil(this.WN / C), cell = WCELL * C;
+    if (!this.coarse) {
+      // a coarse cell is open if most of it is walkable: a wall's edges mustn't read as a way through
+      const g = (this.coarse = new Uint8Array(CN * CN)), W = this.WN, n = new Uint16Array(CN * CN);
+      for (let j = 0; j < W; j++) for (let i = 0; i < W; i++) if (this.walk[j * W + i]) n[((j / C) | 0) * CN + ((i / C) | 0)]++;
+      for (let k = 0; k < CN * CN; k++) g[k] = n[k] > C * C * 0.4 ? 1 : 0;
+    }
+    const plan = this.astar(this.coarse, CN, cell, start, goal, maxNodes);
+    if (!plan) return null;
+    // fine legs between waypoints no further apart than a window can hold
+    const out: [number, number][] = [];
+    let from = start;
+    const hop = (MAX_WINDOW - 2 * WINDOW_MARGIN) * WCELL * 0.8;
+    const pts: [number, number][] = [];
+    let ax = start[0], az = start[1];
+    for (const p of plan) {
+      const d = Math.hypot(p[0] - ax, p[1] - az), n = Math.ceil(d / hop);
+      for (let k = 1; k <= n; k++) pts.push([ax + ((p[0] - ax) * k) / n, az + ((p[1] - az) * k) / n]);
+      [ax, az] = p;
+    }
+    pts[pts.length - 1] = goal;
+    for (const p of pts) {
+      const to = this.nearestWalkable(p[0], p[1], cell) ?? p;
+      const leg = this.astar(this.walk, this.WN, WCELL, from, to, maxNodes);
+      if (!leg) return out.length ? out : null; // as far as the way goes
+      out.push(...leg);
+      from = to;
+    }
+    return out;
   }
 
   /**
@@ -188,7 +229,15 @@ export class World {
     if (this.lineOn(grid, N, cell, start[0], start[1], goal[0], goal[1])) return [goal];
     const ox = this.ox, oz = this.oz;
     const si = Math.floor((start[0] - ox) / cell), sj = Math.floor((start[1] - oz) / cell), gi = Math.floor((goal[0] - ox) / cell), gj = Math.floor((goal[1] - oz) / cell);
-    const S = si + sj * N, G = gi + gj * N;
+    // the search window: the whole grid when it's small (every island up to now), else the start-goal box plus a margin
+    const whole = N <= MAX_WINDOW;
+    const wi0 = whole ? 0 : Math.max(0, Math.min(si, gi) - WINDOW_MARGIN), wj0 = whole ? 0 : Math.max(0, Math.min(sj, gj) - WINDOW_MARGIN);
+    const wi1 = whole ? N - 1 : Math.min(N - 1, Math.max(si, gi) + WINDOW_MARGIN), wj1 = whole ? N - 1 : Math.min(N - 1, Math.max(sj, gj) + WINDOW_MARGIN);
+    const WW = wi1 - wi0 + 1, WH = wj1 - wj0 + 1;
+    if (this.pg.length < WW * WH) { const n = WW * WH; this.pg = new Float32Array(n); this.pcame = new Int32Array(n); this.pstamp = new Uint32Array(n); this.pclosed = new Uint32Array(n); this.gen = 0; }
+    // window-local cell index (scratch) from grid i, j
+    const L = (i: number, j: number) => i - wi0 + (j - wj0) * WW;
+    const S = L(si, sj), G = L(gi, gj);
     const gen = ++this.gen;
     const g = this.pg, came = this.pcame, stamp = this.pstamp, closed = this.pclosed;
     const gOf = (n: number) => (stamp[n] === gen ? g[n] : Infinity);
@@ -206,14 +255,14 @@ export class World {
       if (closed[cur] === gen) continue;
       closed[cur] = gen;
       if (++expanded > maxNodes) return null;
-      const ci = cur % N, cj = (cur / N) | 0;
+      const ci = wi0 + (cur % WW), cj = wj0 + ((cur / WW) | 0);
       for (let dj = -1; dj <= 1; dj++) {
         for (let di = -1; di <= 1; di++) {
           if (!di && !dj) continue;
           const ni = ci + di, nj = cj + dj;
-          if (ni < 0 || nj < 0 || ni >= N || nj >= N) continue;
-          const n = ni + nj * N;
-          if (!grid[n] || closed[n] === gen) continue;
+          if (ni < wi0 || nj < wj0 || ni > wi1 || nj > wj1) continue;
+          const n = L(ni, nj);
+          if (!grid[ni + nj * N] || closed[n] === gen) continue;
           if (di && dj && (!grid[ci + di + cj * N] || !grid[ci + (cj + dj) * N])) continue;
           const ng = g[cur] + (di && dj ? Math.SQRT2 : 1);
           if (ng < gOf(n)) {
@@ -227,7 +276,7 @@ export class World {
     }
     if (stamp[G] !== gen) return null;
     const cells: [number, number][] = [];
-    for (let c = G; c !== S && c !== -1; c = came[c]) cells.push([ox + ((c % N) + 0.5) * cell, oz + (((c / N) | 0) + 0.5) * cell]);
+    for (let c = G; c !== S && c !== -1; c = came[c]) cells.push([ox + (wi0 + (c % WW) + 0.5) * cell, oz + (wj0 + ((c / WW) | 0) + 0.5) * cell]);
     cells.reverse();
     cells[cells.length - 1] = goal;
     // string-pull

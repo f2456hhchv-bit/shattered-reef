@@ -44,13 +44,15 @@ import { NODES, PLAYER_BASE, SKILLS } from '../game/data/content';
 import type { Game, GameEvent, Enemy, Telegraph } from '../game/sim/game';
 import { coastDist, nearestPathDist, BEACH, SUN, SUN_LAYOUT, WRACK, AMBER, LOCK, SALT, LONG } from '../game/world/island';
 import { HCELL } from '../game/world/world';
-import { buildTerrainMesh } from './terrainMesh';
+import { buildTerrainMesh, LOAD_R } from './terrainMesh';
 import { bakeRig, bakeStatic, bakeFlat, mergeColoured } from './bake';
 import { humanoidShadow, blobShadow } from './shadowProxy';
 import { QualityGovernor } from './governor';
 import { InstancedField, type FieldItem } from './instanced';
 import { Particles } from './fx';
 
+/** grass past this is a smear of green under the haze: not worth planting */
+const GRASS_R = 90, GRASS_CELL = 40;
 const HERO = 1.2; // characters drawn larger than life so they read on phones
 /** Fine cloth/skin grain and a warm rim light so people stand out from the ground; coarser grain on props. */
 const CHAR_SURFACE = { scale: 7, tone: 0.12, bump: 0.18, rim: 0.1 };
@@ -218,7 +220,6 @@ export class GameRenderer {
   private whirlR = 3.2;
   private clickT = 0;
   private grass: THREE.Group | null = null;
-  private grassTime: { value: number }[] = [];
 
   // camera
   camTarget = new THREE.Vector3();
@@ -320,7 +321,7 @@ export class GameRenderer {
     this.dropViews.clear(); this.projViews.clear(); this.teleViews.clear(); this.flames = []; this.glows = [];
     this.seaViews.clear(); this.krakenArms.clear(); this.bolts.clear(); this.ballViews.clear(); this.chargeViews.clear(); this.aimLine = null;
     this.markViews.clear(); this.stormProps = null; this.fireProps = null; this.seepProps = null; this.treasureBuoy = null; this.bellView = null; this.bottleView = null; this.raceBuoys = [];
-    this.grass = null; this.grassTime = [];
+    this.grass = null;
     this.scenery = new InstancedField(addSurfaceDetail(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: false, roughness: 0.9 }), PROP_SURFACE));
     this.sceneryState.clear();
     this.cave = REGIONS[g.s.region].kind === 'cave';
@@ -504,6 +505,7 @@ export class GameRenderer {
       h.v.trim.visible = h.k < 0.05;
       h.v.interior.visible = h.k > 0;
     }
+    const R = this.streamR();
     for (const wk of this.walkers) {
       const total = wk.cum[wk.cum.length - 1];
       const s = (t * wk.speed + wk.off) % total;
@@ -511,6 +513,8 @@ export class GameRenderer {
       while (i < wk.cum.length - 1 && wk.cum[i] < s) i++;
       const a = wk.path[i - 1], b = wk.path[i], seg = wk.cum[i] - wk.cum[i - 1] || 1, f = (s - wk.cum[i - 1]) / seg;
       const x = a[0] + (b[0] - a[0]) * f, z = a[1] + (b[1] - a[1]) * f;
+      wk.rig.root.visible = Math.hypot(x - this.camLook.x, z - this.camLook.z) < R;
+      if (!wk.rig.root.visible) continue;
       wk.rig.root.position.set(x, world.standY(x, z), z);
       const want = Math.atan2(b[1] - a[1], b[0] - a[0]), cur = Math.PI / 2 - wk.rig.root.rotation.y;
       const diff = Math.atan2(Math.sin(want - cur), Math.cos(want - cur));
@@ -519,18 +523,30 @@ export class GameRenderer {
     }
   }
 
+  /** Grass is planted per 40 m cell as you come near and pulled up when you leave (big islands stream in). */
   private buildGrass() {
-    const w = this.game.world, L = this.game.layout;
     if (this.cave) return;
-    const rnd = mulberry32(99);
-    // bucketed into 40 m cells so each clump is its own culled draw
-    const CELL = 40, buckets = new Map<string, THREE.Vector3[]>();
-    let made = 0;
+    this.grass = new THREE.Group();
+    this.grass.visible = this.grassOn;
+    this.grassCells = new Map();
+    this.region3d.add(this.grass);
+  }
+  private grassCells = new Map<number, THREE.InstancedMesh | null>();
+  /** one cell's clumps, the same every time it's planted (seeded by the cell) */
+  private grassPoints(ci: number, cj: number): THREE.Vector3[] {
+    const w = this.game.world, L = this.game.layout, CELL = GRASS_CELL;
     // where each island's grass grows: its centre, the square it fills, how many clumps
     const GRASS: Record<string, [number, number, number, number]> = { bellwether: [0, 0, 200, 9000], sunreach: [SUN.x, SUN.z, 140, 4500], amberhold: [AMBER.x, AMBER.z, 140, 4000], wrack: [WRACK.x, WRACK.z, 130, 3000], lockhaven: [LOCK.x, LOCK.z, 125, 3500], saltglass: [SALT.x, SALT.z, 115, 1600], longstrand: [LONG.x, LONG.z, 100, 1800] };
     const [cx, cz, span, most] = GRASS[this.game.s.region] ?? GRASS.bellwether;
-    for (let i = 0; i < 130000 && made < most; i++) {
-      const x = cx + (rnd() - 0.5) * span, z = cz + (rnd() - 0.5) * span;
+    const x0 = Math.max(ci * CELL, cx - span / 2), x1 = Math.min((ci + 1) * CELL, cx + span / 2);
+    const z0 = Math.max(cj * CELL, cz - span / 2), z1 = Math.min((cj + 1) * CELL, cz + span / 2);
+    if (x1 <= x0 || z1 <= z0) return [];
+    // about 30% of tries land on open ground, so this plants roughly `most` clumps over the whole island
+    const tries = Math.round((most / (span * span)) * (x1 - x0) * (z1 - z0) * 3.3);
+    const rnd = mulberry32((ci * 73856093) ^ (cj * 19349663) ^ 99);
+    const out: THREE.Vector3[] = [];
+    for (let i = 0; i < tries; i++) {
+      const x = x0 + rnd() * (x1 - x0), z = z0 + rnd() * (z1 - z0);
       if (coastDist(x, z) < BEACH || !w.walkable(x, z)) continue; // no grass on the beach
       const y = w.ground(x, z);
       if (y > 8) continue; // bare upper peak
@@ -538,23 +554,40 @@ export class GameRenderer {
       if (p.d < p.width + 0.5) continue;
       if (L.arenas.some((a) => Math.hypot(x - a.x, z - a.z) < 8)) continue;
       if (Math.hypot(x - L.respawn.x, z - L.respawn.z) < 15 || Math.hypot(x - SUN_LAYOUT.port.x, z - SUN_LAYOUT.port.z) < 14) continue; // the quay squares
-      if (this.game.layout.town.some((b) => { const [lx, lz] = toLocal(b, x, z); return Math.abs(lx) < b.w / 2 + 0.4 && Math.abs(lz) < b.d / 2 + 0.4; })) continue; // not through the floors
-      if (this.game.layout.stalls.some((st) => Math.hypot(st.x - x, st.z - z) < 1.6)) continue;
-      const key = `${Math.floor(x / CELL)},${Math.floor(z / CELL)}`;
-      let b = buckets.get(key);
-      if (!b) buckets.set(key, (b = []));
-      b.push(new THREE.Vector3(x, y - 0.02, z));
-      made++;
+      if (L.town.some((b) => { const [lx, lz] = toLocal(b, x, z); return Math.abs(lx) < b.w / 2 + 0.4 && Math.abs(lz) < b.d / 2 + 0.4; })) continue; // not through the floors
+      if (L.stalls.some((st) => Math.hypot(st.x - x, st.z - z) < 1.6)) continue;
+      out.push(new THREE.Vector3(x, y - 0.02, z));
     }
-    this.grass = new THREE.Group();
-    let seed = 7;
-    for (const pts of buckets.values()) {
-      const m = buildGrass(pts, seed++);
-      m.computeBoundingSphere();
-      this.grassTime.push((m.userData.uniforms as { uTime: { value: number } }).uTime);
-      this.grass.add(m);
+    return out;
+  }
+  /** plant the cells near (x, z), nearest first, `budget` a call; pull up the far ones */
+  private streamGrass(x: number, z: number, budget: number) {
+    if (!this.grass) return;
+    const CELL = GRASS_CELL, R = GRASS_R, key = (ci: number, cj: number) => (ci + 4096) * 8192 + (cj + 4096);
+    for (const [k, m] of this.grassCells) {
+      const ci = Math.floor(k / 8192) - 4096, cj = (k % 8192) - 4096;
+      if (Math.hypot((ci + 0.5) * CELL - x, (cj + 0.5) * CELL - z) <= R + CELL) continue;
+      if (m) { this.grass.remove(m); m.geometry.dispose(); (m.material as THREE.Material).dispose(); }
+      this.grassCells.delete(k);
     }
-    this.region3d.add(this.grass);
+    const want: [number, number, number][] = [];
+    const pci = Math.floor(x / CELL), pcj = Math.floor(z / CELL), r = Math.ceil(R / CELL) + 1;
+    for (let cj = pcj - r; cj <= pcj + r; cj++) for (let ci = pci - r; ci <= pci + r; ci++) {
+      if (this.grassCells.has(key(ci, cj))) continue;
+      const d = Math.hypot((ci + 0.5) * CELL - x, (cj + 0.5) * CELL - z);
+      if (d < R + CELL * 0.7) want.push([d, ci, cj]);
+    }
+    want.sort((a, b) => a[0] - b[0]);
+    for (let n = 0; n < Math.min(budget, want.length); n++) {
+      const [, ci, cj] = want[n], pts = this.grassPoints(ci, cj);
+      let m: THREE.InstancedMesh | null = null;
+      if (pts.length) {
+        m = buildGrass(pts, ci * 31 + cj);
+        m.computeBoundingSphere();
+        this.grass.add(m);
+      }
+      this.grassCells.set(key(ci, cj), m);
+    }
   }
 
   private buildNodes() {
@@ -731,12 +764,21 @@ export class GameRenderer {
   private syncEnemies(t: number, dt: number) {
     const g = this.game;
     for (const v of this.enemyViews.values()) v.seen = false;
+    // only creatures near the camera get a model: built a few a frame as they come into range, freed past it
+    const R = this.streamR(), cx = this.camLook.x, cz = this.camLook.z;
+    let made = 0;
     for (const e of g.enemies) {
       let v = this.enemyViews.get(e.id);
+      const far = Math.hypot(e.x - cx, e.z - cz);
+      if (far > R + (v ? 30 : 0)) continue;
       const eliteChanged = v && !!v.ring !== !!e.elite;
       if (v && eliteChanged) { this.disposeObject(v.root); this.enemyViews.delete(e.id); v = undefined; }
       if (!e.alive) { if (v) v.root.visible = false; if (v) v.seen = true; continue; }
-      if (!v) { v = this.makeEnemyView(e); this.enemyViews.set(e.id, v); }
+      if (!v) {
+        if (made >= 4 && far > 40) continue; // a crowd coming into view: spread the building over a few frames
+        made++;
+        v = this.makeEnemyView(e); this.enemyViews.set(e.id, v);
+      }
       v.seen = true;
       v.root.visible = true;
       const y = g.world.ground(e.x, e.z);
@@ -1596,7 +1638,8 @@ export class GameRenderer {
     // npcs: look toward the player when close
     for (const n of g.layout.npcs) {
       const rig = this.npcs.get(n.id)!;
-      rig.root.visible = !g.npcGone(n.id);
+      rig.root.visible = !g.npcGone(n.id) && Math.hypot(n.x - this.camLook.x, n.z - this.camLook.z) < this.streamR();
+      if (!rig.root.visible) continue;
       const d = Math.hypot(p.x - n.x, p.z - n.z);
       const want = d < 6 && !p.onShip ? Math.atan2(p.z - n.z, p.x - n.x) : n.facing;
       const cur = Math.PI / 2 - rig.root.rotation.y;
@@ -1605,7 +1648,8 @@ export class GameRenderer {
       if (n.id === 'bram' && d > 4) animateWork(rig, t * 0.9); else animateIdle(rig, t + n.x);
     }
 
-    // nodes
+    // nodes (past the haze: hidden, not animated)
+    const nodeR = this.streamR();
     for (const n of g.nodes) {
       const depleted = n.depletedUntil > g.time;
       if (this.boards.has(n.uid)) {
@@ -1617,6 +1661,10 @@ export class GameRenderer {
         continue;
       }
       const v = this.nodeViews.get(n.uid)!;
+      if (Math.hypot(n.x - this.camLook.x, n.z - this.camLook.z) > nodeR) {
+        v.live.visible = false; if (v.dead) v.dead.visible = false; if (v.leap) v.leap.visible = false;
+        continue;
+      }
       if (v.ripples) {
         for (const r of v.ripples.children) {
           const k = (t * 0.5 + (r.userData.phase as number)) % 1;
@@ -1684,7 +1732,9 @@ export class GameRenderer {
     this.fireworks = this.fireworks.filter((f) => f.t > 0);
     this.particles.update(dt);
     this.terrain.uniforms.uTime.value = t;
-    for (const u of this.grassTime) u.value = t;
+    // big islands load in as you go: a few ground chunks a frame around what the camera sees
+    this.streamWorld(false);
+    if (this.grass) for (const m of this.grass.children) (m.userData.uniforms as { uTime: { value: number } }).uTime.value = t;
     if (this.cave) this.lantern.position.set(p.x, world.standY(p.x, p.z) + 2.6, p.z + 0.6);
     this.water && (this.water.uniforms.uTime.value = t);
     this.updateCamera(dt);
@@ -1757,7 +1807,21 @@ export class GameRenderer {
     if (this.water) { this.water.uniforms.uFogNear.value = fog.near; this.water.uniforms.uFogFar.value = fog.far; }
   }
 
-  snapCamera() { this.release = null; this.updateCamera(0); }
+  /** how far the ground must be built around the camera's aim: everything short of full fog, never less than LOAD_R */
+  private streamR() { return Math.max(LOAD_R, this.camera.far); }
+
+  snapCamera() { this.release = null; this.updateCamera(0); this.streamWorld(true); }
+
+  /** Big islands load in as you go: a few ground and grass chunks a frame around what the camera sees,
+   *  or all at once after a jump (teleport, region load), so you never land on missing ground. */
+  private streamed = { x: NaN, z: NaN };
+  private streamWorld(all: boolean) {
+    const x = this.camLook.x, z = this.camLook.z;
+    if (!(Math.hypot(x - this.streamed.x, z - this.streamed.z) < 30)) all = true;
+    this.streamed.x = x; this.streamed.z = z;
+    this.terrain.stream(x, z, all ? Infinity : 3, this.streamR());
+    this.streamGrass(x, z, all ? Infinity : 2);
+  }
 
   /** Hand the camera back to the player, flying down from the cinematic pose over `dur` seconds. */
   releaseCinematic(dur: number) {

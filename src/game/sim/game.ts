@@ -148,6 +148,8 @@ export interface Target { key: string; kind: 'node' | 'npc' | 'station' | 'bank'
 const DT_GATHER = 2.4;
 const DT_CRAFT = 1.8;
 const SAFE_RADIUS = 16;
+/** idle foes further than this (metres, as the crow walks: |dx|+|dz|) don't think at all */
+const SLEEP_RANGE = 120;
 /** the spellbook's curses and buffs, by what they change (from data/spellbook.ts) */
 const CURSE_PCT = { acc: BOOK_BY.confuse.curse!.pct, dmg: BOOK_BY.weaken.curse!.pct, def: BOOK_BY.curse.curse!.pct };
 const BUFF_PCT = { woodcutting: BOOK_BY.gale_edge.buff!.pct, fishing: BOOK_BY.call_shoals.buff!.pct, mining: BOOK_BY.stone_sense.buff!.pct };
@@ -2836,7 +2838,9 @@ export class Game {
             const a = this.rnd() * Math.PI * 2;
             e.wander = this.rnd() < 0.6 ? { x: e.spawnX + Math.cos(a) * 3, z: e.spawnZ + Math.sin(a) * 3 } : null;
           }
-          if (e.wander) this.enemyMove(e, e.wander.x, e.wander.z, speed * 0.4, dt, 0.3);
+          // far off: it still decides where to amble (same dice, same world) but doesn't walk there; a big island
+          // has hundreds of these and their pathing is the cost
+          if (e.wander && Math.abs(px - e.x) + Math.abs(pz - e.z) < SLEEP_RANGE) this.enemyMove(e, e.wander.x, e.wander.z, speed * 0.4, dt, 0.3);
           break;
         }
         case 'chase': {
