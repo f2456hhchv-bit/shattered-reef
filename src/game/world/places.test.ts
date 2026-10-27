@@ -52,7 +52,7 @@ describe('islets', () => {
 });
 
 describe('reachability audit', () => {
-  for (const r of ['bellwether', 'sunreach', 'amberhold', 'wrack', 'lockhaven', 'saltglass', 'smugglers_caves', 'ember_deep'] as RegionId[]) {
+  for (const r of ['bellwether', 'sunreach', 'amberhold', 'wrack', 'lockhaven', 'saltglass', 'longstrand', 'smugglers_caves', 'ember_deep'] as RegionId[]) {
     it(`${r}: every NPC, station, bank, arena, quest spot, land node and foe can be walked up to`, async () => {
       const { QUESTS } = await import('../data/quests');
       const { NODES } = await import('../data/content');

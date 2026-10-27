@@ -134,6 +134,25 @@ export function saltPoint(thetaDeg: number, inset: number): [number, number] {
 }
 const saltAt = (thetaDeg: number, inset: number) => { const [x, z] = saltPoint(thetaDeg, inset); return { x, z }; };
 
+// ---- Longstrand: a sandbar island the length of a town, levels 75-99 (Act IV) ---------------------------------
+// Saoirse of the Line's island: a fishing village on stilts, drowned to the knees; the Netting Grounds at the east end
+// where the Line House hung its brass nets; the Finfolk's haaf at the west end. The Fifth Lock is under the Weir.
+export const LONG = { x: 2520, z: -20 };
+export const LONG_RADIUS = 46;
+export function longCoastR(theta: number): number {
+  const c = Math.cos(theta), s = Math.sin(theta);
+  return LONG_RADIUS + (fbm(c * 2.6 + 131, s * 2.6 + 131, 4, 61) - 0.5) * 14
+    + lobe(theta, 0, 22, 24) + lobe(theta, 180, 22, 24) // the strand runs east-west
+    - lobe(theta, 270, 30, 12) - lobe(theta, 90, 14, 6) // narrow north to south; Weir Landing's bay
+    - lobe(theta, 120, 6, 5); // a channel cut by the tide, south-west
+}
+/** Point on Longstrand at angle `thetaDeg` round its centre, `inset` metres inside its coast. */
+export function longPoint(thetaDeg: number, inset: number): [number, number] {
+  const t = deg(thetaDeg), r = longCoastR(t) - inset;
+  return [LONG.x + Math.cos(t) * r, LONG.z + Math.sin(t) * r];
+}
+const longAt = (thetaDeg: number, inset: number) => { const [x, z] = longPoint(thetaDeg, inset); return { x, z }; };
+
 /** Which island a point belongs to (the nearer coast). */
 export function islandOf(x: number, z: number): 'bellwether' | 'sunreach' {
   return Math.hypot(x - SUN.x, z - SUN.z) - SUN_RADIUS < Math.hypot(x, z) - ISLAND_RADIUS ? 'sunreach' : 'bellwether';
@@ -179,6 +198,18 @@ const wrackQuay = wrackAt(90, 0);
 const amberQuay = amberAt(90, 0);
 const lockQuay = lockAt(90, 0);
 const saltQuay = saltAt(90, 0);
+const longQuay = longAt(90, 0);
+/** Longstrand: Weir Landing mid-south; Stiltwick (the drowned stilt village) west; the Netting Grounds east; the Finfolk's
+ * haaf at the far west tip; the Weir north of the landing. */
+export const LONG_LAYOUT = {
+  dockBase: { x: LONG.x, z: longQuay.z - 2.5 },
+  landing: { x: LONG.x, z: longQuay.z - 12 }, // Weir Landing
+  stiltwick: { x: LONG.x - 30, z: LONG.z + 2 }, // Stiltwick, drowned to the knees
+  netting: { x: LONG.x + 42, z: LONG.z }, // the Netting Grounds
+  haaf: longAt(180, 12), // the Finfolk haaf at the west tip
+  weir: { x: LONG.x + 6, z: LONG.z - 14 }, // the Weir: the Fifth Lock
+  dunes: { x: LONG.x + 22, z: LONG.z - 10 }, // the marram dunes
+};
 /** Saltglass: Glasswater Steps at the landing; the Mirror Pools west, the Glass Dunes east, the Shattered Grove
  * north-west, the Lens Point north-east, the Drowned Mirror north. */
 export const SALT_LAYOUT = {
@@ -238,7 +269,7 @@ const L = LAYOUT;
 export const BELL_TOWN = townPlan(L.village, L.crossroads);
 export const PORT_TOWN = portPlan(SUN_LAYOUT.port);
 export const TOWN = mergePlans(BELL_TOWN, PORT_TOWN);
-const SL = SUN_LAYOUT, WL = WRACK_LAYOUT, AL = AMBER_LAYOUT, KL = LOCK_LAYOUT, GL = SALT_LAYOUT;
+const SL = SUN_LAYOUT, WL = WRACK_LAYOUT, AL = AMBER_LAYOUT, KL = LOCK_LAYOUT, GL = SALT_LAYOUT, NL = LONG_LAYOUT;
 /** Offshore islets: land you reach by ship. */
 export const ISLETS = [{ x: L.islet.x, z: L.islet.z, r: 13 }, { x: WL.islet.x, z: WL.islet.z, r: 13 }];
 export const LAGOON = { x: -34, z: -22, r: 9 };
@@ -279,6 +310,11 @@ export const FLATS: Flat[] = [
   { x: GL.dockBase.x, z: GL.dockBase.z - 1, r: 3, h: 1.0 },
   { x: GL.mirror.x, z: GL.mirror.z, r: 7, h: 'auto' },
   { x: GL.lens.x, z: GL.lens.z, r: 5, h: 'auto' },
+  // Longstrand: Weir Landing, the dock, the Weir's stone apron, Stiltwick's old square
+  { x: NL.landing.x, z: NL.landing.z, r: 10, h: 1.1 },
+  { x: NL.dockBase.x, z: NL.dockBase.z - 1, r: 3, h: 1.0 },
+  { x: NL.weir.x, z: NL.weir.z, r: 6, h: 'auto' },
+  { x: NL.stiltwick.x, z: NL.stiltwick.z, r: 8, h: 'auto' },
   // a level pad under every town building, at the height of the ground already there (so the quay's stay on the quay)
   ...TOWN.buildings.map((b) => ({ x: b.x, z: b.z, r: Math.hypot(b.w, b.d) / 2 + 0.6, h: 'pad' as const, soft: 2.5 })),
 ];
@@ -312,6 +348,8 @@ export const HILLS: Hill[] = [
   { x: GL.dunes.x, z: GL.dunes.z, r: 12, h: 4.5 }, // the Glass Dunes
   { x: GL.dunes.x + 6, z: GL.dunes.z + 10, r: 8, h: 2.5 },
   { x: GL.grove.x - 4, z: GL.grove.z - 4, r: 12, h: 3 },
+  { x: NL.dunes.x, z: NL.dunes.z, r: 10, h: 3 }, // the marram dunes
+  { x: NL.dunes.x - 30, z: NL.dunes.z + 2, r: 9, h: 2 },
 ];
 
 export const MIRROR_POOL = { x: GL.pools.x, z: GL.pools.z, r: 7 };
@@ -368,6 +406,10 @@ export const PATHS: PathDef[] = [
   { width: 1.1, pts: [[SALT.x + 1, SALT.z + 2], [GL.dunes.x - 10, GL.dunes.z + 6], [GL.dunes.x - 4, GL.dunes.z + 4]] },
   { width: 1.1, pts: [[GL.mirror.x - 1, GL.mirror.z + 10], [GL.grove.x + 10, GL.grove.z + 4], [GL.grove.x + 2, GL.grove.z]] },
   { width: 1.1, pts: [[GL.mirror.x - 1, GL.mirror.z + 10], [GL.lens.x - 8, GL.lens.z + 6], [GL.lens.x - 2, GL.lens.z + 2]] },
+  // Longstrand: the strand road, end to end through Weir Landing, and up to the Weir
+  { width: 1.3, pts: [[NL.dockBase.x, NL.dockBase.z], [NL.landing.x, NL.landing.z], [LONG.x - 2, LONG.z + 2], [NL.stiltwick.x + 8, NL.stiltwick.z], [NL.stiltwick.x, NL.stiltwick.z], [NL.haaf.x + 12, NL.haaf.z], [NL.haaf.x + 4, NL.haaf.z]] },
+  { width: 1.1, pts: [[LONG.x - 2, LONG.z + 2], [NL.dunes.x - 6, NL.dunes.z + 8], [NL.netting.x - 10, NL.netting.z + 2], [NL.netting.x - 2, NL.netting.z]] },
+  { width: 1.1, pts: [[LONG.x - 2, LONG.z + 2], [NL.weir.x - 2, NL.weir.z + 8], [NL.weir.x, NL.weir.z + 4]] },
 ];
 
 function pathDist(p: PathDef, x: number, z: number): number {
@@ -393,7 +435,7 @@ export function nearestPathDist(x: number, z: number): { d: number; width: numbe
 // The coastlines depend only on the angle, so they're tabulated once (the world build asks ~10^6 times)
 const COAST_STEPS = 2048;
 const tabulate = (f: (t: number) => number) => Float32Array.from({ length: COAST_STEPS + 1 }, (_, i) => f((i / COAST_STEPS) * Math.PI * 2 - Math.PI));
-let bellTable: Float32Array | null = null, sunTable: Float32Array | null = null, wrackTable: Float32Array | null = null, amberTable: Float32Array | null = null, lockTable: Float32Array | null = null, saltTable: Float32Array | null = null;
+let bellTable: Float32Array | null = null, sunTable: Float32Array | null = null, wrackTable: Float32Array | null = null, amberTable: Float32Array | null = null, lockTable: Float32Array | null = null, saltTable: Float32Array | null = null, longTable: Float32Array | null = null;
 function fromTable(t: Float32Array, theta: number): number {
   const f = ((theta + Math.PI) / (Math.PI * 2)) * COAST_STEPS, i = Math.max(0, Math.min(COAST_STEPS - 1, Math.floor(f)));
   return t[i] + (t[i + 1] - t[i]) * (f - i);
@@ -407,9 +449,11 @@ export function coastDist(x: number, z: number): number {
   amberTable ??= tabulate(amberCoastR);
   lockTable ??= tabulate(lockCoastR);
   saltTable ??= tabulate(saltCoastR);
+  longTable ??= tabulate(longCoastR);
+  const nx = x - LONG.x, nz = z - LONG.z;
   const dx = x - SUN.x, dz = z - SUN.z, wx = x - WRACK.x, wz = z - WRACK.z, ax = x - AMBER.x, az = z - AMBER.z, kx = x - LOCK.x, kz = z - LOCK.z, gx = x - SALT.x, gz = z - SALT.z;
   return Math.max(b, fromTable(sunTable, Math.atan2(dz, dx)) - Math.hypot(dx, dz), fromTable(wrackTable, Math.atan2(wz, wx)) - Math.hypot(wx, wz),
-    fromTable(amberTable, Math.atan2(az, ax)) - Math.hypot(ax, az), fromTable(lockTable, Math.atan2(kz, kx)) - Math.hypot(kx, kz), fromTable(saltTable, Math.atan2(gz, gx)) - Math.hypot(gx, gz));
+    fromTable(amberTable, Math.atan2(az, ax)) - Math.hypot(ax, az), fromTable(lockTable, Math.atan2(kz, kx)) - Math.hypot(kx, kz), fromTable(saltTable, Math.atan2(gz, gx)) - Math.hypot(gx, gz), fromTable(longTable, Math.atan2(nz, nx)) - Math.hypot(nx, nz));
 }
 
 export function rawHeight(x: number, z: number): number {
@@ -492,6 +536,13 @@ export const SALT_SEA_SPOTS: Record<string, [number, number][]> = {
   spot_shark: [saltPoint(20, -22), saltPoint(250, -24)],
 };
 
+/** Ship-only fishing grounds off Longstrand (world x, z): the best water in the Reef. */
+export const LONG_SEA_SPOTS: Record<string, [number, number][]> = {
+  spot_angler: [longPoint(60, -20), longPoint(300, -20)],
+  spot_shark: [longPoint(240, -22)],
+  spot_sword: [longPoint(130, -20)],
+};
+
 // ---- named places (discovery) ------------------------------------------------
 // A place is only listed once it has something to do; new zones join as their content lands.
 export interface Place { id: string; name: string; x: number; z: number; r: number; sea?: boolean; region?: RegionId } // no region: Bellwether
@@ -557,4 +608,13 @@ export const ISLAND_PLACES: Place[] = [
   { id: 'drownedmirror', name: 'The Drowned Mirror', x: GL.mirror.x, z: GL.mirror.z, r: 10, region: 'saltglass' },
   ...([['g_glassdeep', 'The Glass Deep', 20, -22]] as const)
     .map(([id, name, a, i]) => { const [x, z] = saltPoint(a, i); return { id, name, x, z, r: 16, sea: true, region: 'saltglass' as RegionId }; }),
+  // Longstrand (levels 75-99)
+  { id: 'weirlanding', name: 'Weir Landing', x: NL.landing.x, z: NL.landing.z - 2, r: 14, region: 'longstrand' },
+  { id: 'stiltwick', name: 'Stiltwick', x: NL.stiltwick.x, z: NL.stiltwick.z, r: 13, region: 'longstrand' },
+  { id: 'nettinggrounds', name: 'The Netting Grounds', x: NL.netting.x, z: NL.netting.z, r: 13, region: 'longstrand' },
+  { id: 'finfolkhaaf', name: 'The Finfolk Haaf', x: NL.haaf.x, z: NL.haaf.z, r: 12, region: 'longstrand' },
+  { id: 'theweir', name: 'The Weir', x: NL.weir.x, z: NL.weir.z, r: 9, region: 'longstrand' },
+  { id: 'marram', name: 'The Marram Dunes', x: NL.dunes.x, z: NL.dunes.z, r: 11, region: 'longstrand' },
+  ...([['n_bestwater', 'The Best Water', 60, -20]] as const)
+    .map(([id, name, a, i]) => { const [x, z] = longPoint(a, i); return { id, name, x, z, r: 16, sea: true, region: 'longstrand' as RegionId }; }),
 ];

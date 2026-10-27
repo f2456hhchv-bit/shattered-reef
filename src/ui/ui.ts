@@ -19,7 +19,7 @@ import { NPC_LOOKS, PLAYER_LOOK } from '../art/cast';
 import { NODES, SKILLS, UNLOCKS, RECIPES, UTILITY_SPELLS, ELITE_AFFIXES, ENEMIES, PLAYER_BASE, SPELLS, type Station } from '../game/data/content';
 import type { Stance } from '../game/sim/gear';
 import { NPCS, QUESTS } from '../game/data/quests';
-import { coastDist, nearestPathDist, FLATS, SUN, WRACK, AMBER, LOCK, SALT, coastR, sunCoastR, wrackCoastR, amberCoastR, lockCoastR, saltCoastR, LAYOUT, SUN_LAYOUT } from '../game/world/island';
+import { coastDist, nearestPathDist, FLATS, SUN, WRACK, AMBER, LOCK, SALT, LONG, coastR, sunCoastR, wrackCoastR, amberCoastR, lockCoastR, saltCoastR, longCoastR, LAYOUT, SUN_LAYOUT } from '../game/world/island';
 import { PLACES, placeRegion } from '../game/world/places';
 import { REGIONS } from '../game/world/regions';
 import { count, displayName, stackValue, INV_SIZE, type Stack } from '../game/sim/inventory';
@@ -348,7 +348,7 @@ export class UI {
         this.mapView = 'here';
         this.renderTab();
         const r = REGIONS[e.region];
-        this.banner(r.name, r.kind === 'cave' ? 'Underground' : ({ bellwether: 'The starter isle', sunreach: 'Port Halyard and the Greenheart', amberhold: 'Tollhouse Landing and the amberwood', wrack: 'Gallows Landing, under Thunder Crag', lockhaven: 'The Wardwrights\' island', saltglass: 'Glasswater Steps' } as Record<string, string>)[r.id] ?? '');
+        this.banner(r.name, r.kind === 'cave' ? 'Underground' : ({ bellwether: 'The starter isle', sunreach: 'Port Halyard and the Greenheart', amberhold: 'Tollhouse Landing and the amberwood', wrack: 'Gallows Landing, under Thunder Crag', lockhaven: 'The Wardwrights\' island', saltglass: 'Glasswater Steps', longstrand: 'Weir Landing' } as Record<string, string>)[r.id] ?? '');
         break;
       }
     }
@@ -930,7 +930,7 @@ export class UI {
   private questsHtml() {
     const g = this.game;
     // the journal: by island, what you're doing first, then what's new, then what's done (one line each)
-    const ISLES = [['bellwether', 'Bellwether Isle'], ['sunreach', 'Sunreach Isle'], ['amberhold', 'Amberhold Isle'], ['wrack', 'Stormwrack Isle'], ['lockhaven', 'Lockhaven'], ['saltglass', 'Saltglass']] as const;
+    const ISLES = [['bellwether', 'Bellwether Isle'], ['sunreach', 'Sunreach Isle'], ['amberhold', 'Amberhold Isle'], ['wrack', 'Stormwrack Isle'], ['lockhaven', 'Lockhaven'], ['saltglass', 'Saltglass'], ['longstrand', 'Longstrand']] as const;
     const qs = ISLES.map(([id, name]) => {
       const list = Object.values(QUESTS).filter((q) => (q.island ?? 'bellwether') === id);
       if (!list.length) return '';
@@ -1577,6 +1577,7 @@ export class UI {
     if (r.id === 'wrack') return { cx: WRACK.x, cz: WRACK.z, span: 150 };
     if (r.id === 'lockhaven') return { cx: LOCK.x, cz: LOCK.z, span: 150 };
     if (r.id === 'saltglass') return { cx: SALT.x, cz: SALT.z, span: 145 };
+    if (r.id === 'longstrand') return { cx: LONG.x, cz: LONG.z, span: 170 };
     if (r.id === 'amberhold') return { cx: AMBER.x, cz: AMBER.z, span: 160 };
     if (r.id === 'bellwether') return { cx: 0, cz: 0, span: 290 }; // the island and its fighting waters (charting marks, Old Gnasher's reef)
     return { cx: r.bounds.cx, cz: r.bounds.cz, span: r.bounds.half * 2 };
@@ -1670,8 +1671,9 @@ export class UI {
       { id: 'wrack', x: WRACK.x, z: WRACK.z, coast: wrackCoastR, name: 'Stormwrack Isle', zoom: 1.8 },
       { id: 'lockhaven', x: LOCK.x, z: LOCK.z, coast: lockCoastR, name: 'Lockhaven', zoom: 1.8 },
       { id: 'saltglass', x: SALT.x, z: SALT.z, coast: saltCoastR, name: 'Saltglass', zoom: 1.8 },
+      { id: 'longstrand', x: LONG.x, z: LONG.z, coast: longCoastR, name: 'Longstrand', zoom: 1.8 },
     ] as const;
-    const span = 2400, cx = SALT.x / 2, cz = 10, ox = cx - span / 2, oz = cz - span / 2;
+    const span = 2800, cx = LONG.x / 2, cz = 10, ox = cx - span / 2, oz = cz - span / 2;
     // a point near an island is pushed out from its centre by that island's zoom, so the chart stays true to where you are
     const toPx = (x: number, z: number): [number, number] => {
       const is = ISLES.reduce((a, b) => (Math.hypot(x - b.x, z - b.z) < Math.hypot(x - a.x, z - a.z) ? b : a));

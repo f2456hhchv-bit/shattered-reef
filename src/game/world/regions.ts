@@ -1,14 +1,14 @@
-import { SUN, WRACK, AMBER, LOCK, SALT } from './island';
+import { SUN, WRACK, AMBER, LOCK, SALT, LONG } from './island';
 import type { Bounds } from './world';
 
 // The world is split into regions, loaded one at a time (Tom, 2026-10-24: "one island at a time... a threshold
 // crossed and a loading screen"). An island region is the island and its waters; sailing off a charted edge of
 // its square carries you to the next island. Caves are their own regions under the islands, entered on foot.
 
-export type RegionId = 'bellwether' | 'sunreach' | 'amberhold' | 'wrack' | 'lockhaven' | 'saltglass' | 'smugglers_caves' | 'ember_deep';
+export type RegionId = 'bellwether' | 'sunreach' | 'amberhold' | 'wrack' | 'lockhaven' | 'saltglass' | 'longstrand' | 'smugglers_caves' | 'ember_deep';
 /** The islands, in the order you outgrow them (Tom, 2026-10-25: three starter islands at 1-20, 15-30 and 25-50,
  * then islands past 50 with mixed difficulty). */
-export type IslandId = 'bellwether' | 'sunreach' | 'amberhold' | 'wrack' | 'lockhaven' | 'saltglass';
+export type IslandId = 'bellwether' | 'sunreach' | 'amberhold' | 'wrack' | 'lockhaven' | 'saltglass' | 'longstrand';
 export type Side = 'n' | 's' | 'e' | 'w';
 
 export interface RegionDef {
@@ -57,9 +57,15 @@ export const REGIONS: Record<RegionId, RegionDef> = {
   },
   saltglass: {
     id: 'saltglass', name: 'Saltglass', kind: 'island', bounds: { cx: SALT.x, cz: SALT.z, half: 110 }, home: 'saltglass', band: [70, 95],
-    exits: [{ side: 'w', to: 'lockhaven' }],
+    exits: [{ side: 'w', to: 'lockhaven' }, { side: 'e', to: 'longstrand' }],
     tip: 'Levels 70 to 95. The star came down hottest here: the beaches are glass, and the pools show you a moment late.',
     gate: { flag: 'lanternrelit_done', text: 'East of Lockhaven the sea goes glassy and the compass spins. Nobody has charted a way through. Hale has; if you had her charts...' },
+  },
+  longstrand: {
+    id: 'longstrand', name: 'Longstrand', kind: 'island', bounds: { cx: LONG.x, cz: LONG.z, half: 110 }, home: 'longstrand', band: [75, 99],
+    exits: [{ side: 'w', to: 'saltglass' }],
+    tip: 'Levels 75 and up. A sandbar the length of a town; a fishing village drowned to the knees; and the Finfolk, who row boats with no oars.',
+    gate: { flag: 'undertow_done', text: 'The water east of Saltglass is the Undertow\'s. Until you\'ve met her, ship to ship, nobody will sail it with you.' },
   },
   smugglers_caves: {
     id: 'smugglers_caves', name: 'Smugglers\' Caves', kind: 'cave', bounds: { cx: 0, cz: 1000, half: 46 }, home: 'bellwether', band: [15, 20], exits: [],
