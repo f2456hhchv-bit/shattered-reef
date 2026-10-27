@@ -114,6 +114,26 @@ export function lockPoint(thetaDeg: number, inset: number): [number, number] {
 }
 const lockAt = (thetaDeg: number, inset: number) => { const [x, z] = lockPoint(thetaDeg, inset); return { x, z }; };
 
+// ---- Saltglass: where the star came down hottest, a thousand years ago (levels 70-95, Act IV) ------------------
+// The beaches fused to glass; the pools in the middle are mirrors that show you a moment late. Mira of the Tide's Lock
+// lies under the Drowned Mirror at the north end. Hale's charts mark it as an anchorage.
+export const SALT = { x: 2100, z: -20 };
+export const SALT_RADIUS = 52;
+export function saltCoastR(theta: number): number {
+  const c = Math.cos(theta), s = Math.sin(theta);
+  return SALT_RADIUS + (fbm(c * 2.5 + 113, s * 2.5 + 113, 4, 51) - 0.5) * 18
+    - lobe(theta, 90, 9, 8) // Glasswater Steps' bay
+    + lobe(theta, 300, 12, 10) // the Lens Point, north-east
+    + lobe(theta, 200, 10, 7) // the grove's shoulder, west
+    - lobe(theta, 30, 7, 6); // a glassy inlet, east
+}
+/** Point on Saltglass at angle `thetaDeg` round its centre, `inset` metres inside its coast. */
+export function saltPoint(thetaDeg: number, inset: number): [number, number] {
+  const t = deg(thetaDeg), r = saltCoastR(t) - inset;
+  return [SALT.x + Math.cos(t) * r, SALT.z + Math.sin(t) * r];
+}
+const saltAt = (thetaDeg: number, inset: number) => { const [x, z] = saltPoint(thetaDeg, inset); return { x, z }; };
+
 /** Which island a point belongs to (the nearer coast). */
 export function islandOf(x: number, z: number): 'bellwether' | 'sunreach' {
   return Math.hypot(x - SUN.x, z - SUN.z) - SUN_RADIUS < Math.hypot(x, z) - ISLAND_RADIUS ? 'sunreach' : 'bellwether';
@@ -158,6 +178,18 @@ const sunQuay = sunAt(90, 0);
 const wrackQuay = wrackAt(90, 0);
 const amberQuay = amberAt(90, 0);
 const lockQuay = lockAt(90, 0);
+const saltQuay = saltAt(90, 0);
+/** Saltglass: Glasswater Steps at the landing; the Mirror Pools west, the Glass Dunes east, the Shattered Grove
+ * north-west, the Lens Point north-east, the Drowned Mirror north. */
+export const SALT_LAYOUT = {
+  dockBase: { x: SALT.x, z: saltQuay.z - 2.5 },
+  landing: { x: SALT.x, z: saltQuay.z - 12 }, // Glasswater Steps
+  pools: { x: SALT.x - 17, z: SALT.z + 4 }, // the Mirror Pools
+  dunes: { x: SALT.x + 20, z: SALT.z - 8 }, // the Glass Dunes
+  grove: { x: SALT.x - 20, z: SALT.z - 20 }, // the Shattered Grove
+  lens: saltAt(300, 8), // the Lens Point: Sunniva's glassworks
+  mirror: { x: SALT.x + 2, z: SALT.z - 30 }, // the Drowned Mirror
+};
 /** Lockhaven: the Warden's Stair at the landing; the Field of Doors behind it; forges east, the Keywood west, the
  * Locksmith's Well under the northern cliffs. */
 export const LOCK_LAYOUT = {
@@ -206,7 +238,7 @@ const L = LAYOUT;
 export const BELL_TOWN = townPlan(L.village, L.crossroads);
 export const PORT_TOWN = portPlan(SUN_LAYOUT.port);
 export const TOWN = mergePlans(BELL_TOWN, PORT_TOWN);
-const SL = SUN_LAYOUT, WL = WRACK_LAYOUT, AL = AMBER_LAYOUT, KL = LOCK_LAYOUT;
+const SL = SUN_LAYOUT, WL = WRACK_LAYOUT, AL = AMBER_LAYOUT, KL = LOCK_LAYOUT, GL = SALT_LAYOUT;
 /** Offshore islets: land you reach by ship. */
 export const ISLETS = [{ x: L.islet.x, z: L.islet.z, r: 13 }, { x: WL.islet.x, z: WL.islet.z, r: 13 }];
 export const LAGOON = { x: -34, z: -22, r: 9 };
@@ -242,6 +274,11 @@ export const FLATS: Flat[] = [
   { x: KL.dockBase.x, z: KL.dockBase.z - 1, r: 3, h: 1.0 },
   { x: KL.well.x, z: KL.well.z, r: 6, h: 'auto' },
   { x: KL.doorfield.x, z: KL.doorfield.z, r: 9, h: 'auto' },
+  // Saltglass: Glasswater Steps, the dock, the Drowned Mirror's rim, the Lens Point's glassworks
+  { x: GL.landing.x, z: GL.landing.z, r: 11, h: 1.1 },
+  { x: GL.dockBase.x, z: GL.dockBase.z - 1, r: 3, h: 1.0 },
+  { x: GL.mirror.x, z: GL.mirror.z, r: 7, h: 'auto' },
+  { x: GL.lens.x, z: GL.lens.z, r: 5, h: 'auto' },
   // a level pad under every town building, at the height of the ground already there (so the quay's stay on the quay)
   ...TOWN.buildings.map((b) => ({ x: b.x, z: b.z, r: Math.hypot(b.w, b.d) / 2 + 0.6, h: 'pad' as const, soft: 2.5 })),
 ];
@@ -272,9 +309,13 @@ export const HILLS: Hill[] = [
   { x: KL.well.x, z: KL.well.z - 10, r: 16, h: 10 }, // the Keyward Cliffs
   { x: KL.forges.x + 4, z: KL.forges.z - 6, r: 10, h: 5 },
   { x: KL.keywood.x - 4, z: KL.keywood.z - 4, r: 13, h: 3 },
+  { x: GL.dunes.x, z: GL.dunes.z, r: 12, h: 4.5 }, // the Glass Dunes
+  { x: GL.dunes.x + 6, z: GL.dunes.z + 10, r: 8, h: 2.5 },
+  { x: GL.grove.x - 4, z: GL.grove.z - 4, r: 12, h: 3 },
 ];
 
-export const DIPS: Dip[] = [{ x: LAGOON.x, z: LAGOON.z, r: LAGOON.r, floor: -1.8 }];
+export const MIRROR_POOL = { x: GL.pools.x, z: GL.pools.z, r: 7 };
+export const DIPS: Dip[] = [{ x: LAGOON.x, z: LAGOON.z, r: LAGOON.r, floor: -1.8 }, { x: MIRROR_POOL.x, z: MIRROR_POOL.z, r: MIRROR_POOL.r, floor: -1.6 }];
 
 const V = L.village, X = L.crossroads, F = L.forest, HW = L.heartwood, CH = L.hills, M = L.peak;
 const R = L.ruin, C = L.camp, SC = L.cove, W = L.wreck, ST = L.strand;
@@ -320,6 +361,13 @@ export const PATHS: PathDef[] = [
   { width: 1.1, pts: [[KL.doorfield.x + 6, KL.doorfield.z + 4], [KL.forges.x - 10, KL.forges.z + 4], [KL.forges.x - 3, KL.forges.z + 2]] },
   { width: 1.1, pts: [[KL.doorfield.x - 6, KL.doorfield.z + 4], [KL.keywood.x + 10, KL.keywood.z + 2], [KL.keywood.x + 2, KL.keywood.z]] },
   { width: 1.1, pts: [[KL.landing.x + 5, KL.landing.z - 3], [KL.shore.x - 10, KL.shore.z + 4], [KL.shore.x - 3, KL.shore.z]] },
+  // Saltglass: the Steps north through the island's middle to the Drowned Mirror; branches to the pools, the dunes,
+  // the grove and the Lens Point
+  { width: 1.4, pts: [[GL.dockBase.x, GL.dockBase.z], [GL.landing.x, GL.landing.z], [SALT.x + 1, SALT.z + 2], [GL.mirror.x - 1, GL.mirror.z + 10], [GL.mirror.x, GL.mirror.z + 6]] },
+  { width: 1.1, pts: [[SALT.x + 1, SALT.z + 2], [GL.pools.x + 12, GL.pools.z], [GL.pools.x + MIRROR_POOL.r + 3, GL.pools.z]] },
+  { width: 1.1, pts: [[SALT.x + 1, SALT.z + 2], [GL.dunes.x - 10, GL.dunes.z + 6], [GL.dunes.x - 4, GL.dunes.z + 4]] },
+  { width: 1.1, pts: [[GL.mirror.x - 1, GL.mirror.z + 10], [GL.grove.x + 10, GL.grove.z + 4], [GL.grove.x + 2, GL.grove.z]] },
+  { width: 1.1, pts: [[GL.mirror.x - 1, GL.mirror.z + 10], [GL.lens.x - 8, GL.lens.z + 6], [GL.lens.x - 2, GL.lens.z + 2]] },
 ];
 
 function pathDist(p: PathDef, x: number, z: number): number {
@@ -345,7 +393,7 @@ export function nearestPathDist(x: number, z: number): { d: number; width: numbe
 // The coastlines depend only on the angle, so they're tabulated once (the world build asks ~10^6 times)
 const COAST_STEPS = 2048;
 const tabulate = (f: (t: number) => number) => Float32Array.from({ length: COAST_STEPS + 1 }, (_, i) => f((i / COAST_STEPS) * Math.PI * 2 - Math.PI));
-let bellTable: Float32Array | null = null, sunTable: Float32Array | null = null, wrackTable: Float32Array | null = null, amberTable: Float32Array | null = null, lockTable: Float32Array | null = null;
+let bellTable: Float32Array | null = null, sunTable: Float32Array | null = null, wrackTable: Float32Array | null = null, amberTable: Float32Array | null = null, lockTable: Float32Array | null = null, saltTable: Float32Array | null = null;
 function fromTable(t: Float32Array, theta: number): number {
   const f = ((theta + Math.PI) / (Math.PI * 2)) * COAST_STEPS, i = Math.max(0, Math.min(COAST_STEPS - 1, Math.floor(f)));
   return t[i] + (t[i + 1] - t[i]) * (f - i);
@@ -358,9 +406,10 @@ export function coastDist(x: number, z: number): number {
   wrackTable ??= tabulate(wrackCoastR);
   amberTable ??= tabulate(amberCoastR);
   lockTable ??= tabulate(lockCoastR);
-  const dx = x - SUN.x, dz = z - SUN.z, wx = x - WRACK.x, wz = z - WRACK.z, ax = x - AMBER.x, az = z - AMBER.z, kx = x - LOCK.x, kz = z - LOCK.z;
+  saltTable ??= tabulate(saltCoastR);
+  const dx = x - SUN.x, dz = z - SUN.z, wx = x - WRACK.x, wz = z - WRACK.z, ax = x - AMBER.x, az = z - AMBER.z, kx = x - LOCK.x, kz = z - LOCK.z, gx = x - SALT.x, gz = z - SALT.z;
   return Math.max(b, fromTable(sunTable, Math.atan2(dz, dx)) - Math.hypot(dx, dz), fromTable(wrackTable, Math.atan2(wz, wx)) - Math.hypot(wx, wz),
-    fromTable(amberTable, Math.atan2(az, ax)) - Math.hypot(ax, az), fromTable(lockTable, Math.atan2(kz, kx)) - Math.hypot(kx, kz));
+    fromTable(amberTable, Math.atan2(az, ax)) - Math.hypot(ax, az), fromTable(lockTable, Math.atan2(kz, kx)) - Math.hypot(kx, kz), fromTable(saltTable, Math.atan2(gz, gx)) - Math.hypot(gx, gz));
 }
 
 export function rawHeight(x: number, z: number): number {
@@ -437,6 +486,12 @@ export const LOCK_SEA_SPOTS: Record<string, [number, number][]> = {
   spot_angler: [lockPoint(200, -24), lockPoint(40, -24)],
 };
 
+/** Ship-only fishing grounds off Saltglass (world x, z). */
+export const SALT_SEA_SPOTS: Record<string, [number, number][]> = {
+  spot_angler: [saltPoint(160, -22)],
+  spot_shark: [saltPoint(20, -22), saltPoint(250, -24)],
+};
+
 // ---- named places (discovery) ------------------------------------------------
 // A place is only listed once it has something to do; new zones join as their content lands.
 export interface Place { id: string; name: string; x: number; z: number; r: number; sea?: boolean; region?: RegionId } // no region: Bellwether
@@ -493,4 +548,13 @@ export const ISLAND_PLACES: Place[] = [
   { id: 'keyholeshore', name: 'The Keyhole Shore', x: KL.shore.x, z: KL.shore.z, r: 13, region: 'lockhaven' },
   ...([['k_deeps', 'The Lockwater', 200, -24]] as const)
     .map(([id, name, a, i]) => { const [x, z] = lockPoint(a, i); return { id, name, x, z, r: 16, sea: true, region: 'lockhaven' as RegionId }; }),
+  // Saltglass (levels 70-95)
+  { id: 'glasssteps', name: 'Glasswater Steps', x: GL.landing.x, z: GL.landing.z - 2, r: 16, region: 'saltglass' },
+  { id: 'mirrorpools', name: 'The Mirror Pools', x: GL.pools.x, z: GL.pools.z, r: 14, region: 'saltglass' },
+  { id: 'glassdunes', name: 'The Glass Dunes', x: GL.dunes.x, z: GL.dunes.z, r: 14, region: 'saltglass' },
+  { id: 'shatteredgrove', name: 'The Shattered Grove', x: GL.grove.x, z: GL.grove.z, r: 13, region: 'saltglass' },
+  { id: 'lenspoint', name: 'The Lens Point', x: GL.lens.x, z: GL.lens.z, r: 11, region: 'saltglass' },
+  { id: 'drownedmirror', name: 'The Drowned Mirror', x: GL.mirror.x, z: GL.mirror.z, r: 10, region: 'saltglass' },
+  ...([['g_glassdeep', 'The Glass Deep', 20, -22]] as const)
+    .map(([id, name, a, i]) => { const [x, z] = saltPoint(a, i); return { id, name, x, z, r: 16, sea: true, region: 'saltglass' as RegionId }; }),
 ];

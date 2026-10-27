@@ -44,7 +44,7 @@ export interface NpcDef {
   goneWhen?: string;
   /** ...and back again once this flag is set (someone taken, then rescued) */
   backWhen?: string;
-  ferry?: { to: 'bellwether' | 'sunreach' | 'amberhold' | 'wrack' | 'lockhaven'; price: number }[]; // offers passage to other harbours
+  ferry?: { to: 'bellwether' | 'sunreach' | 'amberhold' | 'wrack' | 'lockhaven' | 'saltglass'; price: number }[]; // offers passage to other harbours
 }
 
 export const NPCS: Record<string, NpcDef> = {
@@ -73,7 +73,7 @@ export const NPCS: Record<string, NpcDef> = {
     idle: ['Sit. Eat. The jungle will still be there, and so will the things in it.'] },
   ines: { id: 'ines', name: 'Ines Carro', title: 'Banker', bank: true,
     idle: ['Ada keeps the books in Bellwether, I keep them here. Same ledger: what you leave with one, you take from the other.'] },
-  mercy: { id: 'mercy', name: 'Mercy Gale', title: 'Harbourmaster of Gallows Landing', ferry: [{ to: 'amberhold', price: 50 }, { to: 'sunreach', price: 90 }, { to: 'bellwether', price: 120 }, { to: 'lockhaven', price: 150 }],
+  mercy: { id: 'mercy', name: 'Mercy Gale', title: 'Harbourmaster of Gallows Landing', ferry: [{ to: 'amberhold', price: 50 }, { to: 'sunreach', price: 90 }, { to: 'bellwether', price: 120 }, { to: 'lockhaven', price: 150 }, { to: 'saltglass', price: 220 }],
     idle: ['Gallows Landing. Named for what the Wrack does to ships, not for anything we do. Mostly.'] },
   jory: { id: 'jory', name: 'Jory Penhallow', title: 'Harbourmaster of Tollhouse Landing', ferry: [{ to: 'sunreach', price: 40 }, { to: 'wrack', price: 50 }, { to: 'bellwether', price: 70 }],
     idle: ['Tollhouse Landing. Everything that leaves Amberhold pays a toll, gold and amber mostly. You can pay yours in coin.', 'The poachers up on the headland don\'t pay tolls. Nobody\'s been brave enough to ask.'] },
@@ -97,6 +97,11 @@ export const NPCS: Record<string, NpcDef> = {
     'Mind where you knock. Half of these doors still open, and you don\'t want to know what\'s behind the other half.',
     'I oil a different door every morning. There are four hundred and nine. I\'ve been doing it for fifty-one years. You do the sums.',
     'My mother kept the doors, and hers. We\'re not Wardwrights. We\'re what\'s left when the Wardwrights go into the Locks: the ones who stay and sweep.'] },
+  // Saltglass: the glassblower who stayed when the island went to glass
+  sunniva: { id: 'sunniva', name: 'Sunniva Brask', title: 'Glassblower of Saltglass', idle: [
+    'Every lighthouse lens on the Reef came out of my furnace, or my mother\'s, or hers. The sand here wants to be glass. You only have to ask it nicely.',
+    'Don\'t look into the pools for long. They show you a moment late, and sometimes the moment doesn\'t come.',
+    'Hale\'s ship anchors off the Mirror every spring tide. She buys lenses. She pays in coins nobody\'s minted for a thousand years.'] },
   // Amberhold's quests (docs/ISLANDS.md, slice 3)
   sigrun: { id: 'sigrun', name: 'Sigrun', title: 'Skald', idle: ['Every hill on Amberhold has a song. Goldvein Hill\'s is the oldest, and nobody sings it after dark.'] },
   ingrid: { id: 'ingrid', name: 'Ingrid Vale', title: 'Fiddler', idle: ['A fiddle tune can calm a horse, a crowd, or a storm. I\'ve managed two of the three.'] },
@@ -138,7 +143,7 @@ export interface QuestStage {
   waitFlags?: string[];
 }
 
-export interface QuestDef { id: string; name: string; giver: string; stages: QuestStage[]; reward: string; /** the main story (docs/STORY.md): offered ahead of side quests by the same person */ main?: boolean; /** the island it belongs to (the journal groups by it) */ island?: 'bellwether' | 'sunreach' | 'amberhold' | 'wrack' | 'lockhaven' }
+export interface QuestDef { id: string; name: string; giver: string; stages: QuestStage[]; reward: string; /** the main story (docs/STORY.md): offered ahead of side quests by the same person */ main?: boolean; /** the island it belongs to (the journal groups by it) */ island?: 'bellwether' | 'sunreach' | 'amberhold' | 'wrack' | 'lockhaven' | 'saltglass' }
 
 /** the pool behind the Ironshell Shore where the nøkk live */
 const POOL = { x: AMBER_LAYOUT.ironshore.x + (AMBER.x - AMBER_LAYOUT.ironshore.x) * 0.22, z: AMBER_LAYOUT.ironshore.z + (AMBER.z - AMBER_LAYOUT.ironshore.z) * 0.22 + 6 };

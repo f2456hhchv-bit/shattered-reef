@@ -42,7 +42,7 @@ import { DOORS } from '../game/data/doors';
 import { buildLootShard, buildItemModel, SHARD_TINT, type LootShard, type ShardKind } from '../art/models/items';
 import { NODES, PLAYER_BASE, SKILLS } from '../game/data/content';
 import type { Game, GameEvent, Enemy, Telegraph } from '../game/sim/game';
-import { coastDist, nearestPathDist, BEACH, SUN, SUN_LAYOUT, WRACK, AMBER, LOCK } from '../game/world/island';
+import { coastDist, nearestPathDist, BEACH, SUN, SUN_LAYOUT, WRACK, AMBER, LOCK, SALT } from '../game/world/island';
 import { HCELL } from '../game/world/world';
 import { buildTerrainMesh } from './terrainMesh';
 import { bakeRig, bakeStatic, bakeFlat, mergeColoured } from './bake';
@@ -59,6 +59,7 @@ const PROP_SURFACE = { scale: 3, tone: 0.24, bump: 0.42 };
 export const CRAB_SHELLS: Record<string, Partial<Record<PalKey, number>>> = {
   mire: { crabShell: 0x5e7a3a, crabDark: 0x3c5228, crabBelly: 0xb8bc8a, barnacle: 0x7a8a5a },
   ironshell: { crabShell: 0x6a6e74, crabDark: 0x44484e, crabBelly: 0xb0a890, barnacle: 0x9a9a90 },
+  glass: { crabShell: 0x9fd8e0, crabDark: 0x5a8a94, crabBelly: 0xe8f4f4, barnacle: 0xffffff }, // fused in the star's heat
 };
 interface TreeLook { kind: 'pine' | 'broad'; scale: number; squash?: number; colours?: Partial<Record<PalKey, number>>; glow?: Partial<Record<PalKey, number>> }
 export const TREE_LOOK: Record<string, TreeLook> = {
@@ -523,7 +524,7 @@ export class GameRenderer {
     const CELL = 40, buckets = new Map<string, THREE.Vector3[]>();
     let made = 0;
     // where each island's grass grows: its centre, the square it fills, how many clumps
-    const GRASS: Record<string, [number, number, number, number]> = { bellwether: [0, 0, 200, 9000], sunreach: [SUN.x, SUN.z, 140, 4500], amberhold: [AMBER.x, AMBER.z, 140, 4000], wrack: [WRACK.x, WRACK.z, 130, 3000], lockhaven: [LOCK.x, LOCK.z, 125, 3500] };
+    const GRASS: Record<string, [number, number, number, number]> = { bellwether: [0, 0, 200, 9000], sunreach: [SUN.x, SUN.z, 140, 4500], amberhold: [AMBER.x, AMBER.z, 140, 4000], wrack: [WRACK.x, WRACK.z, 130, 3000], lockhaven: [LOCK.x, LOCK.z, 125, 3500], saltglass: [SALT.x, SALT.z, 115, 1600] };
     const [cx, cz, span, most] = GRASS[this.game.s.region] ?? GRASS.bellwether;
     for (let i = 0; i < 130000 && made < most; i++) {
       const x = cx + (rnd() - 0.5) * span, z = cz + (rnd() - 0.5) * span;
