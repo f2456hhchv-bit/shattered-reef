@@ -7,7 +7,7 @@ import { LORE, KEEL_PAGES } from '../game/data/lore';
 import { DOORS } from '../game/data/doors';
 import { SHIPYARD, SHIP_PARTS, type ShipPart } from '../game/data/shipyard';
 import { TIDES } from '../game/data/tides';
-import { item, RARITY, AFFIXES, METALS, METAL_TRAITS, AMMO_NAME, ammoKind, isTwoHanded, pairGroup, type ItemDef, type Slot, type SkillId, type WeaponKind } from '../game/data/items';
+import { MEAL_TEXT, item, RARITY, AFFIXES, METALS, METAL_TRAITS, AMMO_NAME, ammoKind, isTwoHanded, pairGroup, type ItemDef, type Slot, type SkillId, type WeaponKind } from '../game/data/items';
 import { morph, forget } from './morph';
 import { wears, condOf, WORN_OUT_EFFECT } from '../game/sim/inventory';
 import { onTap } from './tap';
@@ -518,6 +518,16 @@ export class UI {
     this.el.abilities.hidden = g.dead > 0;
     this.el['ab-roll'].hidden = g.p.onShip;
     for (const id of ['ab-key', 'ab-eat']) if (g.p.onShip) this.el[id].hidden = true; // ashore their own rules above show them again
+    // a galley meal, while it lasts: a small chip beside the orbs
+    {
+      const m = g.s.meal && g.s.meal.left > 0 ? g.s.meal : null;
+      let chip = document.getElementById('mealchip');
+      if (m && !chip) { chip = h('div', { id: 'mealchip' }); document.getElementById('orbs')?.appendChild(chip); }
+      if (chip) {
+        chip.hidden = !m;
+        if (m) { const d = item(m.id), s = Math.ceil(m.left), t = `${d.name} · ${MEAL_TEXT[d.meal!.kind](d.meal!.v)} · ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; if (chip.textContent !== t) chip.textContent = t; }
+      }
+    }
     // boss bar
     const bb = this.el.bossbar;
     if (g.boss && g.boss.alive) {
@@ -1028,6 +1038,7 @@ export class UI {
     if (d.sig) lines.push(`Signature: ${d.sig.text}`);
         if (wears(st.id)) { const c = condOf(st); lines.push(c <= 0 ? `Condition: worn out (works at ${Math.round(WORN_OUT_EFFECT * 100)}%). Repair at an anvil.` : `Condition ${Math.round(c)}%`); }
     if (d.heal) lines.push(`Heals ${this.game.healOf(d.id)}`);
+    if (d.meal) lines.push(`Galley meal: ${MEAL_TEXT[d.meal.kind](d.meal.v)} for ${Math.round(d.meal.secs / 60)} min (one meal at a time)`);
     if (d.tool) lines.push(`${cap(d.tool.skill)} tool, power ${d.tool.power}${d.tool.level > 1 ? `, needs level ${d.tool.level}` : ''}`);
     // the metal's signature trait first (every copy has it), then the rolled affixes
     const metal = METALS.find((mt) => st.id.endsWith(`_${mt.key}`)), trait = metal && METAL_TRAITS[metal.key];

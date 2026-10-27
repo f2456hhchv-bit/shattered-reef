@@ -610,3 +610,4 @@ ul.diary li.diary-done { color: #8fd07a; }
 /* the journal's list of pages found */
 .lore-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; width: 100%; text-align: left; padding: 8px 10px; margin: 0 0 4px; border-radius: 8px; border: 1px solid rgba(201,160,80,.35); background: rgba(239,226,191,.06); color: inherit; font: inherit; cursor: pointer; }
 .lore-row small { opacity: .7; white-space: nowrap; }
+#mealchip { font: 600 11px var(--body, sans-serif); color: #f2dcae; background: rgba(18,11,6,.78); border: 1px solid var(--brass); border-radius: 10px; padding: 3px 8px; white-space: nowrap; max-width: 46vw; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 1px #000; }
