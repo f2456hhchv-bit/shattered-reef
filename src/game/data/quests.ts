@@ -1,5 +1,5 @@
 import type { SkillId } from './items';
-import { LAYOUT, SUN_LAYOUT, AMBER_LAYOUT, AMBER, WRACK_LAYOUT, coastPoint } from '../world/island';
+import { LAGOON, LAYOUT, SUN_LAYOUT, AMBER_LAYOUT, AMBER, WRACK_LAYOUT, coastPoint } from '../world/island';
 // NPCs and the first quest, as data. Dialogue is chosen by quest stage; effects are interpreted by the quest system.
 
 export interface Effect {
@@ -679,6 +679,64 @@ export const QUESTS: Record<string, QuestDef> = {
           'Take this for your trouble, captain. And wear that pendant: whatever sang in it, it sings for you now.'],
           effect: { give: [{ id: 'coins', qty: 1200 }], xp: [{ skill: 'magic', amount: 2500 }], stage: 6, flag: 'starfall_done' } } } },
       { text: 'Quest complete.' },
+    ],
+  },
+  fen: {
+    id: 'fen',
+    main: true,
+    name: 'The Salt in the Fen',
+    island: 'bellwether',
+    giver: 'iven',
+    reward: 'The Mire Key (the Second Lockkey), 4000 coins, 5000 Magic, Hitpoints and Fishing XP',
+    stages: [
+      { text: 'Speak with Iven Marr, once The First Lock and Charted Waters are done.',
+        talk: { npc: 'iven', node: { needsFlags: ['firstlock_done', 'palewing_done'], missing: ['I\'m still reading the Fen\'s old charts, captain. Come back when you\'ve opened a Lock and found out what Gull wants.'], lines: [
+          'Gull was right. I rowed out to the Mirewater Fen at dawn and tasted it. Salt. A freshwater lagoon going to sea, a thousand years from the nearest tide.',
+          'There\'s a Lock under it. The Second. And the Hushed will have read Gull\'s soundings by now; they read everything.',
+          'Muirne, on the rocks by the strand. She\'s not what she looks like, you know that better than I do. If anyone knows what\'s under that water, she does.'],
+          effect: { stage: 1 } } } },
+      { text: 'Ask Muirne, on the rocks by Crab Strand, what lies under the Mirewater Fen. (She\'ll talk to whoever settled The Selkie\'s Skin.)',
+        talk: { npc: 'muirne', node: { needsFlags: ['selkie_freed'], lines: [
+          'You came back. Most people don\'t, once they\'ve given a selkie her skin. They\'re afraid I\'ll pull them in.',
+          'Under the Fen there\'s a door that drinks. At low water it empties the lagoon into itself, and the bells the Wardwrights sank there ring as the water goes.',
+          'Three bells. Ring them in the order the water leaves them: the north shore first, then the west, then the south. Then she\'ll come up. She always does when the bells ring.',
+          'Jenny. Jenny Greenteeth. She was a Wardwright once, they say, set to guard the Lockkey. She swallowed it so no one could take it, and the Fen made her into what she is.',
+          'Be careful, captain. She drags people down. I\'ve seen her do it to a heron.'],
+          effect: { stage: 2 } } },
+        also: [{ npc: 'muirne', node: { needsFlags: ['selkie_kept'], lines: [
+          'You. You gave my skin to a man who keeps it in a box. And now you want my help.',
+          '...Fine. Not for you. For the Fen. Under it there\'s a door that drinks the lagoon at low water, and three Wardwright bells ring as it goes.',
+          'North shore, west, south: the order the water leaves them. Ring them and Jenny Greenteeth comes up with the Lockkey in her belly.',
+          'I hope she drags you down. I don\'t mean that. I don\'t know if I mean that.'],
+          effect: { stage: 2 } } }] },
+      { text: 'At low water, ring the three drowned Wardwright bells round the Mirewater Fen in the order the water leaves them: north, west, then south.',
+        wrong: 'The bell rings flat and the water stops draining. Start again from the north shore.',
+        marks: [
+          { id: 'west', label: 'A green bell on the west bank', verb: 'Ring', region: 'bellwether', x: LAGOON.x - 12, z: LAGOON.z + 1, seq: 2, say: ['A low note. The water pulls away from the west bank like a breath going in.'] },
+          { id: 'south', label: 'A green bell on the south bank', verb: 'Ring', region: 'bellwether', x: LAGOON.x + 1, z: LAGOON.z + 12, seq: 3, say: ['The last bell. The lagoon empties into a hole in its own floor, and something heavy climbs out of the mud.'] },
+          { id: 'north', label: 'A green bell on the north bank', verb: 'Ring', region: 'bellwether', x: LAGOON.x + 2, z: LAGOON.z - 12, seq: 1, say: ['The bell is caked in weed, but it rings true. Out in the Fen, the water starts to fall.'] },
+        ] },
+      { text: 'Jenny Greenteeth has come up out of the drained Fen with the Second Lockkey in her belly. Beat her.',
+        kill: { foe: 'greenteeth', count: 1, spawn: { region: 'bellwether', x: LAGOON.x + 4, z: LAGOON.z + 13 } } },
+      { text: 'Turn the green bronze key in the Second Lock, at the drain in the Fen\'s floor (south bank).',
+        marks: [{ id: 'lock', label: 'The Second Lock, in the drained Fen', verb: 'Turn the key', region: 'bellwether', x: LAGOON.x - 3, z: LAGOON.z + 11,
+          requires: { id: 'fen_lockkey', qty: 1 }, missing: ['The keyhole in the Fen\'s floor is the shape of a key you don\'t have. Jenny Greenteeth has it.'],
+          effect: { take: [{ id: 'fen_lockkey', qty: 1 }], flag: 'fen_opened', stage: 5, vision: { title: 'The Second Lock', sub: 'What the green key remembers', lines: [
+            'This time the memory isn\'t a captain\'s. It\'s a woman\'s hands, a Wardwright\'s, burnt and steady, holding this same key.',
+            'Thirteen of them stand round a door in the bottom of the sea. Not a door in a wall. A door lying flat, like a trapdoor, the size of a town.',
+            '"It will sing," the eldest says. "Every hour. Every child born in the Varrow will hear it as a hum and think it\'s their own blood. Let them."',
+            '"And the Locks?" says the woman whose hands you\'re wearing.',
+            '"The Locks are thirteen of us," the eldest says. "That\'s what a Lock is. Didn\'t they tell you?"',
+            'You understand, the way you understand things in dreams, that she swallowed the key so she\'d never have to give it back.',
+            'Then you\'re standing in a drained Fen, and the water is coming back in, and it tastes of the sea.'] } } }] },
+      { text: 'Tell Iven Marr what you saw.',
+        talk: { npc: 'iven', node: { lines: [
+          'The Locks are people. Were people. Thirteen Wardwrights, bound to their keys. And we\'re turning them.',
+          'Corva left another letter. On my chart table. In my house. "You keep doing our work for us, captain. Eleven to go."',
+          'I\'ve been asking myself if we should stop. Then I think: they\'re opening anyway. If we don\'t turn the keys, the Hushed will, and they\'ll hear what\'s inside first.',
+          'Keep the key. It\'s yours now, whatever that means. I\'m going to find out what happens to a Wardwright when their Lock is opened.'],
+          effect: { give: [{ id: 'coins', qty: 4000 }], xp: [{ skill: 'magic', amount: 5000 }, { skill: 'hitpoints', amount: 5000 }, { skill: 'fishing', amount: 5000 }], stage: 6, flag: 'fen_done', key: 'mire_key' } } } },
+      { text: 'Quest complete. Two Locks open, eleven to go. The Locks were people.' },
     ],
   },
   firstlock: {

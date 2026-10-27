@@ -283,6 +283,8 @@ function tierItems(): ItemDef[] {
     equip: { slot: 'head', reqs: { defence: 60 }, bonus: { defMelee: 40, defRanged: 38, defMagic: 30, acc: 4 }, affixPool: ARMOUR_AFFIX } }));
   // treasure maps: dug up or found in caskets; read one and sail to the X
   out.push(I({ id: 'treasure_map', name: 'Treasure map', desc: 'Stained, torn, and an X in the water off some coast. Tap it and Read it on the island it shows.', icon: { shape: 'map', color: '#d8c49a', accent: '#a83a2a' }, stackable: true, value: 80, chart: true }));
+  // The Salt in the Fen: the Second Lockkey, cut out of Jenny Greenteeth
+  out.push(I({ id: 'fen_lockkey', name: 'A key of green bronze', desc: 'Slick with weed and warm from where it was. It hums when you hold it near water. A Lockkey.', icon: { shape: 'tooth', color: '#5a7a3a', accent: '#c9a050' }, stackable: false, value: 0, quest: true }));
   // The First Lock: the Compact's tide table (bell-time at the Drowned Spire)
   out.push(I({ id: 'tide_table', name: 'Compact tide table', desc: 'Mercy Gale\'s copy, the Spire\'s low water circled in red ink. "A tide table isn\'t a side," she said.', icon: { shape: 'book', color: '#3a5a6a', accent: '#d8442a' }, stackable: false, value: 0, quest: true }));
   // The Broodmother (Amberhold): Eir's silk ring

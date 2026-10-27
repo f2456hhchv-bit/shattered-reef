@@ -43,6 +43,7 @@ them are lying.
 | **I. The islands' troubles** | All four | Every island has lost a key, and its folklore is waking (knockers, douen, draugr, the drowned). The song is louder. | Built |
 | **I. The Key Collector** | Bellwether → Stormwrack | Someone is collecting keys. The Collector is beaten and carried the Skeleton Key. | Built |
 | **II. The First Lock** | Stormwrack, the Drowned Spire | Keel's Tooth is a Lockkey. It opens the First Lock, and the player sees the Shattering through Keel's eyes. The Collector's ledger names the **Hushed**; Sister Corva thanks you. Reward: the Listener's Key. | Built |
+| **II. The Salt in the Fen** | Bellwether, the Mirewater Fen | Gull's soundings lead to the Second Lock. Muirne tells of the drowned bells; Jenny Greenteeth has swallowed the Lockkey. The vision reveals the truth: **the Locks are thirteen Wardwrights, bound to their keys.** Corva writes again: "You keep doing our work for us." Reward: the Mire Key. | Built |
 | **III. The Tides** | All seas | Seven rival captains are racing for the Lockkeys and Keel's Hoard. Each is a person with a dream, a crew and a bounty. Some can be beaten, some befriended, one recruited. | Next |
 | **IV. The thirteen Locks** | New islands, one or two Locks each | The Reef beyond Stormwrack. Every Lock opens with a memory of the Varrow and costs something. | Planned |
 | **V. The Bottom Door** | The middle of the Reef | Open the Door for Keel's Hoard, seal it forever, or turn its key in yourself. Each ending changes the world you keep playing in. | Planned |
