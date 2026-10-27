@@ -98,6 +98,7 @@ export class Input {
    */
   pick(sx: number, sy: number, radius: number): Target | null {
     const g = this.game;
+    [sx, sy] = this.local(sx, sy);
     let best: Target | null = null, bd = radius;
     for (const t of g.targets()) {
       const shoal = t.kind === 'node' && t.label.includes('shoal');
@@ -111,6 +112,18 @@ export class Input {
     return best;
   }
 
+  /**
+   * A pointer's page position -> the canvas's own pixels. After a rotation phones can leave the page scrolled or the
+   * canvas a different size from the last frame (Tom: taps landing ~2 cm below the finger in landscape), so this
+   * re-measures the canvas on every tap instead of assuming it sits at the page's top-left at its last size.
+   */
+  private local(x: number, y: number): [number, number] {
+    this.r.keepSized();
+    const b = this.canvas.getBoundingClientRect();
+    if (!b.width || !b.height) return [x, y];
+    return [(x - b.left) * (this.canvas.clientWidth / b.width), (y - b.top) * (this.canvas.clientHeight / b.height)];
+  }
+
   private tap(x: number, y: number, type: string) {
     const g = this.game;
     this.ui.closePop();
@@ -122,7 +135,7 @@ export class Input {
       this.r.markClick(t.x, t.z);
       return;
     }
-    const gp = this.r.screenToGround(x, y);
+    const gp = this.r.screenToGround(...this.local(x, y));
     if (!gp) return;
     g.moveTo(gp.x, gp.z);
     this.r.markClick(gp.x, gp.z);

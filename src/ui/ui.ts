@@ -131,6 +131,7 @@ export class UI {
     const settle = () => { this.layout(); setTimeout(() => this.layout(), 150); setTimeout(() => this.layout(), 500); };
     window.addEventListener('orientationchange', settle);
     window.visualViewport?.addEventListener('resize', () => this.layout());
+    window.addEventListener('scroll', () => { if (window.scrollX || window.scrollY) window.scrollTo(0, 0); }, { passive: true });
     this.buildMinimapBase();
   }
 
@@ -200,7 +201,7 @@ export class UI {
     const keyBtn = mk('ab-key', 'Turn your key (T)', KEY_SVG, () => this.game.useKey());
     const ctx = h('button', { id: 'ctx', class: 'round', 'aria-label': 'Interact (E)' }, '<span></span><small></small>');
     // mid-swing or mid-craft the action button is the timing tap (active skilling); otherwise it acts on what's near
-    onTap(ctx, 'button', () => { if (this.game.cueState()) { this.game.strike(); return; } const t = this.game.contextTarget(); if (t) this.game.interact(t.key); });
+    onTap(ctx, 'button', () => { if (this.game.cueState()?.live) { this.game.strike(); return; } const t = this.game.contextTarget(); if (t) this.game.interact(t.key); });
     // aboard, the loadout button cycles the guns' ammunition instead
     const load = mk('ab-load', 'Weapon, ammo, spell and stance (L)', '<img alt="">', () => { if (this.game.p.onShip) this.cycleShipAmmo(); else this.toggleLoadout(); });
     const eat = mk('ab-eat', 'Eat the best food (H)', '<img alt="">', () => this.game.quickEat());
@@ -243,6 +244,8 @@ export class UI {
   }
 
   layout() {
+    // a rotation can leave the page scrolled under the fixed canvas, which shifts every tap: put it back
+    if (window.scrollX || window.scrollY) window.scrollTo(0, 0);
     const w = window.innerWidth, hgt = window.innerHeight;
     this.portrait = hgt > w;
     document.body.classList.toggle('portrait', this.portrait);

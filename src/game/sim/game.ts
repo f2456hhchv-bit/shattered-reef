@@ -127,8 +127,8 @@ export interface Telegraph { id: number; kind: 'circle' | 'cone' | 'line'; x: nu
 
 type Action =
   // progress: 0..1 toward the next item; fill: what this swing adds (rolled when it starts, so the game knows which swing lands)
-  | { type: 'gather'; node: string; next: number; progress: number; from: number; fill?: number; struck?: Struck }
-  | { type: 'craft'; recipe: string; remaining: number; next: number; from: number; struck?: Struck } // from: this cycle's start (active skilling)
+  | { type: 'gather'; node: string; next: number; progress: number; from: number; fill?: number; struck?: Struck; lucky?: boolean }
+  | { type: 'craft'; recipe: string; remaining: number; next: number; from: number; struck?: Struck; lucky?: boolean } // from: this cycle's start (active skilling)
   | null;
 
 /** How a trip to another region ends: where the player (and maybe the ship) comes out. */
@@ -160,6 +160,9 @@ export class Game {
   private keyRnd: () => number;
   /** bounty boards roll on their own stream too */
   private boardRnd: () => number;
+  /** lucky swings roll on their own stream; the timing bar shows on the first item-landing swing or craft after this */
+  private luckRnd: () => number;
+  luckyAt = 0;
   /** your first mate, when ashore */
   mate: Mate | null = null;
   time = 0;
@@ -229,6 +232,8 @@ export class Game {
     this.rnd = mulberry32(opts.seed ?? (Date.now() & 0xffffffff));
     this.keyRnd = mulberry32(((opts.seed ?? Date.now()) ^ 0x6b657973) >>> 0);
     this.boardRnd = mulberry32(((opts.seed ?? Date.now()) ^ 0x626f6172) >>> 0);
+    this.luckRnd = mulberry32(((opts.seed ?? Date.now()) ^ 0x6c75636b) >>> 0);
+    this.luckyAt = this.nextLucky(0);
     const home = regionLayout('bellwether');
     this.s = opts.save ?? defaultSave(home.respawn, home.mooring!);
     // the collection log starts with what you already own (saves from before the log existed)
@@ -636,7 +641,7 @@ export class Game {
     const tool = this.gatherTool(d);
     if (!tool) { this.msg(`You need ${d.tool ? `a ${item(d.tool).name.toLowerCase()}${d.tool === 'spade' ? ' (Marta sells them)' : ''}` : d.skill === 'woodcutting' ? 'a hatchet' : 'a pickaxe'}.`, 'warn'); return; }
     if (!d.loot && !canAdd(this.p.inv, d.item)) { this.msg('Your pack is full.', 'warn'); return; }
-    this.action = { type: 'gather', node: uid, next: this.time + DT_GATHER * 0.6, progress: this.rnd() * 0.25, from: this.time };
+    this.action = { type: 'gather', node: uid, next: this.time + DT_GATHER * 0.6, progress: this.rnd() * 0.25, from: this.time, lucky: this.time >= this.luckyAt };
     this.msg(d.verb === 'Dig' ? 'You start digging...' : d.verb === 'Pick' || d.verb === 'Gather' ? `You reach into the ${d.name.toLowerCase()}...` : d.skill === 'fishing' ? 'You cast your line...' : `You swing at the ${d.name.toLowerCase()}...`);
   }
 
@@ -668,7 +673,8 @@ export class Game {
     if (!tool) { this.stopAction(); return; }
     a.next = this.time + (d.skill ? DT_GATHER : DT_GATHER * 0.6);
     const struck = a.struck;
-    a.struck = undefined; a.from = this.time;
+    const lucky = a.lucky;
+    a.struck = undefined; a.from = this.time; a.lucky = this.time >= this.luckyAt;
     // steady returns (Tom: one quick, then 30 s of nothing): each swing fills progress by the success chance, a
     // little jittered, and an item lands when it's full. Same average rate as rolling the chance every swing, but
     // the wait between items stays close to the average instead of swinging wildly.
@@ -677,7 +683,8 @@ export class Game {
     const ok = a.progress >= 1;
     if (ok) a.progress -= 1;
     // active skilling: the swing that lands an item shows the timing bar; gold makes it two, the red heart three
-    const strike = ok && d.skill && !d.loot ? struck ?? 'miss' : 'miss', times = ACTIVE.times[strike];
+    const strike = ok && d.skill && !d.loot && lucky ? struck ?? 'miss' : 'miss', times = ACTIVE.times[strike];
+    if (ok && d.skill && !d.loot && lucky) { this.luckyAt = this.nextLucky(this.time); a.lucky = false; }
     const fx = d.skill === 'woodcutting' || d.verb === 'Pick' ? 'wood' : d.skill === 'mining' || d.verb === 'Dig' ? 'stone' : 'water';
     this.emit({ type: 'gatherFx', kind: fx, x: n.x, z: n.z, success: ok });
     if (!ok) return;
@@ -761,6 +768,9 @@ export class Game {
 
   // ------------------------------------------------------------------ active skilling (data/active.ts)
   /** The current swing or craft's timing: how far through the cycle it is, the gold window, and whether you've tapped. */
+  /** When the next lucky swing can come: a few minutes on, a little jittered. */
+  private nextLucky(from: number) { const [a, b] = ACTIVE.cooldown; return from + a + this.luckRnd() * (b - a); }
+
   /** What this swing adds toward the next item, rolled once when the swing starts. */
   private swingFill(a: Extract<NonNullable<Action>, { type: 'gather' }>, d: (typeof NODES)[string], power: number) {
     if (a.fill === undefined) a.fill = this.gatherChance(d, power) * (0.75 + this.rnd() * 0.5);
@@ -782,8 +792,8 @@ export class Game {
     const skill = a.type === 'gather' ? NODES[this.nodes.find((n) => n.uid === a.node)?.def ?? '']?.skill ?? null : RECIPES.find((r) => r.id === a.recipe)?.skill ?? null;
     if (!skill) return null; // picking and digging have no skill to be good at
     const len = Math.max(0.01, a.next - a.from);
-    let live = true;
-    if (a.type === 'gather') {
+    let live = !!a.lucky;
+    if (a.type === 'gather' && live) {
       const n = this.nodes.find((x) => x.uid === a.node)!, d = NODES[n.def], tool = this.gatherTool(d);
       live = !!tool && !d.loot && a.progress + this.swingFill(a, d, tool.power) >= 1;
     }
@@ -877,13 +887,14 @@ export class Game {
     const block = this.recipeBlock(r);
     if (block) { this.msg(block + '.', 'warn'); return; }
     this.path = [];
-    this.action = { type: 'craft', recipe: r.id, remaining: Math.max(1, times), next: this.time + 0.4, from: this.time };
+    this.action = { type: 'craft', recipe: r.id, remaining: Math.max(1, times), next: this.time + 0.4, from: this.time, lucky: this.time >= this.luckyAt };
   }
 
   private tickCraft(a: Extract<NonNullable<Action>, { type: 'craft' }>) {
     if (this.time < a.next) return;
     const r = RECIPES.find((x) => x.id === a.recipe)!;
-    const perfect = a.struck === 'perfect' || a.struck === 'red';
+    const perfect = !!a.lucky && (a.struck === 'perfect' || a.struck === 'red');
+    if (a.lucky) { this.luckyAt = this.nextLucky(this.time); a.lucky = false; }
     a.struck = undefined;
     if (!this.nearStation(r.station)) { this.stopAction(); return; }
     const block = this.recipeBlock(r);
@@ -924,7 +935,7 @@ export class Game {
   private afterCraft(a: Extract<NonNullable<Action>, { type: 'craft' }>) {
     a.remaining--;
     const r = RECIPES.find((x) => x.id === a.recipe);
-    a.from = this.time;
+    a.from = this.time; a.lucky = this.time >= this.luckyAt;
     a.next = this.time + DT_CRAFT * (1 - (r ? perkTotal(r.skill, this.level(r.skill), 'quick') / 100 : 0));
     if (a.remaining <= 0) this.stopAction();
     this.rev++;
