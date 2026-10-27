@@ -1,7 +1,7 @@
 // The Tides (docs/STORY.md): the seven captains racing for the Lockkeys and Keel's Hoard. Their posters hang in
 // every harbour, so their names, ships and bounties are known from the start; what they want, you learn by meeting them.
 
-export type TideStatus = 'poster' | 'met' | 'friend' | 'beaten' | 'crew';
+export type TideStatus = 'poster' | 'met' | 'friend' | 'beaten' | 'crew' | 'enemy';
 export interface Tide {
   id: string;
   name: string;
@@ -27,7 +27,9 @@ export const TIDES: Tide[] = [
     rumour: 'A white cutter that buys charts and never haggles. Iven Marr won\'t say his name.',
     status: (f, q) => (f.tide_gull_crew ? 'crew' : (q.palewing ?? 0) >= 2 ? 'met' : 'poster') },
   { id: 'brine', name: 'Mother Brine', epithet: 'of the Brinewife', ship: 'Brinewife', bounty: 210000,
-    dream: '', rumour: 'A barnacled hulk that pays no tolls at Tollhouse, crewed by children.', status: never },
+    dream: 'To keep every child who hears the song out of the Hushed\'s hands. She has eighty-one so far.',
+    rumour: 'A barnacled hulk that pays no tolls at Tollhouse, crewed by children.',
+    status: (f, q) => (f.tide_brine_friend ? 'friend' : f.tide_brine_enemy ? 'enemy' : (q.brinewife ?? 0) >= 2 ? 'met' : 'poster') },
   { id: 'ninefold', name: 'Halvdan Ninefold', epithet: 'the Saga-Seeker', ship: 'Ninefold', bounty: 160000,
     dream: '', rumour: 'A longship seen off the Wrack, its captain asking for the strongest fighter in the Reef.', status: never },
   { id: 'corva', name: 'Sister Corva', epithet: 'of the Lantern', ship: 'Lantern', bounty: 250000,

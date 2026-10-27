@@ -341,6 +341,33 @@ describe('The Salt in the Fen (Act II, the Second Lock)', () => {
   });
 });
 
+describe('The Brinewife\'s Children (Mother Brine)', () => {
+  const amb = () => { const L = regionLayout('amberhold'); const g = new Game({ seed: 4, save: { ...defaultSave(L.respawn, L.mooring!), region: 'amberhold' } }); for (const e of g.enemies) { e.alive = false; e.respawnAt = Infinity; } g.s.quests.toll = QUESTS.toll.stages.length - 1; return g; };
+  it('pay her tolls yourself: Pip joins your crew, and finds turn up more often', () => {
+    const g = amb();
+    talk(g, 'halvard'); expect(g.questStage('brinewife')).toBe(1);
+    talk(g, 'brine'); expect(g.questStage('brinewife')).toBe(2);
+    talk(g, 'halvard'); expect(g.questStage('brinewife')).toBe(2); // no silver
+    g.give('coins', 5000);
+    talk(g, 'halvard'); expect(g.questStage('brinewife')).toBe(3);
+    talk(g, 'brine'); expect(g.questStage('brinewife')).toBe(4);
+    expect(g.s.crew).toContain('pip');
+    expect(g.crewV('finds')).toBe(15);
+  });
+  it('or sign the warrant: paid, and she\'s gone, and she remembers you', () => {
+    const g = amb();
+    talk(g, 'halvard'); talk(g, 'brine');
+    use(g, 'brinewife', 'warrant');
+    expect(g.questStage('brinewife')).toBe(3);
+    const c = count(g.p.inv, 'coins');
+    talk(g, 'halvard');
+    expect(g.questStage('brinewife')).toBe(4);
+    expect(count(g.p.inv, 'coins')).toBe(c + 2500);
+    expect(g.s.flags.tide_brine_enemy).toBe(true);
+    expect(g.targets().some((t) => t.key === 'npc:brine')).toBe(false);
+  });
+});
+
 describe('Charted Waters (Bastian Gull)', () => {
   it('Iven\'s rival at Wreckers\' Point, four fresh soundings, and Gull signs on as chartmaster', () => {
     const g = fresh();

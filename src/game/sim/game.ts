@@ -637,7 +637,7 @@ export class Game {
         const lvl = this.level(d.skill);
         if (this.rnd() < perkTotal(d.skill, lvl, 'double') / 100 && canAdd(this.p.inv, got)) { this.give(got, 1); this.msg(`Lucky haul: a second ${item(got).name.toLowerCase()}.`, 'good'); }
         const find = FINDS[d.skill];
-        const findMul = this.activeKey()?.passive.kind === 'find_bonus' ? 1 + this.activeKey()!.passive.v / 100 : 1;
+        const findMul = (this.activeKey()?.passive.kind === 'find_bonus' ? 1 + this.activeKey()!.passive.v / 100 : 1) * (1 + this.crewV('finds') / 100); // Pip spots them
         if (find && this.rnd() < perkTotal(d.skill, lvl, 'find') / 100 * findMul && canAdd(this.p.inv, find)) { this.give(find, 1); this.msg(`You find a ${item(find).name.toLowerCase()}!`, 'loot'); }
         const kp = this.activeKey()?.passive;
         if (kp && ((kp.kind === 'extra_log' && d.skill === 'woodcutting') || (kp.kind === 'extra_ore' && d.skill === 'mining')) && this.rnd() < kp.v / 100 && canAdd(this.p.inv, got)) {
