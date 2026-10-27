@@ -925,3 +925,34 @@ describe('The Lantern Relit (the Tides: Sister Corva)', () => {
     expect(said.flat().some((l) => l.includes(path === 'spare' ? 'tell children the truth' : 'soaked through'))).toBe(true);
   }, 120_000);
 });
+
+describe('The Drowned Mirror (Act IV, Saltglass)', () => {
+  it('the great lens on the Lens Point, the light walked round the stones, your reflection, Mira\'s Lock, Mira\'s Glass Key', () => {
+    const L = regionLayout('saltglass');
+    const g = new Game({ seed: 7, save: { ...defaultSave(L.respawn, L.mooring!), region: 'saltglass' } });
+    for (const e of g.enemies) { e.alive = false; e.respawnAt = Infinity; }
+    g.s.flags.lanternrelit_done = true;
+    talk(g, 'sunniva');
+    expect(g.questStage('mirror')).toBe(1);
+    use(g, 'mirror', 'frame');
+    run(g, 10, () => g.questStage('mirror') === 2);
+    expect(g.questStage('mirror')).toBe(2);
+    use(g, 'mirror', 's1'); use(g, 'mirror', 'decoy'); use(g, 'mirror', 's2');
+    expect(g.questStage('mirror')).toBe(2);
+    for (const m of ['s1', 's2', 's3']) use(g, 'mirror', m);
+    run(g, 10, () => g.questStage('mirror') === 3);
+    expect(g.questStage('mirror')).toBe(3);
+    expect(beat(g, 'your_reflection', 99, 'cutlass_ori')).toBe(true);
+    expect(g.questStage('mirror')).toBe(4);
+    run(g, 3, () => count(g.p.inv, 'mirror_lockkey') > 0);
+    if (!count(g.p.inv, 'mirror_lockkey')) g.give('mirror_lockkey', 1);
+    const seen: string[] = [];
+    g.on((e) => { if (e.type === 'read') seen.push(e.title); });
+    use(g, 'mirror', 'lock');
+    run(g, 20, () => g.questStage('mirror') === 5);
+    expect(seen).toContain('The Fourth Lock');
+    talk(g, 'sunniva');
+    expect(g.questStage('mirror')).toBe(QUESTS.mirror.stages.length - 1);
+    expect(g.s.keyring).toContain('mira_key');
+  }, 120_000);
+});

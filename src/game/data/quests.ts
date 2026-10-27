@@ -1,5 +1,5 @@
 import type { SkillId } from './items';
-import { LAGOON, LAYOUT, SUN_LAYOUT, AMBER_LAYOUT, AMBER, WRACK_LAYOUT, LOCK_LAYOUT, coastPoint } from '../world/island';
+import { LAGOON, LAYOUT, SUN_LAYOUT, AMBER_LAYOUT, AMBER, WRACK_LAYOUT, LOCK_LAYOUT, SALT_LAYOUT, coastPoint } from '../world/island';
 // NPCs and the first quest, as data. Dialogue is chosen by quest stage; effects are interpreted by the quest system.
 
 export interface Effect {
@@ -1410,6 +1410,55 @@ export const QUESTS: Record<string, QuestDef> = {
           after: ['Rest. Then we read Hale\'s map, and we go where she\'s been waiting.'],
           effect: { give: [{ id: 'coins', qty: 8000 }], xp: [{ skill: 'magic', amount: 9000 }, { skill: 'ranged', amount: 9000 }, { skill: 'defence', amount: 9000 }], stage: 5, flag: 'lanternrelit_done' } } } },
       { text: 'Quest complete. Sister Corva\'s story is over, one way or the other, and you have Hale\'s map.' },
+    ],
+  },
+  mirror: {
+    id: 'mirror',
+    main: true,
+    name: 'The Drowned Mirror',
+    island: 'saltglass',
+    giver: 'sunniva',
+    reward: 'Mira\'s Glass Key (the Fourth Lockkey), 15,000 coins, 15,000 Ranged, Magic and Crafting XP. You no longer cast a reflection.',
+    stages: [
+      { text: 'Speak with Sunniva Brask at Glasswater Steps on Saltglass, once The Lantern Relit is done.',
+        talk: { npc: 'sunniva', node: { needsFlags: ['lanternrelit_done'], missing: ['Every lighthouse lens on the Reef came out of my furnace. Mind the pools.'], lines: [
+          'Hale\'s anchorage is the Drowned Mirror. You\'ve guessed that. She buys lenses from me every spring tide, and every spring tide she sits off the Mirror with one of my lenses on her bow and waits.',
+          'The Mirror doesn\'t take a key, captain. It takes light. Mira of the Tide hid her Lock where only the sun at low water could open it, and the sun can\'t reach the Mirror any more: the Lens Point\'s been dark since the star came down.',
+          'Here. The great lens. My mother ground it and never dared mount it. Put it on the old frame at the Lens Point and the light will come round to the Mirror. Then you\'ll have to walk it the rest of the way.'],
+          effect: { give: [{ id: 'saltglass_lens', qty: 1 }], stage: 1 } } } },
+      { text: 'Mount Sunniva\'s great lens on the old lens-frame at the Lens Point.',
+        marks: [{ id: 'frame', label: 'An old iron lens-frame, empty, rusted to the rock', verb: 'Mount the lens', region: 'saltglass', x: SALT_LAYOUT.lens.x - 2, z: SALT_LAYOUT.lens.z + 2,
+          requires: { id: 'saltglass_lens', qty: 1 }, missing: ['An empty lens-frame. Sunniva has the lens that fits it.'],
+          say: ['The lens drops into the frame like it\'s been waiting. For a moment nothing; then the sun finds it, and a beam the width of a door leaps out across the island and strikes the glass stones round the Drowned Mirror.'],
+          effect: { take: [{ id: 'saltglass_lens', qty: 1 }], stage: 2 } }] },
+      { text: 'Walk the light round the Drowned Mirror: turn its glass stones so the beam passes from one to the next. Follow where the light lands.',
+        wrong: 'The beam scatters off the stone into a hundred pieces and goes out. Start again from the stone the lens is lighting.',
+        marks: [
+          { id: 's1', label: 'A glass stone blazing with the lens\'s light', verb: 'Turn the stone', region: 'saltglass', x: SALT_LAYOUT.mirror.x + 6, z: SALT_LAYOUT.mirror.z - 5, seq: 1, say: ['The stone turns on a pin you didn\'t know was there. The beam swings off it, west, and lands on another stone across the Mirror.'] },
+          { id: 's2', label: 'A glass stone on the Mirror\'s west side', verb: 'Turn the stone', region: 'saltglass', x: SALT_LAYOUT.mirror.x - 7, z: SALT_LAYOUT.mirror.z - 2, seq: 2, say: ['The beam goes south now, along the water, and the Mirror\'s surface lights up silver from below.'] },
+          { id: 'decoy', label: 'A dull glass stone, north', verb: 'Turn the stone', region: 'saltglass', x: SALT_LAYOUT.mirror.x + 1, z: SALT_LAYOUT.mirror.z - 7, decoy: true },
+          { id: 's3', label: 'A glass stone on the Mirror\'s south side', verb: 'Turn the stone', region: 'saltglass', x: SALT_LAYOUT.mirror.x - 1, z: SALT_LAYOUT.mirror.z + 6, seq: 3, say: ['The last stone turns and throws the light straight down into the Mirror. The whole pool goes white.', 'When you can see again, someone is standing in the middle of the water, looking at you. It\'s you.'] },
+        ] },
+      { text: 'Your reflection has stepped out of the Drowned Mirror, holding a key of glass. It fights the way you do. Beat it.',
+        kill: { foe: 'your_reflection', count: 1, spawn: { region: 'saltglass', x: SALT_LAYOUT.mirror.x, z: SALT_LAYOUT.mirror.z + 2 } } },
+      { text: 'Turn the key of clear glass in the Drowned Mirror.',
+        marks: [{ id: 'lock', label: 'The Drowned Mirror, its surface white and still', verb: 'Turn the key', region: 'saltglass', x: SALT_LAYOUT.mirror.x + 2, z: SALT_LAYOUT.mirror.z + 4,
+          requires: { id: 'mirror_lockkey', qty: 1 }, missing: ['There\'s a keyhole in the Mirror\'s surface, which isn\'t possible. Your reflection had the key.'],
+          effect: { take: [{ id: 'mirror_lockkey', qty: 1 }], flag: 'mirror_opened', stage: 5, vision: { title: 'The Fourth Lock', sub: 'What Mira\'s key remembers', lines: [
+            'A woman who could read water the way Iven reads ink. Mira of the Tide, standing on this beach when it was still sand, the night the star came down.',
+            'The heat turns the shore to glass under her feet. She doesn\'t move. "Good," she says. "Glass remembers. Glass keeps a face."',
+            'She looks down into the new-made Mirror and her reflection looks back, and she asks it, very politely, to hold the door.',
+            'It agrees. Reflections always do what you do. For a thousand years it stands in the water holding her key, being her, so she can be the Lock.',
+            'When you come back to yourself, you look down into the Mirror. The sky is in it, and the glass stones, and the lens\'s light. You aren\'t.'] } } }] },
+      { text: 'Tell Sunniva Brask the Fourth Lock is open.',
+        talk: { npc: 'sunniva', node: { lines: [
+          'I saw the light go down into the Mirror from the Steps. Every pane in my furnace-house rang like a bell.',
+          'Let me look at you. Here: look in this. No. Nothing. Not in the glass, not in the bucket. You don\'t cast one any more.',
+          'Every Lock takes something. Mira\'s took your face out of the water. You\'ll never see yourself in a still pool again, captain.',
+          'Her key\'s yours now. Glass, and cold, and it\'ll show you everything except you. I\'d keep it away from children. They ask questions.'],
+          after: ['Four Locks open. Hale will have felt it. She\'ll have felt it in her teeth.'],
+          effect: { give: [{ id: 'coins', qty: 15000 }], xp: [{ skill: 'ranged', amount: 15000 }, { skill: 'magic', amount: 15000 }, { skill: 'crafting', amount: 15000 }], stage: 6, flag: 'mirror_done', key: 'mira_key' } } } },
+      { text: 'Quest complete. Four Locks open, nine to go. This one took your reflection.' },
     ],
   },
 };

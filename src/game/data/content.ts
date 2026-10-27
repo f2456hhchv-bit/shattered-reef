@@ -586,6 +586,9 @@ export const ENEMIES: Record<string, EnemyDef> = {
     speed: 2.6, radius: 1.0, aggro: 8, attack: { kind: 'melee', range: 2.0, windup: 0.55, cooldown: 2.8 }, loot: 'glass_crab', respawn: 60, scale: 2.0 },
   reflection: { hostile: true, id: 'reflection', name: 'Reflection', model: 'brigand', look: 'reflection', level: 76, hp: 88, att: 70, def: 62, defBonus: { melee: 55, ranged: 55, magic: 55 }, weakness: 'ranged', style: 'melee', accBonus: 62, maxHit: 13,
     speed: 3.2, radius: 0.5, aggro: 11, attack: { kind: 'melee', range: 1.9, windup: 0.5, cooldown: 2.6 }, loot: 'reflection', respawn: 70, scale: 1.05 },
+  // your reflection (The Drowned Mirror): it steps out of the Mirror to keep the Fourth Lockkey, and fights as you do
+  your_reflection: { hostile: true, id: 'your_reflection', name: 'Your reflection', model: 'brigand', look: 'reflection', boss: true, level: 90, hp: 260, att: 86, def: 80, defBonus: { melee: 70, ranged: 70, magic: 70 }, weakness: 'ranged', style: 'melee', accBonus: 84, maxHit: 19,
+    speed: 3.6, radius: 0.5, aggro: 18, attack: { kind: 'melee', range: 2.0, windup: 0.45, cooldown: 2.2 }, loot: 'your_reflection', respawn: 0, scale: 1.1 },
   key_collector: { hostile: true, id: 'key_collector', name: 'The Key Collector', model: 'brigand', look: 'hunter', level: 78, hp: 95, att: 74, def: 64, defBonus: { melee: 55, ranged: 45, magic: 30 }, weakness: 'ranged', style: 'melee', accBonus: 66, maxHit: 13,
     speed: 3.8, radius: 0.5, aggro: 14, attack: { kind: 'melee', range: 1.9, windup: 0.4, cooldown: 2.2 }, loot: 'key_collector', respawn: 0, scale: 1.3 },
   // further out (their islands' slices replace the rest of this list)
@@ -708,6 +711,7 @@ export const LOOT: Record<string, LootTable> = {
   glass_crab: { coins: [40, 100], drops: [{ item: 'crystal_geode', chance: 0.2 }, { item: 'fish_lobster_raw', chance: 0.4 }, { item: 'gem_diamond_rough', chance: 0.03 }] },
   reflection: { coins: [70, 160], drops: [{ item: 'charm_tide', chance: 0.7, qty: [15, 30] }, { item: 'bar_sky', chance: 0.1 }, { item: 'gem_eye_rough', chance: 0.01 }],
     gear: { chance: 0.08, items: ['staff_tide', 'helm_tide', 'shield_tide', 'cutlass_tide'], weights: { common: 40, fine: 40, rare: 16, relic: 4 } } },
+  your_reflection: { coins: [0, 0], drops: [{ item: 'mirror_lockkey', chance: 1 }, { item: 'casket', chance: 1, qty: [2, 3] }] },
   key_collector: { coins: [400, 800], drops: [{ item: 'casket', chance: 1, qty: [2, 3] }, { item: 'crystal_geode', chance: 1, qty: [2, 3] }] },
   barrow_king: { coins: [150, 300], drops: [{ item: 'bar_storm', chance: 1, qty: [2, 4] }, { item: 'crystal_geode', chance: 0.5 }] },
   douen_elder: { coins: [40, 80], drops: [{ item: 'charm_tide', chance: 1, qty: [10, 20] }] },

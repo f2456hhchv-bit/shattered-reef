@@ -138,6 +138,10 @@ export const KEYS: KeyDef[] = [
     passive: { kind: 'dr', v: 6, text: 'Every door holds: 6% less damage from everything' },
     power: { id: 'ward', name: 'Shut the Door', cooldown: 35, dur: 5, text: 'You shut a door between you and this foe: it can\'t hurt you for 5 s' },
     lore: 'The Third Lockkey: a plain iron door key, the two-hundred-and-twelfth on Orla Fane\'s ring. Ilse of the Door loved doors more than anyone ever has. It shows.' },
+  { id: 'mira_key', name: 'Mira\'s Glass Key', family: 'any', rarity: 'quest',
+    passive: { kind: 'ship_speed', v: 8, text: 'The tide runs with you: your ship sails 8% faster' },
+    power: { id: 'blink', name: 'Mirror Step', cooldown: 18, text: 'You step into the foe\'s reflection and out of it on the far side' },
+    lore: 'The Fourth Lockkey, cut from the glass the star left: Mira of the Tide\'s. Hold it up and you see everything in it but yourself.' },
 ];
 
 export const KEY: Record<string, KeyDef> = Object.fromEntries(KEYS.map((k) => [k.id, k]));
