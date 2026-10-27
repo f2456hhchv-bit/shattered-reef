@@ -2485,7 +2485,7 @@ export class Game {
         }
         continue;
       }
-      if (e.def.boss) { this.stepBoss(e, dt); continue; }
+      if (e.def.boss && e === this.boss) { this.stepBoss(e, dt); continue; } // a quest's boss (Corva, the Doorwarden) fights like a foe, not an arena's guardian
       const fr = (e.elite === 'frenzied' ? 1.4 : 1) * (e.fx.slow > 0 ? 0.6 : 1); // Becalm / Undertow slow everything they do
       e.cd = Math.max(0, e.cd - dt * fr);
       const dP = Math.hypot(px - e.x, pz - e.z);
@@ -2598,6 +2598,7 @@ export class Game {
     this.bossSummons = 0;
     this.emit({ type: 'boss', state: 'rise' });
     if (a.boss === 'storm_jotunn') this.msg('The horn\'s note rolls off the crag, and the sky answers. Lightning splits the stones, and the Thunder Jötunn stands up out of them!', 'combat');
+    else if (a.boss === 'elder_lockjaw') this.msg('You knock. Something on the other side knocks back. Then the door opens its mouth: the Elder Lockjaw!', 'combat');
     else this.msg(a.boss === 'guardian' ? 'The bell sings. The stone answers. The Lockbound Guardian rises!' : a.boss === 'broodmother' ? 'The bones shift. Webs tremble across the hollow, and the Broodmother climbs out of the dark!' : 'The gong booms through the temple. Something vast uncoils beneath the flagstones: the Sunscale rises!', 'combat');
   }
 
@@ -2606,7 +2607,7 @@ export class Game {
     const px = this.p.x, pz = this.p.z;
     if (e.state === 'rise') { e.t -= dt; if (e.t <= 0) e.state = 'chase'; return; }
     if (this.dead || this.p.onShip || Math.hypot(px - R.x, pz - R.z) > 24) { this.resetBoss(); return; }
-    const serpent = e.def.id === 'temple_serpent', brood = e.def.id === 'broodmother', giant = e.def.id === 'storm_jotunn';
+    const serpent = e.def.id === 'temple_serpent', brood = e.def.id === 'broodmother', giant = e.def.id === 'storm_jotunn', jaw = e.def.id === 'elder_lockjaw';
     const frac = e.hp / e.maxHp;
     const enrage = (frac < 0.25 ? 1.35 : 1) * (e.fx.slow > 0 ? 0.6 : 1);
     // summons at 66% and 33%: crabs boil up round the Guardian, snakes drop from the temple's vines, the brood hatches
@@ -2616,11 +2617,12 @@ export class Game {
         const a = (k / 2) * Math.PI * 2 + this.rnd();
         const x = R.x + Math.cos(a) * 4.5, z = R.z + Math.sin(a) * 4.5;
         if (giant && k > 0) break; // one troll a wave: they hit hard
-        const c = this.spawnEnemy(serpent ? ENEMIES.jungle_snake : brood ? ENEMIES.weaver_young : giant ? ENEMIES.crag_troll : ENEMIES.reef_crab, x, z, true);
+        if (jaw && k > 0) break; // one Lockjaw a wave: its children bite
+        const c = this.spawnEnemy(serpent ? ENEMIES.jungle_snake : brood ? ENEMIES.weaver_young : giant ? ENEMIES.crag_troll : jaw ? ENEMIES.lockjaw : ENEMIES.reef_crab, x, z, true);
         c.state = 'chase';
       }
       this.emit({ type: 'boss', state: 'summon' });
-      this.msg(giant ? 'The Jötunn roars, and a crag troll heaves itself up over the stones!' : serpent ? 'The Sunscale hisses. Snakes drop from the temple vines!' : brood ? 'Egg sacs split along the hollow\'s walls. Her brood comes for you!' : 'The Guardian strikes its chest-bell. Crabs boil up from the stones!', 'combat');
+      this.msg(jaw ? 'The Elder Lockjaw bangs its frame on the ground, and a smaller door in the ring tears itself loose and comes for you!' : giant ? 'The Jötunn roars, and a crag troll heaves itself up over the stones!' : serpent ? 'The Sunscale hisses. Snakes drop from the temple vines!' : brood ? 'Egg sacs split along the hollow\'s walls. Her brood comes for you!' : 'The Guardian strikes its chest-bell. Crabs boil up from the stones!', 'combat');
     }
     e.cd = Math.max(0, e.cd - dt * enrage);
     this.bossCast -= dt * enrage;
@@ -2639,6 +2641,10 @@ export class Game {
         // Lightning: called down where you stand (set for its level 82: Stormwrack hits hard)
         this.bossCast = this.bossSummons > 0 ? 3.6 : 4.6;
         this.telegraphs.push({ id: this.nextId++, kind: 'circle', x: px, z: pz, r: 3.2, angle: 0, width: 0, t: 0, dur: 1.2 / enrage, damage: 36, source: e.id });
+      } else if (jaw) {
+        // Slam: it hurls itself flat where you stand, the whole door's width (set for level 88)
+        this.bossCast = this.bossSummons > 0 ? 4.2 : 5.2;
+        this.telegraphs.push({ id: this.nextId++, kind: 'line', x: e.x, z: e.z, r: 9, angle: e.facing, width: 2.6, t: 0, dur: 1.1 / enrage, damage: 30, source: e.id });
       } else if (brood) {
         // Web spray: a wide splash of web where you stand
         this.bossCast = 5.5;
@@ -2653,7 +2659,7 @@ export class Game {
       return;
     }
     if (dP < 4.2 && e.cd <= 0) {
-      e.cd = serpent || brood || giant ? 3.4 : 4;
+      e.cd = serpent || brood || giant || jaw ? 3.4 : 4;
       if (giant && this.rnd() < 0.45) {
         // Thunder stomp: the whole ground round it shakes; roll out of the ring
         this.telegraphs.push({ id: this.nextId++, kind: 'circle', x: e.x, z: e.z, r: 5.4, angle: 0, width: 0, t: 0, dur: 1.3 / enrage, damage: 40, source: e.id });
@@ -2662,6 +2668,10 @@ export class Game {
         // Club sweep: a wide cone in front
         this.telegraphs.push({ id: this.nextId++, kind: 'cone', x: e.x, z: e.z, r: 5.8, angle: e.facing, width: 2.1, t: 0, dur: 1.0 / enrage, damage: 30, source: e.id });
         e.state = 'windup'; e.t = 1.0 / enrage;
+      } else if (jaw) {
+        // Bite: the top half yawns and slams in front of it
+        this.telegraphs.push({ id: this.nextId++, kind: 'cone', x: e.x, z: e.z, r: 4.6, angle: e.facing, width: 1.6, t: 0, dur: 0.9 / enrage, damage: 26, source: e.id });
+        e.state = 'windup'; e.t = 0.9 / enrage;
       } else if ((serpent || brood) && this.rnd() < 0.45) {
         // Coil crush (serpent) / leg sweep (Broodmother): the whole ground round her, roll out or take it
         this.telegraphs.push({ id: this.nextId++, kind: 'circle', x: e.x, z: e.z, r: brood ? 4.6 : 4.2, angle: 0, width: 0, t: 0, dur: 1.2 / enrage, damage: brood ? 9 : 7, source: e.id });
@@ -2688,6 +2698,7 @@ export class Game {
     this.fight = null;
     this.emit({ type: 'boss', state: 'reset' });
     if (b.def.id === 'storm_jotunn') { this.msg('The Jötunn sinks back into the stones in a crack of thunder. Sound the horn to call it again.', 'combat'); return; }
+    if (b.def.id === 'elder_lockjaw') { this.msg('The Elder Lockjaw shuts its mouth and is a door again. Knock to wake it.', 'combat'); return; }
     this.msg(b.def.id === 'temple_serpent' ? 'The Sunscale slides back under the flagstones. Strike the gong to face it again.' : b.def.id === 'broodmother' ? 'The Broodmother draws back into the dark. Disturb the bones to call her out again.' : 'The Guardian sinks back into the stone. Ring the bell to try again.', 'combat');
   }
 
@@ -2722,7 +2733,7 @@ export class Game {
     for (const c of this.enemies) if (c.summoned && c.alive) { c.alive = false; this.emit({ type: 'enemyDeath', id: c.id, x: c.x, z: c.z, elite: false, boss: false }); }
     this.enemies = this.enemies.filter((x) => !x.summoned);
     this.scoreFeats(e.def.id);
-    const LINE: Record<string, string> = { guardian: 'The Broken Ring falls silent', temple_serpent: 'The Sunken Temple is still', storm_jotunn: 'The storm over the crag breaks', broodmother: 'Weaver Hollow goes quiet' };
+    const LINE: Record<string, string> = { guardian: 'The Broken Ring falls silent', temple_serpent: 'The Sunken Temple is still', storm_jotunn: 'The storm over the crag breaks', broodmother: 'Weaver Hollow goes quiet', elder_lockjaw: 'The Field of Doors falls quiet' };
     this.emit({ type: 'boss', state: 'defeat', name: `${e.def.name} defeated`, sub: LINE[e.def.id] ?? 'It won\'t rise again today' });
     if (e.def.id === 'temple_serpent') {
       if (!this.s.flags.serpent_defeated) this.msg('The Sunscale lies still. Its scales shine like hammered gold.', 'good');
@@ -2739,6 +2750,12 @@ export class Game {
       this.s.flags.broodmother_defeated = true;
       return;
     }
+    if (e.def.id === 'elder_lockjaw') {
+      if (!this.s.flags.elderjaw_defeated) this.msg('The Elder Lockjaw shudders, sags on its hinges, and is only a door again. Every door in the Field swings shut at once.', 'good');
+      this.s.flags.elderjaw_defeated = true;
+      return;
+    }
+    if (e.def.id !== 'guardian') return; // a quest's boss (Corva, the Doorwarden): its stage has already counted it
     this.s.flags.guardian_defeated = true;
     this.msg('The Lockbound Guardian falls apart into brass and stone!', 'good');
     if (this.questStage('bell') === 2) {

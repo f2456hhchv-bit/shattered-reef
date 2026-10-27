@@ -859,7 +859,7 @@ describe('The Third Lock (Act IV, Lockhaven)', () => {
     use(g, 'thirdlock', 'well');
     run(g, 20, () => g.questStage('thirdlock') === 4);
     expect(seen).toContain('The Third Lock');
-    expect(beat(g, 'doorwarden', 99, 'cutlass_tide')).toBe(true);
+    expect(beat(g, 'doorwarden', 99, 'cutlass_ori')).toBe(true);
     expect(g.questStage('thirdlock')).toBe(5);
     talk(g, 'orla');
     expect(g.questStage('thirdlock')).toBe(QUESTS.thirdlock.stages.length - 1);

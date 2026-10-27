@@ -573,6 +573,9 @@ export const ENEMIES: Record<string, EnemyDef> = {
   // the Lockjaw (Lockhaven): a door that has stood too long with nothing behind it. It looks like a door until it doesn't
   lockjaw: { hostile: true, id: 'lockjaw', name: 'Lockjaw', model: 'door', look: 'lockjaw', level: 68, hp: 80, att: 62, def: 58, defBonus: { melee: 50, ranged: 60, magic: -10 }, weakness: 'magic', style: 'melee', accBonus: 54, maxHit: 11,
     speed: 2.6, radius: 0.7, aggro: 5, attack: { kind: 'melee', range: 2.0, windup: 0.6, cooldown: 2.8 }, loot: 'lockjaw', respawn: 70, scale: 1.25 },
+  // the Elder Lockjaw (Lockhaven's arena): the oldest door in the Field, iron-black, brass-bound; it has been a mouth longest
+  elder_lockjaw: { id: 'elder_lockjaw', name: 'The Elder Lockjaw', model: 'door', look: 'elder', boss: true, level: 88, hp: 380, att: 84, def: 78, defBonus: { melee: 70, ranged: 75, magic: -10 }, weakness: 'magic', style: 'melee', accBonus: 80, maxHit: 22,
+    speed: 2.4, radius: 1.3, aggro: 30, attack: { kind: 'melee', range: 3.0, windup: 0.8, cooldown: 2.6 }, loot: 'elder_lockjaw', respawn: 0, scale: 2.4 },
   key_collector: { hostile: true, id: 'key_collector', name: 'The Key Collector', model: 'brigand', look: 'hunter', level: 78, hp: 95, att: 74, def: 64, defBonus: { melee: 55, ranged: 45, magic: 30 }, weakness: 'ranged', style: 'melee', accBonus: 66, maxHit: 13,
     speed: 3.8, radius: 0.5, aggro: 14, attack: { kind: 'melee', range: 1.9, windup: 0.4, cooldown: 2.2 }, loot: 'key_collector', respawn: 0, scale: 1.3 },
   // further out (their islands' slices replace the rest of this list)
@@ -690,6 +693,8 @@ export const LOOT: Record<string, LootTable> = {
   doorwarden: { coins: [1500, 2500], drops: [{ item: 'casket', chance: 1, qty: [3, 4] }, { item: 'bar_ori', chance: 1, qty: [2, 4] }, { item: 'crystal_geode', chance: 1, qty: [3, 5] }] },
   lockjaw: { coins: [40, 110], drops: [{ item: 'logs_star', chance: 0.25 }, { item: 'bar_levi', chance: 0.08 }, { item: 'casket', chance: 0.05 }, { item: 'crystal_geode', chance: 0.15 }],
     gear: { chance: 0.07, items: ['shield_tide', 'helm_tide', 'staff_tide'], weights: { common: 45, fine: 40, rare: 13, relic: 2 } } },
+  elder_lockjaw: { coins: [800, 1600], drops: [{ item: 'casket', chance: 1, qty: [2, 3] }, { item: 'bar_ori', chance: 0.6, qty: [1, 3] }, { item: 'logs_star', chance: 1, qty: [4, 8] }, { item: 'crystal_geode', chance: 1, qty: [2, 4] }],
+    gear: { chance: 0.35, items: ['shield_tide', 'helm_tide', 'staff_tide', 'cutlass_tide'], weights: { common: 20, fine: 45, rare: 28, relic: 7 } } },
   key_collector: { coins: [400, 800], drops: [{ item: 'casket', chance: 1, qty: [2, 3] }, { item: 'crystal_geode', chance: 1, qty: [2, 3] }] },
   barrow_king: { coins: [150, 300], drops: [{ item: 'bar_storm', chance: 1, qty: [2, 4] }, { item: 'crystal_geode', chance: 0.5 }] },
   douen_elder: { coins: [40, 80], drops: [{ item: 'charm_tide', chance: 1, qty: [10, 20] }] },

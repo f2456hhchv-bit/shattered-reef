@@ -58,6 +58,7 @@ export const DIARIES: Diary[] = [
       { id: 'combat', text: 'Reach level 60 in Attack, Strength and Defence', done: levels(60, 'attack', 'strength', 'defence') }] },
   { island: 'lockhaven', name: 'Lockhaven Diary', coins: 6000, xp: [{ skill: 'crafting', amount: 12000 }, { skill: 'smithing', amount: 12000 }, { skill: 'magic', amount: 12000 }],
     tasks: [q('thirdlock'), q('maud'),
+      { id: 'elder', text: 'Beat the Elder Lockjaw in the Ring of Thirteen', done: flag('elderjaw_defeated') },
       { id: 'doors', text: 'Open all four doors in the Field of Doors', done: (g) => ['door', 'fen', 'ears', 'tooth'].every((d) => g.s.flags[`door_${d}`]) },
       { id: 'places', text: 'Discover every place on Lockhaven', done: places('lockhaven') },
       { id: 'lore', text: 'Find every page of Keel\'s Log and every Varrow fragment on Lockhaven', done: lore('lockhaven') },

@@ -9,6 +9,7 @@ const BOSSES: { id: string; name: string; speed: number }[] = [
   { id: 'temple_serpent', name: 'the Sunscale', speed: 90 },
   { id: 'broodmother', name: 'the Broodmother', speed: 120 },
   { id: 'storm_jotunn', name: 'the Thunder Jötunn', speed: 180 },
+  { id: 'elder_lockjaw', name: 'the Elder Lockjaw', speed: 200 },
 ];
 
 export const FEATS: FeatDef[] = BOSSES.flatMap((b) => [
