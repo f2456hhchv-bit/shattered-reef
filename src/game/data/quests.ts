@@ -73,6 +73,7 @@ export const NPCS: Record<string, NpcDef> = {
   // Sunreach's quests (docs/ISLANDS.md, slice 2)
   abena: { id: 'abena', name: 'Abena Owusu', title: 'Fruit seller', idle: ['Mangoes, limes, soursop. Mind the jungle edge after dark, captain.'] },
   nana_ayo: { id: 'nana_ayo', name: 'Nana Ayo', title: 'Herb woman', idle: ['Bush tea for the fever, salt for what comes at night. I keep both.'] },
+  marisol: { id: 'marisol', name: 'Marisol Ransom', title: 'Captain of the Dear Hostage', idle: ['I don\'t drink with people I haven\'t robbed yet. Sit down anyway.', 'Every captain on this sea wants Keel\'s Hoard. I just want back what was mine.'] },
   ama: { id: 'ama', name: 'Ama Boateng', title: 'Fire-warden of the Greenheart', idle: ['Dry season, lightning season. The Greenheart burns a little every year. My job is to make it a little.'] },
   // Amberhold's quests (docs/ISLANDS.md, slice 3)
   sigrun: { id: 'sigrun', name: 'Sigrun', title: 'Skald', idle: ['Every hill on Amberhold has a song. Goldvein Hill\'s is the oldest, and nobody sings it after dark.'] },
@@ -487,6 +488,53 @@ export const QUESTS: Record<string, QuestDef> = {
           'From now on the camp keeps four buckets full for you, not two. Come back whenever the horn sounds.'],
           effect: { give: [{ id: 'coins', qty: 800 }], xp: [{ skill: 'woodcutting', amount: 1500 }, { skill: 'fletching', amount: 1000 }], stage: 4, flag: 'greenheart_done' } } } },
       { text: 'Quest complete. The fire camp hands you four full buckets each time.' },
+    ],
+  },
+  ransom: {
+    id: 'ransom',
+    name: 'The Ransom Note',
+    island: 'sunreach',
+    giver: 'sefa',
+    reward: 'Kwesi home; Marisol Ransom owes you (her ship lets you pass) or her red pennant flies on your mast (+5% cannon damage); 1500 coins, 3000 Sailing XP',
+    stages: [
+      { text: 'Speak with Sefa Odun, the harbourmaster at Port Halyard.',
+        talk: { npc: 'sefa', node: { lines: [
+          'My apprentice, Kwesi, rowed out to meet a red-sailed ship last night with the post. He didn\'t row back.',
+          'This came in the morning, pinned to my door with a fish knife. "Two thousand silver, or the deed to Coral Key. Ask for me at Palm Cove. M. Ransom."',
+          'The Compact doesn\'t pay ransoms. Rule three. And the Coral Key deed isn\'t mine to give; it\'s in the archive at Bellwether, and it\'s been there since the Breaking.',
+          'I can\'t do anything, captain. You can. Pay her, or take him back. I won\'t ask which.'],
+          effect: { stage: 1 } } } },
+      { text: 'Get Kwesi back from Marisol Ransom. Pay her two thousand coins at Palm Cove, or sink her ship, the Dear Hostage, in Sunreach\'s western waters.',
+        talk: { npc: 'marisol', node: { requires: { id: 'coins', qty: 2000 }, missing: [
+          'You\'re the captain Sefa sent? Good. Two thousand, or the deed. I don\'t take promises, I take silver.',
+          'Or come out west and take him off my deck, if you\'ve the stomach. The Dear Hostage doesn\'t run from anyone.'], lines: [
+          'You\'re paying it yourself? Out of your own purse, for a harbour boy you\'ve never met.',
+          'That\'s either the best thing anyone\'s done on this sea in years, or the stupidest.',
+          'He\'s in the boat. He ate better with me than he does with Sefa, tell her that.'],
+          effect: { take: [{ id: 'coins', qty: 2000 }], flag: 'tide_marisol_friend', stage: 2 } } },
+        kill: { foe: 'red_ransom', count: 1 } },
+      { text: 'Hear Marisol Ransom out at Palm Cove.',
+        talk: { npc: 'marisol', node: { needsFlags: ['tide_marisol_friend'], lines: [
+          'You want to know what the money\'s for. Everybody does, after.',
+          'My grandmother\'s grandmother owned Coral Key: an island the size of a breath, with a well and nine goats. After the Breaking, the Compact sold it to pay its debts. Their first sale.',
+          'I\'ve been buying it back two thousand at a time for eleven years. The Compact won\'t sell to a pirate. So I\'ll buy it the way pirates buy things.',
+          'Here, half back. Call it the price of meeting someone decent. And captain: my ship won\'t fire on yours. Not ever. Tell the others that, if you like. They won\'t believe you.'],
+          effect: { give: [{ id: 'coins', qty: 1000 }], stage: 3 } } },
+        also: [{ npc: 'marisol', node: { needsFlags: ['ransom_1_k0'], lines: [
+          'You sank my ship. My ship. Do you know how long it takes to find red sailcloth?',
+          '...Fine. Fine. Kwesi\'s on the beach, wrapped in my good coat, which I will be wanting back.',
+          'You want to know what it was for. My grandmother\'s grandmother owned Coral Key, and the Compact sold it after the Breaking to pay their debts. I\'ve been buying it back the only way they\'ll let a pirate buy anything.',
+          'Take this. My pennant. Every ship on this sea knows it. Fly it, and they\'ll know you sank the Red Ransom and lived. That buys a captain a lot of fear.',
+          'The Dear Hostage will be raised by the next tide, and she\'ll be angry. So will I. See you on the water.'],
+          effect: { flag: 'ransom_pennant', stage: 3 } } }] },
+      { text: 'Bring Kwesi home to Sefa Odun at Port Halyard.',
+        talk: { npc: 'sefa', node: { lines: [
+          'Kwesi! You great fool, you rowed out to a red ship. With the post.',
+          'Thank you, captain. I won\'t ask what it cost you.',
+          'Coral Key. I looked it up. The Compact\'s first sale, the year after the Breaking, to cover what Keel\'s war cost the harbours. Signed by every harbourmaster, including mine.',
+          'Rule three says we take no side. Nobody wrote a rule about the sides we took before we had rules.'],
+          effect: { give: [{ id: 'coins', qty: 1500 }], xp: [{ skill: 'sailing', amount: 3000 }], stage: 4, flag: 'ransom_done' } } } },
+      { text: 'Quest complete. Marisol Ransom, the first of the Tides, knows your name.' },
     ],
   },
   temple: {

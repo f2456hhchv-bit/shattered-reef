@@ -313,6 +313,40 @@ describe('The First Lock (Act II)', () => {
   });
 });
 
+describe('The Ransom Note (the first Tide)', () => {
+  const sun = () => { const L = regionLayout('sunreach'); const g = new Game({ seed: 9, save: { ...defaultSave(L.respawn, L.mooring!), region: 'sunreach' } }); for (const e of g.enemies) { e.alive = false; e.respawnAt = Infinity; } return g; };
+
+  it('pay it yourself: Marisol owes you, gives half back, and her ship lets you pass', () => {
+    const g = sun();
+    talk(g, 'sefa');
+    expect(g.questStage('ransom')).toBe(1);
+    talk(g, 'marisol');
+    expect(g.questStage('ransom')).toBe(1); // no silver yet
+    g.give('coins', 2000);
+    talk(g, 'marisol');
+    expect(g.questStage('ransom')).toBe(2);
+    expect(g.s.flags.tide_marisol_friend).toBe(true);
+    const before = count(g.p.inv, 'coins');
+    talk(g, 'marisol');
+    expect(g.questStage('ransom')).toBe(3);
+    expect(count(g.p.inv, 'coins')).toBe(before + 1000);
+    talk(g, 'sefa');
+    expect(g.questStage('ransom')).toBe(QUESTS.ransom.stages.length - 1);
+    expect(g.s.flags.ransom_pennant).toBeFalsy();
+  });
+
+  it('or sink the Dear Hostage: she gives you her pennant instead', () => {
+    const g = sun();
+    talk(g, 'sefa');
+    g.questKill('red_ransom');
+    expect(g.questStage('ransom')).toBe(2);
+    talk(g, 'marisol');
+    expect(g.questStage('ransom')).toBe(3);
+    expect(g.s.flags.ransom_pennant).toBe(true);
+    expect(g.s.flags.tide_marisol_friend).toBeFalsy();
+  });
+});
+
 describe('Star-Struck', () => {
   it('search the camp in order, beat Tobin, take the shard, quench it at the vent forge for the pendant', () => {
     const L = regionLayout('wrack');
