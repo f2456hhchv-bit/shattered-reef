@@ -750,6 +750,8 @@ function buildIslandRegion(region: IslandId): IslandLayout {
     // the Keywood's oakhearts; the Hushed listening at the doors in the field
     for (const [dx, dz] of [[2, 4], [-6, -3], [-10, 6]]) spawn('oakheart', KW.x + dx, KW.z + dz);
     for (const [dx, dz] of [[-12, -2], [10, -6], [-4, -12]]) spawn('hushed_pilgrim', DF.x + dx, DF.z + dz);
+    // and among the Houses' doors, a few that aren't doors any more
+    for (const [dx, dz] of [[-14, 6], [14, 6], [6, -14]]) spawn('lockjaw', DF.x + dx, DF.z + dz);
   } else if (amb) {
     // boars at the amberwood's edge, ironshells on the shore, poachers on the headland, weavers in the hollow
     const AW = AL.amberwood, CP = AL.camp, HO = AL.hollow;

@@ -685,7 +685,7 @@ export class GameRenderer {
       bakeRig(rig.root, material);
       if (!e.def.boss) blobShadow(rig.root, rig.segs[2]);
       v = { kind: 'snake', rig, mat: material, root: rig.root, swingT: 0, seen: true, baseScale: rig.root.scale.x };
-    } else if (e.def.model === 'golem' || e.def.model === 'hound' || e.def.model === 'bat' || e.def.model === 'beetle') {
+    } else if (e.def.model === 'golem' || e.def.model === 'hound' || e.def.model === 'bat' || e.def.model === 'beetle' || e.def.model === 'door') {
       const rig = buildFantasy(e.def.model as FantasyModel, e.def.look, e.id);
       rig.root.scale.setScalar(e.def.scale * (e.elite ? 1.2 : 1));
       bakeRig(rig.root, material);
