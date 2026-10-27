@@ -29,13 +29,15 @@ import type { GameRenderer } from '../render/renderer';
 import { itemIcon, rarityColour, TAB_ICONS, SKILL_ICONS, SLOT_ICONS } from './icons';
 import { LEVEL_GAIN } from '../game/data/perks';
 import { KEY, KEYS, KEY_CONFIG } from '../game/data/keys';
+import { BOOK, BOOK_BY, type BookSpell } from '../game/data/spellbook';
 import { BOARDS, CREW, BOUNTY_CONFIG, rankOf, type Contract } from '../game/data/bounties';
 
-type Tab = 'pack' | 'gear' | 'skills' | 'quests' | 'map' | 'settings';
+type Tab = 'pack' | 'gear' | 'skills' | 'magic' | 'quests' | 'map' | 'settings';
 const TABS: { id: Tab; name: string; key: string }[] = [
   { id: 'pack', name: 'Pack', key: 'I' },
   { id: 'gear', name: 'Equipment', key: 'G' },
   { id: 'skills', name: 'Skills', key: 'K' },
+  { id: 'magic', name: 'Magic', key: 'P' },
   { id: 'quests', name: 'Quests', key: 'J' },
   { id: 'map', name: 'Map', key: 'M' },
   { id: 'settings', name: 'Settings', key: 'O' },
@@ -770,6 +772,7 @@ export class UI {
         forget(c); this.bindBigMap(); this.fitBigMap(c); this.drawBigMap(); break;
       }
       case 'settings': morph(c, this.settingsHtml()); break;
+      case 'magic': morph(c, this.magicHtml()); break;
     }
     this.scrollButtons();
   }
@@ -777,7 +780,7 @@ export class UI {
   /** One set of handlers on the tab panel for its whole life (content is patched, never re-bound). */
   private bindContent(c: HTMLElement) {
     const g = this.game;
-    onTap(c, '[data-door], [data-lore], [data-bottle], [data-diary], [data-slot], [data-equip], [data-stance], [data-spell], [data-q], [data-dmg], [data-music], [data-sfx], [data-fps], [data-lv], [data-skill], [data-skillback], [data-gcat], [data-sort], [data-home], [data-mapview], [data-key], [data-devkeys], #saveNow, #resetSave, #calibrate, [data-track]', (t, pointer) => {
+    onTap(c, '[data-door], [data-lore], [data-bottle], [data-diary], [data-slot], [data-equip], [data-stance], [data-spell], [data-q], [data-dmg], [data-music], [data-sfx], [data-fps], [data-lv], [data-skill], [data-skillback], [data-gcat], [data-sort], [data-home], [data-mapview], [data-key], [data-devkeys], #saveNow, #resetSave, #calibrate, [data-track], [data-book]', (t, pointer) => {
       if (t.dataset.home) { g.teleportHome(); return; }
       if (t.dataset.lore) { g.readLore(t.dataset.lore); return; }
       if (t.dataset.bottle) { g.bottles.reread(t.dataset.bottle); return; }
@@ -810,6 +813,7 @@ export class UI {
       else if (t.dataset.skillback !== undefined) { this.skillView = null; this.lastRev = -1; }
       else if (t.id === 'calibrate') this.calibrate();
       else if (t.dataset.track) { g.trackQuest(t.dataset.track); this.lastRev = -1; }
+      else if (t.dataset.book) { g.castBook(t.dataset.book, t.dataset.arg); this.lastRev = -1; }
       else if (t.id === 'saveNow') { this.onSave(); this.log('Voyage saved.', 'good'); this.lastRev = -1; }
       else if (t.id === 'resetSave') this.confirm('Erase your progress and start again?', 'Erase and restart', () => this.onReset());
     });
@@ -1063,7 +1067,7 @@ export class UI {
       <div class="toggle"><span>Progress saves automatically<br><small class="muted">Last saved ${ago}</small></span><button class="btn" id="saveNow">Save now</button></div>
       <div class="toggle"><span>Start a new voyage<br><small class="muted">Erases this browser's save</small></span><button class="btn" id="resetSave">Reset</button></div>
       <div class="brass-rule"></div><h2 class="title">Controls</h2>
-      ${fine ? `<p>Click to walk, click things to use them. <kbd>WASD</kbd> also moves.<br><kbd>E</kbd> interact · <kbd>Space</kbd> dodge roll · <kbd>R</kbd> special attack · <kbd>I</kbd> <kbd>G</kbd> <kbd>K</kbd> <kbd>J</kbd> <kbd>M</kbd> tabs · <kbd>Esc</kbd> close · scroll to zoom.</p>`
+      ${fine ? `<p>Click to walk, click things to use them. <kbd>WASD</kbd> also moves.<br><kbd>E</kbd> interact · <kbd>Space</kbd> dodge roll · <kbd>R</kbd> special attack · <kbd>I</kbd> <kbd>G</kbd> <kbd>K</kbd> <kbd>P</kbd> <kbd>J</kbd> <kbd>M</kbd> tabs · <kbd>Esc</kbd> close · scroll to zoom.</p>`
         : '<p>Drag anywhere on the world to move. Tap things to walk to them and use them. The big round button does the nearest action; the two smaller ones are dodge roll and the special attack for your weapon. Pinch to zoom.</p>'}
       <p class="muted" style="font-size:11px">Music: traditional tunes (Greensleeves, Drowsy Maggie, Drunken Sailor) and an original air, played on the FluidR3 GM soundfont by Frank Wen (CC BY 3.0).</p>
       <p class="muted" style="font-size:12px">Your cutlass swings automatically at anything in reach. Pick a stance in Equipment to choose which skill you train. Roll through red markers to take no damage.</p>`;
@@ -1475,6 +1479,30 @@ export class UI {
   }
 
   get dialogOpen() { return !!this.dialog; }
+
+  // ------------------------------------------------------------------ the spellbook (Magic tab)
+  /** RuneScape's spellbook: your combat spell (cast by a staff or wand), then everything you cast from the book:
+   * curses and binds on the foe you're fighting, skilling spells, Superheat and the teleports. */
+  private magicHtml(): string {
+    const g = this.game, lvl = g.level('magic');
+    const row = (b: BookSpell, label = b.name, arg?: string) => {
+      const blk = lvl >= b.level ? g.bookBlock(b.id, arg, true) : null, locked = lvl < b.level; // the short pause between casts doesn't grey the book
+      const left = b.buff ? g.buffLeft(b.buff.what) : 0;
+      const live = left > 0 ? `<span class="good"> · ${Math.floor(left / 60)}:${String(Math.floor(left % 60)).padStart(2, '0')} left</span>` : '';
+      return `<button class="book${locked ? ' locked' : ''}" data-book="${b.id}"${arg ? ` data-arg="${arg}"` : ''} ${locked || blk ? 'disabled' : ''}>
+        <span class="bt"><b>${esc(label)}</b><small>Lv ${b.level}${live}</small></span>${this.costHtml(b.cost)}
+        <small class="muted">${esc(b.text)}</small>${blk && !locked ? `<small class="why">${esc(blk)}</small>` : ''}</button>`;
+    };
+    const kind = (k: BookSpell['kind'][]) => BOOK.filter((b) => k.includes(b.kind));
+    const heat = BOOK_BY.superheat, opts = lvl >= heat.level ? g.superheatOptions() : [];
+    const superheat = opts.length ? opts.map((r) => row(heat, `Superheat: ${item(r.output.id).name}`, r.id)).join('') : row(heat);
+    return `<h2 class="title">Spellbook <small class="muted">Magic ${lvl}</small></h2>
+      <h3 class="title bk">Combat spell <small class="muted">cast by your staff or wand</small></h3><div class="stances spells">${this.spellButtons()}</div>
+      <h3 class="title bk">Curses and binds <small class="muted">on the foe you're fighting</small></h3>${kind(['curse', 'bind']).map((b) => row(b)).join('')}
+      <h3 class="title bk">Skilling</h3>${kind(['buff']).map((b) => row(b)).join('')}${superheat}
+      <h3 class="title bk">Teleports</h3>${kind(['teleport']).map((b) => row(b)).join('')}
+      <p class="muted" style="font-size:12px">Brine Alchemy (Magic ${UTILITY_SPELLS.alchemy.level}) is cast on an item: tap it in your pack.</p>`;
+  }
 
   // ------------------------------------------------------------------ pack full
   /** Gathering stopped on a full pack: offer the two ways on (it goes when the pack has room or after a while). */

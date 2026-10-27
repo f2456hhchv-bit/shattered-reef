@@ -41,7 +41,7 @@ h2.title { font: 700 16px/1.2 var(--display); letter-spacing: .06em; color: var(
 #side { position: fixed; z-index: 5; display: flex; flex-direction: column; }
 body.landscape #side { right: 0; top: 0; bottom: 0; width: var(--side-w); padding: calc(var(--mm) + 54px + env(safe-area-inset-top, 0px)) 8px calc(8px + env(safe-area-inset-bottom, 0px)); border-radius: 0; border-right: 0; padding-right: max(8px, env(safe-area-inset-right, 0px)); }
 body.landscape:not(.side-open) #side { transform: translateX(calc(var(--side-w) - 0px)); }
-#tabs { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
+#tabs { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
 #tabs button { height: 44px; border-radius: 8px; background: linear-gradient(180deg, #4a3422, #2c1f14); border: 1px solid #120b06; box-shadow: inset 0 1px 0 #6b4a2e; display: grid; place-items: center; padding: 0; }
 #tabs button svg { width: 26px; height: 26px; }
 #tabs button.on { background: linear-gradient(180deg, #7a5a34, #4a3422); box-shadow: inset 0 0 0 2px var(--brass), inset 0 1px 0 #a88a5a; }
@@ -663,3 +663,13 @@ body.landscape #track { top: calc(10px + env(safe-area-inset-top, 0px)); max-wid
 .cost .sh.short { color: var(--warn, #ffb070); }
 .spells button .cost { margin-top: 2px; }
 .spells button.el-gale b { color: #d8e8ee; } .spells button.el-tide b { color: #7fe0d8; } .spells button.el-stone b { color: #d4c08a; } .spells button.el-ember b { color: #f09a6a; }
+
+/* ------------------------------------------------ spellbook */
+h3.title.bk { font-size: 13px; margin: 12px 0 6px; }
+button.book { display: grid; gap: 3px; width: 100%; text-align: left; margin: 0 0 6px; padding: 8px 10px; min-height: 44px; border-radius: 8px; background: linear-gradient(180deg, #3a2a1c, #241810); border: 1px solid #120b06; color: #efe3c4; }
+button.book .bt { display: flex; justify-content: space-between; gap: 8px; }
+button.book small { font-size: 11px; }
+button.book .why { color: var(--warn, #ffb070); }
+button.book:disabled { opacity: .62; }
+button.book.locked { opacity: .4; }
+button.book .good { color: var(--good, #8fd06a); }

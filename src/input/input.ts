@@ -205,6 +205,7 @@ export class Input {
       case 'g': this.ui.selectTab('gear', true); break;
       case 'k': this.ui.selectTab('skills', true); break;
       case 'j': case 'q': this.ui.selectTab('quests', true); break;
+      case 'p': this.ui.selectTab('magic', true); break;
       case 'm': this.ui.selectTab('map', true); break;
       case 'o': this.ui.selectTab('settings', true); break;
       case 'Escape': this.ui.closeWindows(); if (this.ui.dialogOpen) this.ui.advanceDialog(); break;

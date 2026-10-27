@@ -289,7 +289,13 @@ Reflects the actual repository, not the roadmap.
       - The common drop table gives elements plus the catalyst for the foe's level.
       - Some foes drop the shard that fits them (ember bats Ember, hornets Gale, barrow-dead Grave, …).
     - Spell projectiles are coloured by element. The spell menu shows each cost as shard icons, with any you're short of in orange and ∞ for your staff's element.
-    - Phase 2 (planned): curses, binds, Superheat, island teleports and enchanting, which need a cast-on-target UI.
+  - **Magic, phase 2: the spellbook** (Tom: "other spells… skilling, teleport etc."; `data/spellbook.ts`, `BOOK`). A new **Magic tab** (key P) lists your combat spell to choose and every book spell to cast, any time, with or without a staff. Spells cost shards, give Magic XP and share a 1.8 s pause between casts.
+    - Curses on the foe you're fighting: Confuse 3 (its accuracy −20%), Weaken 11 (its damage −20%), Curse 19 (its defence −20%), 30 s each. They use the new **Bone shard** (RuneScape's body rune).
+    - Binds: Bind 20, Snare 50 and Entangle 79 hold the foe for 5, 10 and 15 s. Bosses refuse them.
+    - Skilling: Gale Edge 27, Call the Shoals 33 and Stone Sense 39 give +15% woodcutting, fishing or mining success for 5 minutes. Superheat 43 smelts a bar from pack ore with no furnace, for full Smithing XP. Ember Hand 47 means nothing burns for 5 minutes.
+    - Teleports to every island's harbour (25 to 64). Each needs you to have discovered somewhere there and the sea gate to be open, and none work mid-fight. The Bell Key makes them free.
+    - Book spells are listed in the Magic skill guide. Curses and binds show as a violet or green burst on the foe.
+    - Not yet: enchanting jewellery (needs enchanted item variants).
 
 ## Known issues / limitations
 - `touch-e2e` intermittently taps the pack slot 0/3 times (2026-10-24, twice on 2026-10-25). Not root-caused. **Correction:** the low health in those reports (4, 14) was not an attacker: the test sets health to 4 itself, and it regenerates. Ten runs on 2026-10-25 all passed with no level-up card on screen. The test now records what was under the finger on every missed tap, so the next failure names its cause.

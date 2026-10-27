@@ -549,6 +549,7 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(
     I({ id: 'shard_grave', name: 'Grave shard', desc: 'Black glass from a barrow floor. Every blast spell needs one.', icon: { shape: 'charm', color: '#3a3a44', accent: '#9aa0b4' }, stackable: true, value: 25 }),
     I({ id: 'shard_heart', name: 'Heart shard', desc: 'Red glass that beats if you hold it long enough. Every wave spell needs one.', icon: { shape: 'charm', color: '#b42a3a', accent: '#f0a0a8' }, stackable: true, value: 45 }),
     I({ id: 'shard_wrath', name: 'Wrath shard', desc: 'Glass cut from the Leviathan\'s grave. Every surge spell needs one.', icon: { shape: 'charm', color: '#7a1a6a', accent: '#f0c040' }, stackable: true, value: 80 }),
+    I({ id: 'shard_bone', name: 'Bone shard', desc: 'Milk-white glass that feels like a knuckle. Curses need one.', icon: { shape: 'charm', color: '#ece4d2', accent: '#8a7a5a' }, stackable: true, value: 6 }),
     I({ id: 'shard_root', name: 'Root shard', desc: 'Green glass grown through with root. Alchemy needs one.', icon: { shape: 'charm', color: '#4a8a3a', accent: '#b4d870' }, stackable: true, value: 20 }),
     I({ id: 'shard_compass', name: 'Compass shard', desc: 'Glass with a needle in it that always finds home. Teleports need one.', icon: { shape: 'charm', color: '#c8a85a', accent: '#3a2a14' }, stackable: true, value: 30 }),
     // ---- food (heals are RuneScape-scale: you start with 10 health)

@@ -23,6 +23,7 @@ import { DIARIES, diaryDone } from '../data/diaries';
 import { LORE, LORE_BY_ID, KEEL_PAGES } from '../data/lore';
 import { DOORS, DOOR_BY_ID } from '../data/doors';
 import { PLACES, placeRegion } from '../world/places';
+import { BOOK_BY, BOOK_COOLDOWN, type BookSpell } from '../data/spellbook';
 import { regionLayout, cachedLayout, type IslandLayout, type Arena } from '../world/layout';
 import { REGIONS, edgeCrossed, arrival, type RegionId } from '../world/regions';
 import type { World } from '../world/world';
@@ -59,6 +60,8 @@ export type GameEvent =
   | { type: 'keyTurn'; x: number; z: number; power: string }
   | { type: 'ferryOffer'; npc: string; to: string; price: number }
   | { type: 'cue'; perfect: boolean; text: string }
+  /** a spellbook spell lands on a foe: a burst in its colour */
+  | { type: 'spellFx'; x: number; z: number; kind: 'curse' | 'bind' }
   /** gathering stopped because the pack is full (the UI offers Bank / Drop junk) */
   | { type: 'packFull'; node: string }
   | { type: 'navalFire'; kind: 'broadside' | 'charge'; side?: 1 | -1 }
@@ -111,7 +114,9 @@ export interface Enemy {
   moving: boolean;
   /** key powers on this foe: seconds left of each, and marked hits left */
   fx: { root: number; disarm: number; slow: number; shatter: number; lesson: number; marks: number;
-    weak: number; ward: number; spoil: number; fuse: number; turn: number; bite: number; picked: boolean; spoilAcc: number };
+    weak: number; ward: number; spoil: number; fuse: number; turn: number; bite: number; picked: boolean; spoilAcc: number;
+    /** the spellbook's curses: seconds left of Confuse (its accuracy), Weaken (its damage) and Curse (its defence) */
+    confuse?: number; weaken?: number; cursed?: number };
   /** a one-off foe (a wanted target, a bounty hunter): drops loot, never respawns */
   once?: boolean;
   /** a wanted target: its name and the contract it belongs to */
@@ -143,6 +148,9 @@ export interface Target { key: string; kind: 'node' | 'npc' | 'station' | 'bank'
 const DT_GATHER = 2.4;
 const DT_CRAFT = 1.8;
 const SAFE_RADIUS = 16;
+/** the spellbook's curses and buffs, by what they change (from data/spellbook.ts) */
+const CURSE_PCT = { acc: BOOK_BY.confuse.curse!.pct, dmg: BOOK_BY.weaken.curse!.pct, def: BOOK_BY.curse.curse!.pct };
+const BUFF_PCT = { woodcutting: BOOK_BY.gale_edge.buff!.pct, fishing: BOOK_BY.call_shoals.buff!.pct, mining: BOOK_BY.stone_sense.buff!.pct };
 /** Condition lost per use: ~1000 swings, ~1250 hits taken, ~2000 gathers from new to worn out. */
 const WEAR = { weapon: 0.1, armour: 0.08, tool: 0.05 };
 /** Rare finds from the gathering perks. */
@@ -660,7 +668,8 @@ export class Game {
     const perk = perkTotal(d.skill, lvl, 'speed') / 100;
     // like RuneScape, every level past the requirement makes success likelier (+1.6% of the base rate per level)
     const key = d.skill === 'fishing' && this.activeKey()?.passive.kind === 'fish_success' ? this.activeKey()!.passive.v / 100 : 0;
-    return Math.min(0.85, d.rate * (1 + Math.max(0, lvl - d.level) * 0.016) * toolK * (1 + this.stats.gather + perk + key));
+    const spell = this.buffLeft(d.skill as 'woodcutting' | 'fishing' | 'mining') > 0 ? BUFF_PCT[d.skill as 'woodcutting'] / 100 : 0; // Gale Edge, Call the Shoals, Stone Sense
+    return Math.min(0.85, d.rate * (1 + Math.max(0, lvl - d.level) * 0.016) * toolK * (1 + this.stats.gather + perk + key + spell));
   }
 
   /** Interaction range for a node (ship spots are fished from deck; kelp and fish lie just offshore). */
@@ -917,7 +926,7 @@ export class Game {
     this.emit({ type: 'craftFx', station: r.station });
     if (r.burn && !perfect) { // off the heat at the right moment: it can't burn
       const span = Math.max(1, r.burn.stopLevel - (kp?.kind === 'cook' ? 5 : 0) - r.level);
-      const burnChance = Math.max(0, 0.45 * (1 - (lvl - r.level) / span)) * (1 - perkTotal(r.skill, lvl, 'burn') / 100);
+      const burnChance = this.buffLeft('cooking') > 0 ? 0 : Math.max(0, 0.45 * (1 - (lvl - r.level) / span)) * (1 - perkTotal(r.skill, lvl, 'burn') / 100); // Ember Hand
       if (this.rnd() < burnChance) {
         this.give(r.burn.item, 1);
         this.msg(`You burn the ${item(r.inputs[0].id).name.toLowerCase().replace('raw ', '')}.`, 'warn');
@@ -2173,7 +2182,7 @@ export class Game {
     // a spell in the foe's weak element lands more often and harder (RuneScape's elemental weakness)
     if (st.style === 'magic' && st.spell?.element && ELEMENT_WEAK[e.def.id] === st.spell.element) { attRoll = Math.round(attRoll * (1 + ELEMENT_BONUS)); maxHit = Math.round(maxHit * (1 + ELEMENT_BONUS) / HP_SCALE) * HP_SCALE; }
     const defLvl = e.def.def + (e.elite === 'barnacled' ? 10 : 0);
-    const defRoll = (defLvl + 9) * (e.def.defBonus[st.style] + 64) * (e.fx.shatter > 0 ? 1 - (KEY.prospector.power.v ?? 40) / 100 : 1); // Shatter
+    const defRoll = (defLvl + 9) * (e.def.defBonus[st.style] + 64) * (e.fx.shatter > 0 ? 1 - (KEY.prospector.power.v ?? 40) / 100 : 1) * (e.fx.cursed ? 1 - CURSE_PCT.def / 100 : 1); // Shatter, Curse
     // Mark: the next hits land at their maximum, no roll
     const marked = e.fx.marks > 0;
     if (marked) e.fx.marks--;
@@ -2316,6 +2325,100 @@ export class Game {
       }
       this.rev++;
     }
+  }
+
+  // ---- the spellbook (data/spellbook.ts): curses, binds, skilling spells, Superheat, teleports ------------------
+  /** spellbook buffs: when each runs out (game time) */
+  private buffs: Partial<Record<'woodcutting' | 'fishing' | 'mining' | 'cooking', number>> = {};
+  private bookCd = 0;
+  /** Seconds left of a spellbook buff. */
+  buffLeft(what: 'woodcutting' | 'fishing' | 'mining' | 'cooking') { return Math.max(0, (this.buffs[what] ?? 0) - this.time); }
+  /** Whether you've set foot on an island (any place there discovered, or you're there now). */
+  visited(region: RegionId) { return region === this.s.region || region === 'bellwether' || PLACES.some((p) => placeRegion(p) === region && this.s.discovered.includes(p.id)); }
+  /** The foe a curse or bind lands on: the one you're fighting, else the nearest foe fighting you, within 10 m. */
+  private bookTarget(): Enemy | null {
+    const t = this.target !== null ? this.enemies.find((e) => e.id === this.target && e.alive) : null;
+    if (t && Math.hypot(t.x - this.p.x, t.z - this.p.z) < 10) return t;
+    let best: Enemy | null = null, bd = 10;
+    for (const e of this.enemies) { if (!e.alive || !(e.state === 'chase' || e.state === 'windup')) continue; const d = Math.hypot(e.x - this.p.x, e.z - this.p.z); if (d < bd) { bd = d; best = e; } }
+    return best;
+  }
+  /** The bars Superheat could make right now (furnace recipes whose ore is in your pack and whose level you have). */
+  superheatOptions() {
+    return RECIPES.filter((r) => r.station === 'furnace' && r.output.id.startsWith('bar_') && this.level('smithing') >= r.level && r.inputs.every((i) => count(this.p.inv, i.id) >= i.qty));
+  }
+  /** Why a spellbook spell can't be cast now, or null. */
+  bookBlock(id: string, arg?: string, ignoreCooldown = false): string | null {
+    const b = BOOK_BY[id];
+    if (!b) return 'No such spell';
+    if (this.level('magic') < b.level) return `Needs Magic level ${b.level}`;
+    if (this.dead) return 'Not now';
+    if (b.kind === 'teleport') {
+      if (this.p.onShip) return 'Not from the deck';
+      if (!this.visited(b.to!)) return `You've never been to ${REGIONS[b.to!].name}`;
+      const gate = REGIONS[b.to!].gate;
+      if (gate && !this.s.flags[gate.flag]) return 'The way there isn\'t open yet';
+      if (this.combatTimer < 5) return 'Not while fighting';
+    }
+    if (b.kind === 'curse' || b.kind === 'bind') {
+      const t = this.bookTarget();
+      if (!t) return 'Nothing to cast it on (fight something first)';
+      if (b.kind === 'bind' && t.def.boss) return `${t.def.name} is too strong to bind`;
+    }
+    if (b.kind === 'superheat') {
+      const r = arg ? this.superheatOptions().find((x) => x.id === arg) : this.superheatOptions()[0];
+      if (!r) return 'No ore in your pack you can smelt';
+    }
+    const cost = b.kind === 'teleport' && this.activeKey()?.passive.kind === 'free_teleport' ? [] : b.cost;
+    const sh = this.shardBlock(cost);
+    if (sh) return sh;
+    if (this.bookCd > 0 && !ignoreCooldown) return `Ready in ${Math.ceil(this.bookCd * 10) / 10} s`;
+    return null;
+  }
+  /** Cast a spellbook spell (`arg`: Superheat's recipe). */
+  castBook(id: string, arg?: string): boolean {
+    const b: BookSpell | undefined = BOOK_BY[id];
+    const block = this.bookBlock(id, arg);
+    if (!b || block) { this.msg(`${b?.name ?? 'Spell'}: ${(block ?? 'no such spell').toLowerCase()}.`, 'warn'); return false; }
+    this.payShards(b.kind === 'teleport' && this.activeKey()?.passive.kind === 'free_teleport' ? [] : b.cost);
+    this.bookCd = BOOK_COOLDOWN;
+    this.addXp('magic', b.xp);
+    this.emit({ type: 'cue', perfect: true, text: b.name });
+    switch (b.kind) {
+      case 'curse': case 'bind': {
+        const t = this.bookTarget()!;
+        if (b.curse) { const k = b.curse.stat === 'acc' ? 'confuse' : b.curse.stat === 'dmg' ? 'weaken' : 'cursed'; t.fx[k] = b.curse.secs; this.msg(`${b.name}: ${this.enemyName(t)} ${b.curse.stat === 'acc' ? 'swings wild' : b.curse.stat === 'dmg' ? 'weakens' : 'drops its guard'} (${b.curse.secs} s).`, 'combat'); }
+        if (b.bind) { t.fx.root = Math.max(t.fx.root, b.bind); this.msg(`${b.name}: ${this.enemyName(t)} is held fast (${b.bind} s).`, 'combat'); }
+        this.emit({ type: 'spellFx', x: t.x, z: t.z, kind: b.bind ? 'bind' : 'curse' });
+        if (this.target === null) this.target = t.id;
+        break;
+      }
+      case 'buff': {
+        const f = b.buff!;
+        this.buffs[f.what] = this.time + f.secs;
+        this.msg(`${b.name}: ${b.text}`, 'good');
+        break;
+      }
+      case 'superheat': {
+        const r = (arg ? this.superheatOptions().find((x) => x.id === arg) : null) ?? this.superheatOptions()[0];
+        for (const i of r.inputs) remove(this.p.inv, i.id, i.qty);
+        this.give(r.output.id, r.output.qty);
+        this.addXp('smithing', r.xp);
+        this.msg(`The ore runs molten in your hand and sets: ${item(r.output.id).name.toLowerCase()}.`, 'good');
+        break;
+      }
+      case 'teleport': {
+        const fromX = this.p.x, fromZ = this.p.z;
+        this.msg(`${b.name}: the compass shard spins, and the world folds.`, 'good');
+        if (this.s.region !== b.to) { this.travel({ to: b.to!, how: 'home', from: this.s.region }); break; }
+        this.stopAction(); this.path = []; this.pending = null; this.target = null;
+        this.p.x = this.layout.respawn.x; this.p.z = this.layout.respawn.z;
+        this.emit({ type: 'teleport', fromX, fromZ, x: this.p.x, z: this.p.z });
+        break;
+      }
+    }
+    this.rev++;
+    return true;
   }
 
   // ---- utility spells (Magic 21 and 25) ---------------------------------------------
@@ -2561,11 +2664,12 @@ export class Game {
   /** Enemy accuracy vs your Defence level and armour for that style; 0..maxHit on a hit. */
   private enemyRoll(e: Enemy): number {
     const st = this.stats;
-    const att = (e.def.att + 9) * (e.def.accBonus + 64);
+    const att = (e.def.att + 9) * (e.def.accBonus + 64) * (e.fx.confuse ? 1 - CURSE_PCT.acc / 100 : 1); // Confuse
     const def = st.defLevel * (st.def[e.def.style] + 64);
     if (this.rnd() >= hitChance(att, def)) return 0;
     const max = (e.def.maxHit + (e.elite ? 1 : 0)) * HP_SCALE;
-    const dmg = HP_SCALE + Math.floor(this.rnd() * (max - HP_SCALE + 1));
+    let dmg = HP_SCALE + Math.floor(this.rnd() * (max - HP_SCALE + 1));
+    if (e.fx.weaken) dmg = Math.max(HP_SCALE, Math.round(dmg * (1 - CURSE_PCT.dmg / 100))); // Weaken
     if (e.fx.ward > 0) return 0; // Ward
     return e.fx.weak > 0 ? Math.max(HP_SCALE, Math.round(dmg * (1 - (KEY.smith.power.v ?? 50) / 100))) : dmg; // Rust
   }
@@ -2666,6 +2770,7 @@ export class Game {
       const f = e.fx;
       f.root = Math.max(0, f.root - dt); f.disarm = Math.max(0, f.disarm - dt); f.slow = Math.max(0, f.slow - dt); f.shatter = Math.max(0, f.shatter - dt); f.lesson = Math.max(0, f.lesson - dt);
       f.weak = Math.max(0, f.weak - dt); f.ward = Math.max(0, f.ward - dt); f.bite = Math.max(0, f.bite - dt); f.turn = Math.max(0, f.turn - dt);
+      if (f.confuse) f.confuse = Math.max(0, f.confuse - dt); if (f.weaken) f.weaken = Math.max(0, f.weaken - dt); if (f.cursed) f.cursed = Math.max(0, f.cursed - dt);
       if (e.alive && f.spoil > 0) {
         // Spoil: a slow rot, a whole point at a time
         f.spoil = Math.max(0, f.spoil - dt);
@@ -3093,6 +3198,7 @@ export class Game {
     if (this.stolen) { this.stolen.t -= dt; if (this.stolen.t <= 0) { this.stolen = null; this.recalc(); this.msg('The stolen power fades.'); } }
     if (this.s.keyDormant > 0) { this.s.keyDormant = Math.max(0, this.s.keyDormant - dt); if (this.s.keyDormant === 0) { this.recalc(); this.msg(`Your ${KEY[this.s.key ?? '']?.name ?? 'key'} wakes.`, 'good'); } }
     this.utilityCd = Math.max(0, this.utilityCd - dt);
+    this.bookCd = Math.max(0, this.bookCd - dt);
     this.rollCd = Math.max(0, this.rollCd - dt);
     this.eatCd = Math.max(0, this.eatCd - dt);
     this.combatTimer += dt;
