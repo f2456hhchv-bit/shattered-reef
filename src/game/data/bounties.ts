@@ -54,7 +54,7 @@ export interface Contract {
   z?: number;
 }
 
-export type CrewPassive = 'heal' | 'ranged_dmg' | 'ship_speed' | 'max_hp' | 'trade' | 'gather' | 'sailing_xp';
+export type CrewPassive = 'heal' | 'ranged_dmg' | 'ship_speed' | 'max_hp' | 'trade' | 'gather' | 'sailing_xp' | 'finds';
 export interface CrewDef {
   id: string;
   name: string;
@@ -93,5 +93,8 @@ export const CREW: CrewDef[] = [
   { id: 'gull', name: 'Bastian Gull', role: 'Chartmaster', line: 'I read water the way Iven reads ink. Better, but don\'t tell him.', bounty: 0, coins: 0, quest: true,
     passive: { kind: 'sailing_xp', v: 10, text: '+10% Sailing experience' }, mate: { style: 'ranged', held: 'pistol', mul: 0.35, range: 7 },
     look: { skin: 0xe8d0b8, coat: 0xe8e4d8, coatTrim: 0x8a9aa8, shirt: 0xd8d4c8, trousers: 0x3a4048, hat: 0xe8e4d8, hair: 0xb8b8b0, hatStyle: 'tricorn' } },
+  { id: 'pip', name: 'Pip', role: 'Lookout', line: 'I can see a gull\'s egg from the masthead. Mother Brine says I\'m wasted on eggs.', bounty: 0, coins: 0, quest: true,
+    passive: { kind: 'finds', v: 15, text: 'Nests, geodes and caskets turn up 15% more often' }, mate: { style: 'ranged', held: 'pistol', mul: 0.25, range: 7 },
+    look: { skin: 0xc8946a, coat: 0x4a5a6a, coatTrim: 0xd8c07a, shirt: 0xe8dcc0, trousers: 0x3a3028, hat: 0x8a3a2a, hair: 0x6a3a1a, hatStyle: 'bandana', beard: false } },
 ];
 export const CREW_BY: Record<string, CrewDef> = Object.fromEntries(CREW.map((c) => [c.id, c]));

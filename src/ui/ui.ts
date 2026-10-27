@@ -958,7 +958,7 @@ export class UI {
     // the Tides: every harbour has their posters; what they want, you learn by meeting them
     const tides = TIDES.map((t) => {
       const st = t.status(g.s.flags, g.s.quests);
-      const tag = st === 'crew' ? '<span class="status done">In your crew</span>' : st === 'friend' ? '<span class="status done">Owes you</span>' : st === 'beaten' ? '<span class="status done">Beaten</span>' : st === 'met' ? '<span class="status active">Met</span>' : '<span class="status todo">Wanted</span>';
+      const tag = st === 'enemy' ? '<span class="status todo">Remembers you</span>' : st === 'crew' ? '<span class="status done">In your crew</span>' : st === 'friend' ? '<span class="status done">Owes you</span>' : st === 'beaten' ? '<span class="status done">Beaten</span>' : st === 'met' ? '<span class="status active">Met</span>' : '<span class="status todo">Wanted</span>';
       const known = st !== 'poster';
       return `<div class="quest tide"><b>${esc(t.name)}</b> <small class="muted">${esc(t.epithet)}</small>${tag}<p style="margin:4px 0;font-size:12.5px"><b>${t.bounty ? t.bounty.toLocaleString('en-GB') : '—'}</b> · the ${esc(t.ship)}</p><small class="muted">${esc(known && t.dream ? t.dream : t.rumour)}</small></div>`;
     }).join('');
