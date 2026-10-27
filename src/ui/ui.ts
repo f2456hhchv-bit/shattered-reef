@@ -5,6 +5,7 @@ import { AMMO, CHART_MARKS, type AmmoId } from '../game/data/sea';
 import { DIARIES } from '../game/data/diaries';
 import { LORE, KEEL_PAGES } from '../game/data/lore';
 import { DOORS } from '../game/data/doors';
+import { SHIPYARD, SHIP_PARTS, type ShipPart } from '../game/data/shipyard';
 import { TIDES } from '../game/data/tides';
 import { item, RARITY, AFFIXES, METALS, METAL_TRAITS, AMMO_NAME, ammoKind, isTwoHanded, pairGroup, type ItemDef, type Slot, type SkillId, type WeaponKind } from '../game/data/items';
 import { morph, forget } from './morph';
@@ -1094,12 +1095,13 @@ export class UI {
       el = h('div', { id, class: 'win panel', role: 'dialog', 'aria-label': title });
       document.body.appendChild(el);
       const g = this.game;
-      onTap(el, '.x, [data-r], [data-buy], [data-c], [data-wd], [data-dep], [data-rep], [data-sell], [data-shoptab], [data-sskill], [data-btab], [data-take], [data-drop-c], [data-recruit], [data-mate], [data-ferry]', (b) => {
+      onTap(el, '.x, [data-r], [data-buy], [data-c], [data-wd], [data-dep], [data-rep], [data-sell], [data-shoptab], [data-sskill], [data-btab], [data-take], [data-drop-c], [data-recruit], [data-mate], [data-ferry], [data-refit]', (b) => {
         if (b.classList.contains('x')) { this.closeWindows(); return; }
-        if (b.dataset.btab) { this.boardTab = b.dataset.btab as 'bounties' | 'crew' | 'passage'; this.renderBoard(); return; }
+        if (b.dataset.btab) { this.boardTab = b.dataset.btab as 'bounties' | 'crew' | 'passage' | 'shipyard'; this.renderBoard(); return; }
         if (b.dataset.take && this.boardOpen) { g.acceptContract(this.boardOpen, Number(b.dataset.take)); return; }
         if (b.dataset.dropC) { g.abandonContract(Number(b.dataset.dropC)); return; }
         if (b.dataset.recruit) { g.recruit(b.dataset.recruit); return; }
+        if (b.dataset.refit) { g.refit(b.dataset.refit as ShipPart); this.renderBoard(); return; }
         if (b.dataset.mate !== undefined) { g.setMate(b.dataset.mate || null); return; }
         if (b.dataset.ferry) { const [n, to] = b.dataset.ferry.split(':'); this.closeWindows(); g.takeFerry(n, to); return; }
         if (b.dataset.sskill && this.station) { this.stationSkill[this.station] = b.dataset.sskill; this.renderStation(); return; }
@@ -1135,7 +1137,7 @@ export class UI {
 
   // ------------------------------------------------------------------ the harbour board: bounties, crew, passage
   private boardOpen: string | null = null;
-  private boardTab: 'bounties' | 'crew' | 'passage' = 'bounties';
+  private boardTab: 'bounties' | 'crew' | 'passage' | 'shipyard' = 'bounties';
   private nearBoard() {
     const b = this.boardOpen && BOARDS[this.boardOpen], n = b && this.game.layout.npcs.find((x) => x.id === b.npc);
     return !!n && !this.game.p.onShip && Math.hypot(n.x - this.game.p.x, n.z - this.game.p.z) < 6;
@@ -1154,7 +1156,7 @@ export class UI {
   }
   private renderBoard() {
     const g = this.game, board = this.boardOpen!, B = BOARDS[board], tab = this.boardTab;
-    const tabs = `<div class="seg shoptabs" style="margin-bottom:8px">${(['bounties', 'crew', 'passage'] as const).map((t) => `<button data-btab="${t}" class="${t === tab ? 'on' : ''}">${cap(t)}</button>`).join('')}</div>`;
+    const tabs = `<div class="seg shoptabs" style="margin-bottom:8px">${(['bounties', 'crew', 'shipyard', 'passage'] as const).map((t) => `<button data-btab="${t}" class="${t === tab ? 'on' : ''}">${cap(t)}</button>`).join('')}</div>`;
     const poster = `<div class="poster"><span>WANTED</span><b>${g.s.bounty.toLocaleString('en-GB')}</b><small>${esc(rankOf(g.s.bounty))}${g.s.bounty >= BOUNTY_CONFIG.hunterFrom ? ' · hunters are after you' : ''}</small></div>`;
     let body = '';
     if (tab === 'bounties') {
@@ -1171,6 +1173,16 @@ export class UI {
         return `<div class="recipe brow"><div><b>${esc(c.name)}</b> <small class="muted">${esc(c.role)}</small><small>"${esc(c.line)}"</small><div class="need">${esc(c.passive.text)} · ashore: fights with ${c.mate.style}${signed || block || !c.bounty ? '' : ` · wants a bounty of ${c.bounty.toLocaleString('en-GB')}`}</div>${!signed && block ? `<div class="need miss">${esc(block)}</div>` : ''}</div><div class="btns">${btn}</div></div>`;
       }).join('');
       body = `${poster}<p class="muted" style="font-size:12px;margin:0 0 6px">Everyone you sign gives their bonus from aboard. Your first mate comes ashore and fights beside you.${g.s.mate ? ' <button class="btn" data-mate="">Leave everyone aboard</button>' : ''}</p>${rows}`;
+    } else if (tab === 'shipyard') {
+      // the shipwright: refit each part of your ship, five times over (data/shipyard.ts)
+      const rows = SHIP_PARTS.map((part) => {
+        const def = SHIPYARD[part], t = g.shipTier(part), next = def.tiers[t], block = g.refitBlock(part);
+        const now = t ? `${esc(def.tiers[t - 1].name)} (+${def.tiers[t - 1].v}%)` : 'as built';
+        const need = next ? `${next.coins.toLocaleString('en-GB')} coins, ${next.items.map((i) => `<span class="${count(g.p.inv, i.id) >= i.qty ? '' : 'miss'}">${i.qty} × ${esc(item(i.id).name)}</span>`).join(', ')} · Sailing ${next.sailing}` : '';
+        const btn = next ? `<button class="btn primary" data-refit="${part}" ${block ? `disabled title="${esc(block)}"` : ''}>Refit</button>` : '<span class="tag">Finest afloat</span>';
+        return `<div class="recipe brow"><div><b>${esc(def.name)}</b> <small class="muted">${now} · ${t}/${def.tiers.length}</small>${next ? `<small>Next: ${esc(next.name)}, +${next.v}% (${esc(def.what)})</small><div class="need">${need}</div>${block ? `<div class="need miss">${esc(block)}</div>` : ''}` : `<small>${esc(def.what)}</small>`}</div><div class="btns">${btn}</div></div>`;
+      }).join('');
+      body = `<p class="muted" style="font-size:12px;margin:0 0 6px">The shipwrights refit your sloop with what you bring them. A refit is for good.</p>${rows}`;
     } else {
       const npc = NPCS[B.npc], f = npc.ferry;
       body = f ? `<p>${esc(npc.idle[0])}</p>${f.map((r) => `<div class="recipe brow"><div><b>${esc(REGIONS[r.to].name)}</b><div class="need">levels ${REGIONS[r.to].band?.join('–') ?? '?'}</div></div><div class="btns"><button class="btn primary" data-ferry="${B.npc}:${r.to}">Sail (${r.price} coins)</button></div></div>`).join('')}` : '<p class="muted">No passage from here.</p>';
