@@ -1,5 +1,7 @@
 import type { SkillId } from './items';
-import { LAGOON, LAYOUT, SUN_LAYOUT, AMBER_LAYOUT, AMBER, WRACK_LAYOUT, LOCK_LAYOUT, SALT_LAYOUT, LONG_LAYOUT, coastPoint, saltPoint } from '../world/island';
+import { BELL_FOLK } from './bellfolk';
+import { BELL_QUESTS } from './bellquests';
+import { LAGOON, LAYOUT, SUN_LAYOUT, AMBER_LAYOUT, AMBER, WRACK_LAYOUT, LOCK_LAYOUT, SALT_LAYOUT, LONG_LAYOUT, saltPoint } from '../world/island';
 // NPCs and the first quest, as data. Dialogue is chosen by quest stage; effects are interpreted by the quest system.
 
 export interface Effect {
@@ -50,6 +52,7 @@ export interface NpcDef {
 }
 
 export const NPCS: Record<string, NpcDef> = {
+  ...BELL_FOLK,
   iven: { id: 'iven', name: 'Iven Marr', title: 'Cartographer', goneWhen: 'iven_taken', backWhen: 'iven_back', idle: ['The sea has a second map, captain. I mean to finish it.'] },
   marta: { id: 'marta', name: 'Marta Gell', title: 'Harbour trader', idle: ['Buying, selling, and asking no questions.'], shop: true },
   bram: { id: 'bram', name: 'Bram Tollis', title: 'Smith',
@@ -175,25 +178,25 @@ export const QUESTS: Record<string, QuestDef> = {
           lines: [
             'Captain. You heard it too, last night? The bell at the Broken Ring rang at low water. There is no bell at the Broken Ring.',
             'The ring has a lock with no keyhole, only a bell-shaped hollow. I can cast a bell to fit it, but I need bronze.',
-            'Bring me one bronze bar. Copper and tin from the hills, smelted at Bram\'s furnace.',
+            'Bring me one bronze bar. Copper and tin from the Old Quarry, north-east of the city, smelted at Bram\'s furnace.',
           ],
           effect: { stage: 1 },
         } },
       },
       {
-        text: 'Bring Iven Marr one bronze bar. Mine copper and tin in Copperback Hills, then smelt them at the furnace.',
+        text: 'Bring Iven Marr one bronze bar. Mine copper and tin at the Old Quarry north-east of the city (or the Copperback Hills), then smelt them at Bram\'s furnace by the quay.',
         talk: { npc: 'iven', node: {
           requires: { id: 'bar_bronze', qty: 1 },
-          missing: ['No bronze yet? Copper and tin, one of each, into Bram\'s furnace. The hills are north-east.'],
+          missing: ['No bronze yet? Copper and tin, one of each, into Bram\'s furnace by the quay. There\'s copper and tin at the Old Quarry, a short walk north-east of the city.'],
           lines: [
             'Good bronze. Give me a moment at the mould.',
-            'There. A tuning bell. Ring it inside the Broken Ring, north of here, and see what answers.',
+            'There. A tuning bell. Ring it inside the Broken Ring, a long way north, past Copperback and the hills. See what answers.',
             'Take your blade. Whatever locked that ring did not want it opened.',
           ],
           effect: { take: [{ id: 'bar_bronze', qty: 1 }], give: [{ id: 'tuning_bell', qty: 1 }], stage: 2 },
         } },
       },
-      { text: 'Ring the tuning bell at the Broken Ring, north of the island, and face what answers.', at: { arena: 'guardian' } },
+      { text: 'Ring the tuning bell at the Broken Ring, north-east of the Copperback Hills, and face what answers.', at: { arena: 'guardian' } },
       {
         text: 'Return Keel\'s Tooth to Iven Marr at the quay.',
         talk: { npc: 'iven', node: {
@@ -240,43 +243,7 @@ export const QUESTS: Record<string, QuestDef> = {
       { text: 'Quest complete.' },
     ],
   },
-  selkie: {
-    id: 'selkie',
-    island: 'bellwether',
-    name: 'The Selkie\'s Skin',
-    giver: 'muirne',
-    reward: 'A choice: the selkie\'s pearl ring and 500 Fishing XP, or a sealskin cloak and 250 coins',
-    stages: [
-      { text: 'Speak with the woman on the rocks at Crab Strand.',
-        talk: { npc: 'muirne', node: { lines: [
-          'You can see what I am, can\'t you? Most can\'t.',
-          'I came ashore to dance on the strand, and I took off my skin to do it. When I came back for it, it was gone.',
-          'Without it I can\'t go home. A fisherman was mending nets here that night. Dougal.'], effect: { stage: 1 } } } },
-      { text: 'Ask Dougal Penrose, the fisherman on the strand, about the sealskin.',
-        talk: { npc: 'dougal', node: { lines: [
-          'Sealskin? What would I want with a sealskin.',
-          '...Look. A man gets lonely. A wife from the sea, the old stories say, if you keep her skin.',
-          'I buried it. Where the sand stays wet, so it wouldn\'t dry and crack. I\'m not digging it up for you.'], effect: { stage: 2 } } } },
-      { text: 'Dig for the sealskin on Crab Strand, where the sand stays wet.',
-        marks: [
-          { id: 'dry1', label: 'Turned sand', verb: 'Dig', region: 'bellwether', x: coastPoint(128, 7)[0], z: coastPoint(128, 7)[1], say: ['Dry sand and an old crab shell.'] },
-          { id: 'wet', label: 'Turned sand', verb: 'Dig', region: 'bellwether', x: coastPoint(140, 2.2)[0], z: coastPoint(140, 2.2)[1], say: ['Wet sand, and under it, folded in oilcloth: a sealskin, soft as the day it was taken.'], effect: { give: [{ id: 'sealskin', qty: 1 }], stage: 3 } },
-          { id: 'dry2', label: 'Turned sand', verb: 'Dig', region: 'bellwether', x: coastPoint(150, 8)[0], z: coastPoint(150, 8)[1], say: ['Nothing but sand and a bottle cap.'] },
-        ] },
-      { text: 'You have the sealskin. Give it back to Muirne, or to Dougal.',
-        talk: { npc: 'muirne', node: { requires: { id: 'sealskin', qty: 1 }, missing: ['Please. Find my skin.'], lines: [
-          'My skin! Oh, the sea is in it still.',
-          'Take this: a pearl from my mother\'s mother. Fish will come to whoever wears it.',
-          'If you ever hear a seal sing your name out past the reef, it will be me. Thank you.'],
-          effect: { take: [{ id: 'sealskin', qty: 1 }], give: [{ id: 'ring_selkie', qty: 1 }], xp: [{ skill: 'fishing', amount: 500 }], stage: 4, flag: 'selkie_freed' } } },
-        also: [{ npc: 'dougal', node: { requires: { id: 'sealskin', qty: 1 }, missing: ['I told you, I\'m not digging.'], lines: [
-          'You found it. And you brought it to me, not her.',
-          'I\'ll not keep her against her will, now. But a skin like this... I\'ll have it made into a cloak for you. Fair\'s fair.',
-          'Here. Warm as a seal in winter.'],
-          effect: { take: [{ id: 'sealskin', qty: 1 }], give: [{ id: 'cloak_selkie', qty: 1 }, { id: 'coins', qty: 250 }], stage: 4, flag: 'selkie_kept' } } }] },
-      { text: 'Quest complete.' },
-    ],
-  },
+  ...BELL_QUESTS, // the Selkie's Skin, the Flooded Seam, Old Greymuzzle, the Bucca's Share (bellquests.ts)
   wreckers: {
     id: 'wreckers',
     island: 'bellwether',
@@ -822,14 +789,14 @@ export const QUESTS: Record<string, QuestDef> = {
       { text: 'At low water, ring the three drowned Wardwright bells round the Mirewater Fen in the order the water leaves them: north, west, then south.',
         wrong: 'The bell rings flat and the water stops draining. Start again from the north shore.',
         marks: [
-          { id: 'west', label: 'A green bell on the west bank', verb: 'Ring', region: 'bellwether', x: LAGOON.x - 12, z: LAGOON.z + 1, seq: 2, say: ['A low note. The water pulls away from the west bank like a breath going in.'] },
-          { id: 'south', label: 'A green bell on the south bank', verb: 'Ring', region: 'bellwether', x: LAGOON.x + 1, z: LAGOON.z + 12, seq: 3, say: ['The last bell. The lagoon empties into a hole in its own floor, and something heavy climbs out of the mud.'] },
-          { id: 'north', label: 'A green bell on the north bank', verb: 'Ring', region: 'bellwether', x: LAGOON.x + 2, z: LAGOON.z - 12, seq: 1, say: ['The bell is caked in weed, but it rings true. Out in the Fen, the water starts to fall.'] },
+          { id: 'west', label: 'A green bell on the west bank', verb: 'Ring', region: 'bellwether', x: LAGOON.x - LAGOON.r - 3, z: LAGOON.z + 1, seq: 2, say: ['A low note. The water pulls away from the west bank like a breath going in.'] },
+          { id: 'south', label: 'A green bell on the south bank', verb: 'Ring', region: 'bellwether', x: LAGOON.x + 1, z: LAGOON.z + LAGOON.r + 3, seq: 3, say: ['The last bell. The lagoon empties into a hole in its own floor, and something heavy climbs out of the mud.'] },
+          { id: 'north', label: 'A green bell on the north bank', verb: 'Ring', region: 'bellwether', x: LAGOON.x + 2, z: LAGOON.z - LAGOON.r - 3, seq: 1, say: ['The bell is caked in weed, but it rings true. Out in the Fen, the water starts to fall.'] },
         ] },
       { text: 'Jenny Greenteeth has come up out of the drained Fen with the Second Lockkey in her belly. Beat her.',
-        kill: { foe: 'greenteeth', count: 1, spawn: { region: 'bellwether', x: LAGOON.x + 4, z: LAGOON.z + 13 } } },
+        kill: { foe: 'greenteeth', count: 1, spawn: { region: 'bellwether', x: LAGOON.x + 4, z: LAGOON.z + LAGOON.r + 4 } } },
       { text: 'Turn the green bronze key in the Second Lock, at the drain in the Fen\'s floor (south bank).',
-        marks: [{ id: 'lock', label: 'The Second Lock, in the drained Fen', verb: 'Turn the key', region: 'bellwether', x: LAGOON.x - 3, z: LAGOON.z + 11,
+        marks: [{ id: 'lock', label: 'The Second Lock, in the drained Fen', verb: 'Turn the key', region: 'bellwether', x: LAGOON.x - 3, z: LAGOON.z + LAGOON.r + 2,
           requires: { id: 'fen_lockkey', qty: 1 }, missing: ['The keyhole in the Fen\'s floor is the shape of a key you don\'t have. Jenny Greenteeth has it.'],
           effect: { take: [{ id: 'fen_lockkey', qty: 1 }], flag: 'fen_opened', stage: 5, vision: { title: 'The Second Lock', sub: 'What the green key remembers', lines: [
             'This time the memory isn\'t a captain\'s. It\'s a woman\'s hands, a Wardwright\'s, burnt and steady, holding this same key.',

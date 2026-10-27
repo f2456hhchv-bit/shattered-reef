@@ -52,12 +52,48 @@ export const NPC_LOOKS: Record<string, HumanoidLook> = {
   halyard_watch: { skin: 0x6a4028, coat: 0x2f6a4a, coatTrim: 0xc9a050, shirt: 0xd8ccb0, trousers: 0x2e2a26, boots: 0x1e1a18, hat: 0x2f6a4a, hair: 0x1a1210, hatStyle: 'tricorn', held: 'musket' },
 };
 /** Townsfolk who walk Bellwether's streets (no dialogue: they're busy). */
+/** a townsperson's outfit: skin, coat, trim, hat and hair, and anything else they carry or wear */
+const folk = (skin: number, coat: number, trim: HumanoidLook['coatTrim'], hat: number, hair: number, hatStyle: HumanoidLook['hatStyle'], extra: Partial<HumanoidLook> = {}): HumanoidLook =>
+  ({ skin, coat, coatTrim: trim, shirt: 0xe8dcc0, trousers: 0x3a3028, boots: 'leather', hat, hair, hatStyle, ...extra });
+// the people of Bellwether city and its towns (data/bellfolk.ts)
+Object.assign(NPC_LOOKS, {
+  brannock: folk(0xd8a07a, 0x1e2e4a, 'brass', 0x161616, 0x5a5a52, 'tricorn', { spectacles: true, beard: true }),
+  wren: folk(0xc98f66, 0x6a4a2a, 0xb8a080, 0x3a2a1a, 0x3a2a1a, 'cap', { apron: 0x8a6a4a }),
+  nell: folk(0xe0b08a, 0x2f6a8a, 0xd8ccb0, 0x8a3a2a, 0x8a3a1a, 'bandana', { apron: 0xe6dcc0, beard: false, hairStyle: 'bun' }),
+  harlan: folk(0xb07a52, 0x5a3a20, 0x8a6a3a, 0x3a3028, 0x9a9a92, 'cap', { beard: true, held: 'hammer' }),
+  bracken: folk(0xc48c62, 0x4a4038, 0x8a2a22, 0x2a2420, 0x2a1a12, 'none', { apron: 0x5a3a26, beard: true, held: 'hammer' }),
+  sabine: folk(0xd8a07a, 0x5a5a62, 0xc9a050, 0x2a2a2e, 0x6a3a1a, 'none', { beard: false, hairStyle: 'queue', apron: 0x4a3a2a }),
+  thrift: folk(0xe0b08a, 0x4a6a3a, 0xd8ccb0, 0x3a3a34, 0xd8d0c0, 'none', { beard: false, hairStyle: 'bun', apron: 0xe6dcc0, spectacles: true }),
+  rook: folk(0xa8704a, 0x6a2a24, 0xc9a050, 0x1a1414, 0x1a1210, 'tricorn', { beard: true, held: 'cutlass' }),
+  linnet: folk(0xe8c0a0, 0x2f5a6a, 0xd8ccb0, 0x2a1a12, 0xb8862a, 'none', { beard: false, hairStyle: 'bun', spectacles: true }),
+  tam: folk(0xd09a70, 0x2f6a8a, 0xe6dcc0, 0x2a2420, 0x8a5a2a, 'none', { beard: true, apron: 0xe6dcc0 }),
+  bess: folk(0xe0b08a, 0xb8862a, 0xe6dcc0, 0xe8e0d0, 0x5a3a1a, 'bandana', { beard: false, hairStyle: 'bun', apron: 0xf0e8d8 }),
+  agnes: folk(0xc8946a, 0x5a4a36, 0x3a2e22, 0xc9a050, 0x8a8a82, 'cap', { beard: false, hairStyle: 'bun', held: 'hammer' }),
+  wat: folk(0xb98058, 0x3a4a5a, 0x8a8a82, 0x3a3a34, 0x4a2a18, 'cap', { beard: true, apron: 0x5a4a3a }),
+  rudd: folk(0xd09a70, 0x7a6a3a, 0x3a2e22, 0x5a4024, 0x2a1a12, 'cap', { beard: true }),
+  penn: folk(0xe0b08a, 0x2f3a5a, 'brass', 0x1a1210, 0x9a9a92, 'none', { spectacles: true }),
+  molly: folk(0xd8a07a, 0x8a5a2a, 0xe6dcc0, 0x2c2420, 0xa84a2a, 'none', { beard: false, hairStyle: 'bun', apron: 0xe6dcc0 }),
+  ewan: folk(0xc48c62, 0x3a5a2a, 0x8a6a3a, 0x4a5a2a, 0x6a4a2a, 'cap', { beard: true, held: 'cutlass' }),
+  tilda: folk(0xd8a07a, 0x8a6a3a, 0x3a2e22, 0x8a3a2a, 0x2a1a12, 'bandana', { beard: false, hairStyle: 'queue', apron: 0x6a5a40 }),
+  gorse: folk(0xb07a52, 0x5a4a30, 0x3a2e22, 0x3a3028, 0x3a2a1a, 'none', { beard: true, apron: 0x4a3a2a }),
+  reedy: folk(0xc8b090, 0x4a5a3a, 0x7a6a4a, 0x3a4a2a, 0xd8d0c0, 'bandana', { beard: false, hairStyle: 'bun' }),
+  tad: folk(0xb98058, 0x5a6a5a, 0x3a3a34, 0x3a3a30, 0x5a4a3a, 'cap', { beard: true }),
+  elspeth: folk(0xe0b08a, 0x3a3e44, 0x8a8a82, 0x2a2e34, 0xb8b0a0, 'none', { beard: false, hairStyle: 'bun' }),
+  jowan: folk(0xc8946a, 0x23364a, 0xb8b0a0, 0xc9a050, 0xe8e4dc, 'cap', { beard: true }),
+  kit: folk(0xd09a70, 0x2f6a8a, 0xd8ccb0, 0x9a2a1e, 0x1a1210, 'bandana', { beard: false, hairStyle: 'queue' }),
+});
+
 export const TOWNS_LOOKS: Record<string, HumanoidLook> = {
   towns_a: { skin: 0xd8a07a, coat: 0x5a6a3a, coatTrim: 0xd8c7a8, shirt: 0xeee4cc, trousers: 0x4a3a30, boots: 'leather', hat: 0x8a5a2a, hair: 0x8a5a2a, hatStyle: 'none', hairStyle: 'bun', apron: 0xd8cfb8, beard: false },
   towns_b: { skin: 0xb98058, coat: 0x3a4a6a, coatTrim: 0xb8b0a0, shirt: 0xd8ccb0, trousers: 0x2e2a26, boots: 'leather', hat: 0x5a4024, hair: 0x2a1a12, hatStyle: 'cap' },
   towns_c: { skin: 0xe0b08a, coat: 0x8a3a5a, coatTrim: 0xe6dcc0, shirt: 0xf0e8d8, trousers: 0x3a3028, boots: 0x3a2a20, hat: 0xc9a050, hair: 0xc9a050, hatStyle: 'none', hairStyle: 'queue', beard: false },
   towns_d: { skin: 0xa8704a, coat: 0x6a5a40, coatTrim: 0x3a2a1a, shirt: 0xb5a58a, trousers: 0x3a3a30, boots: 'leather', hat: 0x9a2a1e, hair: 0x1a1210, hatStyle: 'bandana', beard: true },
   towns_e: { skin: 0xc98f66, coat: 0x4a4038, coatTrim: 0xc9a050, shirt: 0xe8dcc0, trousers: 0x2a2228, boots: 0x2a2420, hat: 0x3a3a34, hair: 0x9a9a92, hatStyle: 'none', spectacles: true },
+  towns_f: folk(0xb07a52, 0x6a2a3a, 0xd8c7a8, 0x2a1a12, 0x2a1a12, 'none', { beard: false, hairStyle: 'bun', apron: 0xd8cfb8 }),
+  towns_g: folk(0xe0b08a, 0x3a5a3a, 0xb8b0a0, 0x5a4024, 0x8a5a2a, 'cap', { beard: true }),
+  towns_h: folk(0x8a5a3a, 0x8a6a3a, 0x3a2a1a, 0x1a1414, 0x1a1210, 'tricorn', { hairStyle: 'queue' }),
+  towns_i: folk(0xd8a07a, 0x4a5a7a, 0xe6dcc0, 0xe8e0d0, 0xc9a050, 'bandana', { beard: false, hairStyle: 'queue' }),
+  towns_j: folk(0xc48c62, 0x5a5040, 0x8a8a82, 0x3a3a34, 0xb8b0a0, 'none', { beard: true, held: 'hammer' }),
 };
 export const PLAYER_LOOK: HumanoidLook = { skin: 'skin', coat: 'coat', coatTrim: 'coatTrim', shirt: 'shirt', trousers: 'trousers', boots: 'leather', hat: 'hat', hair: 'hair', held: 'cutlass' };
 export const BRIGAND_LOOK: HumanoidLook = { skin: 0xc48c62, coat: 0x4a2f24, coatTrim: 0x8a2e22, shirt: 0xb5a58a, trousers: 0x3a3a30, boots: 'leather', hat: 0x9a2a1e, hair: 0x2a1a12, hatStyle: 'bandana', held: 'cutlass' };
@@ -95,5 +131,8 @@ export const HUMAN_LOOKS: Record<string, HumanoidLook> = {
   finfolk: { skin: 0x8aa89a, coat: 0x4a6a5e, coatTrim: 0xc8d0d4, shirt: 0x5a7a6a, trousers: 0x2e3e38, boots: 0x2a3430, hat: 0x3a5a4e, hair: 0x1e2a26, hatStyle: 'none', hairStyle: 'short', beard: true, held: 'pike', eyes: 0xd8f0e8 },
   finwife: { skin: 0xa8c0b4, coat: 0x6a8a7e, coatTrim: 0xe8ecef, shirt: 0xb8d0c8, trousers: 0x3a4e46, boots: 0x2a3430, hat: 0x6a8a7e, hair: 0xd8e4e0, hatStyle: 'none', hairStyle: 'bun', beard: false, held: 'dagger', eyes: 0xd8f0e8 },
   corva: { skin: 0xe0cfc0, coat: 0x18181c, coatTrim: 'brass', shirt: 0x8a8a86, trousers: 0x2a2a2c, boots: 0x1a1a1c, hat: 0x18181c, hair: 0x1a1a1a, hatStyle: 'none', hairStyle: 'short', beard: false, held: 'staff', eyes: 0xd8e8ff },
+  // Bellwether's road thieves: a patched coat, a cudgel; and the smugglers' quartermaster in his good blue coat
+  footpad: { skin: 0xc48c62, coat: 0x5a5040, coatTrim: 0x3a3428, shirt: 0x9a8a6a, trousers: 0x3a3428, boots: 'leather', hat: 0x4a3a2a, hair: 0x3a2a1a, hatStyle: 'cap', held: 'dagger' },
+  quartermaster: { skin: 0xd09a70, coat: 0x1e3a5a, coatTrim: 'brass', shirt: 0xe8e0d0, trousers: 0x22201e, boots: 'leather', hat: 0x161616, hair: 0x5a3a1a, hatStyle: 'tricorn', beard: true, held: 'cutlass' },
   captain: { skin: DROWNED_SKIN, coat: 0x3a1828, coatTrim: 'brass', shirt: 0x8a9a8a, trousers: 0x22201e, boots: 0x1e2424, hat: 0x141414, hair: 0x3a4a44, hatStyle: 'tricorn', held: 'cutlass', eyes: 0xbfeee4 },
 };

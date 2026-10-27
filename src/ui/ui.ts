@@ -1646,7 +1646,7 @@ export class UI {
   /** The region's map, drawn once per visit: ~1.7+ px per metre, so the minimap stays crisp. */
   private buildMinimapBase() {
     const w = this.game.world, cave = this.game.region.kind === 'cave';
-    const S = Math.min(1024, Math.ceil(w.half * 2 * 3.4)), k = S / (w.half * 2);
+    const S = Math.min(2048, Math.ceil(w.half * 2 * 3.4)), k = S / (w.half * 2);
     const cv = document.createElement('canvas');
     cv.width = cv.height = S;
     const c = cv.getContext('2d')!;
@@ -1665,10 +1665,10 @@ export class UI {
         else if (coastDist(x, z) < 4) col = [214, 192, 138];
         else {
           const pd = nearestPathDist(x, z);
-          if (pd.d < pd.width) col = [156, 122, 80];
+          if (pd.d < pd.width) col = pd.paved ? [158, 150, 132] : [156, 122, 80];
           else if (Math.hypot(x - village.x, z - village.z) < village.r - 1) col = [168, 154, 128];
           else if (!w.walkable(x, z) && y > 1.5) col = [130, 128, 120];
-          else { const t = Math.min(1, y / 8); col = [Math.round(104 - t * 20), Math.round(150 - t * 30), Math.round(74 - t * 10)]; }
+          else { const t = Math.min(1, y / (w.half > 300 ? 18 : 8)); col = [Math.round(104 - t * 20), Math.round(150 - t * 30), Math.round(74 - t * 10)]; }
         }
         const o = (j * S + i) * 4;
         img.data[o] = col[0]; img.data[o + 1] = col[1]; img.data[o + 2] = col[2]; img.data[o + 3] = 255;
@@ -1783,7 +1783,7 @@ export class UI {
     if (r.id === 'saltglass') return { cx: SALT.x, cz: SALT.z, span: 145 };
     if (r.id === 'longstrand') return { cx: LONG.x, cz: LONG.z, span: 170 };
     if (r.id === 'amberhold') return { cx: AMBER.x, cz: AMBER.z, span: 160 };
-    if (r.id === 'bellwether') return { cx: 0, cz: 0, span: 290 }; // the island and its fighting waters (charting marks, Old Gnasher's reef)
+    if (r.id === 'bellwether') return { cx: 0, cz: 0, span: 1150 }; // the island and its fighting waters (charting marks, Old Gnasher's reef)
     return { cx: r.bounds.cx, cz: r.bounds.cz, span: r.bounds.half * 2 };
   }
   private drawMinimap() {
@@ -1871,19 +1871,19 @@ export class UI {
     c.fillStyle = '#d9c9a0'; c.fillRect(0, 0, W, W); // parchment
     c.fillStyle = '#9cc4c4'; c.fillRect(14, 14, W - 28, W - 28);
     const ISLES = [
-      { id: 'bellwether', x: 0, z: 0, coast: coastR, name: 'Bellwether Isle', zoom: 1.25 },
-      { id: 'sunreach', x: SUN.x, z: SUN.z, coast: sunCoastR, name: 'Sunreach Isle', zoom: 1.8 },
-      { id: 'amberhold', x: AMBER.x, z: AMBER.z, coast: amberCoastR, name: 'Amberhold Isle', zoom: 1.8 },
-      { id: 'wrack', x: WRACK.x, z: WRACK.z, coast: wrackCoastR, name: 'Stormwrack Isle', zoom: 1.8 },
-      { id: 'lockhaven', x: LOCK.x, z: LOCK.z, coast: lockCoastR, name: 'Lockhaven', zoom: 1.8 },
-      { id: 'saltglass', x: SALT.x, z: SALT.z, coast: saltCoastR, name: 'Saltglass', zoom: 1.8 },
-      { id: 'longstrand', x: LONG.x, z: LONG.z, coast: longCoastR, name: 'Longstrand', zoom: 1.8 },
+      { id: 'bellwether', x: 0, z: 0, coast: coastR, name: 'Bellwether Isle', zoom: 1 },
+      { id: 'sunreach', x: SUN.x, z: SUN.z, coast: sunCoastR, name: 'Sunreach Isle', zoom: 2.4 },
+      { id: 'amberhold', x: AMBER.x, z: AMBER.z, coast: amberCoastR, name: 'Amberhold Isle', zoom: 2.4 },
+      { id: 'wrack', x: WRACK.x, z: WRACK.z, coast: wrackCoastR, name: 'Stormwrack Isle', zoom: 2.4 },
+      { id: 'lockhaven', x: LOCK.x, z: LOCK.z, coast: lockCoastR, name: 'Lockhaven', zoom: 2.4 },
+      { id: 'saltglass', x: SALT.x, z: SALT.z, coast: saltCoastR, name: 'Saltglass', zoom: 2.4 },
+      { id: 'longstrand', x: LONG.x, z: LONG.z, coast: longCoastR, name: 'Longstrand', zoom: 2.4 },
     ] as const;
-    const span = 2800, cx = LONG.x / 2, cz = 10, ox = cx - span / 2, oz = cz - span / 2;
+    const span = 3700, cx = (LONG.x - 560) / 2, cz = 10, ox = cx - span / 2, oz = cz - span / 2;
     // a point near an island is pushed out from its centre by that island's zoom, so the chart stays true to where you are
     const toPx = (x: number, z: number): [number, number] => {
       const is = ISLES.reduce((a, b) => (Math.hypot(x - b.x, z - b.z) < Math.hypot(x - a.x, z - a.z) ? b : a));
-      const d = Math.hypot(x - is.x, z - is.z), k = d < 150 ? is.zoom : 1;
+      const d = Math.hypot(x - is.x, z - is.z), k = d < (is.id === 'bellwether' ? 700 : 150) ? is.zoom : 1;
       return [((is.x + (x - is.x) * k - ox) / span) * W, ((is.z + (z - is.z) * k - oz) / span) * W];
     };
     const here = (id: string) => g.s.region === id || (g.region.home === id && g.region.kind === 'cave');

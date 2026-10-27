@@ -62,6 +62,7 @@ export const CRAB_SHELLS: Record<string, Partial<Record<PalKey, number>>> = {
   mire: { crabShell: 0x5e7a3a, crabDark: 0x3c5228, crabBelly: 0xb8bc8a, barnacle: 0x7a8a5a },
   ironshell: { crabShell: 0x6a6e74, crabDark: 0x44484e, crabBelly: 0xb0a890, barnacle: 0x9a9a90 },
   glass: { crabShell: 0x9fd8e0, crabDark: 0x5a8a94, crabBelly: 0xe8f4f4, barnacle: 0xffffff }, // fused in the star's heat
+  rock: { crabShell: 0x8a7a66, crabDark: 0x5a4e42, crabBelly: 0xc8b89a, barnacle: 0xb0a890 }, // Bellwether's north shore
 };
 interface TreeLook { kind: 'pine' | 'broad'; scale: number; squash?: number; colours?: Partial<Record<PalKey, number>>; glow?: Partial<Record<PalKey, number>> }
 export const TREE_LOOK: Record<string, TreeLook> = {
@@ -552,7 +553,7 @@ export class GameRenderer {
   private grassPoints(ci: number, cj: number): THREE.Vector3[] {
     const w = this.game.world, L = this.game.layout, CELL = GRASS_CELL;
     // where each island's grass grows: its centre, the square it fills, how many clumps
-    const GRASS: Record<string, [number, number, number, number]> = { bellwether: [0, 0, 200, 9000], sunreach: [SUN.x, SUN.z, 140, 4500], amberhold: [AMBER.x, AMBER.z, 140, 4000], wrack: [WRACK.x, WRACK.z, 130, 3000], lockhaven: [LOCK.x, LOCK.z, 125, 3500], saltglass: [SALT.x, SALT.z, 115, 1600], longstrand: [LONG.x, LONG.z, 100, 1800] };
+    const GRASS: Record<string, [number, number, number, number]> = { bellwether: [0, 0, 1000, 225000], sunreach: [SUN.x, SUN.z, 140, 4500], amberhold: [AMBER.x, AMBER.z, 140, 4000], wrack: [WRACK.x, WRACK.z, 130, 3000], lockhaven: [LOCK.x, LOCK.z, 125, 3500], saltglass: [SALT.x, SALT.z, 115, 1600], longstrand: [LONG.x, LONG.z, 100, 1800] };
     const [cx, cz, span, most] = GRASS[this.game.s.region] ?? GRASS.bellwether;
     const x0 = Math.max(ci * CELL, cx - span / 2), x1 = Math.min((ci + 1) * CELL, cx + span / 2);
     const z0 = Math.max(cj * CELL, cz - span / 2), z1 = Math.min((cj + 1) * CELL, cz + span / 2);
@@ -565,7 +566,7 @@ export class GameRenderer {
       const x = x0 + rnd() * (x1 - x0), z = z0 + rnd() * (z1 - z0);
       if (coastDist(x, z) < BEACH || !w.walkable(x, z)) continue; // no grass on the beach
       const y = w.ground(x, z);
-      if (y > 8) continue; // bare upper peak
+      if (y > (this.game.s.region === 'bellwether' ? 14 : 8)) continue; // bare upper peak
       const p = nearestPathDist(x, z);
       if (p.d < p.width + 0.5) continue;
       if (L.arenas.some((a) => Math.hypot(x - a.x, z - a.z) < 8)) continue;

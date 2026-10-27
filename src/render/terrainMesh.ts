@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { fbm, smooth } from '../art/noise';
 import type { Look } from '../art/looks';
-import { coastDist, nearestPathDist, FLATS, LAYOUT, BEACH, SUN_LAYOUT, SUN, SUN_RADIUS, WRACK, WRACK_RADIUS, WRACK_LAYOUT, AMBER, AMBER_RADIUS, AMBER_LAYOUT } from '../game/world/island';
+import { BELL_TOWN, coastDist, nearestPathDist, FLATS, LAYOUT, BEACH, SUN_LAYOUT, SUN, SUN_RADIUS, WRACK, WRACK_RADIUS, WRACK_LAYOUT, AMBER, AMBER_RADIUS, AMBER_LAYOUT } from '../game/world/island';
 import { World, HCELL } from '../game/world/world';
 import { CAVE_FLOOR } from '../game/world/caves';
 
@@ -30,7 +30,7 @@ export function buildTerrainMesh(world: World, look: Look, cave = false): Terrai
   const cobble = C(0xb3a486), cobbleD = C(0x9a8c72);
   const R = HN + 1, H = world.heights;
   // cobbled squares (Bellwether's quay, Port Halyard's) and paved ruins (the Broken Ring, the Sunken Temple)
-  const squares = [FLATS[0], FLATS.find((f) => f.x === SUN_LAYOUT.port.x && f.z === SUN_LAYOUT.port.z)!, FLATS.find((f) => f.x === WRACK_LAYOUT.landing.x && f.z === WRACK_LAYOUT.landing.z)!, FLATS.find((f) => f.x === AMBER_LAYOUT.landing.x && f.z === AMBER_LAYOUT.landing.z)!];
+  const squares = [...BELL_TOWN.squares, FLATS[0], FLATS.find((f) => f.x === SUN_LAYOUT.port.x && f.z === SUN_LAYOUT.port.z)!, FLATS.find((f) => f.x === WRACK_LAYOUT.landing.x && f.z === WRACK_LAYOUT.landing.z)!, FLATS.find((f) => f.x === AMBER_LAYOUT.landing.x && f.z === AMBER_LAYOUT.landing.z)!];
   const paved = [LAYOUT.ruin, SUN_LAYOUT.temple];
   // Sunreach is warmer: paler sand, lusher jungle green
   const jungle = C(0x3f7a34), jungleD = C(0x2c5a2c), palmSand = C(0xeedcab);
@@ -83,11 +83,14 @@ export function buildTerrainMesh(world: World, look: Look, cave = false): Terrai
         cobW = cw;
         tmp.lerp(cobble.clone().lerp(cobbleD, n2), cw);
         for (const rp of paved) tmp.lerp(rock.clone().lerp(grassD, 0.3 + n2 * 0.3), 1 - smooth(Math.hypot(x - rp.x, z - rp.z), 6, 9));
-        const pd = nearestPathDist(x, z);
-        tmp.lerp(dirt.clone().lerp(sand, 0.2 * n2), (1 - smooth(pd.d, pd.width * 0.8, pd.width + 0.35)) * (y > 0.2 ? 1 : 0));
+        const pd = nearestPathDist(x, z), on = (1 - smooth(pd.d, pd.width * 0.8, pd.width + 0.35)) * (y > 0.2 ? 1 : 0);
+        if (pd.paved) { tmp.lerp(cobble.clone().lerp(cobbleD, n2), on); cobW = Math.max(cobW, on); }
+        else tmp.lerp(dirt.clone().lerp(sand, 0.2 * n2), on);
       }
       // altitude: grass thins to scree, then bare rock toward Ironcrag's summit
-      if (y > 5) tmp.lerp(rock.clone().lerp(grassD, 0.35 * n2), smooth(y + (n2 - 0.5) * 2.5, 5.5, 9.5) * 0.85);
+      // (Bellwether at 4.5x is a taller island: its scree starts higher, on Ironcrag and the hilltops)
+      const alt = Math.abs(x) < 700 && Math.abs(z) < 700 ? 7 : 0;
+      if (y > 5 + alt) tmp.lerp(rock.clone().lerp(grassD, 0.35 * n2), smooth(y + (n2 - 0.5) * 2.5, 5.5 + alt, 9.5 + alt) * 0.85);
       if (y > 0.25) tmp.lerp(rock.clone().lerp(rockD, smooth(slope, 0.9, 1.6)), smooth(slope, 0.55, 0.95));
       return cobW;
     }
