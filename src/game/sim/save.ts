@@ -59,6 +59,8 @@ export interface SaveData {
   shipyard?: Partial<Record<'hull' | 'sails' | 'guns' | 'plating', number>>;
   mate: string | null;
   hunterAt: number; // play time of the next bounty-hunter ambush (once your bounty is big enough)
+  /** item ids you've marked as junk: the pack-full prompt's "Drop junk" drops these */
+  junk?: string[];
   /** the quest pinned to the HUD tracker (none: the game picks the main quest in progress) */
   track?: string;
   /** the treasure map you're following: an X in the water off an island */
@@ -311,6 +313,8 @@ export function parseSave(json: string | null, fallback: SaveData): SaveData | n
   const ml = raw.meal as Record<string, unknown> | undefined;
   if (ml && typeof ml === 'object' && typeof ml.id === 'string' && ITEMS[ml.id]) d.meal = { id: ml.id, left: num(ml.left, 0, 0, 36000) };
   if (typeof raw.track === 'string' && QUESTS[raw.track]) d.track = raw.track;
+  const junk = ids(raw.junk, 500)?.filter((id) => ITEMS[id] && !ITEMS[id].quest);
+  if (junk?.length) d.junk = junk;
   const cb = (raw.combat ?? {}) as Record<string, unknown>;
   d.combat = {
     stance: cb.stance === 'aggressive' || cb.stance === 'defensive' ? cb.stance : 'accurate',

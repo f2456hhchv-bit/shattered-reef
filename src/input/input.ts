@@ -12,6 +12,9 @@ export class Input {
   private pointers = new Map<number, { x: number; y: number; sx: number; sy: number; t: number; type: string }>();
   private stickId: number | null = null;
   private pinch: { d: number; zoom: number } | null = null;
+  /** hold-to-inspect (touch): the timer for the finger now down, and whether it has shown a card (then no tap) */
+  private holdTimer = 0;
+  private inspected = false;
   enabled = true;
 
   constructor(private canvas: HTMLCanvasElement, private game: Game, private r: GameRenderer, private ui: UI) {
@@ -34,6 +37,20 @@ export class Input {
     try { this.canvas.setPointerCapture(e.pointerId); } catch { /* synthetic or already-released pointer */ }
     // t = when the finger went down per the browser, so a slow frame can't turn a tap into a long-press
     this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, t: e.timeStamp, type: e.pointerType });
+    // hold a finger still on something to inspect it (phones have no hover): its level, what it needs and gives
+    clearTimeout(this.holdTimer); this.inspected = false;
+    if (e.pointerType !== 'mouse' && this.pointers.size === 1) {
+      const id = e.pointerId;
+      this.holdTimer = window.setTimeout(() => {
+        const p = this.pointers.get(id);
+        if (!p || this.stickId !== null || this.pinch || Math.hypot(p.x - p.sx, p.y - p.sy) >= 14) return;
+        const t = this.pick(p.x, p.y, 46);
+        if (!t) return;
+        this.inspected = true;
+        this.ui.showInspect(p.x, p.y, t.verb, t.label, t.kind === 'enemy', this.game.targetNeeds(t));
+        navigator.vibrate?.(12);
+      }, 450);
+    }
     if (this.pointers.size === 2) {
       const [a, b] = [...this.pointers.values()];
       this.pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), zoom: this.r.zoom };
@@ -73,6 +90,13 @@ export class Input {
     const p = this.pointers.get(e.pointerId);
     this.pointers.delete(e.pointerId);
     if (this.pointers.size < 2) this.pinch = null;
+    clearTimeout(this.holdTimer);
+    if (this.inspected) {
+      this.inspected = false; this.ui.showHover(0, 0, null, '', false);
+      // the hold was a look, not a tap; but judge by the browser's own times: on a slow frame the timer can run
+      // before a quick tap's lift is handled, and that tap must still count
+      if (!p || e.timeStamp - p.t >= 450) return;
+    }
     if (!p) return;
     if (this.stickId === e.pointerId) { this.releaseStick(); return; }
     const moved = Math.hypot(p.x - p.sx, p.y - p.sy);
@@ -81,6 +105,8 @@ export class Input {
 
   private cancel(e: PointerEvent) {
     this.pointers.delete(e.pointerId);
+    clearTimeout(this.holdTimer);
+    if (this.inspected) { this.inspected = false; this.ui.showHover(0, 0, null, '', false); }
     if (this.stickId === e.pointerId) this.releaseStick();
     this.pinch = null;
   }
