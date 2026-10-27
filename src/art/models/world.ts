@@ -184,6 +184,7 @@ export function buildSmithyShed(): THREE.Group {
   const roof = mesh(roofGeo, mat('roof', { side: THREE.DoubleSide }));
   roof.position.set(0, 2.72 - 6 + 0.05, 0);
   roof.rotation.x = -0.12;
+  roof.userData.roof = true; // lifted away while you stand under it, so you can see the forge
   g.add(roof);
   const beam = mesh(new THREE.CylinderGeometry(0.1, 0.1, 5.2, 10), mat('woodDark'));
   beam.rotation.z = Math.PI / 2;
