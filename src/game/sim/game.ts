@@ -7,7 +7,7 @@ import { AMMO, NAVAL } from '../data/sea';
 import { SHIPYARD, type ShipPart } from '../data/shipyard';
 import { ACTIVE, MOMENTS, type MomentKind, type Struck } from '../data/active';
 import { mulberry32 } from '../../art/noise';
-import { item, ammoKind, AMMO_NAME, isTwoHanded, offhandBlock, pairGroup, type ItemDef, type Slot, type SkillId, type CombatStyle } from '../data/items';
+import { item, MEAL_TEXT, ammoKind, AMMO_NAME, isTwoHanded, offhandBlock, pairGroup, type ItemDef, type Slot, type SkillId, type CombatStyle } from '../data/items';
 import { perkTotal } from '../data/perks';
 import { KEY, KEYS, KEY_CONFIG, type KeyDef, type KeyFamily } from '../data/keys';
 import { DROP_CONFIG, GEMS, rareTable, commonTable } from '../data/drops';
@@ -337,6 +337,13 @@ export class Game {
     // Steal: an elite's power for a while
     if (this.stolen?.affix === 'barnacled') st.dr += 0.33;
     if (this.stolen?.affix === 'frenzied') st.speed /= 1.4;
+    // a galley meal, while it lasts
+    const meal = this.s.meal && this.s.meal.left > 0 ? item(this.s.meal.id).meal : undefined;
+    if (meal?.kind === 'maxhit') st.maxHit = Math.floor(st.maxHit * (1 + meal.v / 100));
+    if (meal?.kind === 'acc') st.attRoll = Math.floor(st.attRoll * (1 + meal.v / 100));
+    if (meal?.kind === 'dr') st.dr += meal.v / 100;
+    if (meal?.kind === 'gather') st.gather += meal.v / 100;
+    if (meal?.kind === 'regen') st.regen += meal.v;
     this.stats = st;
     this.rev++;
   }
@@ -937,13 +944,19 @@ export class Game {
     const st = this.p.inv[i];
     if (!st || !item(st.id).heal || this.dead) return;
     if (this.eatCd > 0) return;
-    const heal = this.healOf(st.id);
-    if (this.p.hp >= this.stats.maxHp) { this.msg('You are already at full health.'); return; }
+    const heal = this.healOf(st.id), meal = item(st.id).meal;
+    // a galley meal is worth eating at full health, for what it does after
+    if (this.p.hp >= this.stats.maxHp && !meal) { this.msg('You are already at full health.'); return; }
     st.qty--;
     if (st.qty <= 0) this.p.inv[i] = null;
     this.p.hp = Math.min(this.stats.maxHp, this.p.hp + heal);
     this.eatCd = 1.2;
-    this.msg(`You eat the ${item(st.id).name.toLowerCase()}. +${heal} health.`, 'good');
+    if (meal) {
+      const was = this.s.meal && this.s.meal.left > 0 && this.s.meal.id !== st.id ? item(this.s.meal.id).name : null;
+      this.s.meal = { id: st.id, left: meal.secs };
+      this.recalc();
+      this.msg(`You eat the ${item(st.id).name.toLowerCase()}: ${MEAL_TEXT[meal.kind](meal.v)} for ${Math.round(meal.secs / 60)} minutes.${was ? ` (It replaces the ${was.toLowerCase()}.)` : ''}`, 'good');
+    } else this.msg(`You eat the ${item(st.id).name.toLowerCase()}. +${heal} health.`, 'good');
     this.rev++;
   }
 
@@ -2802,6 +2815,10 @@ export class Game {
         this.regenTimer = 0;
         const amt = (this.combatTimer > 6 ? 1 : 0) + (this.rnd() < this.stats.regen * PLAYER_BASE.regenEvery / 10 ? 1 : 0);
         if (amt > 0 && this.p.hp < this.stats.maxHp) this.p.hp = Math.min(this.stats.maxHp, this.p.hp + amt * HP_SCALE);
+      }
+      if (this.s.meal && this.s.meal.left > 0) {
+        this.s.meal.left -= dt;
+        if (this.s.meal.left <= 0) { this.msg(`The ${item(this.s.meal.id).name.toLowerCase()} has worn off.`, 'info'); this.s.meal = undefined; this.recalc(); }
       }
       this.stepDiscovery();
       this.stepBounties();

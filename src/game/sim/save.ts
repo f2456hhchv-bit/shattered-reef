@@ -35,6 +35,8 @@ export interface SaveData {
   key: string | null;
   keyDormant: number;
   combat: { stance: Stance; spell: string };
+  /** the galley meal you last ate, and its seconds left */
+  meal?: { id: string; left: number };
   /** your own bounty, the boards' current offers, the contracts you carry, your crew and who comes ashore */
   bounty: number;
   boards: Record<string, { offers: Contract[]; refreshAt: number }>;

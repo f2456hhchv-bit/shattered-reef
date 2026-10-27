@@ -20,6 +20,11 @@ export const PAIR_GROUP: Partial<Record<WeaponKind, string>> = { cutlass: 'blade
 export type AmmoKind = 'shot' | 'arrow' | 'bolt';
 export const AMMO_FOR: Partial<Record<WeaponKind, AmmoKind>> = { pistol: 'shot', shortbow: 'arrow', longbow: 'arrow', crossbow: 'bolt' };
 export const AMMO_NAME: Record<AmmoKind, string> = { shot: 'shot', arrow: 'arrows', bolt: 'bolts' };
+/** what a galley meal does while it lasts: max hit, accuracy, damage taken, gathering, health regen (all in %, regen in points per 10 s) */
+export type MealKind = 'maxhit' | 'acc' | 'dr' | 'gather' | 'regen';
+export const MEAL_TEXT: Record<MealKind, (v: number) => string> = {
+  maxhit: (v) => `+${v}% max hit`, acc: (v) => `+${v}% accuracy`, dr: (v) => `${v}% less damage taken`, gather: (v) => `+${v}% gathering success`, regen: (v) => `+${v} health every 10 s`,
+};
 export type IconShape = 'map' | 'log' | 'ore' | 'bar' | 'fish' | 'meat' | 'coins' | 'bread' | 'hatchet' | 'pickaxe' | 'rod' | 'cutlass' | 'helm' | 'cap' | 'coat' | 'plate' | 'ring' | 'bell' | 'tooth' | 'shell' | 'burnt' | 'pistol' | 'shot' | 'staff' | 'charm' | 'harpoon' | 'pot' | 'lobster' | 'berries' | 'kelp' | 'geode' | 'spade' | 'parcel' | 'ash' | 'salt' | 'crystal' | 'nest' | 'casket' | 'mug' | 'bowl' | 'pie' | 'dagger' | 'pike' | 'greatsword' | 'bow' | 'crossbow' | 'arrow' | 'bolt' | 'coconut' | 'wand' | 'orb' | 'book' | 'shield' | 'legs' | 'boots' | 'gloves' | 'amulet' | 'bracelet' | 'hide' | 'gem';
 
 /** RuneScape-style equipment bonuses. Accuracy applies to the weapon's own style. */
@@ -41,6 +46,8 @@ export interface ItemDef {
   stackable: boolean; // equipment is never stackable, except ammunition
   value: number; // base coin value
   heal?: number;
+  /** a galley meal: eat it for a while of this (one meal at a time; a new one replaces the last) */
+  meal?: { kind: MealKind; v: number; secs: number };
   tool?: { skill: SkillId; power: number; level: number };
   equip?: {
     slot: Slot;
@@ -288,6 +295,13 @@ function tierItems(): ItemDef[] {
     equip: { slot: 'weapon', reqs: { attack: 75, strength: 75 }, style: 'melee', kind: 'greatsword', speed: 3.6, range: 1.9, bonus: { acc: 99, str: 170 }, affixPool: MELEE_AFFIX } }));
   // The Salt in the Fen: the Second Lockkey, cut out of Jenny Greenteeth
   out.push(I({ id: 'fen_lockkey', name: 'A key of green bronze', desc: 'Slick with weed and warm from where it was. It hums when you hold it near water. A Lockkey.', icon: { shape: 'tooth', color: '#5a7a3a', accent: '#c9a050' }, stackable: false, value: 0, quest: true }));
+  // The galley (One Piece's bar: a good cook is half a crew): meals that do something for a while after you eat them
+  out.push(I({ id: 'grog', name: 'Bramble grog', desc: 'Bramble juice, salt and a splash of something. Sharpens the eye. Eat at full health for the effect alone.', icon: { shape: 'mug', color: '#7a2a5a', accent: '#d8b07a' }, stackable: true, value: 30, heal: 4, meal: { kind: 'acc', v: 5, secs: 360 } }));
+  out.push(I({ id: 'stargazy_pie', name: 'Stargazy pie', desc: 'A Bellwether pie with the sprats\' heads poking through the crust, looking up. Good luck for the hands that work.', icon: { shape: 'pie', color: '#c99b5c', accent: '#9ab0c4' }, stackable: true, value: 60, heal: 12, meal: { kind: 'gather', v: 6, secs: 600 } }));
+  out.push(I({ id: 'honey_salmon', name: 'Honey-glazed salmon', desc: 'Amber honey caramelised over salmon. You feel it mending you for a long while after.', icon: { shape: 'fish', color: '#e8a83a', accent: '#d86a4a' }, stackable: true, value: 120, heal: 18, meal: { kind: 'regen', v: 1, secs: 480 } }));
+  out.push(I({ id: 'pepperpot', name: 'Pepperpot', desc: 'Sunreach\'s black stew, boar simmered with bramble and salt until it\'s darker than coffee. Puts fire in your arm.', icon: { shape: 'bowl', color: '#3a2218', accent: '#c84a2a' }, stackable: true, value: 160, heal: 20, meal: { kind: 'maxhit', v: 6, secs: 480 } }));
+  out.push(I({ id: 'fiskesuppe', name: 'Northman\'s fish soup', desc: 'Salmon and lobster in a cream the colour of fog, the way they make it on Amberhold. Hits bounce off you.', icon: { shape: 'bowl', color: '#e8e0c8', accent: '#d86a4a' }, stackable: true, value: 220, heal: 22, meal: { kind: 'dr', v: 5, secs: 480 } }));
+  out.push(I({ id: 'bosun_chowder', name: 'Bosun\'s chowder', desc: 'Lobster, crab and salt in a bowl you could stand a spoon in. The crew fight over the last of it.', icon: { shape: 'bowl', color: '#e8d8b0', accent: '#d84a2a' }, stackable: true, value: 300, heal: 26, meal: { kind: 'maxhit', v: 9, secs: 600 } }));
   // Thirteen's in the Belly: Sigrun's horn, and the thirteenth Lockkey
   out.push(I({ id: 'sleeper_horn', name: 'The sleeper\'s horn', desc: 'A ram\'s horn bound in bronze, older than Tollhouse. Sigrun says it plays one note, and only the deep hears it.', icon: { shape: 'tooth', color: '#d8c8a0', accent: '#c08a4a' }, stackable: false, value: 0, quest: true }));
   out.push(I({ id: 'thirteenth_key', name: 'The thirteenth Lockkey', desc: 'Black iron, warm as a hand, and it hums the rhyme the children carve in trees. It isn\'t yours. It isn\'t anyone\'s. Don\'t put it to your ear.', icon: { shape: 'tooth', color: '#2a2a30', accent: '#bcd8ff' }, stackable: false, value: 0, quest: true }));
