@@ -428,7 +428,7 @@ export const PLAYER_BASE = {
 // ---- enemies -------------------------------------------------------------------
 export type EnemyModel = 'crab' | 'brigand' | 'gunner' | 'guardian' | 'boar' | 'spider' | 'snake' | 'golem' | 'hound' | 'bat' | 'beetle';
 /** Visual variant: crab shell / humanoid outfit / stone tint, chosen by the renderer. */
-export type EnemyLook = 'reef' | 'mire' | 'ironshell' | 'brigand' | 'gunner' | 'smuggler' | 'poacher' | 'drowned' | 'captain' | 'sentinel' | 'cave' | 'giant' | 'jungle' | 'ember' | 'sunscale' | 'hunter' | 'moon' | 'amber' | 'oak' | 'queen' | 'shore' | 'gull' | 'thorn' | 'knocker' | 'leech' | 'howe' | 'troll' | 'seadraugr' | 'wrecker' | 'ant' | 'mantis' | 'douen' | 'centipede' | 'souc' | 'warg' | 'nokk' | 'hornet' | 'bark' | 'mosstroll' | 'draugr' | 'draugrtroll' | 'jotunn' | 'starstruck' | 'hushed' | 'greenteeth';
+export type EnemyLook = 'reef' | 'mire' | 'ironshell' | 'brigand' | 'gunner' | 'smuggler' | 'poacher' | 'drowned' | 'captain' | 'sentinel' | 'cave' | 'giant' | 'jungle' | 'ember' | 'sunscale' | 'hunter' | 'moon' | 'amber' | 'oak' | 'queen' | 'shore' | 'gull' | 'thorn' | 'knocker' | 'leech' | 'howe' | 'troll' | 'seadraugr' | 'wrecker' | 'ant' | 'mantis' | 'douen' | 'centipede' | 'souc' | 'warg' | 'nokk' | 'hornet' | 'bark' | 'mosstroll' | 'draugr' | 'draugrtroll' | 'jotunn' | 'starstruck' | 'hushed' | 'greenteeth' | 'ninefold';
 
 export interface EnemyDef {
   id: string;
@@ -537,6 +537,9 @@ export const ENEMIES: Record<string, EnemyDef> = {
   // The Key Collector (Stormwrack): a hunter of keys, quick with a blade and hard to pin down
   starstruck: { hostile: true, id: 'starstruck', name: 'Tobin, star-struck', model: 'brigand', look: 'starstruck', level: 62, hp: 80, att: 58, def: 48, defBonus: { melee: 40, ranged: 40, magic: 60 }, weakness: 'melee', style: 'melee', accBonus: 50, maxHit: 10,
     speed: 3.6, radius: 0.5, aggro: 14, attack: { kind: 'melee', range: 1.9, windup: 0.45, cooldown: 2.3 }, loot: 'starstruck', respawn: 0, scale: 1.1 },
+  // Halvdan Ninefold, in his duel (the Tides): he fights to win, or to die well
+  ninefold_duel: { hostile: true, id: 'ninefold_duel', name: 'Halvdan Ninefold', model: 'brigand', look: 'ninefold', level: 82, hp: 170, att: 80, def: 70, defBonus: { melee: 70, ranged: 55, magic: 40 }, weakness: 'magic', style: 'melee', accBonus: 74, maxHit: 15,
+    speed: 3.8, radius: 0.55, aggro: 16, attack: { kind: 'melee', range: 2.2, windup: 0.55, cooldown: 2.6 }, loot: 'ninefold', respawn: 0, scale: 1.3 },
   // Jenny Greenteeth (English fen folklore): the green-toothed hag under the weed who drags people down; she has the Second Lockkey
   greenteeth: { hostile: true, id: 'greenteeth', name: 'Jenny Greenteeth', model: 'brigand', look: 'greenteeth', level: 66, hp: 150, att: 62, def: 52, defBonus: { melee: 50, ranged: 35, magic: 20 }, weakness: 'magic', style: 'melee', accBonus: 60, maxHit: 12,
     speed: 3.0, radius: 0.6, aggro: 12, attack: { kind: 'melee', range: 2.3, windup: 0.6, cooldown: 2.4 }, loot: 'greenteeth', respawn: 0, scale: 1.45 },
@@ -650,6 +653,7 @@ export const LOOT: Record<string, LootTable> = {
   weaver_young: { coins: [12, 30], drops: [{ item: 'spider_silk', chance: 0.6, qty: [1, 2] }, { item: 'charm_tide', chance: 0.4, qty: [5, 10] }], gear: { chance: 0.06, items: ['ring_gold', 'dagger_steel', 'wand_storm'], weights: { common: 50, fine: 38, rare: 12 } } },
   serpent: { sig: { item: 'sig_fang', chance: 1 / 40 }, coins: [150, 300], drops: [{ item: 'sunscale', chance: 1, qty: [1, 3] }, { item: 'snake_skin', chance: 1, qty: [3, 6] }, { item: 'bar_storm', chance: 0.5, qty: [1, 3] }, { item: 'charm_tide', chance: 1, qty: [40, 80] }],
     gear: { chance: 1, items: ['cutlass_storm', 'pistol_storm', 'staff_storm', 'helm_storm', 'plate_storm', 'longbow_amber'], weights: { rare: 65, relic: 35 } } },
+  ninefold: { coins: [0, 0], drops: [] },
   greenteeth: { coins: [0, 0], drops: [{ item: 'fen_lockkey', chance: 1 }, { item: 'sword_kelp', chance: 1, qty: [3, 6] }] },
   hushed: { coins: [40, 120], drops: [{ item: 'charm_tide', chance: 0.8, qty: [10, 25] }, { item: 'crystal_geode', chance: 0.2 }] },
   starstruck: { coins: [0, 0], drops: [{ item: 'ore_sky', chance: 1, qty: [2, 3] }] },

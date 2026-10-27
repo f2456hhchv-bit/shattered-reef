@@ -325,6 +325,7 @@ export class Game {
     st.gather += this.crewV('gather') / 100;
     st.maxHp = Math.round(st.maxHp * (1 + this.crewV('max_hp') / 100));
     if (st.style === 'ranged') st.maxHit = Math.floor(st.maxHit * (1 + this.crewV('ranged_dmg') / 100));
+    if (st.style === 'melee') st.maxHit = Math.floor(st.maxHit * (1 + this.crewV('melee_dmg') / 100)); // Halvdan Ninefold
     const kp = this.activeKey()?.passive;
     if (kp?.kind === 'cook') st.healBonus += kp.v / 100;
     if (kp?.kind === 'dr') st.dr += kp.v / 100;

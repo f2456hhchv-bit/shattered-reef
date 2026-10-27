@@ -54,7 +54,7 @@ export interface Contract {
   z?: number;
 }
 
-export type CrewPassive = 'heal' | 'ranged_dmg' | 'ship_speed' | 'max_hp' | 'trade' | 'gather' | 'sailing_xp' | 'finds';
+export type CrewPassive = 'heal' | 'ranged_dmg' | 'ship_speed' | 'max_hp' | 'trade' | 'gather' | 'sailing_xp' | 'finds' | 'melee_dmg';
 export interface CrewDef {
   id: string;
   name: string;
@@ -96,5 +96,8 @@ export const CREW: CrewDef[] = [
   { id: 'pip', name: 'Pip', role: 'Lookout', line: 'I can see a gull\'s egg from the masthead. Mother Brine says I\'m wasted on eggs.', bounty: 0, coins: 0, quest: true,
     passive: { kind: 'finds', v: 15, text: 'Nests, geodes and caskets turn up 15% more often' }, mate: { style: 'ranged', held: 'pistol', mul: 0.25, range: 7 },
     look: { skin: 0xc8946a, coat: 0x4a5a6a, coatTrim: 0xd8c07a, shirt: 0xe8dcc0, trousers: 0x3a3028, hat: 0x8a3a2a, hair: 0x6a3a1a, hatStyle: 'bandana', beard: false } },
+  { id: 'halvdan', name: 'Halvdan Ninefold', role: 'Shieldbreaker', line: 'You beat me fair and then wouldn\'t let me die. That\'s a saga with no end. I\'ll have to stay and see one.', bounty: 0, coins: 0, quest: true,
+    passive: { kind: 'melee_dmg', v: 4, text: 'Melee max hit +4%' }, mate: { style: 'melee', held: 'greatsword', mul: 0.5, range: 1.9 },
+    look: { skin: 0xd8b090, coat: 0x4a3a2a, coatTrim: 0x8a2a1a, shirt: 0x6a5a48, trousers: 0x3a3028, hat: 0x6a6a6a, hair: 0xc89a5a, hatStyle: 'cap', beard: true } },
 ];
 export const CREW_BY: Record<string, CrewDef> = Object.fromEntries(CREW.map((c) => [c.id, c]));

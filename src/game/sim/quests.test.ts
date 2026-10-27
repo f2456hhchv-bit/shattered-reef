@@ -368,6 +368,33 @@ describe('The Brinewife\'s Children (Mother Brine)', () => {
   });
 });
 
+describe('A Fight Worth a Saga (Halvdan Ninefold)', () => {
+  const wr = () => { const L = regionLayout('wrack'); const g = new Game({ seed: 6, save: { ...defaultSave(L.respawn, L.mooring!), region: 'wrack' } }); for (const e of g.enemies) { e.alive = false; e.respawnAt = Infinity; } return g; };
+  it('not until you\'ve beaten the Jötunn; then the duel, and you spare him: he joins your crew', () => {
+    const g = wr();
+    talk(g, 'ninefold');
+    expect(g.questStage('saga')).toBe(0);
+    g.s.flags.jotunn_defeated = true;
+    talk(g, 'ninefold');
+    expect(g.questStage('saga')).toBe(1);
+    expect(g.targets().some((t) => t.key === 'npc:ninefold')).toBe(false); // he's gone to the road
+    expect(beat(g, 'ninefold_duel', 90, 'sig_jaw')).toBe(true);
+    expect(g.questStage('saga')).toBe(2);
+    use(g, 'saga', 'spare');
+    expect(g.s.crew).toContain('halvdan');
+    expect(g.questStage('saga')).toBe(QUESTS.saga.stages.length - 1);
+  });
+  it('or give him the death he asked for: his sword is yours', () => {
+    const g = wr();
+    g.s.flags.jotunn_defeated = true;
+    talk(g, 'ninefold');
+    g.questKill('ninefold_duel');
+    use(g, 'saga', 'grant');
+    expect(count(g.p.inv, 'sword_ninefold')).toBe(1);
+    expect(g.s.crew).not.toContain('halvdan');
+  });
+});
+
 describe('Charted Waters (Bastian Gull)', () => {
   it('Iven\'s rival at Wreckers\' Point, four fresh soundings, and Gull signs on as chartmaster', () => {
     const g = fresh();

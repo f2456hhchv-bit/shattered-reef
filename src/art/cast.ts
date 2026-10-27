@@ -33,6 +33,7 @@ export const NPC_LOOKS: Record<string, HumanoidLook> = {
   eir: { skin: 0xf0d0b0, coat: 0x6a7a5a, coatTrim: 0xe8dcc0, shirt: 0xe8dcc0, trousers: 0x3a3a30, boots: 0x3a2a20, hat: 0xe8dcc0, hair: 0xd8c07a, hatStyle: 'bandana', hairStyle: 'queue', beard: false, apron: 0xe8dcc0 },
   gull: { skin: 0xe8d0b8, coat: 0xe8e4d8, coatTrim: 0x8a9aa8, shirt: 0xd8d4c8, trousers: 0x3a4048, boots: 0x2a2a2e, hat: 0xe8e4d8, hair: 0xb8b8b0, hatStyle: 'tricorn', beard: false, held: 'pistol' },
   brine: { skin: 0xb88a62, coat: 0x3a5a5a, coatTrim: 0xc8d0c0, shirt: 0xd8ccb0, trousers: 0x2a3030, boots: 0x2a2a28, hat: 0x5a3a2a, hair: 0xb8b0a8, hatStyle: 'bandana', hairStyle: 'bun', beard: false, apron: 0x8a7a5a },
+  ninefold: { skin: 0xd8b090, coat: 0x6a6a6a, coatTrim: 0x8a2a1a, shirt: 0x4a3a2a, trousers: 0x3a3028, boots: 0x3a2a1a, hat: 0x6a6a6a, hair: 0xc89a5a, hatStyle: 'cap', beard: true, held: 'greatsword' },
   marisol: { skin: 0x7a4a30, coat: 0xa82a22, coatTrim: 0xd8b84a, shirt: 0xe8dcc0, trousers: 0x2a2220, boots: 0x2a1a14, hat: 0x2a1a14, hair: 0x1a1210, hatStyle: 'tricorn', hairStyle: 'queue', beard: false, held: 'cutlass' },
   osric: { skin: 0xb88a62, coat: 0x2a3a3a, coatTrim: 0x8a9a9a, shirt: 0x9a9a8a, trousers: 0x22201e, boots: 'leather', hat: 0x2a2a2a, hair: 0x6a6a62, hatStyle: 'cap', beard: true },
   // Sunreach's quest folk (slice 2)
@@ -73,6 +74,8 @@ export const HUMAN_LOOKS: Record<string, HumanoidLook> = {
   seadraugr: { skin: DROWNED_SKIN, coat: 0x2a4a3a, coatTrim: 0x6ac8a8, shirt: 0x4a5a4a, trousers: 0x22302a, boots: 0x1a2420, hat: 0x2a3a34, hair: 0x2a4a3a, hatStyle: 'none', held: 'pike', eyes: 0x8affe8 },
   // Tobin the star-watcher, with the crater's light in his eyes
   starstruck: { skin: 0xd8d4e0, coat: 0x2a3a5a, coatTrim: 0x9ad8ff, shirt: 0xc8d0d8, trousers: 0x22263a, boots: 0x1e1e28, hat: 0x2a3a5a, hair: 0xe8e8f0, hatStyle: 'none', beard: true, held: 'staff', eyes: 0x9ad8ff },
+  // Halvdan Ninefold: mail and furs, a red-gold beard braided nine times
+  ninefold: { skin: 0xd8b090, coat: 0x6a6a6a, coatTrim: 0x8a2a1a, shirt: 0x4a3a2a, trousers: 0x3a3028, boots: 0x3a2a1a, hat: 0x6a6a6a, hair: 0xc89a5a, hatStyle: 'cap', beard: true, held: 'greatsword' },
   // Jenny Greenteeth: skin the green of pond-scum, hair like weed, a sack-cloth dress dragging water
   greenteeth: { skin: 0x7a9a5a, coat: 0x3a4a2a, coatTrim: 0x5a6a3a, shirt: 0x4a5a32, trousers: 0x2a3420, boots: 0x7a9a5a, hat: 0x2a3a1a, hair: 0x2a3a1a, hatStyle: 'none', hairStyle: 'bun', beard: false, held: 'none', eyes: 0xe8f070 },
   // the Hushed: undyed grey, hoods down, nothing on them that rattles; their eyes have gone the pale of the song
