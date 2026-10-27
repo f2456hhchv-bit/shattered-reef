@@ -2,7 +2,7 @@ import { it, expect } from 'vitest';
 import { Game } from './game';
 import { defaultSave } from './save';
 import { xpForLevel } from './xp';
-import { SPELLS } from '../data/content';
+import { SPELLS, ELEMENT_WEAK } from '../data/content';
 import { regionLayout } from '../world/layout';
 const SL = regionLayout('wrack');
 const fresh = (seed: number) => { const g = new Game({ seed, save: { ...defaultSave(SL.respawn, SL.mooring!), region: 'wrack' } }); for (const e of g.enemies) if (Math.hypot(e.x - SL.arenas[0].x, e.z - SL.arenas[0].z) < 30) { e.alive = false; e.respawnAt = Infinity; } return g; };
@@ -15,7 +15,7 @@ it('Thunder Jötunn balance (Stormwrack, 50+): lost under 70, won at 82 in sky g
       const g = fresh(100 + s);
       for (const k of ['attack', 'strength', 'defence', 'hitpoints', 'magic', 'ranged'] as const) g.p.xp[k] = xpForLevel(lvl);
       g.p.equip.weapon = { id: weapon, qty: 1 }; g.p.equip.head = { id: 'helm_cinder', qty: 1 }; g.p.equip.body = { id: 'plate_cinder', qty: 1 }; g.p.equip.legs = { id: 'legs_cinder', qty: 1 }; for (const sh of ['charm_tide', 'shard_gale', 'shard_stone', 'shard_ember', 'shard_whisper', 'shard_squall', 'shard_grave', 'shard_heart', 'shard_wrath']) g.give(sh, 300);
-      g.s.combat.spell = [...SPELLS].reverse().find((sp) => sp.level <= lvl)!.id as typeof g.s.combat.spell; g.recalc(); g.p.hp = g.stats.maxHp; // the best spell for the level
+      g.s.combat.spell = ([...SPELLS].reverse().find((sp) => sp.level <= lvl && sp.element === ELEMENT_WEAK.storm_jotunn) ?? [...SPELLS].reverse().find((sp) => sp.level <= lvl))!.id as typeof g.s.combat.spell; g.recalc(); g.p.hp = g.stats.maxHp; // the best spell in the element it fears, as a mage would cast
       g.give('tuning_bell', 1);
       const q = g.world.nearestWalkable(g.layout.arenas[0].altar.x, g.layout.arenas[0].altar.z + 1.6, 4)!; g.p.x = q[0]; g.p.z = q[1];
       g.interact('arena:0'); let food = 10; const t0 = g.time;

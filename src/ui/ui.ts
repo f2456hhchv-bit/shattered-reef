@@ -16,7 +16,7 @@ import { wears, condOf, WORN_OUT_EFFECT } from '../game/sim/inventory';
 import { onTap } from './tap';
 import { portrait } from './portrait';
 import { NPC_LOOKS, PLAYER_LOOK } from '../art/cast';
-import { NODES, SKILLS, UNLOCKS, RECIPES, UTILITY_SPELLS, ELITE_AFFIXES, ENEMIES, PLAYER_BASE, SPELLS, type Station, type ShardCost } from '../game/data/content';
+import { NODES, SKILLS, UNLOCKS, RECIPES, UTILITY_SPELLS, ELITE_AFFIXES, ENEMIES, PLAYER_BASE, SPELLS, MAGIC_DMG, type Station, type ShardCost } from '../game/data/content';
 import type { Stance } from '../game/sim/gear';
 import { NPCS, QUESTS } from '../game/data/quests';
 import { coastDist, nearestPathDist, FLATS, SUN, WRACK, AMBER, LOCK, SALT, LONG, coastR, sunCoastR, wrackCoastR, amberCoastR, lockCoastR, saltCoastR, longCoastR, LAYOUT, SUN_LAYOUT } from '../game/world/island';
@@ -1382,7 +1382,7 @@ export class UI {
     const lvl = g.level('magic'), next = SPELLS.filter((sp) => sp.level > lvl).slice(0, 4);
     return [...SPELLS.filter((sp) => sp.level <= lvl), ...next].map((sp) => {
       const learnt = !sp.quest || !!g.s.flags[sp.quest];
-      return `<button data-spell="${sp.id}" class="${st.spell?.id === sp.id ? 'on' : ''}${sp.element ? ` el-${sp.element}` : ''}" ${lvl < sp.level || !learnt ? 'disabled' : ''}><b>${esc(sp.name)}</b><small>${learnt ? `Lv ${sp.level}` : 'Quest'} · max ${sp.maxHit * 10}</small>${sp.cost.length ? this.costHtml(sp.cost) : '<small>free</small>'}</button>`;
+      return `<button data-spell="${sp.id}" class="${st.spell?.id === sp.id ? 'on' : ''}${sp.element ? ` el-${sp.element}` : ''}" ${lvl < sp.level || !learnt ? 'disabled' : ''}><b>${esc(sp.name)}</b><small>${learnt ? `Lv ${sp.level}` : 'Quest'} · max ${Math.max(10, Math.round(sp.maxHit * 10 * MAGIC_DMG))}</small>${sp.cost.length ? this.costHtml(sp.cost) : '<small>free</small>'}</button>`;
     }).join('');
   }
 

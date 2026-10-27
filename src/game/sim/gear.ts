@@ -1,5 +1,5 @@
 import { item, AFFIXES, RARITY, AMMO_FOR, weaponKind, ammoKind, pairGroup, type Rarity, type Slot, type SkillId, type CombatStyle, type WeaponKind, type AmmoKind, type SigId } from '../data/items';
-import { HP_SCALE, SPELLS, spellById } from '../data/content';
+import { HP_SCALE, SPELLS, spellById, MAGIC_DMG } from '../data/content';
 import { condOf, WORN_OUT_EFFECT, type Inst, type Stack } from './inventory';
 import { levelForXp } from './xp';
 import { perkTotal } from '../data/perks';
@@ -198,6 +198,9 @@ export function computeStats(xp: Record<SkillId, number>, equip: Partial<Record<
   regen += perkTotal('hitpoints', L.hitpoints, 'regen');
   hpBonus += perkTotal('hitpoints', L.hitpoints, 'hp');
   maxHit = Math.max(1, Math.floor(maxHit * (1 + dmgPct / 100))) * HP_SCALE;
+  // spells hit 15% softer than RuneScape's table (Tom, 2026-10-28: magic out-damaged melee 2-4x), trimmed on the
+  // scaled number so a small spell isn't rounded to half
+  if (style === 'magic') maxHit = Math.max(HP_SCALE, Math.round(maxHit * MAGIC_DMG));
   const dual = offWeapon ? { attRoll: Math.round(dualAtt * accPerk), maxHit: Math.max(1, Math.floor(dualMax * (1 + dmgPct / 100) * OFFHAND_MUL)) * HP_SCALE } : null;
   const baseSpeed = (weapon?.speed ?? 2.4) * (dual ? DUAL_SLOW : 1);
   return {
