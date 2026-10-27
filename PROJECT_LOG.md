@@ -296,6 +296,7 @@ Reflects the actual repository, not the roadmap.
     - Teleports to every island's harbour (25 to 64). Each needs you to have discovered somewhere there and the sea gate to be open, and none work mid-fight. The Bell Key makes them free.
     - Book spells are listed in the Magic skill guide. Curses and binds show as a violet or green burst on the foe.
     - Not yet: enchanting jewellery (needs enchanted item variants).
+  - **Fewer misses** (Tom: melee flow is "the amount of misses for definite"). `PLAYER_BASE.missCut` = 0.4: 40% of what RuneScape's roll would miss lands anyway, for your attacks on everyday foes. Equal-level misses go from 34–44% to 19–27%. Bosses keep the old roll (their balance tests pin it), and foes' accuracy against you is unchanged. `misses.test.ts` pins both.
 
 ## Known issues / limitations
 - `touch-e2e` intermittently taps the pack slot 0/3 times (2026-10-24, twice on 2026-10-25). Not root-caused. **Correction:** the low health in those reports (4, 14) was not an attacker: the test sets health to 4 itself, and it regenerates. Ten runs on 2026-10-25 all passed with no level-up card on screen. The test now records what was under the finger on every missed tap, so the next failure names its cause.
