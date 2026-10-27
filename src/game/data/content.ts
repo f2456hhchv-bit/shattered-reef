@@ -556,6 +556,9 @@ export const ENEMIES: Record<string, EnemyDef> = {
   // Sister Corva (the Tides): she fights the way the Hushed do, without a sound, with the lantern-pole she listens by
   corva: { hostile: true, id: 'corva', name: 'Sister Corva', model: 'brigand', look: 'corva', boss: true, level: 86, hp: 210, att: 82, def: 70, defBonus: { melee: 60, ranged: 70, magic: 30 }, weakness: 'magic', style: 'melee', accBonus: 80, maxHit: 17,
     speed: 3.9, radius: 0.5, aggro: 16, attack: { kind: 'melee', range: 2.4, windup: 0.5, cooldown: 2.3 }, loot: 'corva', respawn: 0, scale: 1.25 },
+  // the Undertow's crew (A Parley of Tides): sailors who stopped ageing at the twelfth Lock; they don't hurry, and they don't stop
+  undertow_hand: { hostile: true, id: 'undertow_hand', name: 'Hand of the Undertow', model: 'brigand', look: 'seadraugr', level: 78, hp: 115, att: 74, def: 66, defBonus: { melee: 55, ranged: 50, magic: 35 }, weakness: 'magic', style: 'melee', accBonus: 70, maxHit: 14,
+    speed: 3.2, radius: 0.5, aggro: 16, attack: { kind: 'melee', range: 2.0, windup: 0.55, cooldown: 2.3 }, loot: 'undertow_hand', respawn: 0, scale: 1.15 },
   key_collector: { hostile: true, id: 'key_collector', name: 'The Key Collector', model: 'brigand', look: 'hunter', level: 78, hp: 95, att: 74, def: 64, defBonus: { melee: 55, ranged: 45, magic: 30 }, weakness: 'ranged', style: 'melee', accBonus: 66, maxHit: 13,
     speed: 3.8, radius: 0.5, aggro: 14, attack: { kind: 'melee', range: 1.9, windup: 0.4, cooldown: 2.2 }, loot: 'key_collector', respawn: 0, scale: 1.3 },
   // further out (their islands' slices replace the rest of this list)
@@ -668,6 +671,7 @@ export const LOOT: Record<string, LootTable> = {
   hushed: { coins: [40, 120], drops: [{ item: 'charm_tide', chance: 0.8, qty: [10, 25] }, { item: 'crystal_geode', chance: 0.2 }] },
   starstruck: { coins: [0, 0], drops: [{ item: 'ore_sky', chance: 1, qty: [2, 3] }] },
   corva: { coins: [600, 1200], drops: [{ item: 'orb_lantern', chance: 1 }, { item: 'casket', chance: 1, qty: [2, 3] }] },
+  undertow_hand: { coins: [80, 180], drops: [{ item: 'charm_tide', chance: 0.8, qty: [15, 30] }, { item: 'casket', chance: 0.15 }, { item: 'bar_levi', chance: 0.1 }] },
   key_collector: { coins: [400, 800], drops: [{ item: 'casket', chance: 1, qty: [2, 3] }, { item: 'crystal_geode', chance: 1, qty: [2, 3] }] },
   barrow_king: { coins: [150, 300], drops: [{ item: 'bar_storm', chance: 1, qty: [2, 4] }, { item: 'crystal_geode', chance: 0.5 }] },
   douen_elder: { coins: [40, 80], drops: [{ item: 'charm_tide', chance: 1, qty: [10, 20] }] },

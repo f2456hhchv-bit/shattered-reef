@@ -10,14 +10,21 @@ export interface Effect {
   flag?: string;
   /** a quest key, slotted on your keyring */
   key?: string;
-  /** something seen, not said: shown like a page you're reading (a Lock's memory, a letter) */
-  vision?: { title: string; sub: string; lines: string[] };
+  /** something seen, not said: shown like a page you're reading (a Lock's memory, a letter); `react` lines join in
+   * when their flags are set, then `after` closes it */
+  vision?: { title: string; sub: string; lines: string[]; react?: React[]; after?: string[] };
   /** someone signs on to your crew */
   crew?: string;
 }
 
+/** Lines that are only said when the world is a certain way: who you befriended, beat, recruited or lost. */
+export interface React { flags: string[]; not?: string[]; lines: string[] }
+
 export interface DialogueNode {
   lines: string[];
+  /** reactive lines, said after `lines` when their flags are (and `not` flags aren't) set; then `after` */
+  react?: React[];
+  after?: string[];
   requires?: { id: string; qty: number }; // only offered when the player carries this
   /** only offered once these flags are set (other quests done); `missing` is said until then */
   needsFlags?: string[];
@@ -1184,6 +1191,70 @@ export const QUESTS: Record<string, QuestDef> = {
           'Here. This was for her, for when she was older. Wax in a locket. You\'ve been listening at doors too long, captain. I can see it on you. Put this on and let the world go quiet for a while.'],
           effect: { give: [{ id: 'brine_locket', qty: 1 }, { id: 'coins', qty: 4000 }], xp: [{ skill: 'hitpoints', amount: 5000 }, { skill: 'defence', amount: 5000 }], stage: 6, flag: 'eightyfirst_done' } } } },
       { text: 'Quest complete. Sela is home, with wax in her ears, and Mother Brine counts eighty-one again.' },
+    ],
+  },
+  parley: {
+    id: 'parley',
+    main: true,
+    name: 'A Parley of Tides',
+    island: 'wrack',
+    giver: 'iven',
+    reward: '10,000 coins, 10,000 Sailing, Attack and Strength XP. Act III begins.',
+    stages: [
+      { text: 'Speak with Iven Marr at Bellwether Quay, once Thirteen\'s in the Belly is done.',
+        talk: { npc: 'iven', node: { needsFlags: ['belly_done'], missing: ['Keep it on you, captain. And don\'t put it to your ear. I can tell when you have.'], lines: [
+          'I\'ve been thinking about the Undertow. One ship, a crew that doesn\'t age, a captain who\'s waited a thousand years. We can\'t outsail that. We can\'t outwait it.',
+          'But there are seven captains on this sea with bounties over a hundred thousand, and every one of them wants Keel\'s Hoard for a reason that dies if the Bottom Door opens.',
+          'Get them round a table. All of them that will come. Mercy Gale keeps the only harbour all of them can land at without a fight; rule one. Ask her to host.'],
+          effect: { stage: 1 } } } },
+      { text: 'Ask Mercy Gale at Gallows Landing, Stormwrack, to host a parley of the Tides.',
+        talk: { npc: 'mercy', node: { lines: [
+          'A parley. Of the Tides. At my landing.',
+          'Rule one: every harbour stays open to every keel. Nobody ever said it had to stay open to all of them on the same night.',
+          'Fine. I\'ll drag the long table out of the customs house. I\'ll send the word on the Compact\'s cutters, and I won\'t read the replies. Come back at dusk and call them to order.'],
+          react: [{ flags: ['tide_marisol_cove'], lines: ['And tell Marisol Ransom she can bring one goat. One.'] }],
+          effect: { stage: 2 } } } },
+      { text: 'At dusk, call the parley to order at the long table in Gallows Landing\'s yard.',
+        marks: [{ id: 'table', label: 'The long table in the yard, set with every lantern Mercy owns', verb: 'Call the parley to order', region: 'wrack', x: WRACK_LAYOUT.landing.x + 3, z: WRACK_LAYOUT.landing.z - 4,
+          effect: { flag: 'parley_held', stage: 3, vision: { title: 'The parley at Gallows Landing', sub: 'Every keel came that would', lines: [
+            'Mercy has dragged the long table into the yard and lit every lantern she owns. Rule one: every harbour stays open to every keel. Tonight, the keels came.'],
+            react: [
+              { flags: ['tide_marisol_cove'], lines: ['Marisol Ransom sits at the head of the table because nobody else dared, in a red coat with goat hair on the sleeves. "Nine goats," she says to anyone who looks at her. "Don\'t."'] },
+              { flags: ['tide_marisol_friend'], not: ['tide_marisol_cove'], lines: ['Marisol Ransom sits with her boots on the table. "I don\'t parley," she says. "I came for the food."'] },
+              { flags: ['ransom_pennant'], lines: ['Marisol Ransom stands at the far end and won\'t sit. Every time she looks at your mast, at her own red pennant flying from it, her jaw tightens.'] },
+              { flags: ['tide_gull_crew'], lines: ['Bastian Gull unrolls his charts down the table between the cups, coughing into a handkerchief he folds away before anyone sees. Every Lock you\'ve found is marked. So is a blank space in the middle of the Reef, labelled in very small letters: "here".'] },
+              { flags: ['tide_brine_friend', 'eightyfirst_done'], lines: ['Mother Brine has brought eleven children and a pot of stew, and nobody says anything about either. Sela sits on her knee with wax in her ears, watching the harbour mouth.'] },
+              { flags: ['tide_brine_friend'], not: ['eightyfirst_done'], lines: ['Mother Brine has brought eleven children and a pot of stew, and nobody says anything about either.'] },
+              { flags: ['tide_brine_enemy'], lines: ['Mother Brine didn\'t come. A boy in a man\'s coat came in her place, set a pot of stew on the table, spat at your feet, and left. The stew is very good.'] },
+              { flags: ['tide_ninefold_crew'], lines: ['Halvdan Ninefold stands behind your chair like a wall, arms folded, as if the parley were a fight he\'d been promised.'] },
+              { flags: ['tide_ninefold_dead'], lines: ['At one end of the table there\'s a horn of mead that nobody drinks. Mercy put it there. For Ninefold, she says, who\'d have liked a night like this.'] },
+              { flags: ['tide_ash_crew'], lines: ['Ash Tolliver pours everyone\'s drinks before they can ask, then stands by the door. Halvard Rask came over from Tollhouse with him. They don\'t talk. They stand together.'] },
+              { flags: ['lantern_done'], lines: ['There\'s one empty chair. Nobody pulls it out. Everyone knows whose it would have been.'] },
+            ],
+            after: ['You put the thirteenth Lockkey on the table between the lanterns. It hums. One by one, the captains stop talking.',
+              'And out in the harbour, without a sound, a ship with bone-grey sails slides in past the breakwater and drops anchor.'] } } }] },
+      { text: 'The Undertow\'s crew are coming up the road into Gallows Landing, unhurried, the way men walk who have all the time in the world. Stop them before the yard.',
+        kill: { foe: 'undertow_hand', count: 4, spawn: { region: 'wrack', x: WRACK_LAYOUT.landing.x + 1, z: WRACK_LAYOUT.landing.z - 21 } } },
+      { text: 'The Undertow has gone as quietly as it came. Something has been left on the long table.',
+        marks: [{ id: 'letter', label: 'A grey envelope, pinned to the table with a fish-hook', verb: 'Open it', region: 'wrack', x: WRACK_LAYOUT.landing.x + 3, z: WRACK_LAYOUT.landing.z - 4,
+          effect: { flag: 'hale_letter', stage: 5, vision: { title: 'A letter from the Undertow', sub: 'Grey paper, a hand older than the paper', lines: [
+            '"Captain. You\'ve gathered my old shipmates\' grandchildren round a table and shown them my key. That was brave. It was also very loud."',
+            '"I don\'t want to fight you. I never wanted to fight anyone. I wanted to open a door for some people who\'ve been knocking for a thousand years. You\'ve heard them. You know how tired they are."',
+            '"The eleven Locks you haven\'t opened lie on islands nobody\'s charted since the Breaking. Someone at your table is about to chart them for you. I\'ll be waiting at every one."',
+            '"Keep the key warm. — Vesper Hale, captain of the Undertow, quartermaster to a better man than either of us."'] } } }] },
+      { text: 'Take Hale\'s letter home to Iven Marr.',
+        talk: { npc: 'iven', node: { lines: [
+          'She signed it. After a thousand years she signed it with her name, like a neighbour asking to borrow a ladder.',
+          'Eleven Locks on islands nobody\'s charted. So that\'s the next map. That\'s the one my family\'s been drawing for a thousand years without knowing what it was for.'],
+          react: [
+            { flags: ['tide_gull_crew'], lines: ['"Someone at your table is about to chart them." She means Gull. Of course she means Gull. He\'s been sounding the edge of the known Reef for twenty years. He\'ll be insufferable.'] },
+            { flags: ['tide_marisol_cove'], lines: ['Marisol sent a note. It says, in full: "Coral Key is on the way to wherever you\'re going. Stop for goats."'] },
+            { flags: ['tide_ash_crew'], lines: ['Ash came by and fixed my door. He didn\'t say anything. It doesn\'t stick any more.'] },
+          ],
+          after: ['Act Three, my grandmother would have called it. The part where everyone stops pretending they\'re not in the same story.',
+            'Rest, captain. Then we chart the rest of the sea.'],
+          effect: { give: [{ id: 'coins', qty: 10000 }], xp: [{ skill: 'sailing', amount: 10000 }, { skill: 'attack', amount: 10000 }, { skill: 'strength', amount: 10000 }], stage: 6, flag: 'parley_done' } } } },
+      { text: 'Quest complete. The Tides have sat at one table. Vesper Hale has written to you by name. Act III begins: eleven Locks on islands nobody has charted.' },
     ],
   },
 };
