@@ -956,3 +956,45 @@ describe('The Drowned Mirror (Act IV, Saltglass)', () => {
     expect(g.s.keyring).toContain('mira_key');
   }, 120_000);
 });
+
+describe('The Undertow (Act IV)', () => {
+  for (const path of ['refuse', 'give'] as const) it(`Hale's offer, ship to ship: ${path}`, () => {
+    let g: Game;
+    const go = (to: 'saltglass' | 'bellwether') => {
+      const L = regionLayout(to), sv = g ? g.serialize() : { ...defaultSave(L.respawn, L.mooring!) };
+      sv.player.x = L.respawn.x; sv.player.z = L.respawn.z; sv.player.onShip = false;
+      Object.assign(sv.ship, { ...L.mooring!, region: to });
+      g = new Game({ seed: 7, save: { ...JSON.parse(JSON.stringify(sv)), region: to } });
+      for (const e of g.enemies) { e.alive = false; e.respawnAt = Infinity; }
+      g.naval.foes.forEach((f) => { f.alive = false; f.respawnAt = Infinity; });
+    };
+    go('saltglass');
+    for (const f of ['mirror_done', 'iven_taken', 'iven_back', 'thirteenth_held']) g!.s.flags[f] = true;
+    g!.give('thirteenth_key', 1);
+    talk(g!, 'sunniva');
+    expect(g!.questStage('undertow')).toBe(1);
+    const sea = (id: string) => { const m = g!.questMarks().find((x) => x.quest === 'undertow' && x.mark.id === id)!.mark; g!.p.onShip = true; g!.ship.x = m.x; g!.ship.z = m.z; g!.p.x = m.x; g!.p.z = m.z; g!.interact(`quest:undertow:${id}`); for (let t = 0; t < 3; t += 1 / 30) g!.step(1 / 30); };
+    sea('hail');
+    expect(g!.questStage('undertow')).toBe(2);
+    sea(path);
+    if (path === 'refuse') {
+      expect(g!.questStage('undertow')).toBe(3);
+      for (let t = 0; t < 1; t += 1 / 30) g!.step(1 / 30);
+      expect(g!.naval.foes.some((f) => f.def.id === 'undertow' && f.alive)).toBe(true);
+      sea('fog');
+      expect(g!.questStage('undertow')).toBe(4);
+      for (let t = 0; t < 1; t += 1 / 30) g!.step(1 / 30);
+      expect(g!.naval.foes.some((f) => f.def.id === 'undertow')).toBe(false);
+      expect(count(g!.p.inv, 'thirteenth_key')).toBe(1);
+    } else {
+      expect(g!.questStage('undertow')).toBe(4);
+      expect(count(g!.p.inv, 'thirteenth_key')).toBe(0);
+    }
+    const said: string[][] = [];
+    go('bellwether');
+    g!.on((e) => { if (e.type === 'dialog') said.push(e.lines); });
+    talk(g!, 'iven');
+    expect(g!.questStage('undertow')).toBe(QUESTS.undertow.stages.length - 1);
+    expect(said.flat().some((l) => l.includes(path === 'refuse' ? 'outran the Undertow' : 'You gave it to her'))).toBe(true);
+  }, 120_000);
+});

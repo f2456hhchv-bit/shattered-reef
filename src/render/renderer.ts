@@ -850,16 +850,16 @@ export class GameRenderer {
           v = { root, gulls };
         } else {
           // the wreckers' red, the pirates' black, a fire ship's tar, the Red Ransom's crimson
-          const colour = f.def.look === 'pirate' || f.def.look === 'lantern' ? 0x1e1e22 : f.def.look === 'fireship' ? 0x3a2a1a : f.def.look === 'ransom' ? 0xb01818 : f.def.look === 'longship' ? 0xc9a050 : 0x8a2a24;
+          const colour = f.def.look === 'undertow' ? 0x7a7870 : f.def.look === 'pirate' || f.def.look === 'lantern' ? 0x1e1e22 : f.def.look === 'fireship' ? 0x3a2a1a : f.def.look === 'ransom' ? 0xb01818 : f.def.look === 'longship' ? 0xc9a050 : 0x8a2a24;
           const cut = buildSloop(colour);
           // pirates fly black canvas, the Red Ransom red, a fire ship's is scorched
-          const sails = f.def.look === 'pirate' ? [0x2a2a2e, 0x1a1a1e] : f.def.look === 'lantern' ? [0x141418, 0x6a6a68] : f.def.look === 'ransom' ? [0xa82020, 0x6a1010] : f.def.look === 'fireship' ? [0x5a4a3a, 0x3a2a1e]
+          const sails = f.def.look === 'undertow' ? [0xd8d4c8, 0xa8a49a] : f.def.look === 'pirate' ? [0x2a2a2e, 0x1a1a1e] : f.def.look === 'lantern' ? [0x141418, 0x6a6a68] : f.def.look === 'ransom' ? [0xa82020, 0x6a1010] : f.def.look === 'fireship' ? [0x5a4a3a, 0x3a2a1e]
             : f.def.look === 'longship' ? [0xd8cfb8, 0xa83a2a] : null; // a raider's sail: undyed wool banded red
           if (sails) recolour(cut.root, { sail: sails[0], sailPatch: sails[1] });
           cut.root.scale.setScalar(f.def.scale);
           root.add(cut.root);
           v = { root };
-          if (f.def.look === 'lantern') {
+          if (f.def.look === 'lantern' || f.def.look === 'undertow') {
             // Corva's lamp at the bow: pale as the song, and it never gutters
             const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.28, 10, 8), new THREE.MeshStandardMaterial({ color: 0xd8e8ff, emissive: 0xbcd8ff, emissiveIntensity: 2.4 }));
             lamp.position.set(3.9, 1.9, 0); // on the bowsprit, in the hull's own frame

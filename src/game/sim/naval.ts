@@ -59,10 +59,13 @@ export class Naval {
   /** A quest stage that wants a ship sunk puts her in the water, once, while you're in her region. */
   private stepQuestFoes() {
     const g = this.g;
-    this.foes = this.foes.filter((f) => !(f.once && !f.alive));
+    // a quest's ship stays only while some stage wants it (to sink, or to hunt you)
+    const wanted = new Set<string>();
+    for (const q of Object.values(QUESTS)) { const st = q.stages[g.questStage(q.id)]; if (st?.kill?.sea) wanted.add(st.kill.foe); if (st?.chase) wanted.add(st.chase.foe); }
+    this.foes = this.foes.filter((f) => !(f.once && (!f.alive || !wanted.has(f.def.id))));
     for (const q of Object.values(QUESTS)) {
-      const k = q.stages[g.questStage(q.id)]?.kill;
-      if (!k?.sea || !k.spawn || k.spawn.region !== g.s.region || this.foes.some((f) => f.def.id === k.foe)) continue;
+      const st = q.stages[g.questStage(q.id)], k = st?.kill?.sea ? st.kill : st?.chase ? { foe: st.chase.foe, spawn: st.chase.spawn } : null;
+      if (!k?.spawn || k.spawn.region !== g.s.region || this.foes.some((f) => f.def.id === k.foe)) continue;
       const def = SEA_FOES[k.foe], at = def && g.nearestSea(k.spawn.x, k.spawn.z);
       if (!at) continue;
       this.foes.push({ id: g.nextId++, def, x: at[0], z: at[1], heading: 0, spawnX: at[0], spawnZ: at[1], hp: def.hp, maxHp: def.hp, alive: true, respawnAt: 0,
