@@ -54,7 +54,7 @@ export interface Contract {
   z?: number;
 }
 
-export type CrewPassive = 'heal' | 'ranged_dmg' | 'ship_speed' | 'max_hp' | 'trade' | 'gather' | 'sailing_xp' | 'finds' | 'melee_dmg';
+export type CrewPassive = 'heal' | 'ranged_dmg' | 'ship_speed' | 'max_hp' | 'trade' | 'gather' | 'sailing_xp' | 'finds' | 'melee_dmg' | 'cannon';
 export interface CrewDef {
   id: string;
   name: string;
@@ -99,5 +99,8 @@ export const CREW: CrewDef[] = [
   { id: 'halvdan', name: 'Halvdan Ninefold', role: 'Shieldbreaker', line: 'You beat me fair and then wouldn\'t let me die. That\'s a saga with no end. I\'ll have to stay and see one.', bounty: 0, coins: 0, quest: true,
     passive: { kind: 'melee_dmg', v: 4, text: 'Melee max hit +4%' }, mate: { style: 'melee', held: 'greatsword', mul: 0.5, range: 1.9 },
     look: { skin: 0xd8b090, coat: 0x4a3a2a, coatTrim: 0x8a2a1a, shirt: 0x6a5a48, trousers: 0x3a3028, hat: 0x6a6a6a, hair: 0xc89a5a, hatStyle: 'cap', beard: true } },
+  { id: 'ash', name: 'Ash Tolliver', role: 'Master gunner', line: 'I learned guns on a ship that was built to burn. I\'d like to learn what they\'re for on one that isn\'t.', bounty: 0, coins: 0, quest: true,
+    passive: { kind: 'cannon', v: 8, text: 'Broadsides hit 8% harder' }, mate: { style: 'ranged', held: 'pistol', mul: 0.4, range: 7 },
+    look: { skin: 0xc8a080, coat: 0x3a2e28, coatTrim: 0x8a5a2a, shirt: 0xb8a890, trousers: 0x2a2420, hat: 0x2a2420, hair: 0x8a3a1a, hatStyle: 'none', beard: false } },
 ];
 export const CREW_BY: Record<string, CrewDef> = Object.fromEntries(CREW.map((c) => [c.id, c]));

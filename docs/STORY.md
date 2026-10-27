@@ -77,7 +77,7 @@ fly your colours in a fight.
 | **Mother Brine** | *Brinewife*, a barnacled hulk | 210,000 | Feed every orphan in the Reef; she raises an army of them | Amberhold, at the toll |
 | **Halvdan Ninefold** | *Ninefold*, a longship | 160,000 | Die in a fight worth a saga | Stormwrack, at the Wrack |
 | **Sister Corva** | *Lantern*, a black brig | 250,000 | Open the Bottom Door. She is Hushed. Went into the sea off Leviathan's Rest; nobody saw her come up | Act II |
-| **Ash Tolliver** | *Second Chance*, a fire ship's sister | 120,000 | Be forgiven by someone, anyone | Act III |
+| **Ash Tolliver** | *Second Chance*, a fire ship's sister | 120,000 | Be forgiven by someone, anyone. Lit the fuse on the *Kindly Meant* at fifteen; his brother Tam, nine, died aboard. Halvard won't forgive him, but lets him stand at the stones. Joins as gunner | Port Halyard (built: Second Chance) |
 | **The Captain of the *Undertow*** | the *Undertow* | none, ever | ... | The end |
 
 ## Rules for everyone who writes for the Reef

@@ -643,3 +643,34 @@ describe('The Lantern Burns Low (Act II)', () => {
     expect(g.s.flags.lantern_done).toBe(true);
   }, 120_000);
 });
+
+describe('Second Chance (the Tides: Ash Tolliver)', () => {
+  it('the letter to Eir, the names on the stones, Halvard, two longships sunk, the stones at low water, Ash joins as gunner', () => {
+    const S = regionLayout('sunreach');
+    let g = new Game({ seed: 7, save: { ...defaultSave(S.respawn, S.mooring!), region: 'sunreach' } });
+    g.s.flags.firstlock_done = true;
+    talk(g, 'ash');
+    expect(g.questStage('secondchance')).toBe(1);
+    expect(count(g.p.inv, 'ash_letter')).toBe(1);
+    const L = regionLayout('amberhold'), sv = g.serialize();
+    sv.player.x = L.respawn.x; sv.player.z = L.respawn.z; sv.player.onShip = false;
+    Object.assign(sv.ship, { ...L.mooring!, region: 'amberhold' });
+    g = new Game({ seed: 7, save: { ...JSON.parse(JSON.stringify(sv)), region: 'amberhold' } });
+    for (const e of g.enemies) { e.alive = false; e.respawnAt = Infinity; }
+    talk(g, 'eir');
+    expect(g.questStage('secondchance')).toBe(2);
+    use(g, 'secondchance', 'stones');
+    run(g, 20, () => g.questStage('secondchance') === 3);
+    talk(g, 'halvard');
+    expect(g.questStage('secondchance')).toBe(4);
+    g.s.quests.secondchance = 5; // (Ash is back at Port Halyard: his line is played in the Sunreach half)
+    const sink = (g.naval as unknown as { sink(f: unknown): void }).sink.bind(g.naval);
+    for (let k = 0; k < 2; k++) sink(g.naval.foes.find((f) => f.def.id === 'raider_longship' && f.alive)!);
+    expect(g.questStage('secondchance')).toBe(6);
+    use(g, 'secondchance', 'meet');
+    run(g, 30, () => g.questStage('secondchance') === 7);
+    expect(g.questStage('secondchance')).toBe(QUESTS.secondchance.stages.length - 1);
+    expect(g.s.crew).toContain('ash');
+    expect(g.crewV('cannon')).toBe(8);
+  }, 120_000);
+});
