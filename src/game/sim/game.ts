@@ -930,6 +930,7 @@ export class Game {
     if (d.heal) return this.eat(i);
     if (d.equip) return this.equip(i);
     if (d.chart) return this.treasure.read(i);
+    if (d.turn) return this.turnKey(i);
     if (d.opens) {
       remove(this.p.inv, st.id, 1);
       this.rollLoot(LOOT[d.opens], this.p.x, this.p.z);
@@ -939,6 +940,31 @@ export class Game {
       return;
     }
     this.msg(d.desc);
+  }
+
+  /** Wardwright keycutting: a cut key's one turn (items.ts `turn`). */
+  mendLeft = 0;
+  gustUntil = 0;
+  turnKey(i: number) {
+    const st = this.p.inv[i], d = st && item(st.id);
+    if (!st || !d?.turn || this.dead) return;
+    if (d.turn === 'gust' && !this.p.onShip) { this.msg('A Gust key wants a sail to fill. Turn it on deck.', 'warn'); return; }
+    if (d.turn === 'home' && this.p.onShip) { this.msg('Turn a Harbour key with your feet on land.', 'warn'); return; }
+    remove(this.p.inv, st.id, 1);
+    if (d.turn === 'mend') { this.mendLeft = 10; this.msg('You turn the Mending key in the air. Something closes. Your cuts, mostly.', 'good'); }
+    else if (d.turn === 'hush') {
+      let n = 0;
+      for (const e of this.enemies) if (e.alive && !e.def.boss && Math.hypot(e.x - this.p.x, e.z - this.p.z) < 12) { e.fx.root = Math.max(e.fx.root, 6); n++; }
+      this.msg(n ? `You turn the Hush key. ${n === 1 ? 'The foe beside you stops' : `${n} foes stop`} where ${n === 1 ? 'it stands' : 'they stand'}, listening.` : 'You turn the Hush key. Nothing near you to hear it.', 'good');
+    } else if (d.turn === 'gust') { this.gustUntil = this.time + 30; this.msg('You turn the Gust key on deck, and the wind comes round behind you.', 'good'); }
+    else {
+      if (this.region.kind === 'cave') { this.travel({ to: this.region.home, how: 'home', from: this.s.region }); return; }
+      this.stopAction(); this.path = []; this.pending = null; this.target = null;
+      this.p.x = this.layout.respawn.x; this.p.z = this.layout.respawn.z;
+      this.msg('You turn the Harbour key, and you\'re standing on the landing, as if you\'d always been.', 'good');
+    }
+    this.emit({ type: 'keyTurn', x: this.p.x, z: this.p.z, power: d.turn });
+    this.rev++;
   }
 
   /** The food the quick-eat button would eat: the smallest that tops you up without waste, or the biggest you
@@ -1427,7 +1453,7 @@ export class Game {
       if (m > 0.1 || this.hullFits(sh.x, sh.z, sh.heading + turn)) sh.heading += turn;
       else throttle = Math.max(throttle, 0.45);
     }
-    const maxSpeed = 7.5 * (this.activeKey()?.passive.kind === 'ship_speed' ? 1 + this.activeKey()!.passive.v / 100 : 1) * (1 + this.crewV('ship_speed') / 100) * (this.s.flags.toll_pennant ? 1.05 : 1) * (1 + this.shipBonus('sails') / 100) * (this.s.flags.gull_pennant ? 1.03 : 1); // the Tollhouse pennant; the shipwright's sails; a Gull Race gold
+    const maxSpeed = 7.5 * (this.activeKey()?.passive.kind === 'ship_speed' ? 1 + this.activeKey()!.passive.v / 100 : 1) * (1 + this.crewV('ship_speed') / 100) * (this.s.flags.toll_pennant ? 1.05 : 1) * (1 + this.shipBonus('sails') / 100) * (this.s.flags.gull_pennant ? 1.03 : 1) * (this.time < this.gustUntil ? 1.3 : 1); // a Gust key; the Tollhouse pennant; the shipwright's sails; a Gull Race gold
     const targetSpeed = throttle * maxSpeed;
     this.shipSpeed += (targetSpeed - this.shipSpeed) * Math.min(1, dt * (targetSpeed > this.shipSpeed ? 0.7 : 1.2));
     if (this.shipSpeed > 0.01) {
@@ -2920,6 +2946,7 @@ export class Game {
         const amt = (this.combatTimer > 6 ? 1 : 0) + (this.rnd() < this.stats.regen * PLAYER_BASE.regenEvery / 10 ? 1 : 0);
         if (amt > 0 && this.p.hp < this.stats.maxHp) this.p.hp = Math.min(this.stats.maxHp, this.p.hp + amt * HP_SCALE);
       }
+      if (this.mendLeft > 0) { const d = Math.min(dt, this.mendLeft); this.mendLeft -= d; this.p.hp = Math.min(this.stats.maxHp, this.p.hp + this.stats.maxHp * 0.03 * d); }
       if (this.s.meal && this.s.meal.left > 0) {
         this.s.meal.left -= dt;
         if (this.s.meal.left <= 0) { this.msg(`The ${item(this.s.meal.id).name.toLowerCase()} has worn off.`, 'info'); this.s.meal = undefined; this.recalc(); }

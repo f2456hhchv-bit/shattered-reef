@@ -206,6 +206,11 @@ function buildRecipes(): Recipe[] {
   out.push({ id: 'cook_feast', station: 'fire', skill: 'cooking', level: 92, xp: 320, inputs: [{ id: 'fish_shark_raw', qty: 1 }, { id: 'fish_angler_raw', qty: 1 }, { id: 'sea_salt', qty: 1 }], output: { id: 'captains_feast', qty: 1 }, burn: { item: 'burnt_food', stopLevel: 99 } });
   out.push({ id: 'cook_pie_berry', station: 'fire', skill: 'cooking', level: 10, xp: 50, inputs: [{ id: 'berries', qty: 3 }, { id: 'bread', qty: 1 }], output: { id: 'pie_berry', qty: 1 }, burn: { item: 'burnt_food', stopLevel: 34 } });
   out.push({ id: 'cook_stew', station: 'fire', skill: 'cooking', level: 30, xp: 120, inputs: [{ id: 'fish_salmon_raw', qty: 1 }, { id: 'kelp', qty: 1 }, { id: 'sea_salt', qty: 1 }], output: { id: 'fish_stew', qty: 1 }, burn: { item: 'burnt_food', stopLevel: 58 } });
+  // Wardwright keycutting: single-turn keys at the anvil (items.ts `turn`)
+  out.push({ id: 'cut_mend', station: 'anvil', skill: 'smithing', level: 55, xp: 220, inputs: [{ id: 'bar_tide', qty: 1 }, { id: 'gem_jade', qty: 1 }], output: { id: 'key_mend', qty: 2 } });
+  out.push({ id: 'cut_hush', station: 'anvil', skill: 'smithing', level: 62, xp: 260, inputs: [{ id: 'bar_cinder', qty: 1 }, { id: 'gem_pearl', qty: 1 }], output: { id: 'key_hush', qty: 2 } });
+  out.push({ id: 'cut_gust', station: 'anvil', skill: 'smithing', level: 68, xp: 300, inputs: [{ id: 'bar_sky', qty: 1 }, { id: 'crystal_geode', qty: 1 }], output: { id: 'key_gust', qty: 2 } });
+  out.push({ id: 'cut_home', station: 'anvil', skill: 'smithing', level: 75, xp: 340, inputs: [{ id: 'bar_levi', qty: 1 }, { id: 'gem_ruby', qty: 1 }], output: { id: 'key_home', qty: 3 } });
   // the galley: meals that do something for a while (items.ts MEAL_TEXT)
   out.push({ id: 'cook_grog', station: 'fire', skill: 'cooking', level: 15, xp: 55, inputs: [{ id: 'berries', qty: 3 }, { id: 'sea_salt', qty: 1 }], output: { id: 'grog', qty: 1 } });
   out.push({ id: 'cook_stargazy', station: 'fire', skill: 'cooking', level: 28, xp: 110, inputs: [{ id: 'fish_sprat_raw', qty: 3 }, { id: 'bread', qty: 1 }], output: { id: 'stargazy_pie', qty: 1 }, burn: { item: 'burnt_food', stopLevel: 55 } });
