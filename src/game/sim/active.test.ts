@@ -3,7 +3,7 @@ import { Game } from './game';
 import { defaultSave } from './save';
 import { xpForLevel } from './xp';
 import { count } from './inventory';
-import { ACTIVE } from '../data/active';
+import { ACTIVE, MOMENTS } from '../data/active';
 
 // Active skilling (docs/ISLANDS.md): a gold window each swing and craft; tap in it for a bonus, never a penalty.
 const base = new Game({ seed: 1 });
@@ -79,5 +79,42 @@ describe('active skilling', () => {
     while (g.action && guard++ < 30 * 120) { const c = g.cueState(); if (c && !c.struck && c.t >= 0.75) g.strike(); g.step(1 / 30); }
     expect(count(g.p.inv, 'burnt_food')).toBe(0);
     expect(count(g.p.inv, 'fish_sprat')).toBe(20);
+  });
+});
+
+describe('gathering moments', () => {
+  const setup = () => {
+    const g = fresh();
+    g.give('hatchet_bronze', 1);
+    for (const e of g.enemies) { e.alive = false; e.respawnAt = Infinity; }
+    const n = g.nodes.find((x) => x.def === 'tree_pine')!;
+    const q = g.world.nearestWalkable(n.x + 1.2, n.z, 3)!; g.p.x = q[0]; g.p.z = q[1];
+    g.interact(`node:${n.uid}`);
+    g.step(1 / 30);
+    return { g, n };
+  };
+  it('a falling nest: caught on the gold, lost if ignored; the swing waits on it', () => {
+    const { g, n } = setup();
+    const nests = () => count(g.p.inv, 'bird_nest');
+    g.startMoment('nest', n.uid);
+    expect(g.cueState()!.label).toBe(MOMENTS.defs.nest.label);
+    while (g.cueState()!.t < MOMENTS.defs.nest.red[0] + 0.02) g.step(1 / 30);
+    expect(g.strike()).toBe('red');
+    expect(g.moment).toBeNull();
+    expect(nests()).toBe(2);
+    g.startMoment('nest', n.uid);
+    for (let t = 0; t < 2; t += 1 / 30) g.step(1 / 30);
+    expect(g.moment).toBeNull();
+    expect(nests()).toBe(2);
+    expect(g.action?.type).toBe('gather');
+  });
+  it('a big fish takes three pulls; a miss snaps the line', () => {
+    const { g, n } = setup();
+    g.startMoment('tug', n.uid);
+    expect(g.strike()).toBe('miss'); // too soon
+    expect(g.moment).toBeNull();
+    g.startMoment('tug', n.uid);
+    for (let k = 0; k < 3; k++) { while (g.cueState()!.t < MOMENTS.defs.tug.window[0] + 0.05) g.step(1 / 30); expect(g.strike()).not.toBe('miss'); }
+    expect(g.moment).toBeNull();
   });
 });
