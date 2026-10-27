@@ -64,7 +64,8 @@ describe('content data', () => {
   });
 
   it('no gear is drop-only: every weapon and armour piece is craftable, sold, or a quest/boss trophy', () => {
-    const made = new Set(RECIPES.map((r) => r.output.id));
+    // made at a station, or by a spell (an Enchant spell wakes a gem's plain jewellery)
+    const made = new Set([...RECIPES.map((r) => r.output.id), ...BOOK.flatMap((b) => (b.gem ? ['ring', 'bracelet', 'amulet'].map((k) => `ench_${k}_${b.gem}`) : []))]);
     const sold = new Set(Object.values(SHOPS).flatMap((sh) => sh.stock.map((s) => s.id)));
     const questGifts = Object.values(QUESTS).flatMap((q) => q.stages.flatMap((st) => [
       ...[st.talk, ...(st.also ?? [])].flatMap((o) => o?.node.effect?.give?.map((g) => g.id) ?? []),

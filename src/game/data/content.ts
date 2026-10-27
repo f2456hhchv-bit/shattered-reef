@@ -338,7 +338,7 @@ export const SHOPS: Record<string, Shop> = {
     id: 'general', name: 'Gell\'s Harbour Goods', keeper: 'marta',
     stock: [
       { id: 'bread', qty: 1 }, { id: 'hatchet_chipped', qty: 1 }, { id: 'pickaxe_chipped', qty: 1 },
-      { id: 'pistol_flintlock', qty: 1 }, { id: 'shot_bronze', qty: 25 }, { id: 'shortbow_pine', qty: 1 }, { id: 'arrow_bronze', qty: 25 }, { id: 'dagger_bronze', qty: 1 }, { id: 'shard_gale', qty: 25 }, { id: 'charm_tide', qty: 25 }, { id: 'shard_stone', qty: 25 }, { id: 'shard_ember', qty: 25 }, { id: 'shard_whisper', qty: 25 }, { id: 'shard_bone', qty: 10 }, { id: 'shard_root', qty: 5 }, { id: 'staff_el_gale', qty: 1 }, { id: 'staff_el_tide', qty: 1 }, { id: 'staff_el_stone', qty: 1 }, { id: 'staff_el_ember', qty: 1 }, { id: 'staff_driftwood', qty: 1 }, { id: 'charm_tide', qty: 25 },
+      { id: 'pistol_flintlock', qty: 1 }, { id: 'shot_bronze', qty: 25 }, { id: 'shortbow_pine', qty: 1 }, { id: 'arrow_bronze', qty: 25 }, { id: 'dagger_bronze', qty: 1 }, { id: 'shard_gale', qty: 25 }, { id: 'charm_tide', qty: 25 }, { id: 'shard_stone', qty: 25 }, { id: 'shard_ember', qty: 25 }, { id: 'shard_whisper', qty: 25 }, { id: 'shard_bone', qty: 10 }, { id: 'shard_root', qty: 5 }, { id: 'shard_star', qty: 5 }, { id: 'staff_el_gale', qty: 1 }, { id: 'staff_el_tide', qty: 1 }, { id: 'staff_el_stone', qty: 1 }, { id: 'staff_el_ember', qty: 1 }, { id: 'staff_driftwood', qty: 1 }, { id: 'charm_tide', qty: 25 },
       { id: 'cap_leather', qty: 1 }, { id: 'coat_padded', qty: 1 }, { id: 'chaps_leather', qty: 1 }, { id: 'boots_leather', qty: 1 }, { id: 'gloves_leather', qty: 1 }, { id: 'leather', qty: 5 },
       { id: 'spade', qty: 1 }, { id: 'staff_coral', qty: 1 }, { id: 'wand_driftwood', qty: 1 }, { id: 'orb_glass', qty: 1 }, { id: 'book_almanac', qty: 1 },
       { id: 'shield_bronze', qty: 1 }, { id: 'amulet_brass', qty: 1 }, { id: 'bracelet_brass', qty: 1 },
@@ -364,7 +364,7 @@ SHOPS.sunreach = {
   stock: [
     { id: 'shortbow_oak', qty: 1 }, { id: 'longbow_willow', qty: 1 }, { id: 'crossbow_iron', qty: 1 }, { id: 'arrow_iron', qty: 25 }, { id: 'bolt_iron', qty: 20 }, { id: 'shot_steel', qty: 25 },
     { id: 'cutlass_steel', qty: 1 }, { id: 'pike_iron', qty: 1 }, { id: 'helm_steel', qty: 1 }, { id: 'shield_steel', qty: 1 }, { id: 'legs_iron', qty: 1 },
-    { id: 'wand_coral', qty: 1 }, { id: 'orb_coral', qty: 1 }, { id: 'book_coral', qty: 1 }, { id: 'harpoon', qty: 1 }, { id: 'lobster_pot', qty: 1 }, { id: 'charm_tide', qty: 50 }, { id: 'shard_gale', qty: 50 }, { id: 'shard_ember', qty: 50 }, { id: 'shard_whisper', qty: 25 }, { id: 'shard_squall', qty: 20 }, { id: 'shard_root', qty: 10 }, { id: 'shard_compass', qty: 10 }, { id: 'sea_salt', qty: 5 }, { id: 'fire_barrel', qty: 20 },
+    { id: 'wand_coral', qty: 1 }, { id: 'orb_coral', qty: 1 }, { id: 'book_coral', qty: 1 }, { id: 'harpoon', qty: 1 }, { id: 'lobster_pot', qty: 1 }, { id: 'charm_tide', qty: 50 }, { id: 'shard_gale', qty: 50 }, { id: 'shard_ember', qty: 50 }, { id: 'shard_whisper', qty: 25 }, { id: 'shard_squall', qty: 20 }, { id: 'shard_root', qty: 10 }, { id: 'shard_compass', qty: 10 }, { id: 'shard_star', qty: 15 }, { id: 'sea_salt', qty: 5 }, { id: 'fire_barrel', qty: 20 },
   ],
   buyMul: 1.15, sellMul: 0.55,
   wants: [{ prefix: 'ore_', mul: 1.3, note: 'Tamsin pays well for ore,' }, { prefix: 'logs_', mul: 1.3, note: 'timber' }, { prefix: 'spider_silk', mul: 1.5, note: 'and spider silk.' }],
@@ -374,7 +374,7 @@ SHOPS.tollmarket = {
   id: 'tollmarket', name: 'Tollhouse Market', keeper: 'brita',
   stock: [
     { id: 'cutlass_storm', qty: 1 }, { id: 'greatsword_storm', qty: 1 }, { id: 'helm_storm', qty: 1 }, { id: 'plate_storm', qty: 1 }, { id: 'legs_storm', qty: 1 }, { id: 'shield_storm', qty: 1 },
-    { id: 'longbow_amber', qty: 1 }, { id: 'arrow_storm', qty: 25 }, { id: 'shot_storm', qty: 25 }, { id: 'staff_storm', qty: 1 }, { id: 'charm_tide', qty: 80 }, { id: 'shard_gale', qty: 80 }, { id: 'shard_stone', qty: 80 }, { id: 'shard_ember', qty: 80 }, { id: 'shard_squall', qty: 25 }, { id: 'shard_grave', qty: 20 }, { id: 'shard_root', qty: 10 }, { id: 'shard_compass', qty: 10 },
+    { id: 'longbow_amber', qty: 1 }, { id: 'arrow_storm', qty: 25 }, { id: 'shot_storm', qty: 25 }, { id: 'staff_storm', qty: 1 }, { id: 'charm_tide', qty: 80 }, { id: 'shard_gale', qty: 80 }, { id: 'shard_stone', qty: 80 }, { id: 'shard_ember', qty: 80 }, { id: 'shard_squall', qty: 25 }, { id: 'shard_grave', qty: 20 }, { id: 'shard_root', qty: 10 }, { id: 'shard_compass', qty: 10 }, { id: 'shard_star', qty: 15 },
     { id: 'fire_barrel', qty: 20 }, { id: 'depth_charge', qty: 10 }, { id: 'chain_shot', qty: 20 }, { id: 'honeycomb', qty: 1 }, { id: 'fish_salmon', qty: 1 },
   ],
   buyMul: 1.2, sellMul: 0.5,
@@ -385,7 +385,7 @@ SHOPS.gallows = {
   id: 'gallows', name: 'Gallows Landing Store', keeper: 'osric',
   stock: [
     { id: 'cutlass_tide', qty: 1 }, { id: 'helm_tide', qty: 1 }, { id: 'plate_tide', qty: 1 }, { id: 'legs_tide', qty: 1 }, { id: 'shield_tide', qty: 1 }, { id: 'staff_tide', qty: 1 },
-    { id: 'arrow_tide', qty: 25 }, { id: 'shot_tide', qty: 25 }, { id: 'bolt_tide', qty: 20 }, { id: 'charm_tide', qty: 120 }, { id: 'shard_gale', qty: 120 }, { id: 'shard_stone', qty: 80 }, { id: 'shard_ember', qty: 80 }, { id: 'shard_grave', qty: 25 }, { id: 'shard_heart', qty: 20 }, { id: 'shard_wrath', qty: 10 }, { id: 'shard_root', qty: 10 }, { id: 'shard_compass', qty: 10 },
+    { id: 'arrow_tide', qty: 25 }, { id: 'shot_tide', qty: 25 }, { id: 'bolt_tide', qty: 20 }, { id: 'charm_tide', qty: 120 }, { id: 'shard_gale', qty: 120 }, { id: 'shard_stone', qty: 80 }, { id: 'shard_ember', qty: 80 }, { id: 'shard_grave', qty: 25 }, { id: 'shard_heart', qty: 20 }, { id: 'shard_wrath', qty: 10 }, { id: 'shard_root', qty: 10 }, { id: 'shard_compass', qty: 10 }, { id: 'shard_star', qty: 15 },
     { id: 'fish_shark', qty: 1 }, { id: 'fish_sword', qty: 1 }, { id: 'depth_charge', qty: 20 }, { id: 'fire_barrel', qty: 30 }, { id: 'sea_salt', qty: 10 },
   ],
   buyMul: 1.3, sellMul: 0.5,
@@ -411,7 +411,7 @@ export type Element = 'gale' | 'tide' | 'stone' | 'ember';
 export const SHARD = {
   gale: 'shard_gale', tide: 'charm_tide', stone: 'shard_stone', ember: 'shard_ember',
   whisper: 'shard_whisper', squall: 'shard_squall', grave: 'shard_grave', heart: 'shard_heart', wrath: 'shard_wrath',
-  root: 'shard_root', compass: 'shard_compass', bone: 'shard_bone',
+  root: 'shard_root', compass: 'shard_compass', bone: 'shard_bone', star: 'shard_star',
 } as const;
 export type ShardCost = { id: string; qty: number }[];
 export interface Spell { id: string; name: string; level: number; maxHit: number; baseXp: number; cost: ShardCost; element?: Element; /** taught by a quest: this flag must be set */ quest?: string }

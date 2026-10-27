@@ -501,6 +501,32 @@ function tierItems(): ItemDef[] {
     out.push(I({ id: `amulet_${g.key}`, name: `${g.name} amulet`, desc: `A ${g.name.toLowerCase()} on a gold chain.`, icon: { shape: 'amulet', color: '#e3c25e', accent: g.colour }, stackable: false, value: v * 1.5,
       equip: { slot: 'neck', reqs: {}, bonus: { acc: 4 + 3 * t, str: 4 + 3 * t, defMelee: 2 + t, defRanged: 2 + t, defMagic: 2 + t }, affixPool: JEWEL_AFFIX } }));
   });
+  // ---- enchanted jewellery (data/spellbook.ts: Enchant I-V): the same piece, its gem woken with a star shard. It keeps
+  // the gold piece's bonuses and gains a lasting trait (Tom, 2026-10-27: "start building the enchanting jewellery")
+  const ENCH: Record<(typeof GEMS)[number]['key'], Record<'ring' | 'bracelet' | 'amulet', [string, { id: string; v: number }[], string]>> = {
+    pearl: { ring: ['Ring of the Shallows', [{ id: 'gather_speed', v: 6 }], 'The pearl remembers the sea floor. Things come easier to your hand.'],
+      bracelet: ['Tidewatcher\'s bangle', [{ id: 'regen', v: 1 }], 'Cool on the wrist, like a rising tide. Small hurts close on their own.'],
+      amulet: ['Amulet of the Deep', [{ id: 'charm_save', v: 10 }], 'The pearl drinks a little of every spell, and gives some back.'] },
+    jade: { ring: ['Ring of Plenty', [{ id: 'xp_bonus', v: 3 }], 'Kelp jade, green as a held breath. Whatever you do, you learn a little more from it.'],
+      bracelet: ['Kelpweaver\'s bracelet', [{ id: 'gather_speed', v: 8 }], 'The jade hums when your work goes well, which is often.'],
+      amulet: ['Amulet of Mending', [{ id: 'regen', v: 2 }], 'Green light pools under the stone. Wounds knit while you walk.'] },
+    ruby: { ring: ['Reaver\'s ring', [{ id: 'leech', v: 3 }], 'The coral ruby warms when blood is spilled, and gives some of it back to you.'],
+      bracelet: ['Emberwrist', [{ id: 'crit', v: 3 }], 'A red coal at the wrist. Now and then a blow lands with everything behind it.'],
+      amulet: ['Amulet of Fury', [{ id: 'dmg_pct', v: 4 }], 'The ruby burns in its cage. So do you.'] },
+    diamond: { ring: ['Ring of Warding', [{ id: 'armour', v: 6 }], 'Storm diamond: blows turn on it like rain on glass.'],
+      bracelet: ['Stormguard bracelet', [{ id: 'max_hp', v: 3 }], 'The diamond holds a storm, and lends you its weather.'],
+      amulet: ['Amulet of Power', [{ id: 'accuracy', v: 8 }, { id: 'dmg_pct', v: 3 }], 'Cold light, and a steadiness in the hand that wasn\'t yours before.'] },
+    eye: { ring: ['Leviathan\'s signet', [{ id: 'elite_dmg', v: 8 }], 'The eye watches the strongest thing in any fight. So do you, and you hit it harder.'],
+      bracelet: ['Leviathan\'s grasp', [{ id: 'leech', v: 4 }, { id: 'crit', v: 3 }], 'It tightens a little when you strike. You are fed by it.'],
+      amulet: ['Eye of the Deep', [{ id: 'xp_bonus', v: 5 }, { id: 'charm_save', v: 10 }], 'The Leviathan\'s eye, open. It has seen everything twice, and shows you some of it.'] },
+  };
+  GEMS.forEach((g) => {
+    for (const kind of ['ring', 'bracelet', 'amulet'] as const) {
+      const base = out.find((x) => x.id === `${kind}_${g.key}`)!, [name, innate, desc] = ENCH[g.key][kind];
+      out.push(I({ ...base, id: `ench_${kind}_${g.key}`, name, desc: `${desc} (Enchanted ${base.name.toLowerCase()}.)`, value: Math.round(base.value * 1.6), innate,
+        icon: { ...base.icon, accent: g.colour, color: '#f2d878' } }));
+    }
+  });
   // ---- signature weapons: very rare drops from late foes, each with one rule that changes how it fights
   const SIG_AFFIX = { melee: [...MELEE_AFFIX, 'leech'], ranged: RANGED_AFFIX, magic: MAGIC_AFFIX };
   const sig = (id: string, name: string, desc: string, shape: IconShape, col: string, acc: string, style: CombatStyle, kind: WeaponKind, reqs: Partial<Record<SkillId, number>>, speed: number, range: number | undefined, bonus: Bonuses, s: { id: SigId; text: string }) =>
@@ -549,6 +575,7 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(
     I({ id: 'shard_grave', name: 'Grave shard', desc: 'Black glass from a barrow floor. Every blast spell needs one.', icon: { shape: 'charm', color: '#3a3a44', accent: '#9aa0b4' }, stackable: true, value: 25 }),
     I({ id: 'shard_heart', name: 'Heart shard', desc: 'Red glass that beats if you hold it long enough. Every wave spell needs one.', icon: { shape: 'charm', color: '#b42a3a', accent: '#f0a0a8' }, stackable: true, value: 45 }),
     I({ id: 'shard_wrath', name: 'Wrath shard', desc: 'Glass cut from the Leviathan\'s grave. Every surge spell needs one.', icon: { shape: 'charm', color: '#7a1a6a', accent: '#f0c040' }, stackable: true, value: 80 }),
+    I({ id: 'shard_star', name: 'Star shard', desc: 'A splinter of fallen star, cold and bright. Enchanting needs one.', icon: { shape: 'charm', color: '#f2ecd0', accent: '#3a4a8a' }, stackable: true, value: 15 }),
     I({ id: 'shard_bone', name: 'Bone shard', desc: 'Milk-white glass that feels like a knuckle. Curses need one.', icon: { shape: 'charm', color: '#ece4d2', accent: '#8a7a5a' }, stackable: true, value: 6 }),
     I({ id: 'shard_root', name: 'Root shard', desc: 'Green glass grown through with root. Alchemy needs one.', icon: { shape: 'charm', color: '#4a8a3a', accent: '#b4d870' }, stackable: true, value: 20 }),
     I({ id: 'shard_compass', name: 'Compass shard', desc: 'Glass with a needle in it that always finds home. Teleports need one.', icon: { shape: 'charm', color: '#c8a85a', accent: '#3a2a14' }, stackable: true, value: 30 }),

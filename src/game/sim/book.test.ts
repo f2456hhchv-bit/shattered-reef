@@ -13,7 +13,7 @@ const base = new Game({ seed: 1 });
 const fresh = (seed = 7) => {
   const g = new Game({ seed, save: defaultSave(base.layout.respawn, base.layout.mooring!) });
   g.p.xp.magic = xpForLevel(99); g.recalc();
-  for (const sh of ['shard_gale', 'charm_tide', 'shard_stone', 'shard_ember', 'shard_bone', 'shard_root', 'shard_compass']) g.give(sh, 200);
+  for (const sh of ['shard_gale', 'charm_tide', 'shard_stone', 'shard_ember', 'shard_bone', 'shard_root', 'shard_compass', 'shard_star']) g.give(sh, 200);
   return g;
 };
 const fightCrab = (g: Game) => {
@@ -102,6 +102,36 @@ describe('the spellbook', () => {
     g.combatTimer = 0;
     settle(g); g.combatTimer = 0;
     expect(g.bookBlock('tp_bellwether')).toMatch(/fighting/);
+  });
+
+  it('enchanting wakes a gem\'s jewellery: same piece and rolled stats, plus a lasting trait', () => {
+    const g = fresh();
+    g.give('shard_star', 10);
+    expect(g.bookBlock('enchant_pearl')).toMatch(/No pearl jewellery/);
+    g.give('ring_pearl', 1);
+    const i = g.p.inv.findIndex((x) => x?.id === 'ring_pearl');
+    g.p.inv[i] = { ...g.p.inv[i]!, inst: { uid: 77, rarity: 'fine', affixes: [{ id: 'regen', v: 1 }] } };
+    expect(g.castBook('enchant_pearl', String(i))).toBe(true);
+    expect(g.p.inv[i]!.id).toBe('ench_ring_pearl');
+    expect(g.p.inv[i]!.inst?.uid).toBe(77); // the very same ring
+    const before = g.stats.gather;
+    g.equip(i); g.recalc();
+    expect(g.stats.gather).toBeGreaterThan(before); // Ring of the Shallows: +6% gathering
+    // a ruby amulet needs Enchant Ruby, not Enchant Pearl
+    g.give('amulet_ruby', 1);
+    expect(g.enchantOptions('enchant_pearl')).toEqual([]);
+    expect(g.enchantOptions('enchant_ruby').length).toBe(1);
+  });
+
+  it('every gem has its three enchanted pieces, each worth more than the plain one', async () => {
+    const { ITEMS } = await import('../data/items');
+    for (const gem of ['pearl', 'jade', 'ruby', 'diamond', 'eye']) for (const k of ['ring', 'bracelet', 'amulet']) {
+      const e = ITEMS[`ench_${k}_${gem}`];
+      expect(e, `${k} ${gem}`).toBeTruthy();
+      expect(e.innate?.length).toBeGreaterThan(0);
+      expect(e.value).toBeGreaterThan(ITEMS[`${k}_${gem}`].value);
+      expect(e.equip?.slot).toBe(ITEMS[`${k}_${gem}`].equip?.slot);
+    }
   });
 
   it('every spell costs shards, levels are in order within each kind, and none needs a staff', () => {

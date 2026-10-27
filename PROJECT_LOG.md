@@ -295,7 +295,13 @@ Reflects the actual repository, not the roadmap.
     - Skilling: Gale Edge 27, Call the Shoals 33 and Stone Sense 39 give +15% woodcutting, fishing or mining success for 5 minutes. Superheat 43 smelts a bar from pack ore with no furnace, for full Smithing XP. Ember Hand 47 means nothing burns for 5 minutes.
     - Teleports to every island's harbour (25 to 64). Each needs you to have discovered somewhere there and the sea gate to be open, and none work mid-fight. The Bell Key makes them free.
     - Book spells are listed in the Magic skill guide. Curses and binds show as a violet or green burst on the foe.
-    - Not yet: enchanting jewellery (needs enchanted item variants).
+  - **Enchanting** (Tom: "start building the enchanting jewellery in now"). Five spells, one per gem, each costing a new **Star shard** (RuneScape's cosmic rune) plus an element: Enchant Pearl 7, Jade 27, Ruby 49, Diamond 57, Leviathan's Eye 68. Each wakes that gem's ring, bracelet or amulet into one of 15 enchanted pieces (`ench_*`). An enchanted piece keeps the gold piece's bonuses and its rolled rarity and affixes, gains a lasting trait, and is worth 1.6× as much:
+    - Pearl: Ring of the Shallows (gathering), Tidewatcher's bangle (regen), Amulet of the Deep (shard saving).
+    - Jade: Ring of Plenty (XP), Kelpweaver's bracelet (gathering), Amulet of Mending (regen).
+    - Ruby: Reaver's ring (life steal), Emberwrist (crits), Amulet of Fury (max hit).
+    - Diamond: Ring of Warding (armour), Stormguard bracelet (health), Amulet of Power (accuracy and max hit).
+    - Eye: Leviathan's signet (elite and boss damage), Leviathan's grasp (life steal and crits), Eye of the Deep (XP and shard saving).
+    - Cast from the Magic tab (one button per piece you carry) or from the item's details (Enchant). The pieces have their own collection log group. Star shards are sold on every island and drop now and then from any foe.
   - **Fewer misses** (Tom: melee flow is "the amount of misses for definite"). `PLAYER_BASE.missCut` = 0.4: 40% of what RuneScape's roll would miss lands anyway, for your attacks on everyday foes. Equal-level misses go from 34–44% to 19–27%. Bosses keep the old roll (their balance tests pin it), and foes' accuracy against you is unchanged. `misses.test.ts` pins both.
 
 ## Known issues / limitations
