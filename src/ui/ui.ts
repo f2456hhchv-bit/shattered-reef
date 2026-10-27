@@ -1083,6 +1083,7 @@ export class UI {
       if (d.heal) acts.push('<button class="btn primary" data-a="use">Eat</button>');
       if (d.opens) acts.push(`<button class="btn primary" data-a="use">${OPEN_VERB[st.id] ?? 'Open'}</button>`);
       if (d.chart) acts.push('<button class="btn primary" data-a="use">Read</button>');
+      if (d.turn) acts.push('<button class="btn primary" data-a="use">Turn</button>');
       if (!d.quest && st.id !== 'coins' && g.level('magic') >= UTILITY_SPELLS.alchemy.level && !this.shopOpen && !this.bankOpen) {
         const coins = Math.max(1, Math.floor(stackValue({ ...st, qty: 1 }) * UTILITY_SPELLS.alchemy.rate)), blk = g.utilityBlock('alchemy');
         acts.push(`<button class="btn" data-a="alch" ${blk ? `disabled title="${esc(blk)}"` : ''}>Alchemise ${coins}c</button>`);

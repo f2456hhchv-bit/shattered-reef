@@ -63,6 +63,8 @@ export interface ItemDef {
   };
   quest?: boolean;
   opens?: string; // using it rolls this loot table (geodes)
+  /** a cut key: turn it once (in the air, in nothing) and it does this, then it's spent */
+  turn?: 'mend' | 'hush' | 'gust' | 'home';
   chart?: boolean; // a treasure map: reading it puts an X on your chart
   innate?: { id: string; v: number }[]; // traits every copy has (the metal's signature), on top of rolled affixes
   /** a signature weapon's one rule, and what it says about it */
@@ -295,6 +297,11 @@ function tierItems(): ItemDef[] {
     equip: { slot: 'weapon', reqs: { attack: 75, strength: 75 }, style: 'melee', kind: 'greatsword', speed: 3.6, range: 1.9, bonus: { acc: 99, str: 170 }, affixPool: MELEE_AFFIX } }));
   // The Salt in the Fen: the Second Lockkey, cut out of Jenny Greenteeth
   out.push(I({ id: 'fen_lockkey', name: 'A key of green bronze', desc: 'Slick with weed and warm from where it was. It hums when you hold it near water. A Lockkey.', icon: { shape: 'tooth', color: '#5a7a3a', accent: '#c9a050' }, stackable: false, value: 0, quest: true }));
+  // Wardwright keycutting (Smithing at any anvil, 55+): small keys with one turn in them, cut from the high metals
+  out.push(I({ id: 'key_mend', name: 'Mending key', desc: 'Kelp jade set in tidecore. Turn it in the air and something closes: your cuts, mostly. Heals 30% of your health over 10 seconds. One turn.', icon: { shape: 'tooth', color: '#3cc6c4', accent: '#3e9a5a' }, stackable: true, value: 300, turn: 'mend' }));
+  out.push(I({ id: 'key_hush', name: 'Hush key', desc: 'A pearl in cinderite. Turn it and everything near you stops to listen: foes within 12 m stand rooted for 6 seconds (not bosses). One turn.', icon: { shape: 'tooth', color: '#b8452a', accent: '#efe6dc' }, stackable: true, value: 380, turn: 'hush' }));
+  out.push(I({ id: 'key_gust', name: 'Gust key', desc: 'Skyglass round a geode crystal. Turn it on deck and the wind turns with it: your ship sails 30% faster for 30 seconds. One turn.', icon: { shape: 'tooth', color: '#8a7ae0', accent: '#9fe8ff' }, stackable: true, value: 420, turn: 'gust' }));
+  out.push(I({ id: 'key_home', name: 'Harbour key', desc: 'Leviathite and a coral ruby. Turn it and you\'re standing on this island\'s landing, as if you\'d always been. One turn.', icon: { shape: 'tooth', color: '#d8cdb4', accent: '#d8442a' }, stackable: true, value: 500, turn: 'home' }));
   // The galley (One Piece's bar: a good cook is half a crew): meals that do something for a while after you eat them
   out.push(I({ id: 'grog', name: 'Bramble grog', desc: 'Bramble juice, salt and a splash of something. Sharpens the eye. Eat at full health for the effect alone.', icon: { shape: 'mug', color: '#7a2a5a', accent: '#d8b07a' }, stackable: true, value: 30, heal: 4, meal: { kind: 'acc', v: 5, secs: 360 } }));
   out.push(I({ id: 'stargazy_pie', name: 'Stargazy pie', desc: 'A Bellwether pie with the sprats\' heads poking through the crust, looking up. Good luck for the hands that work.', icon: { shape: 'pie', color: '#c99b5c', accent: '#9ab0c4' }, stackable: true, value: 60, heal: 12, meal: { kind: 'gather', v: 6, secs: 600 } }));
