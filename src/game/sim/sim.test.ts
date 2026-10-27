@@ -428,7 +428,7 @@ describe('combat skills (RuneScape model)', () => {
     }
   });
 
-  it('pistols burn shot and train Ranged; staffs burn charms and train Magic', () => {
+  it('pistols burn shot and train Ranged; staffs burn shards and train Magic', () => {
     const g = fresh(33);
     g.p.equip.weapon = { id: 'pistol_flintlock', qty: 1 };
     g.p.equip.ammo = { id: 'shot_bronze', qty: 30 };
@@ -442,12 +442,13 @@ describe('combat skills (RuneScape model)', () => {
     expect(g.p.xp.ranged).toBeGreaterThan(0);
     expect(g.p.xp.attack).toBe(0);
 
-    // Tide Bolt burns charms...
+    // Tide Strike burns its shards (a save's old 'bolt' is the same spell now)...
     const m = fresh(34);
     m.p.equip.weapon = { id: 'staff_driftwood', qty: 1 };
     m.p.xp.magic = xpForLevel(9);
     m.setSpell('bolt');
-    m.give('charm_tide', 40);
+    expect(m.s.combat.spell).toBe('tide_strike');
+    m.give('charm_tide', 40); m.give('shard_gale', 40); m.give('shard_whisper', 40);
     m.recalc();
     const c2 = m.enemies.find((e) => e.def.id === 'reef_crab' && !e.elite)!;
     goNear(m, c2.x + 5, c2.z);
@@ -455,8 +456,9 @@ describe('combat skills (RuneScape model)', () => {
     run(m, 60, () => !c2.alive);
     expect(c2.alive).toBe(false);
     expect(count(m.p.inv, 'charm_tide')).toBeLessThan(40);
+    expect(count(m.p.inv, 'shard_whisper')).toBeLessThan(40);
     expect(m.p.xp.magic).toBeGreaterThan(xpForLevel(9));
-    // ...but Brine Spray is free: magic works with no charms at all
+    // ...but Brine Spray is free: magic works with no shards at all
     const f = fresh(35);
     f.p.equip.weapon = { id: 'staff_driftwood', qty: 1 };
     f.recalc();
@@ -472,7 +474,7 @@ describe('combat skills (RuneScape model)', () => {
 
   it('utility spells: Brine Alchemy turns an item into coins, Tide-walk Home teleports to the quay', () => {
     const g = fresh(40);
-    g.give('charm_tide', 20);
+    for (const sh of ['shard_ember', 'shard_root', 'shard_gale', 'shard_compass']) g.give(sh, 20);
     g.give('bar_iron', 2);
     const i = g.p.inv.findIndex((s) => s?.id === 'bar_iron');
     expect(g.utilityBlock('alchemy')).toMatch(/Magic level 21/);
@@ -937,7 +939,7 @@ describe('the second ring of keys', () => {
     expect(c.hp < h || !c.alive).toBe(true);
     g = setup(87, 'bell'); c = near(g);
     g.useKey(); expect(c.fx.disarm).toBeGreaterThan(1.4);
-    expect(g.utilityCharms('home')).toBe(0);
+    expect(g.utilityCost('home')).toEqual([]);
   });
 
   it('Steal only works on elites and lends their power; Turncoat sets a foe on its own side; bosses refuse it', () => {

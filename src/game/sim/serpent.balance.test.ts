@@ -13,7 +13,7 @@ it('Sunscale balance (Sunreach\'s finale, levels 15-30): a coin flip at 26, won 
     for (let s = 0; s < 16; s++) {
       const g = fresh(100 + s);
       for (const k of ['attack', 'strength', 'defence', 'hitpoints', 'magic', 'ranged'] as const) g.p.xp[k] = xpForLevel(lvl);
-      g.p.equip.weapon = { id: weapon, qty: 1 }; g.p.equip.head = { id: 'helm_steel', qty: 1 }; g.p.equip.body = { id: 'plate_steel', qty: 1 }; g.p.equip.ammo = { id: 'shot_steel', qty: 300 }; g.give('charm_tide', 300);
+      g.p.equip.weapon = { id: weapon, qty: 1 }; g.p.equip.head = { id: 'helm_steel', qty: 1 }; g.p.equip.body = { id: 'plate_steel', qty: 1 }; g.p.equip.ammo = { id: 'shot_steel', qty: 300 }; for (const sh of ['charm_tide', 'shard_gale', 'shard_stone', 'shard_ember', 'shard_whisper', 'shard_squall', 'shard_grave', 'shard_heart', 'shard_wrath']) g.give(sh, 300);
       g.s.combat.spell = 'bolt'; g.recalc(); g.p.hp = g.stats.maxHp;
       g.give('tuning_bell', 1);
       const q = g.world.nearestWalkable(g.layout.arenas[0].altar.x, g.layout.arenas[0].altar.z + 1.6, 4)!; g.p.x = q[0]; g.p.z = q[1];

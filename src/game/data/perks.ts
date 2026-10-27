@@ -92,7 +92,7 @@ const HALF: Record<SkillId, { name: string; kind: PerkKind; v: number }[]> = {
     H('Vigour', 'hp', 2), H('Regrowth', 'regen', 1), H('Feaster', 'heal', 5), H('Indomitable', 'hp', 2), H('Undying', 'hp', 3)],
   ranged: [H('Keen eye', 'acc', 1), H('Light pouch', 'ammo', 4), H('Heavy draw', 'dmg', 1), H('Quick reload', 'spec', 5), H('Recover shots', 'ammo', 4),
     H('Weak spot', 'crit', 1), H('Power shot', 'dmg', 2), H('Volley', 'spec', 5), H('Fletcher\'s luck', 'ammo', 5), H('Hawkeye', 'dmg', 2)],
-  magic: [H('Clear mind', 'acc', 1), H('Charm keeper', 'charms', 4), H('Tide-sworn', 'dmg', 1), H('Quick tides', 'spec', 5), H('Charm saver', 'charms', 4),
+  magic: [H('Clear mind', 'acc', 1), H('Shard keeper', 'charms', 4), H('Tide-sworn', 'dmg', 1), H('Quick tides', 'spec', 5), H('Shard saver', 'charms', 4),
     H('Riptide focus', 'crit', 1), H('Deep current', 'dmg', 2), H('Storm tides', 'spec', 5), H('Sea-blessed', 'charms', 5), H('Leviathan\'s voice', 'dmg', 2)],
 };
 for (const k of Object.keys(HALF) as SkillId[]) {
@@ -128,7 +128,7 @@ export function perkText(p: Perk): string {
     case 'regen': return `+${v} health every 10 s`;
     case 'hp': return `+${v} max health`;
     case 'ammo': return `${v}% chance a shot isn't used`;
-    case 'charms': return `${v}% chance a spell's charms aren't used`;
+    case 'charms': return `${v}% chance a spell's shards aren't used`;
     case 'last': return `${v}% chance a spot doesn't run out`;
     case 'spec': return `Special attack recharges ${v}% faster`;
     case 'reload': return `Cannons reload ${v}% faster`;

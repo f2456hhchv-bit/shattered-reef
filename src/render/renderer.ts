@@ -107,6 +107,9 @@ function outfitOf(equip: Partial<Record<string, { id: string } | undefined | nul
   return { look, key: [head, body, legs, feet, hands].map((x) => x ?? '-').join(',') };
 }
 
+/** A spell's colour by element: the bolt, then its trail. */
+const ELEMENT_TINT: Record<'gale' | 'tide' | 'stone' | 'ember', [number, number]> = { gale: [0xeef6fa, 0xb8ccd6], tide: [0x7ff0e6, 0x59d0c4], stone: [0xc8a86a, 0x8a7448], ember: [0xff9a4a, 0xe8541a] };
+
 export class GameRenderer {
   readonly renderer: THREE.WebGLRenderer;
   readonly scene = new THREE.Scene();
@@ -815,12 +818,12 @@ export class GameRenderer {
           fl.position.x = -0.3;
           m.add(tip, fl);
           m.rotation.y = -Math.atan2(p.vz, p.vx);
-        } else m = new THREE.Mesh(new THREE.SphereGeometry(p.kind === 'magic' ? 0.22 : p.from === 'player' ? 0.12 : 0.12, 6, 4), new THREE.MeshBasicMaterial({ color: p.kind === 'magic' ? 0x7ff0e6 : p.from === 'player' ? 0xffe08a : 0xff6a4a }));
+        } else m = new THREE.Mesh(new THREE.SphereGeometry(p.kind === 'magic' ? 0.22 : p.from === 'player' ? 0.12 : 0.12, 6, 4), new THREE.MeshBasicMaterial({ color: p.kind === 'magic' ? ELEMENT_TINT[p.element ?? 'tide'][0] : p.from === 'player' ? 0xffe08a : 0xff6a4a }));
         this.region3d.add(m);
         this.projViews.set(p.id, m);
       }
       m.position.set(p.x, this.game.world.standY(p.x, p.z) + 1.1, p.z);
-      this.particles.burst(m.position.x, m.position.y, m.position.z, 1, p.kind === 'magic' ? 0x59d0c4 : p.from === 'player' ? 0xd8d2c0 : 0x5a5552, { speed: 0.3, up: 0.3, size: 0.1, life: 0.35, grav: -1 });
+      this.particles.burst(m.position.x, m.position.y, m.position.z, 1, p.kind === 'magic' ? ELEMENT_TINT[p.element ?? 'tide'][1] : p.from === 'player' ? 0xd8d2c0 : 0x5a5552, { speed: 0.3, up: 0.3, size: 0.1, life: 0.35, grav: -1 });
     }
     for (const [id, m] of this.projViews) if (!live.has(id)) { this.disposeObject(m); this.projViews.delete(id); }
   }

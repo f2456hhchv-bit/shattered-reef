@@ -16,7 +16,7 @@ import { wears, condOf, WORN_OUT_EFFECT } from '../game/sim/inventory';
 import { onTap } from './tap';
 import { portrait } from './portrait';
 import { NPC_LOOKS, PLAYER_LOOK } from '../art/cast';
-import { NODES, SKILLS, UNLOCKS, RECIPES, UTILITY_SPELLS, ELITE_AFFIXES, ENEMIES, PLAYER_BASE, SPELLS, type Station } from '../game/data/content';
+import { NODES, SKILLS, UNLOCKS, RECIPES, UTILITY_SPELLS, ELITE_AFFIXES, ENEMIES, PLAYER_BASE, SPELLS, type Station, type ShardCost } from '../game/data/content';
 import type { Stance } from '../game/sim/gear';
 import { NPCS, QUESTS } from '../game/data/quests';
 import { coastDist, nearestPathDist, FLATS, SUN, WRACK, AMBER, LOCK, SALT, LONG, coastR, sunCoastR, wrackCoastR, amberCoastR, lockCoastR, saltCoastR, longCoastR, LAYOUT, SUN_LAYOUT } from '../game/world/island';
@@ -849,7 +849,7 @@ export class UI {
     const stances = this.stanceButtons();
     const spells = st.style === 'magic' ? `<h2 class="title" style="font-size:13px">Spell</h2><div class="stances spells">${this.spellButtons()}</div>` : '';
     const ammo = st.style === 'ranged' ? (g.p.equip.ammo ? `${fmt(g.p.equip.ammo.qty)} × ${esc(item(g.p.equip.ammo.id).name)}` : `<span class="miss">No ${AMMO_NAME[st.needsAmmo ?? 'shot']} equipped</span>`)
-      : st.style === 'magic' ? `${fmt(count(g.p.inv, 'charm_tide'))} tide charms (${st.spell?.charms ? `${st.spell.charms} per cast` : 'this spell is free'})` : '';
+      : st.style === 'magic' ? (st.spell?.cost.length ? `${this.costHtml(st.spell.cost)} a cast` : 'This spell is free') : '';
     const sp = g.specialInfo();
     const rows: [string, string][] = [
       ['Combat level', String(st.combatLevel)], ['Style', cap(st.style)], ['Max hit', st.dual ? `${st.maxHit} + ${st.dual.maxHit} off-hand` : String(st.maxHit)], ['Attack speed', `${st.speed.toFixed(1)}s`],
@@ -1353,12 +1353,27 @@ export class UI {
     const g = this.game, u = UTILITY_SPELLS.home;
     if (g.level('magic') < u.level) return '';
     const blk = g.utilityBlock('home');
-    return `<h3>Magic</h3><button class="btn" data-home="1" ${blk ? 'disabled' : ''} style="width:100%">${esc(u.name)} · ${u.charms} charms${blk ? ` <small class="muted">(${esc(blk.toLowerCase())})</small>` : ''}</button>`;
+    const cost = g.utilityCost('home');
+    return `<h3>Magic</h3><button class="btn" data-home="1" ${blk ? 'disabled' : ''} style="width:100%">${esc(u.name)} · ${cost.length ? this.costHtml(cost) : 'free'}${blk ? ` <small class="muted">(${esc(blk.toLowerCase())})</small>` : ''}</button>`;
+  }
+
+  /** A shard cost as icons and counts: each shard you're short of in red; your elemental staff's element as ∞. */
+  private costHtml(cost: ShardCost): string {
+    const g = this.game, need = g.shardNeed(cost);
+    return `<span class="cost">${cost.map((c) => {
+      const free = !need.some((n) => n.id === c.id), have = count(g.p.inv, c.id);
+      return `<span class="sh${!free && have < c.qty ? ' short' : ''}" title="${esc(item(c.id).name)}: you have ${free ? 'endless (staff)' : fmt(have)}"><img src="${itemIcon(c.id, 1)}" alt="${esc(item(c.id).name)}">${free ? '∞' : c.qty}</span>`;
+    }).join('')}</span>`;
   }
 
   private spellButtons(): string {
     const g = this.game, st = g.stats;
-    return SPELLS.map((sp) => { const learnt = !sp.quest || !!g.s.flags[sp.quest]; return `<button data-spell="${sp.id}" class="${st.spell?.id === sp.id ? 'on' : ''}" ${g.level('magic') < sp.level || !learnt ? 'disabled' : ''}><b>${esc(sp.name)}</b><small>${learnt ? `Lv ${sp.level}` : 'Quest'} · max ${sp.maxHit * 10} · ${sp.charms ? `${sp.charms} charm${sp.charms > 1 ? 's' : ''}` : 'free'}</small></button>`; }).join('');
+    // the spells you can cast, then the next few you're working toward (the whole book is in the skill guide)
+    const lvl = g.level('magic'), next = SPELLS.filter((sp) => sp.level > lvl).slice(0, 4);
+    return [...SPELLS.filter((sp) => sp.level <= lvl), ...next].map((sp) => {
+      const learnt = !sp.quest || !!g.s.flags[sp.quest];
+      return `<button data-spell="${sp.id}" class="${st.spell?.id === sp.id ? 'on' : ''}${sp.element ? ` el-${sp.element}` : ''}" ${lvl < sp.level || !learnt ? 'disabled' : ''}><b>${esc(sp.name)}</b><small>${learnt ? `Lv ${sp.level}` : 'Quest'} · max ${sp.maxHit * 10}</small>${sp.cost.length ? this.costHtml(sp.cost) : '<small>free</small>'}</button>`;
+    }).join('');
   }
 
   private renderLoadout() {
@@ -1380,7 +1395,7 @@ export class UI {
     const weapons = g.p.inv.map((s, i) => (s && item(s.id).equip?.slot === 'weapon' ? this.slotHtml(s, `data-lw="${i}"`) : '')).join('');
     let pick = '';
     const util = this.utilityRow();
-    if (st.style === 'magic') pick = `<h3>Spell <small class="muted">${fmt(count(g.p.inv, 'charm_tide'))} tide charms</small></h3><div class="stances spells">${this.spellButtons()}</div>`;
+    if (st.style === 'magic') pick = `<h3>Spell${g.staffElement() ? ` <small class="muted">your staff gives endless ${g.staffElement()} shards</small>` : ''}</h3><div class="stances spells">${this.spellButtons()}</div>`;
     else if (st.style === 'ranged') {
       const need = st.needsAmmo ?? 'shot', eq = g.p.equip.ammo;
       const ammo = g.p.inv.map((s, i) => (s && ammoKind(item(s.id)) === need ? this.slotHtml(s, `data-la="${i}"`) : '')).join('');

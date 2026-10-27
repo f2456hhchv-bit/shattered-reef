@@ -17,7 +17,7 @@ import { perkTotal } from '../data/perks';
 import { KEY, KEYS, KEY_CONFIG, type KeyDef, type KeyFamily } from '../data/keys';
 import { DROP_CONFIG, GEMS, rareTable, commonTable } from '../data/drops';
 import { BOARDS, BOUNTY_CONFIG, CREW_BY, WANTED_FIRST, WANTED_LAST, rankOf, type Contract, type CrewPassive } from '../data/bounties';
-import { HP_SCALE, NODES, RECIPES, ENEMIES, LOOT, ELITE_AFFIXES, SHOPS, PLAYER_BASE, UTILITY_SPELLS, SPELLS, COMBAT_SKILLS, XP_PER_DAMAGE, type EnemyDef, type Recipe, type Station } from '../data/content';
+import { HP_SCALE, NODES, RECIPES, ENEMIES, LOOT, ELITE_AFFIXES, SHOPS, PLAYER_BASE, UTILITY_SPELLS, COMBAT_SKILLS, XP_PER_DAMAGE, ELEMENT_WEAK, ELEMENT_BONUS, ELEMENT_NAME, spellById, type ShardCost, type EnemyDef, type Recipe, type Station } from '../data/content';
 import { type React, NPCS, QUESTS, type DialogueNode, type Effect, type QuestMark } from '../data/quests';
 import { DIARIES, diaryDone } from '../data/diaries';
 import { LORE, LORE_BY_ID, KEEL_PAGES } from '../data/lore';
@@ -125,7 +125,7 @@ export interface Mate { id: string; x: number; z: number; facing: number; cd: nu
 
 export interface Drop { id: number; x: number; z: number; stack: Stack; t: number; home?: boolean; left?: boolean; armed?: boolean } // home: loot from your kill, flies to you
 // left: you dropped it yourself. It never flies back; once you've walked away (armed) you can step on it to take it again
-export interface Projectile { id: number; x: number; z: number; vx: number; vz: number; life: number; damage: number; from: 'player' | 'enemy'; kind?: 'shot' | 'magic' | 'arrow'; crit?: boolean; style?: CombatStyle; spellBase?: number; knock?: number }
+export interface Projectile { id: number; x: number; z: number; vx: number; vz: number; life: number; damage: number; from: 'player' | 'enemy'; kind?: 'shot' | 'magic' | 'arrow'; crit?: boolean; style?: CombatStyle; spellBase?: number; knock?: number; /** a spell's element (its colour) */ element?: 'gale' | 'tide' | 'stone' | 'ember' }
 export interface Telegraph { id: number; kind: 'circle' | 'cone' | 'line'; x: number; z: number; r: number; angle: number; width: number; t: number; dur: number; damage: number; source: number }
 
 type Action =
@@ -522,8 +522,9 @@ export class Game {
     if (t.kind === 'enemy') {
       const e = this.enemies.find((x) => `enemy:${x.id}` === t.key);
       if (!e) return null;
-      const diff = e.def.level - this.stats.combatLevel;
-      return { text: `Level ${e.def.level}${e.def.hostile ? ' · attacks on sight' : ''}${diff > 10 ? ' · very dangerous' : diff > 3 ? ' · dangerous' : ''}`, ok: diff <= 3 };
+      const diff = e.def.level - this.stats.combatLevel, weak = ELEMENT_WEAK[e.def.id];
+      return { text: `Level ${e.def.level}${e.def.hostile ? ' · attacks on sight' : ''}${diff > 10 ? ' · very dangerous' : diff > 3 ? ' · dangerous' : ''}`, ok: diff <= 3,
+        detail: `Weak to ${weak ? `${ELEMENT_NAME[weak].toLowerCase()} spells` : e.def.weakness}` };
     }
     return null;
   }
@@ -2111,7 +2112,8 @@ export class Game {
   // ---- stances, ammo, specials -------------------------------------------------
   setStance(st: Stance) { this.s.combat.stance = st; this.recalc(); }
   setSpell(id: string) {
-    const sp = SPELLS.find((x) => x.id === id);
+    const sp = spellById(id);
+    if (sp) id = sp.id;
     if (sp?.quest && !this.s.flags[sp.quest]) { this.msg(`${sp.name} is taught by a quest.`, 'warn'); return; }
     this.s.combat.spell = id; this.recalc();
   }
@@ -2125,7 +2127,7 @@ export class Game {
       if (!a || a.qty < n) return `Your ${wname} needs ${AMMO_NAME[need]} in your ammo slot.`;
       if (ammoKind(item(a.id)) !== need) return `Your ${wname} can't fire ${item(a.id).name.toLowerCase()}: it needs ${AMMO_NAME[need]}.`;
     }
-    if (st.style === 'magic' && (st.spell?.charms ?? 0) > 0 && count(this.p.inv, 'charm_tide') < st.spell!.charms * n) return `${st.spell!.name} needs tide charms. Brine Spray is free.`;
+    if (st.style === 'magic' && st.spell) { const b = this.shardBlock(st.spell.cost, n); if (b) return `${st.spell.name} ${b.toLowerCase()}. Brine Spray is free.`; }
     return null;
   }
 
@@ -2135,10 +2137,29 @@ export class Game {
       for (let k = 0; k < n; k++) if (this.rnd() >= this.stats.ammoSave) a.qty--; // Thrifty powder perks
       if (a.qty <= 0) { delete this.p.equip.ammo; this.recalc(); this.msg(`You are out of ${AMMO_NAME[this.stats.needsAmmo ?? 'shot']}.`, 'warn'); }
     } else if (this.stats.style === 'magic') {
-      const c = (this.stats.spell?.charms ?? 0) * n;
-      if (c > 0 && this.rnd() >= this.stats.charmSave) remove(this.p.inv, 'charm_tide', c);
+      if (this.stats.spell) this.payShards(this.stats.spell.cost, n);
     }
     this.rev++;
+  }
+
+  // ---- shards (magic's runes) ---------------------------------------------------------
+  /** The element your staff supplies without end, if it's an elemental staff. */
+  staffElement() { const w = this.p.equip.weapon; return w ? item(w.id).elemental ?? null : null; }
+  /** What a cost still asks of your pack, `times` over, once your elemental staff has covered its element. */
+  shardNeed(cost: ShardCost, times = 1): ShardCost {
+    const el = this.staffElement(), free = el ? { gale: 'shard_gale', tide: 'charm_tide', stone: 'shard_stone', ember: 'shard_ember' }[el] : null;
+    return cost.filter((c) => c.id !== free).map((c) => ({ id: c.id, qty: c.qty * times }));
+  }
+  /** Why you can't pay a cost (the first shard you're short of), or null. */
+  shardBlock(cost: ShardCost, times = 1): string | null {
+    for (const c of this.shardNeed(cost, times)) { const have = count(this.p.inv, c.id); if (have < c.qty) return `Needs ${c.qty} ${item(c.id).name.toLowerCase()}${c.qty > 1 ? 's' : ''} (you have ${have})`; }
+    return null;
+  }
+  /** Burn a cost's shards (Thrift perks and gear may spare the lot). */
+  private payShards(cost: ShardCost, times = 1) {
+    const need = this.shardNeed(cost, times);
+    if (!need.length || this.rnd() < this.stats.charmSave) return;
+    for (const c of need) remove(this.p.inv, c.id, c.qty);
   }
 
   private ammoWarned = 0;
@@ -2149,6 +2170,8 @@ export class Game {
   /** Accuracy roll against an enemy's defence for the current style; damage 0..max on a hit. */
   private rollAgainst(e: Enemy, maxHit = this.stats.maxHit, attRoll = this.stats.attRoll): { dmg: number; crit: boolean } {
     const st = this.stats;
+    // a spell in the foe's weak element lands more often and harder (RuneScape's elemental weakness)
+    if (st.style === 'magic' && st.spell?.element && ELEMENT_WEAK[e.def.id] === st.spell.element) { attRoll = Math.round(attRoll * (1 + ELEMENT_BONUS)); maxHit = Math.round(maxHit * (1 + ELEMENT_BONUS) / HP_SCALE) * HP_SCALE; }
     const defLvl = e.def.def + (e.elite === 'barnacled' ? 10 : 0);
     const defRoll = (defLvl + 9) * (e.def.defBonus[st.style] + 64) * (e.fx.shatter > 0 ? 1 - (KEY.prospector.power.v ?? 40) / 100 : 1); // Shatter
     // Mark: the next hits land at their maximum, no roll
@@ -2236,7 +2259,7 @@ export class Game {
     const speed = style === 'magic' ? 18 : 30;
     const dist = Math.hypot(t.x - this.p.x, t.z - this.p.z) + 1.5;
     const fletched = this.stats.needsAmmo === 'arrow' || this.stats.needsAmmo === 'bolt';
-    this.projectiles.push({ id: this.nextId++, x: this.p.x, z: this.p.z, vx: Math.cos(ang) * speed, vz: Math.sin(ang) * speed, life: dist / speed, damage: r.dmg, from: 'player', kind: style === 'magic' ? 'magic' : fletched ? 'arrow' : 'shot', crit: r.crit, style, spellBase, knock });
+    this.projectiles.push({ id: this.nextId++, x: this.p.x, z: this.p.z, vx: Math.cos(ang) * speed, vz: Math.sin(ang) * speed, life: dist / speed, damage: r.dmg, from: 'player', kind: style === 'magic' ? 'magic' : fletched ? 'arrow' : 'shot', crit: r.crit, style, spellBase, knock, element: style === 'magic' ? this.stats.spell?.element : undefined });
     this.emit({ type: 'shoot', x: this.p.x, z: this.p.z, tx: t.x, tz: t.z });
   }
 
@@ -2248,7 +2271,7 @@ export class Game {
     let block: string | null = null;
     if (this.level(sp.skill) < sp.level) block = `Needs ${sp.skill[0].toUpperCase() + sp.skill.slice(1)} level ${sp.level}`;
     else if (st.style === 'ranged') block = this.ammoBlock(PLAYER_BASE.special.ranged.shots);
-    else if (st.style === 'magic' && count(this.p.inv, 'charm_tide') < PLAYER_BASE.special.magic.charms) block = `Needs ${PLAYER_BASE.special.magic.charms} tide charms`;
+    else if (st.style === 'magic') block = this.shardBlock(PLAYER_BASE.special.magic.cost);
     return { name: sp.name, cooldown: sp.cooldown, block };
   }
 
@@ -2283,7 +2306,7 @@ export class Game {
     } else {
       const sp = PLAYER_BASE.special.magic;
       this.specialCd = sp.cooldown * (1 - st.specCut);
-      remove(this.p.inv, 'charm_tide', sp.charms);
+      this.payShards(sp.cost);
       this.emit({ type: 'squall' });
       for (const e of [...this.enemies]) {
         if (!e.alive || e.state === 'rise') continue;
@@ -2301,17 +2324,17 @@ export class Game {
   utilityBlock(kind: keyof typeof UTILITY_SPELLS): string | null {
     const u = UTILITY_SPELLS[kind];
     if (this.level('magic') < u.level) return `Needs Magic level ${u.level}`;
-    if (count(this.p.inv, 'charm_tide') < this.utilityCharms(kind)) return `Needs ${u.charms} tide charms`;
+    { const b = this.shardBlock(this.utilityCost(kind)); if (b) return b; }
     if (this.dead || this.p.onShip) return 'Not now';
     if (this.utilityCd > 0) return `Ready in ${Math.ceil(this.utilityCd)} s`;
     if (kind === 'home' && this.combatTimer < 5) return 'Not while fighting';
     return null;
   }
-  /** Charms a utility spell burns (the Bell Key makes teleports free). */
-  utilityCharms(kind: keyof typeof UTILITY_SPELLS) { return kind === 'home' && this.activeKey()?.passive.kind === 'free_teleport' ? 0 : UTILITY_SPELLS[kind].charms; }
+  /** Shards a utility spell burns (the Bell Key makes teleports free). */
+  utilityCost(kind: keyof typeof UTILITY_SPELLS): ShardCost { return kind === 'home' && this.activeKey()?.passive.kind === 'free_teleport' ? [] : UTILITY_SPELLS[kind].cost; }
   private castUtility(kind: keyof typeof UTILITY_SPELLS) {
     const u = UTILITY_SPELLS[kind];
-    if (this.rnd() >= this.stats.charmSave) remove(this.p.inv, 'charm_tide', this.utilityCharms(kind));
+    this.payShards(this.utilityCost(kind));
     this.utilityCd = u.cooldown;
     this.addXp('magic', u.xp);
   }
