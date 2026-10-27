@@ -350,7 +350,7 @@ export class Naval {
       g.s.flags.kraken_escaped = true;
       g.addXp('sailing', KRAKEN.xp);
       g.msg('The arms slide back under, and the black water settles. You got away. Whatever that was, it was bigger than any island.', 'quest');
-      g.emit({ type: 'boss', state: 'defeat' });
+      g.emit({ type: 'boss', state: 'defeat', name: 'Clear of the deep', sub: 'Whatever that was, it let you go' });
       g.rev++;
       return;
     }

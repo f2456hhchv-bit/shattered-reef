@@ -71,6 +71,8 @@ describe('reachability audit', () => {
       L.stations.forEach((s) => { if (!ok(s.x, s.z, 2.3)) bad.push(`station ${s.id}`); });
       L.banks.forEach((b, i) => { if (!ok(b.x, b.z, 2.2)) bad.push(`bank ${i}`); });
       const { LORE } = await import('../data/lore');
+      const { DOORS } = await import('../data/doors');
+      for (const d of DOORS) if (d.region === r && !ok(d.x, d.z, 2.2)) bad.push(`door ${d.id}`);
       for (const l of LORE) if (l.region === r && !onIsletL(l.x, l.z) && !ok(l.x, l.z, 2.2)) bad.push(`lore ${l.id}`);
       for (const a of L.arenas) if (!ok(a.altar.x, a.altar.z, 2.2)) bad.push(`arena ${a.boss}`);
       for (const q of Object.values(QUESTS)) for (const st of q.stages) for (const m of st.marks ?? []) {

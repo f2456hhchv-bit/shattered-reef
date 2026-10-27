@@ -140,7 +140,7 @@ export class AmberSeep {
     g.addXp('mining', 250); g.addXp('crafting', 200);
     g.s.flags.seep_held = true;
     g.msg(`The hill closes with a long groan, and the tunnel holds. The cart's yours to share out: ${got.join(', ') || 'nothing you can carry'}.`, 'good');
-    g.emit({ type: 'boss', state: 'defeat' });
+    g.emit({ type: 'boss', state: 'defeat', name: 'The tunnel held', sub: 'Goldvein Hill closes, and pays' });
     g.rev++;
   }
 

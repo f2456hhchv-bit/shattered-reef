@@ -4,6 +4,7 @@ import { FIRE } from '../game/sim/greenfire';
 import { AMMO, CHART_MARKS, type AmmoId } from '../game/data/sea';
 import { DIARIES } from '../game/data/diaries';
 import { LORE, KEEL_PAGES } from '../game/data/lore';
+import { DOORS } from '../game/data/doors';
 import { item, RARITY, AFFIXES, METALS, METAL_TRAITS, AMMO_NAME, ammoKind, isTwoHanded, pairGroup, type ItemDef, type Slot, type SkillId, type WeaponKind } from '../game/data/items';
 import { morph, forget } from './morph';
 import { wears, condOf, WORN_OUT_EFFECT } from '../game/sim/inventory';
@@ -333,7 +334,7 @@ export class UI {
       case 'hunters': this.banner('Bounty hunters!', 'They\'ve come to collect'); break;
       case 'hit': this.damageNumber(e.x, e.z, e.amount, e.target === 'player', e.crit); break;
       case 'dodge': this.damageNumber(e.x, e.z, 'Dodged', false, true); break;
-      case 'boss': if (e.state === 'defeat') this.banner('Guardian defeated', 'The Broken Ring falls silent'); break;
+      case 'boss': if (e.state === 'defeat') this.banner(e.name ?? 'Victory', e.sub ?? ''); break;
       case 'board': this.closeWindows(); break;
       case 'travel': this.closeWindows(); this.showLoading(e.name, e.tip, REGIONS[e.to].kind === 'cave' ? 'Climbing down into' : this.game.region.kind === 'cave' ? 'Climbing back up to' : 'Setting a course for'); break;
       case 'region': {
@@ -341,7 +342,7 @@ export class UI {
         this.mapView = 'here';
         this.renderTab();
         const r = REGIONS[e.region];
-        this.banner(r.name, r.kind === 'cave' ? 'Underground' : r.id === 'bellwether' ? 'The starter isle' : 'Port Halyard and the Greenheart');
+        this.banner(r.name, r.kind === 'cave' ? 'Underground' : ({ bellwether: 'The starter isle', sunreach: 'Port Halyard and the Greenheart', amberhold: 'Tollhouse Landing and the amberwood', wrack: 'Gallows Landing, under Thunder Crag' } as Record<string, string>)[r.id] ?? '');
         break;
       }
     }
@@ -731,9 +732,10 @@ export class UI {
   /** One set of handlers on the tab panel for its whole life (content is patched, never re-bound). */
   private bindContent(c: HTMLElement) {
     const g = this.game;
-    onTap(c, '[data-lore], [data-diary], [data-slot], [data-equip], [data-stance], [data-spell], [data-q], [data-dmg], [data-music], [data-sfx], [data-fps], [data-lv], [data-skill], [data-skillback], [data-gcat], [data-sort], [data-home], [data-mapview], [data-key], [data-devkeys], #saveNow, #resetSave', (t, pointer) => {
+    onTap(c, '[data-door], [data-lore], [data-diary], [data-slot], [data-equip], [data-stance], [data-spell], [data-q], [data-dmg], [data-music], [data-sfx], [data-fps], [data-lv], [data-skill], [data-skillback], [data-gcat], [data-sort], [data-home], [data-mapview], [data-key], [data-devkeys], #saveNow, #resetSave', (t, pointer) => {
       if (t.dataset.home) { g.teleportHome(); return; }
       if (t.dataset.lore) { g.readLore(t.dataset.lore); return; }
+      if (t.dataset.door) { g.readDoor(t.dataset.door); return; }
       if (t.dataset.diary) { g.claimDiary(t.dataset.diary); this.lastRev = -1; return; }
       if (t.dataset.sort) { this.closePop(); g.sortPack(t.dataset.sort as 'type' | 'value' | 'quality'); this.log(`Pack sorted by ${t.dataset.sort}.`); return; }
       if (t.dataset.gcat) { this.guideCat = t.dataset.gcat; this.lastRev = -1; this.renderTab(); return; }
@@ -947,8 +949,11 @@ export class UI {
     const found = LORE.filter((l) => g.s.flags[`lore_${l.id}`]);
     const keelFound = found.filter((l) => l.set === 'keel').length;
     const order = (l: (typeof LORE)[number]) => (l.set === 'keel' ? 0 : 1) * 100 + LORE.indexOf(l);
-    const loreRows = [...found].sort((a, b) => order(a) - order(b)).map((l) => `<button class="lore-row" data-lore="${l.id}"><b>${esc(l.title)}</b><small>${esc(REGIONS[l.region].name)}</small></button>`).join('');
-    const lore = `<p class="muted" style="font-size:12px;margin:0 0 6px">${keelFound} of ${KEEL_PAGES} pages of Keel's Log found${found.length > keelFound ? `, and ${found.length - keelFound} fragment${found.length - keelFound > 1 ? 's' : ''} of the Varrow` : ''}. Pages turn up on every island, wedged and weighted where the sea left them.</p>${loreRows}`;
+    const loreRows = [...found].sort((a, b) => order(a) - order(b)).map((l) => `<button class="lore-row" data-lore="${l.id}"><b>${esc(l.title)}</b><small>${esc(REGIONS[l.region].name)}</small></button>`).join('')
+      // the Wardwright vaults you've opened: each House's last record
+      + DOORS.filter((d) => g.s.flags[`door_${d.id}`]).map((d) => `<button class="lore-row" data-door="${d.id}"><b>${esc(d.record.title)}</b><small>${esc(REGIONS[d.region].name)}</small></button>`).join('');
+    const vaults = DOORS.filter((d) => g.s.flags[`door_${d.id}`]).length;
+    const lore = `<p class="muted" style="font-size:12px;margin:0 0 6px">${keelFound} of ${KEEL_PAGES} pages of Keel's Log found${found.length > keelFound ? `, and ${found.length - keelFound} fragment${found.length - keelFound > 1 ? 's' : ''} of the Varrow` : ''}. Pages turn up on every island, wedged and weighted where the sea left them. ${vaults} of ${DOORS.length} Wardwright vaults opened.</p>${loreRows}`;
     return `<h2 class="title">Quests</h2>${qs}<div class="brass-rule"></div><h2 class="title">Keel's Log</h2>${lore}<div class="brass-rule"></div><h2 class="title">Island diaries</h2>${diaries}<div class="brass-rule"></div><h2 class="title">Your bounty</h2>${poster}<div class="brass-rule"></div><h2 class="title">Places (${g.s.discovered.length}/${PLACES.length})</h2>${disc}`;
   }
 

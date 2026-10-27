@@ -136,7 +136,7 @@ export class StormTide {
     g.addXp('fishing', 150);
     g.s.flags.storm_tide_won = true;
     g.msg(`The serpent breaks and sinks! The harbour crew share out the salvage: ${got.join(', ') || 'nothing you can carry'}.`, 'good');
-    g.emit({ type: 'boss', state: 'defeat' });
+    g.emit({ type: 'boss', state: 'defeat', name: 'The Storm Tide breaks', sub: 'Bellwether\'s pier stands' });
     g.rev++;
   }
 
