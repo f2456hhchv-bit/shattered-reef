@@ -1029,3 +1029,34 @@ describe('The Line (Act IV, Longstrand)', () => {
     expect(g.s.keyring).toContain('saoirse_key');
   }, 120_000);
 });
+
+describe('Ingirid (Longstrand)', () => {
+  for (const path of ['pay', 'refuse'] as const) it(`the haaf at dusk, the Finfolk's price (${path}), Ingirid on the shingle, Tormod comes aboard`, () => {
+    const L = regionLayout('longstrand');
+    const g = new Game({ seed: 7, save: { ...defaultSave(L.respawn, L.mooring!), region: 'longstrand' } });
+    for (const e of g.enemies) { e.alive = false; e.respawnAt = Infinity; }
+    g.s.flags.theline_done = true; g.s.quests.theline = QUESTS.theline.stages.length - 1;
+    talk(g, 'tormod');
+    use(g, 'ingirid', 'boat');
+    run(g, 5, () => g.questStage('ingirid') === 2);
+    if (path === 'pay') {
+      use(g, 'ingirid', 'pay');
+      expect(g.questStage('ingirid')).toBe(2); // not enough silver
+      g.give('coins', 50000);
+      use(g, 'ingirid', 'pay');
+      run(g, 5, () => g.questStage('ingirid') === 4);
+    } else {
+      use(g, 'ingirid', 'refuse');
+      run(g, 5, () => g.questStage('ingirid') === 3);
+      expect(beat(g, 'finfolk_chief', 99, 'cutlass_ori')).toBe(true);
+    }
+    expect(g.questStage('ingirid')).toBe(4);
+    use(g, 'ingirid', 'ingirid');
+    run(g, 10, () => g.questStage('ingirid') === 5);
+    expect(count(g.p.inv, 'ring_ingirid')).toBe(1);
+    talk(g, 'tormod');
+    expect(g.questStage('ingirid')).toBe(QUESTS.ingirid.stages.length - 1);
+    expect(g.s.crew).toContain('tormod');
+    expect(g.npcGone('tormod')).toBe(true);
+  }, 120_000);
+});
