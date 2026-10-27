@@ -311,6 +311,9 @@ function tierItems(): ItemDef[] {
   out.push(I({ id: 'bosun_chowder', name: 'Bosun\'s chowder', desc: 'Lobster, crab and salt in a bowl you could stand a spoon in. The crew fight over the last of it.', icon: { shape: 'bowl', color: '#e8d8b0', accent: '#d84a2a' }, stackable: true, value: 300, heal: 26, meal: { kind: 'maxhit', v: 9, secs: 600 } }));
   // The Lantern Relit: what Corva leaves you, either way
   out.push(I({ id: 'hale_charts', name: 'Hale\'s charts', desc: 'Corva\'s copies of the Undertow\'s charts: every anchorage Hale has used in forty years, in a hand that shakes toward the end. Iven will want these.', icon: { shape: 'map', color: '#bcb8b0', accent: '#3a3a3a' }, stackable: false, value: 0, quest: true }));
+  // The Drowned Mirror: Sunniva's lens, and the Fourth Lockkey
+  out.push(I({ id: 'saltglass_lens', name: 'Sunniva\'s great lens', desc: 'A lens the size of a cartwheel, ground from the island\'s own glass. It weighs nothing. It shouldn\'t.', icon: { shape: 'orb', color: '#c8f0ff', accent: '#ffffff' }, stackable: false, value: 0, quest: true }));
+  out.push(I({ id: 'mirror_lockkey', name: 'A key of clear glass', desc: 'It was in your reflection\'s hand. When you look at it, you see the whole sky in it, and not yourself.', icon: { shape: 'tooth', color: '#c8f0ff', accent: '#ffffff' }, stackable: false, value: 0, quest: true }));
   // The Name on the Frame: the Keepers' ring
   out.push(I({ id: 'ring_keeper', name: 'Keeper\'s ring', desc: 'A plain iron ring made from the two-hundred-and-thirteenth key on Orla\'s hoop. "Every Keeper wears one. You\'ve kept something. Wear it."', icon: { shape: 'ring', color: '#6a6a6e', accent: '#c9a050' }, stackable: false, value: 4000,
     equip: { slot: 'ring', reqs: { defence: 60 }, bonus: { acc: 5, defMelee: 8, defRanged: 8, defMagic: 10 }, affixPool: JEWEL_AFFIX }, innate: [{ id: 'regen', v: 1 }] }));
