@@ -532,6 +532,16 @@ export class UI {
         if (m) { const d = item(m.id), s = Math.ceil(m.left), t = `${d.name} · ${MEAL_TEXT[d.meal!.kind](d.meal!.v)} · ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; if (chip.textContent !== t) chip.textContent = t; }
       }
     }
+    // the Gull Race clock, beside the orbs while you're racing
+    {
+      const run = g.regatta.run;
+      let chip = document.getElementById('racechip');
+      if (run && !chip) { chip = h('div', { id: 'racechip', class: 'mealchip-like' }); document.getElementById('orbs')?.appendChild(chip); }
+      if (chip) {
+        chip.hidden = !run;
+        if (run) { const s = g.time - run.start, t = `Race ${Math.floor(s / 60)}:${(s % 60).toFixed(1).padStart(4, '0')} · buoy ${Math.min(run.next + 1, run.course.buoys.length)}/${run.course.buoys.length}${run.next >= run.course.buoys.length ? ' · home!' : ''}`; if (chip.textContent !== t) chip.textContent = t; }
+      }
+    }
     // boss bar
     const bb = this.el.bossbar;
     if (g.boss && g.boss.alive) {
@@ -1501,6 +1511,8 @@ export class UI {
     if (g.s.flags.lantern_done) for (const d of DOORS) if (d.region === g.s.region && !g.s.flags[`door_${d.id}`]) dot(d.x, d.z, (big ? 4.5 : 3) * scale, '#e8c060');
     // bell-time: the bell ringing where there's no bell, pulsing bronze
     { const bt = g.belltime.here(); if (bt) dot(bt.x, bt.z, (big ? 6 : 4) * scale * (1 + 0.25 * Math.sin(performance.now() / 180)), '#e8a850'); }
+    // the Gull Race: the start buoy, or the next buoy to round
+    { const c = g.regatta.course(), nb = g.regatta.nextBuoy(); if (nb) dot(nb[0], nb[1], (big ? 6 : 4) * scale * (1 + 0.2 * Math.sin(performance.now() / 150)), '#e8c040'); else if (c && g.p.onShip) dot(c.start[0], c.start[1], (big ? 4 : 2.8) * scale, '#ece4d2'); }
     // a message in a bottle, bobbing off the bow
     { const bo = g.bottles.bottle; if (bo) dot(bo.x, bo.z, (big ? 4 : 2.8) * scale, '#8ad8a0'); }
     const tx = g.treasure.here();

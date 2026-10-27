@@ -315,7 +315,7 @@ export class GameRenderer {
     this.npcs.clear(); this.houses = []; this.walkers = []; this.enemyViews.clear(); this.nodeViews.clear();
     this.dropViews.clear(); this.projViews.clear(); this.teleViews.clear(); this.flames = []; this.glows = [];
     this.seaViews.clear(); this.krakenArms.clear(); this.bolts.clear(); this.ballViews.clear(); this.chargeViews.clear(); this.aimLine = null;
-    this.markViews.clear(); this.stormProps = null; this.fireProps = null; this.seepProps = null; this.treasureBuoy = null; this.bellView = null; this.bottleView = null;
+    this.markViews.clear(); this.stormProps = null; this.fireProps = null; this.seepProps = null; this.treasureBuoy = null; this.bellView = null; this.bottleView = null; this.raceBuoys = [];
     this.grass = null; this.grassTime = [];
     this.scenery = new InstancedField(addSurfaceDetail(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: false, roughness: 0.9 }), PROP_SURFACE));
     this.sceneryState.clear();
@@ -1096,6 +1096,41 @@ export class GameRenderer {
     this.stormProps.planks.forEach((m, k) => { m.visible = st.running && st.broken[k]; });
   }
 
+  /** The Gull Race (regatta.ts): the start buoy (white and red, a chequered flag), and the next two buoys in gold. */
+  private raceBuoys: THREE.Group[] = [];
+  private syncRace(t: number) {
+    const g = this.game, c = g.regatta.course(), run = g.regatta.run;
+    const want: { x: number; z: number; kind: 'start' | 'next' | 'after' }[] = [];
+    if (c && g.p.onShip && !run) want.push({ x: c.start[0], z: c.start[1], kind: 'start' });
+    if (run) {
+      const all = [...run.course.buoys, run.course.start];
+      for (let k = run.next; k < Math.min(all.length, run.next + 2); k++) want.push({ x: all[k][0], z: all[k][1], kind: k === run.next ? 'next' : 'after' });
+    }
+    while (this.raceBuoys.length < want.length || this.raceBuoys.some((b) => !b.parent)) {
+      const dead = this.raceBuoys.findIndex((b) => !b.parent);
+      const b = new THREE.Group();
+      const body = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.6, 0.8, 12), new THREE.MeshStandardMaterial({ color: 0xe8c040, emissive: 0x6a4a10, emissiveIntensity: 0.4 }));
+      body.name = 'body';
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 2.2, 6), new THREE.MeshStandardMaterial({ color: 0x3a2a1a })); pole.position.y = 1.4;
+      const flag = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 0.5), new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, emissive: 0x404040, emissiveIntensity: 0.3 }));
+      flag.position.set(0.42, 2.2, 0); flag.name = 'flag';
+      b.add(body, pole, flag);
+      this.region3d.add(b);
+      if (dead >= 0) this.raceBuoys[dead] = b; else this.raceBuoys.push(b);
+    }
+    this.raceBuoys.forEach((b, i) => {
+      const w = want[i];
+      b.visible = !!w;
+      if (!w) return;
+      b.position.set(w.x, 0.1 + Math.sin(t * 1.5 + i) * 0.1, w.z);
+      b.rotation.set(Math.sin(t * 1.2 + i) * 0.07, t * 0.3, 0);
+      const body = b.getObjectByName('body') as THREE.Mesh, flag = b.getObjectByName('flag') as THREE.Mesh;
+      (body.material as THREE.MeshStandardMaterial).color.setHex(w.kind === 'start' ? 0xece4d2 : w.kind === 'next' ? 0xe8c040 : 0x9a8a50);
+      (flag.material as THREE.MeshStandardMaterial).color.setHex(w.kind === 'start' ? 0xc8382a : 0xffffff);
+      b.scale.setScalar(w.kind === 'after' ? 0.8 : 1 + (w.kind === 'next' ? Math.sin(t * 4) * 0.06 : 0));
+    });
+  }
+
   /** A message in a bottle (bottles.ts): green glass and a red-waxed cork, bobbing and turning on the swell. */
   private bottleView: THREE.Group | null = null;
   private syncBottle(t: number) {
@@ -1606,6 +1641,7 @@ export class GameRenderer {
     this.syncTreasure(t);
     this.syncBell(t);
     this.syncBottle(t);
+    this.syncRace(t);
     this.syncTelegraphs();
 
     for (const f of this.flames) { f.scale.y = 0.8 + Math.sin(t * 12 + f.position.x * 10) * 0.25; f.scale.x = 1 + Math.sin(t * 9 + f.position.z * 7) * 0.12; }
