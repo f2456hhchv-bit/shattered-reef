@@ -305,6 +305,10 @@ function tierItems(): ItemDef[] {
   // Thirteen's in the Belly: Sigrun's horn, and the thirteenth Lockkey
   out.push(I({ id: 'sleeper_horn', name: 'The sleeper\'s horn', desc: 'A ram\'s horn bound in bronze, older than Tollhouse. Sigrun says it plays one note, and only the deep hears it.', icon: { shape: 'tooth', color: '#d8c8a0', accent: '#c08a4a' }, stackable: false, value: 0, quest: true }));
   out.push(I({ id: 'thirteenth_key', name: 'The thirteenth Lockkey', desc: 'Black iron, warm as a hand, and it hums the rhyme the children carve in trees. It isn\'t yours. It isn\'t anyone\'s. Don\'t put it to your ear.', icon: { shape: 'tooth', color: '#2a2a30', accent: '#bcd8ff' }, stackable: false, value: 0, quest: true }));
+  // Coral Key (Marisol Ransom): the Compact's first sale, and Marisol's hat
+  out.push(I({ id: 'coral_deed', name: 'The deed to Coral Key', desc: 'A thousand years old and still crisp. "An island the size of a breath, with a well and nine goats." Four spaces for four harbourmasters\' seals.', icon: { shape: 'map', color: '#e8dcc0', accent: '#c8382a' }, stackable: false, value: 0, quest: true }));
+  out.push(I({ id: 'hat_ransom', name: 'Ransom\'s tricorn', desc: 'Red felt gone soft as a cat, a gull\'s feather in the band. Marisol wore it eleven years. She says it\'s lucky. She says it like a threat.', icon: { shape: 'cap', color: '#a82a22', accent: '#d8b84a' }, stackable: false, value: 5000,
+    equip: { slot: 'head', reqs: { defence: 55 }, bonus: { defMelee: 34, defRanged: 40, defMagic: 26, acc: 8, str: 4 }, affixPool: ARMOUR_AFFIX } }));
   // Second Chance (Ash Tolliver): the letter he can't deliver himself
   out.push(I({ id: 'ash_letter', name: 'Ash Tolliver\'s letter', desc: 'Folded small and sealed with candle wax. He wrote it eleven times. This is the one he didn\'t burn.', icon: { shape: 'book', color: '#e8dcc0', accent: '#8a3a1a' }, stackable: false, value: 0, quest: true }));
   // The Lantern Burns Low: Corva's lantern and the letter in her coat
