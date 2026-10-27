@@ -15,6 +15,7 @@ import { HP_SCALE, NODES, RECIPES, ENEMIES, LOOT, ELITE_AFFIXES, SHOPS, PLAYER_B
 import { NPCS, QUESTS, type DialogueNode, type Effect, type QuestMark } from '../data/quests';
 import { DIARIES, diaryDone } from '../data/diaries';
 import { LORE, LORE_BY_ID, KEEL_PAGES } from '../data/lore';
+import { DOORS, DOOR_BY_ID } from '../data/doors';
 import { PLACES, placeRegion } from '../world/places';
 import { regionLayout, cachedLayout, type IslandLayout, type Arena } from '../world/layout';
 import { REGIONS, edgeCrossed, arrival, type RegionId } from '../world/regions';
@@ -67,7 +68,7 @@ export type GameEvent =
   | { type: 'openShop'; shop: string }
   | { type: 'openBank' }
   | { type: 'quest'; id: string; stage: number }
-  | { type: 'boss'; state: 'rise' | 'defeat' | 'reset' | 'summon' }
+  | { type: 'boss'; state: 'rise' | 'defeat' | 'reset' | 'summon'; /** the banner when it's beaten */ name?: string; sub?: string }
   | { type: 'weather'; kind: 'gale' | 'fog' | 'thunder' | null }
   | { type: 'board' }
   | { type: 'disembark' }
@@ -125,7 +126,7 @@ type Action =
 /** How a trip to another region ends: where the player (and maybe the ship) comes out. */
 export type Travel = { to: RegionId; how: 'sail' | 'ferry' | 'portal' | 'home' | 'respawn'; along?: number; from: RegionId };
 
-export interface Target { key: string; kind: 'node' | 'npc' | 'station' | 'bank' | 'ship' | 'arena' | 'portal' | 'enemy' | 'drop' | 'mooring' | 'quest' | 'event' | 'lore'; x: number; z: number; range: number; label: string; verb: string }
+export interface Target { key: string; kind: 'node' | 'npc' | 'station' | 'bank' | 'ship' | 'arena' | 'portal' | 'enemy' | 'drop' | 'mooring' | 'quest' | 'event' | 'lore' | 'door'; x: number; z: number; range: number; label: string; verb: string }
 
 // RuneScape's 4-tick rhythm for gathering; production a little quicker.
 const DT_GATHER = 2.4;
@@ -410,6 +411,7 @@ export class Game {
         out.push({ key: 'mooring', kind: 'mooring', x: d.x + 3, z: d.headZ + 1.6, range: 2.4, label: 'Mooring bell', verb: 'Call ship' });
       }
       for (const e of this.enemies) if (e.alive && e.state !== 'rise') out.push({ key: `enemy:${e.id}`, kind: 'enemy', x: e.x, z: e.z, range: 1.6 + e.def.radius, label: this.enemyName(e), verb: 'Attack' });
+      for (const d of DOORS) if (d.region === this.s.region) out.push({ key: `door:${d.id}`, kind: 'door', x: d.x, z: d.z, range: 2.2, label: this.s.flags[`door_${d.id}`] ? `${d.label} (open)` : d.label, verb: this.s.flags[`door_${d.id}`] ? 'Look in' : 'Try the lock' });
       for (const l of LORE) if (l.region === this.s.region) out.push({ key: `lore:${l.id}`, kind: 'lore', x: l.x, z: l.z, range: 2.2, label: l.label, verb: l.verb });
       for (const m of this.questMarks()) if (!m.mark.fromShip) out.push({ key: `quest:${m.quest}:${m.mark.id}`, kind: 'quest', x: m.mark.x, z: m.mark.z, range: 2.2, label: m.mark.label, verb: m.mark.verb });
       out.push(...this.storm.targets(), ...this.fire.targets(), ...this.seep.targets());
@@ -545,6 +547,7 @@ export class Game {
       case 'mooring': return this.callShip();
       case 'quest': { const [, q, m] = t.key.split(':'); return this.useMark(q, m); }
       case 'lore': return this.readLore(t.key.slice(5));
+      case 'door': return this.openDoor(t.key.slice(5));
       case 'event': return t.key.startsWith('event:gf:') ? this.fire.use(t.key) : t.key.startsWith('event:seep:') ? this.seep.use(t.key) : t.key.startsWith('event:tm:') ? this.treasure.use(t.key) : this.storm.use(t.key);
     }
   }
@@ -2040,6 +2043,26 @@ export class Game {
     }
   }
 
+  /** A Wardwright door: it opens to its own House's key (or the Skeleton Key, which fits every lock). */
+  openDoor(id: string) {
+    const d = DOOR_BY_ID[id];
+    if (!d) return;
+    if (this.s.flags[`door_${id}`]) { this.readDoor(id); return; }
+    const fits = this.s.keyring.includes(d.key) ? d.key : this.s.keyring.includes('skeleton') ? 'skeleton' : null;
+    if (!fits) { this.msg(`The keyhole is cut for one key only: the ${KEY[d.key]?.name ?? 'right key'}. Nothing on your keyring fits.`, 'warn'); return; }
+    this.s.flags[`door_${id}`] = true;
+    for (const r of d.reward) { if (canAdd(this.p.inv, r.id)) this.give(r.id, r.qty); else this.dropAt(this.p.x, this.p.z, { id: r.id, qty: r.qty }); }
+    this.msg(`${fits === 'skeleton' ? 'The Skeleton Key fits, the way it fits everything.' : `The ${KEY[d.key].name} turns.`} The vault of ${d.house} opens for the first time in a thousand years.`, 'good');
+    this.readDoor(id);
+    this.rev++;
+  }
+  /** A House's last record (found behind its door; kept in the journal). */
+  readDoor(id: string) {
+    const d = DOOR_BY_ID[id];
+    if (!d || !this.s.flags[`door_${id}`]) return;
+    this.emit({ type: 'read', title: d.record.title, sub: 'A Wardwright vault', lines: d.record.lines });
+  }
+
   /** Tell the player when a diary task gets ticked off (checked twice a second; ticks already done on load are quiet). */
   private diaryCheckAt = 0;
   private stepDiaries() {
@@ -2072,7 +2095,6 @@ export class Game {
     this.give('coins', d.coins);
     for (const x of d.xp) this.addXp(x.skill, x.amount);
     this.msg(`${d.name} complete! ${d.coins} coins, and ${REGIONS[d.island].name}'s harbourmaster will ferry you free from now on.`, 'good');
-    this.emit({ type: 'boss', state: 'defeat' });
     this.rev++;
   }
   /** Dodge roll: short dash, no damage taken while rolling. */
@@ -2510,7 +2532,8 @@ export class Game {
     this.enemies = this.enemies.filter((x) => x !== e);
     for (const c of this.enemies) if (c.summoned && c.alive) { c.alive = false; this.emit({ type: 'enemyDeath', id: c.id, x: c.x, z: c.z, elite: false, boss: false }); }
     this.enemies = this.enemies.filter((x) => !x.summoned);
-    this.emit({ type: 'boss', state: 'defeat' });
+    const LINE: Record<string, string> = { guardian: 'The Broken Ring falls silent', temple_serpent: 'The Sunken Temple is still', storm_jotunn: 'The storm over the crag breaks', broodmother: 'Weaver Hollow goes quiet' };
+    this.emit({ type: 'boss', state: 'defeat', name: `${e.def.name} defeated`, sub: LINE[e.def.id] ?? 'It won\'t rise again today' });
     if (e.def.id === 'temple_serpent') {
       if (!this.s.flags.serpent_defeated) this.msg('The Sunscale lies still. Its scales shine like hammered gold.', 'good');
       this.s.flags.serpent_defeated = true;

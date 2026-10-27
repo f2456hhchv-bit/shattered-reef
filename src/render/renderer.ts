@@ -38,6 +38,7 @@ import { BillboardBatch } from './billboards';
 import { buildPine, buildBroadleaf, buildJungleTree, collapse, buildRock, buildOreRock, buildCrate, buildLanternPost, buildDock, buildPalm, buildGrass, buildBush, buildKelp } from '../art/models/props';
 import { buildBench, buildFurnace, buildAnvil, buildCookfire, buildTent, buildSmithyShed, buildPillar, buildPlinth, buildStrongbox, buildDigSpot, buildGuardian, buildStump, buildRipples, type GuardianRig } from '../art/models/world';
 import { LORE } from '../game/data/lore';
+import { DOORS } from '../game/data/doors';
 import { buildLootShard, buildItemModel, SHARD_TINT, type LootShard, type ShardKind } from '../art/models/items';
 import { NODES, PLAYER_BASE, SKILLS } from '../game/data/content';
 import type { Game, GameEvent, Enemy, Telegraph } from '../game/sim/game';
@@ -1021,6 +1022,39 @@ export class GameRenderer {
       const ring = v.children[0] as THREE.Mesh;
       ring.visible = unread;
       if (unread) (ring.material as THREE.MeshBasicMaterial).opacity = 0.35 + Math.sin(t * 2 + l.x) * 0.2;
+    }
+    // Wardwright doors: a stone frame, a door in its House's material, a brass keyhole that glows when a key you carry fits
+    const DOOR_COL: Record<string, number> = { green: 0x4a5a2a, vein: 0x5a5a62, line: 0x4a5e5a, hearth: 0x6a3a22, anvil: 0x1e1a18, tide: 0x2a5a6a, lantern: 0xc9a050, bells: 0x9a6a3a };
+    for (const d of DOORS) {
+      if (d.region !== g.s.region) continue;
+      const key = `door:${d.id}`;
+      live.add(key);
+      let v = this.markViews.get(key);
+      if (!v) {
+        v = new THREE.Group();
+        const stone = new THREE.MeshStandardMaterial({ color: 0x7a7468, roughness: 0.95 });
+        for (const sx of [-0.85, 0.85]) { const p = new THREE.Mesh(new THREE.BoxGeometry(0.4, 2.5, 0.5), stone); p.position.set(sx, 1.25, 0); p.castShadow = true; v.add(p); }
+        const lintel = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.45, 0.6), stone); lintel.position.y = 2.6; lintel.castShadow = true; v.add(lintel);
+        const hinge = new THREE.Group(); hinge.position.set(-0.62, 0, 0); hinge.name = 'hinge';
+        const slab = new THREE.Mesh(new THREE.BoxGeometry(1.24, 2.25, 0.14), new THREE.MeshStandardMaterial({ color: DOOR_COL[d.id] ?? 0x5a4a3a, roughness: 0.7, metalness: d.id === 'lantern' || d.id === 'bells' ? 0.5 : 0.05 }));
+        slab.position.set(0.62, 1.12, 0); slab.castShadow = true;
+        const brass = new THREE.MeshStandardMaterial({ color: 0xc9a050, metalness: 0.7, roughness: 0.35, emissive: 0xffc860, emissiveIntensity: 0 });
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.025, 6, 16), brass); ring.position.set(0.9, 1.15, 0.09);
+        const slot = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.14, 0.02), new THREE.MeshBasicMaterial({ color: 0x0a0806 })); slot.position.set(0.9, 1.12, 0.1);
+        hinge.add(slab, ring, slot);
+        v.add(hinge);
+        v.userData.brass = brass;
+        // face the island's landing, so the door is seen from the way you come
+        v.rotation.y = Math.atan2(g.layout.respawn.x - d.x, g.layout.respawn.z - d.z);
+        v.position.set(d.x, g.world.standY(d.x, d.z), d.z);
+        this.region3d.add(v);
+        this.markViews.set(key, v);
+      }
+      const open = !!g.s.flags[`door_${d.id}`];
+      const hinge = v.getObjectByName('hinge')!;
+      hinge.rotation.y += ((open ? -1.7 : 0) - hinge.rotation.y) * Math.min(1, dt * 2);
+      const fits = !open && (g.s.keyring.includes(d.key) || g.s.keyring.includes('skeleton'));
+      (v.userData.brass as THREE.MeshStandardMaterial).emissiveIntensity = fits ? 0.6 + Math.sin(t * 3) * 0.4 : 0;
     }
     for (const [k, v] of this.markViews) if (!live.has(k)) { this.disposeObject(v); this.markViews.delete(k); }
     // the Storm Tide: built once on Bellwether's quay

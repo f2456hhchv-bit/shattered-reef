@@ -1,4 +1,5 @@
 import { mulberry32 } from '../../art/noise';
+import { DOORS } from '../data/doors';
 import { BELL_TOWN, PORT_TOWN, LAYOUT, LAGOON, SEA_SPOTS, PATHS, BEACH, coastPoint, coastDist, nearestPathDist, FLATS, SUN, SUN_LAYOUT, SUN_RADIUS, SUN_SEA_SPOTS, sunPoint, WRACK, WRACK_LAYOUT, WRACK_RADIUS, WRACK_SEA_SPOTS, wrackPoint, AMBER, AMBER_LAYOUT, AMBER_RADIUS, AMBER_SEA_SPOTS, amberPoint, rawHeight } from './island';
 import { World } from './world';
 import { buildingSolids, doorPoints, toLocal, toWorld, type BuildingDef } from './buildings';
@@ -222,6 +223,9 @@ function buildIslandRegion(region: IslandId): IslandLayout {
     world.solids.push({ x: horn.x, z: horn.z, r: 0.7 });
     arenas.push({ boss: 'storm_jotunn', x: TC.x, z: TC.z, r: 7, altar: horn, label: 'Storm horn', verb: 'Sound' });
   }
+
+  // ---- Wardwright doors (data/doors.ts): solid stone, walk up to the keyhole
+  for (const d of DOORS) if (d.region === region) world.solids.push({ x: d.x, z: d.z, r: 0.9 });
 
   // ---- cave mouths
   for (const m of CAVE_MOUTHS.filter((c) => c.island === region)) {

@@ -192,7 +192,7 @@ export class GreenheartFire {
     g.s.flags.greenfire_won = true;
     if (g.questStage('greenheart') === 2) g.setStage('greenheart', 3); // Fire on the Greenheart: the grove saved
     g.msg(`The last flames die in a hiss of steam. The fire camp shares out what it has: ${got.join(', ') || 'nothing you can carry'}.`, 'good');
-    g.emit({ type: 'boss', state: 'defeat' });
+    g.emit({ type: 'boss', state: 'defeat', name: 'The Greenheart is saved', sub: 'The last flames hiss out' });
     g.rev++;
   }
 
