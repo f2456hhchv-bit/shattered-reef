@@ -15,7 +15,7 @@ export const BOUNTY_CONFIG = {
   wantedMul: 4, // a wanted target pays this many times a 10-kill hunt of its kind
   wantedHp: 3, // a wanted target's health multiple
   killBounty: 2, // bounty per level for beating a hostile foe (camps, lairs, late zones)
-  bossBounty: { guardian: 2000, temple_serpent: 5000 } as Record<string, number>,
+  bossBounty: { guardian: 2000, temple_serpent: 5000, corva: 25000 } as Record<string, number>,
   hunterFrom: 5000, // bounty hunters start coming at this bounty
   hunterEvery: [900, 1500] as [number, number], // seconds of play between ambushes
 };

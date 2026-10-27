@@ -37,7 +37,7 @@ export const TIDES: Tide[] = [
   { id: 'corva', name: 'Sister Corva', epithet: 'of the Lantern', ship: 'Lantern', bounty: 250000,
     dream: 'To open the Bottom Door. She believes it is mercy.',
     rumour: 'A black brig with no flag. Her crew listen at every keyhole they pass.',
-    status: (f) => (f.firstlock_opened ? 'met' : 'poster') },
+    status: (f) => (f.lantern_done ? 'enemy' : f.firstlock_opened ? 'met' : 'poster') },
   { id: 'tolliver', name: 'Ash Tolliver', epithet: 'the Second Chance', ship: 'Second Chance', bounty: 120000,
     dream: '', rumour: 'Sister-ship to a fire ship that burnt a harbour. He hasn\'t stopped apologising since.', status: never },
   { id: 'undertow', name: '???', epithet: 'the Captain of the Undertow', ship: 'Undertow', bounty: 0,

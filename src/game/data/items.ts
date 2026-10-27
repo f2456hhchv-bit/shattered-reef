@@ -288,6 +288,10 @@ function tierItems(): ItemDef[] {
     equip: { slot: 'weapon', reqs: { attack: 75, strength: 75 }, style: 'melee', kind: 'greatsword', speed: 3.6, range: 1.9, bonus: { acc: 99, str: 170 }, affixPool: MELEE_AFFIX } }));
   // The Salt in the Fen: the Second Lockkey, cut out of Jenny Greenteeth
   out.push(I({ id: 'fen_lockkey', name: 'A key of green bronze', desc: 'Slick with weed and warm from where it was. It hums when you hold it near water. A Lockkey.', icon: { shape: 'tooth', color: '#5a7a3a', accent: '#c9a050' }, stackable: false, value: 0, quest: true }));
+  // The Lantern Burns Low: Corva's lantern and the letter in her coat
+  out.push(I({ id: 'corva_letter', name: 'A letter signed "V. H."', desc: 'Found in Sister Corva\'s coat. The hand is older than the paper. Iven should see it.', icon: { shape: 'book', color: '#d8ccb0', accent: '#3a3a3a' }, stackable: false, value: 0, quest: true }));
+  out.push(I({ id: 'orb_lantern', name: 'Corva\'s lantern', desc: 'Off-hand, beside a wand. It burns without oil, and its flame leans toward every keyhole you pass. Your spells burn hotter; your charms go further.', icon: { shape: 'orb', color: '#d8e8ff', accent: '#e8c060' }, stackable: false, value: 6000,
+    equip: { slot: 'offhand', off: 'orb', reqs: { magic: 75 }, bonus: { acc: 15, magicDmg: 9, defMagic: 6 }, affixPool: MAGIC_AFFIX }, innate: [{ id: 'charm_save', v: 10 }] }));
   // The First Lock: the Compact's tide table (bell-time at the Drowned Spire)
   out.push(I({ id: 'tide_table', name: 'Compact tide table', desc: 'Mercy Gale\'s copy, the Spire\'s low water circled in red ink. "A tide table isn\'t a side," she said.', icon: { shape: 'book', color: '#3a5a6a', accent: '#d8442a' }, stackable: false, value: 0, quest: true }));
   // The Broodmother (Amberhold): Eir's silk ring

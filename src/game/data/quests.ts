@@ -35,11 +35,13 @@ export interface NpcDef {
   heals?: string; // restores you to full health, with this line
   /** leaves this spot once the flag is set (a Tide who joined your crew isn't standing on the shore any more) */
   goneWhen?: string;
+  /** ...and back again once this flag is set (someone taken, then rescued) */
+  backWhen?: string;
   ferry?: { to: 'bellwether' | 'sunreach' | 'amberhold' | 'wrack'; price: number }[]; // offers passage to other harbours
 }
 
 export const NPCS: Record<string, NpcDef> = {
-  iven: { id: 'iven', name: 'Iven Marr', title: 'Cartographer', idle: ['The sea has a second map, captain. I mean to finish it.'] },
+  iven: { id: 'iven', name: 'Iven Marr', title: 'Cartographer', goneWhen: 'iven_taken', backWhen: 'iven_back', idle: ['The sea has a second map, captain. I mean to finish it.'] },
   marta: { id: 'marta', name: 'Marta Gell', title: 'Harbour trader', idle: ['Buying, selling, and asking no questions.'], shop: true },
   bram: { id: 'bram', name: 'Bram Tollis', title: 'Smith',
     idle: ['Furnace takes copper and tin, one of each, makes a bronze bar.', 'Bring bars to the anvil. Better smiths turn out better blades. Some come out Fine, now and then Rare.'] },
@@ -902,6 +904,63 @@ export const QUESTS: Record<string, QuestDef> = {
           'It\'s yours, captain. Nobody else should hold it.'],
           effect: { give: [{ id: 'coins', qty: 2500 }], xp: [{ skill: 'attack', amount: 3000 }, { skill: 'defence', amount: 3000 }, { skill: 'magic', amount: 3000 }], stage: 5, flag: 'collector_done', key: 'skeleton' } } } },
       { text: 'Quest complete. The Skeleton Key is on your keyring.' },
+    ],
+  },
+  lantern: {
+    id: 'lantern',
+    main: true,
+    name: 'The Lantern Burns Low',
+    island: 'bellwether',
+    giver: 'iven',
+    reward: 'Iven home, the Wardwright compass (unopened doors on your map), 5000 coins, 6000 Sailing, Attack and Defence XP. Corva\'s lantern, from Corva.',
+    stages: [
+      { text: 'Speak with Iven Marr at Bellwether Quay, once The Salt in the Fen is done.',
+        talk: { npc: 'iven', node: { needsFlags: ['fen_done'], missing: ['Two Locks open. I keep counting them, captain, like I\'m the one who\'s supposed to.'], lines: [
+          'The chapel bell rang last night. On its own, at low water. Three times. Sister Maren sat up with it till dawn.',
+          'Everyone in Bellwether heard it. I don\'t think everyone heard the same thing.',
+          'I heard my grandmother. She\'s been dead eleven years. She was saying the rhyme the children carve in trees, the one about thirteen.',
+          'Go up and see Maren, would you? I\'ll lock the chart house and follow. There\'s a Fen chart on my table I don\'t want left out.'],
+          effect: { stage: 1, flag: 'iven_taken' } } } },
+      { text: 'Go up to the chapel and speak with Sister Maren. Iven said he\'d follow.',
+        talk: { npc: 'maren', node: { lines: [
+          'He never came up the hill. I watched for him. I\'d have seen.',
+          'A longboat came in under the quay with its oars wrapped in sacking. Four of them in grey. They didn\'t say a word to each other. They didn\'t need to.',
+          'They went into the chart house and came out with Iven between them. He wasn\'t fighting. He was listening. His face, captain. Like a child hearing music through a wall.',
+          'They rowed north-west, past the point, with no light. The harbourmaster keeps a watch log. If anything bigger was waiting out there, it\'ll be written down.'],
+          effect: { stage: 2 } } } },
+      { text: 'Ask Wynn Harrow, the harbourmaster at Bellwether Quay, what was waiting off the point.',
+        talk: { npc: 'wynn', node: { lines: [
+          'A black brig. No flag, no lights, standing off Leviathan\'s Rest since the new moon. I logged her. That\'s all the Compact lets me do with a ship: log her.',
+          'Rule three. We take no side. I\'ve said it to every captain who ever asked me for help, and I meant it every time.',
+          'Iven\'s mother drew the chart on that wall. Iven corrected it when he was nine. In ink. I never had the heart to take it down.',
+          'She\'s the Lantern, Sister Corva\'s. Sail now and you\'ll catch her on the ebb before she clears the islet. I didn\'t tell you that. I told you the weather.'],
+          effect: { stage: 3 } } } },
+      { text: 'Sail north-west to Leviathan\'s Rest and stop the Lantern, Sister Corva\'s black brig, before she clears the islet.',
+        kill: { foe: 'lantern', count: 1, sea: true, spawn: { region: 'bellwether', x: LAYOUT.islet.x + 22, z: LAYOUT.islet.z + 12 } } },
+      { text: 'The Lantern is run aground on Leviathan\'s Rest, holed and burning. Go ashore: the Hushed are carrying Iven up the islet.',
+        kill: { foe: 'hushed_listener', count: 3, spawn: { region: 'bellwether', x: LAYOUT.islet.x + 5, z: LAYOUT.islet.z + 5 } } },
+      { text: 'Sister Corva is waiting at the top of the islet, between you and Iven. Beat her.',
+        kill: { foe: 'corva', count: 1, spawn: { region: 'bellwether', x: LAYOUT.islet.x - 2, z: LAYOUT.islet.z - 2 } } },
+      { text: 'Cut Iven loose. He\'s bound at a stone on the islet\'s crown.',
+        marks: [{ id: 'iven', label: 'Iven Marr, bound to a stone with a keyhole in it', verb: 'Cut him loose', region: 'bellwether', x: LAYOUT.islet.x + 1, z: LAYOUT.islet.z - 4,
+          say: ['Iven has his ear pressed to the stone. He doesn\'t notice you cut the ropes. When you pull him away he\'s crying, and he can\'t tell you why.',
+            'Sister Corva went off the rocks into the surf while you were still on your knees. You saw her go under. Nobody saw her come up.',
+            'Her grey coat is caught on the stones at the water\'s edge. There\'s a letter in it.'],
+          effect: { give: [{ id: 'corva_letter', qty: 1 }], flag: 'iven_back', stage: 7, vision: { title: 'A letter in Corva\'s coat', sub: 'In a hand older than the paper', lines: [
+            '"Sister. The heir will know where the thirteenth sleeps, though he doesn\'t know he knows it. His grandmother hid it, and then she hid the hiding inside him."',
+            '"Don\'t hurt him. Put his ear to the stone and let him listen. They\'ll tell him where. They told me everything, in the end."',
+            '"I have stood at this rail a long time waiting for someone to finish what Corran started. Bring me the heir and the thirteenth, and I\'ll bring the Door."',
+            '"Your friend, as ever. V. H."'] } } }] },
+      { text: 'Iven is home at Bellwether Quay. Take him the letter from Corva\'s coat.',
+        talk: { npc: 'iven', node: { requires: { id: 'corva_letter', qty: 1 }, missing: ['You found something in her coat, didn\'t you. I saw your face. Bring it here.'], lines: [
+          'They didn\'t hurt me. That\'s what I can\'t stop thinking about. They were kind. They gave me their blankets.',
+          'She put my ear to that stone and I heard them, captain. Thousands. Not shouting. Asking. Like children at a door, asking to be let in out of the cold.',
+          'And under all of them, my grandmother saying the rhyme. "Thirteen\'s in the belly, thirteen\'s in the deep." Over and over, like she was trying to get me to learn it.',
+          'V. H. There was a Vesper Hale on the Undertow. Keel\'s quartermaster. It\'s in his log, you\'ve read it. That was a thousand years ago.',
+          'Here. My grandmother\'s compass. It never once pointed north. It points at Wardwright doors, the ones still shut. I think it was meant for the heir.',
+          'I think the heir should be someone who can\'t be carried off in a longboat. Keep it. And keep sailing. I\'ll be here, drawing. With the door locked.'],
+          effect: { take: [{ id: 'corva_letter', qty: 1 }], give: [{ id: 'coins', qty: 5000 }], xp: [{ skill: 'sailing', amount: 6000 }, { skill: 'attack', amount: 6000 }, { skill: 'defence', amount: 6000 }], stage: 8, flag: 'lantern_done' } } } },
+      { text: 'Quest complete. Iven is home. Corva went into the sea and nobody saw her come up. Someone who signs "V. H." is waiting for the thirteenth Lockkey.' },
     ],
   },
 };

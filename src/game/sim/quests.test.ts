@@ -601,3 +601,45 @@ describe('the Storm Tide', () => {
     expect(count(g.p.inv, 'coins') + g.p.inv.filter((s) => s && s.id !== 'coins').length).toBeGreaterThan(coins);
   });
 });
+
+describe('The Lantern Burns Low (Act II)', () => {
+  it('Iven taken, Maren, Wynn, the Lantern sunk at sea, the Hushed and Corva on the islet, V. H.\'s letter, Iven home', () => {
+    const g = fresh();
+    for (const q of ['bell', 'collector', 'firstlock', 'palewing', 'fen']) { g.s.quests[q] = QUESTS[q].stages.length - 1; g.s.flags[`${q}_done`] = true; }
+    for (const e of g.enemies) { e.alive = false; e.respawnAt = Infinity; }
+    g.naval.foes.forEach((f) => { f.alive = false; f.respawnAt = Infinity; });
+    talk(g, 'iven');
+    expect(g.questStage('lantern')).toBe(1);
+    // he's gone: no one to talk to on the quay
+    expect(g.npcGone('iven')).toBe(true);
+    expect(g.targets().some((t) => t.key === 'npc:iven')).toBe(false);
+    talk(g, 'maren'); talk(g, 'wynn');
+    expect(g.questStage('lantern')).toBe(3);
+    // the Lantern is put in the water once, and stays sunk
+    g.step(1 / 30);
+    const brig = g.naval.foes.filter((f) => f.def.id === 'lantern');
+    expect(brig.length).toBe(1);
+    (g.naval as unknown as { sink(f: unknown): void }).sink(brig[0]);
+    expect(g.questStage('lantern')).toBe(4);
+    run(g, 2);
+    expect(g.naval.foes.some((f) => f.def.id === 'lantern')).toBe(false);
+    // the islet: three Hushed, then Corva
+    for (let k = 0; k < 3; k++) expect(beat(g, 'hushed_listener', 70, 'cutlass_tide')).toBe(true);
+    expect(g.questStage('lantern')).toBe(5);
+    expect(beat(g, 'corva', 90, 'cutlass_tide')).toBe(true);
+    expect(g.questStage('lantern')).toBe(6);
+    // her lantern falls where she stood
+    expect(g.drops.some((d) => d.stack.id === 'orb_lantern') || count(g.p.inv, 'orb_lantern') === 1).toBe(true);
+    const visions: string[] = [];
+    g.on((e) => { if (e.type === 'read') visions.push(e.title); });
+    use(g, 'lantern', 'iven');
+    run(g, 20, () => g.questStage('lantern') === 7);
+    expect(g.questStage('lantern')).toBe(7);
+    expect(visions).toContain('A letter in Corva\'s coat');
+    expect(g.npcGone('iven')).toBe(false);
+    talk(g, 'iven');
+    expect(g.questStage('lantern')).toBe(QUESTS.lantern.stages.length - 1);
+    expect(count(g.p.inv, 'corva_letter')).toBe(0);
+    expect(g.s.flags.lantern_done).toBe(true);
+  }, 120_000);
+});

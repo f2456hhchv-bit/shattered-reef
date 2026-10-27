@@ -1451,6 +1451,8 @@ export class UI {
     }
     // the Listener's Key: you hear where Keel's pages lie (unread ones, pale blue)
     if (g.activeKey()?.passive.kind === 'listening') for (const l of LORE) if (l.region === g.s.region && !g.s.flags[`lore_${l.id}`]) dot(l.x, l.z, (big ? 4 : 2.6) * scale, '#bcd8ff');
+    // the Wardwright compass (The Lantern Burns Low): it never pointed north; it points at the doors the Houses left shut
+    if (g.s.flags.lantern_done) for (const d of DOORS) if (d.region === g.s.region && !g.s.flags[`door_${d.id}`]) dot(d.x, d.z, (big ? 4.5 : 3) * scale, '#e8c060');
     const tx = g.treasure.here();
     if (tx) {
       // the treasure map's X, in red

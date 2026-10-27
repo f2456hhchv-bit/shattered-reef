@@ -44,6 +44,7 @@ them are lying.
 | **I. The Key Collector** | Bellwether → Stormwrack | Someone is collecting keys. The Collector is beaten and carried the Skeleton Key. | Built |
 | **II. The First Lock** | Stormwrack, the Drowned Spire | Keel's Tooth is a Lockkey. It opens the First Lock, and the player sees the Shattering through Keel's eyes. The Collector's ledger names the **Hushed**; Sister Corva thanks you. Reward: the Listener's Key. | Built |
 | **II. The Salt in the Fen** | Bellwether, the Mirewater Fen | Gull's soundings lead to the Second Lock. Muirne tells of the drowned bells; Jenny Greenteeth has swallowed the Lockkey. The vision reveals the truth: **the Locks are thirteen Wardwrights, bound to their keys.** Corva writes again: "You keep doing our work for us." Reward: the Mire Key. | Built |
+| **II. The Lantern Burns Low** | Bellwether, Leviathan's Rest | The Hushed take Iven from his chart house. Maren saw it; Wynn bends rule three to say where. Sink Corva's *Lantern*, beat Corva on the islet, cut Iven loose. Corva goes into the sea. Her letter is signed **V. H.**: Vesper Hale, Keel's quartermaster, still at the rail after a thousand years, wants "the heir and the thirteenth". Iven, the heir, gives you his grandmother's compass (unopened Wardwright doors on the map). | Built |
 | **III. The Tides** | All seas | Seven rival captains are racing for the Lockkeys and Keel's Hoard. Each is a person with a dream, a crew and a bounty. Some can be beaten, some befriended, one recruited. | Next |
 | **IV. The thirteen Locks** | New islands, one or two Locks each | The Reef beyond Stormwrack. Every Lock opens with a memory of the Varrow and costs something. | Planned |
 | **V. The Bottom Door** | The middle of the Reef | Open the Door for Keel's Hoard, seal it forever, or turn its key in yourself. Each ending changes the world you keep playing in. | Planned |
@@ -75,7 +76,7 @@ fly your colours in a fight.
 | **Bastian Gull** | *Pale Wing*, a white-hulled cutter | 140,000 | Chart the whole Reef before he dies of the cough he hides | Bellwether, buying charts from Iven |
 | **Mother Brine** | *Brinewife*, a barnacled hulk | 210,000 | Feed every orphan in the Reef; she raises an army of them | Amberhold, at the toll |
 | **Halvdan Ninefold** | *Ninefold*, a longship | 160,000 | Die in a fight worth a saga | Stormwrack, at the Wrack |
-| **Sister Corva** | *Lantern*, a black brig | 250,000 | Open the Bottom Door. She is Hushed | Act II |
+| **Sister Corva** | *Lantern*, a black brig | 250,000 | Open the Bottom Door. She is Hushed. Went into the sea off Leviathan's Rest; nobody saw her come up | Act II |
 | **Ash Tolliver** | *Second Chance*, a fire ship's sister | 120,000 | Be forgiven by someone, anyone | Act III |
 | **The Captain of the *Undertow*** | the *Undertow* | none, ever | ... | The end |
 

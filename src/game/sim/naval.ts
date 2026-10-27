@@ -1,4 +1,5 @@
 import type { Game } from './game';
+import { QUESTS } from '../data/quests';
 import { AMMO, NAVAL, SEA_FOES, SEA_SPAWNS, CHART_MARKS, KRAKEN, WEATHER, type AmmoId, type SeaFoeDef, type WeatherKind } from '../data/sea';
 import { perkTotal } from '../data/perks';
 import { count, remove, canAdd } from './inventory';
@@ -17,6 +18,8 @@ export interface SeaFoe {
   under: boolean;
   hitFlash: number;
   aim: { x: number; z: number } | null;
+  /** a quest's foe: put in the water once for its stage, never comes back once sunk */
+  once?: boolean;
 }
 export interface SeaBall { id: number; x: number; z: number; vx: number; vz: number; life: number; from: 'ship' | 'foe'; damage: number; ammo: AmmoId }
 export interface SeaCharge { id: number; x: number; z: number; t: number; damage: number }
@@ -51,6 +54,20 @@ export class Naval {
     }
     this.hull = Math.min(this.hull, this.hullMax());
     this.lastPos = null;
+  }
+
+  /** A quest stage that wants a ship sunk puts her in the water, once, while you're in her region. */
+  private stepQuestFoes() {
+    const g = this.g;
+    this.foes = this.foes.filter((f) => !(f.once && !f.alive));
+    for (const q of Object.values(QUESTS)) {
+      const k = q.stages[g.questStage(q.id)]?.kill;
+      if (!k?.sea || !k.spawn || k.spawn.region !== g.s.region || this.foes.some((f) => f.def.id === k.foe)) continue;
+      const def = SEA_FOES[k.foe], at = def && g.nearestSea(k.spawn.x, k.spawn.z);
+      if (!at) continue;
+      this.foes.push({ id: g.nextId++, def, x: at[0], z: at[1], heading: 0, spawnX: at[0], spawnZ: at[1], hp: def.hp, maxHp: def.hp, alive: true, respawnAt: 0,
+        state: 'idle', t: 0, cd: 0, under: def.behaviour === 'shark', hitFlash: 0, aim: null, once: true });
+    }
   }
 
   hullMax() {
@@ -220,9 +237,11 @@ export class Naval {
       this.stepWeather(dt, inHarbour);
     } else this.lastPos = null;
 
+    this.stepQuestFoes();
     for (const f of this.foes) {
       f.hitFlash = Math.max(0, f.hitFlash - dt);
       if (!f.alive) {
+        if (f.once) continue;
         if (g.time >= f.respawnAt && Math.hypot(sh.x - f.spawnX, sh.z - f.spawnZ) > 30) {
           Object.assign(f, { alive: true, hp: f.maxHp, x: f.spawnX, z: f.spawnZ, state: 'idle', cd: 0, under: f.def.behaviour === 'shark', aim: null });
         }
