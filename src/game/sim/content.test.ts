@@ -6,6 +6,7 @@ import { count, stackValue } from './inventory';
 import { ITEMS } from '../data/items';
 import { levelForXp } from './xp';
 import { NODES, RECIPES, ENEMIES, LOOT, SHOPS, UNLOCKS, SKILLS, SPELLS, UTILITY_SPELLS } from '../data/content';
+import { BOOK } from '../data/spellbook';
 import { LAYOUT, WRACK_LAYOUT, nearestPathDist } from '../world/island';
 import { toWorld, toLocal, doorPoints, isInside } from '../world/buildings';
 import { regionLayout } from '../world/layout';
@@ -56,7 +57,7 @@ describe('content data', () => {
   it('every item has a use: an input, gear, food, a tool, a quest item, or a declared trade good', () => {
     const TRADE = new Set(['coins', 'shell_fragment', 'burnt_food', 'spider_silk', 'snake_skin', 'sunscale']); // silk, skins and scales are traders' goods
     const used = new Set([...RECIPES.flatMap((r) => r.inputs.map((i) => i.id)), ...Object.values(NODES).flatMap((n) => (n.tool ? [n.tool] : [])),
-      ...SPELLS.flatMap((sp) => sp.cost.map((c) => c.id)), ...Object.values(UTILITY_SPELLS).flatMap((u) => u.cost.map((c) => c.id)), // shards are burnt by spells
+      ...SPELLS.flatMap((sp) => sp.cost.map((c) => c.id)), ...Object.values(UTILITY_SPELLS).flatMap((u) => u.cost.map((c) => c.id)), ...BOOK.flatMap((b) => b.cost.map((c) => c.id)), // shards are burnt by spells
       ...Object.values(AMMO).flatMap((a) => (a.item ? [a.item] : []))]); // the ship's guns burn their ammo
     const idle = Object.values(ITEMS).filter((d) => !used.has(d.id) && !d.equip && !d.heal && !d.tool && !d.quest && !d.opens && !d.chart && !d.turn && !TRADE.has(d.id)).map((d) => d.id);
     expect(idle).toEqual([]);

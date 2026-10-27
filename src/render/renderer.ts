@@ -1372,6 +1372,12 @@ export class GameRenderer {
         this.snapCamera();
         break;
       }
+      case 'spellFx': {
+        // a curse is a sickly violet haze; a bind, green roots bursting up round the feet
+        const y = g.world.standY(e.x, e.z) + (e.kind === 'bind' ? 0.2 : 1.1);
+        this.particles.burst(e.x, y, e.z, 18, e.kind === 'bind' ? 0x6f9a4a : 0x9a5ab4, { speed: e.kind === 'bind' ? 1.6 : 1.1, up: e.kind === 'bind' ? 2.2 : 0.6, size: 0.16, life: 0.7, grav: e.kind === 'bind' ? 2 : -0.5 });
+        break;
+      }
       case 'keyTurn': {
         // a brass keyhole flares on the foe, then the power's colour bursts out of it
         const col = ({ lesson: 0xe9e3d0, root: 0x6f9a4a, shatter: 0xc9a050, hook: 0x4fa7c2, disarm: 0xd2d5d2, mark: 0xe05a3c, undertow: 0x59d0c4, drain: 0xa8203a, becalm: 0x9fc8e8, blink: 0xb8c6ff, pickpocket: 0xe3c25e, rust: 0xa5543a, spoil: 0x6a8a2a, knockdown: 0xfff4d6, ward: 0x86b6dc, fuse: 0xf2a43a, chain: 0xb8c6ff, toll: 0xe9e3d0, steal: 0xee8a4e, turncoat: 0xc04a2c, bite: 0xefe3c4 } as Record<string, number>)[e.power] ?? 0xd9b25a;
