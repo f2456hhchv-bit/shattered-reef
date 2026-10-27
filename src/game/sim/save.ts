@@ -44,6 +44,8 @@ export interface SaveData {
   crew: string[];
   /** bells answered at bell-time (data/belltime.ts) */
   bellsRung?: number;
+  /** the collection log: every notable item that has ever landed in your pack (data/collection.ts) */
+  collected?: string[];
   /** messages in bottles read (data/bottles.ts) */
   bottles?: string[];
   /** feats done (data/feats.ts), and how often you've beaten each arena boss */

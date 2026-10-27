@@ -3,6 +3,7 @@ import { GreenheartFire } from './greenfire';
 import { AmberSeep } from './amberseep';
 import { TreasureHunt } from './treasure';
 import { BellTime } from './belltime';
+import { COLLECTIBLE } from '../data/collection';
 import { Bottles } from './bottles';
 import { FEATS, FEAT_BY, FEAT_TIERS } from '../data/feats';
 import { Naval } from './naval';
@@ -228,6 +229,8 @@ export class Game {
     this.boardRnd = mulberry32(((opts.seed ?? Date.now()) ^ 0x626f6172) >>> 0);
     const home = regionLayout('bellwether');
     this.s = opts.save ?? defaultSave(home.respawn, home.mooring!);
+    // the collection log starts with what you already own (saves from before the log existed)
+    if (!this.s.collected) this.s.collected = [...new Set([...this.s.player.inv, ...Object.values(this.s.player.equip), ...this.s.bank].filter((x): x is Stack => !!x).map((x) => x.id).filter((id) => COLLECTIBLE.has(id)))];
     if (this.s.flags.bell_done && !this.s.keyring.includes('keels_tooth')) this.s.keyring.push('keels_tooth'); // finished the bell quest before keys
     // layouts are read-only after their build, so every Game shares them (a build takes up to ~0.6 s)
     this.layout = regionLayout(this.s.region);
@@ -404,9 +407,17 @@ export class Game {
     this.rev++;
   }
 
+  /** The collection log: a notable item's first time in your pack. */
+  collect(id: string) {
+    if (!COLLECTIBLE.has(id) || (this.s.collected ?? []).includes(id)) return;
+    this.s.collected = [...(this.s.collected ?? []), id];
+    this.msg(`New collection log entry: ${item(id).name}.`, 'loot');
+  }
+
   give(id: string, qty: number, inst?: Stack['inst']): boolean {
     const left = add(this.p.inv, { id, qty, inst });
     this.rev++;
+    if (left < qty) this.collect(id);
     if (left < qty) this.emit({ type: 'gain', id, qty: qty - left, name: inst ? displayName({ id, qty: 1, inst }) : item(id).name });
     if (left > 0) {
       this.dropAt(this.p.x, this.p.z, { id, qty: left, inst });
@@ -2833,6 +2844,7 @@ export class Game {
           continue;
         }
         add(this.p.inv, d.stack);
+        this.collect(d.stack.id);
         this.emit({ type: 'pickup', x: d.x, z: d.z, tint: item(d.stack.id).quest ? 'quest' : d.stack.inst?.rarity ?? 'common' });
         this.emit({ type: 'gain', id: d.stack.id, qty: d.stack.qty, name: displayName(d.stack) });
         if (d.stack.inst && d.stack.inst.rarity !== 'common') this.msg(`You found: ${displayName(d.stack)}`, 'loot');
