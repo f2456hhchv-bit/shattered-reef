@@ -283,6 +283,9 @@ function tierItems(): ItemDef[] {
     equip: { slot: 'head', reqs: { defence: 60 }, bonus: { defMelee: 40, defRanged: 38, defMagic: 30, acc: 4 }, affixPool: ARMOUR_AFFIX } }));
   // treasure maps: dug up or found in caskets; read one and sail to the X
   out.push(I({ id: 'treasure_map', name: 'Treasure map', desc: 'Stained, torn, and an X in the water off some coast. Tap it and Read it on the island it shows.', icon: { shape: 'map', color: '#d8c49a', accent: '#a83a2a' }, stackable: true, value: 80, chart: true }));
+  // Halvdan Ninefold's sword, if you gave him the death he asked for
+  out.push(I({ id: 'sword_ninefold', name: 'Ninefold', desc: 'Halvdan\'s greatsword: nine notches in the blade for nine fights, and a tenth, fresh, for you. It\'s lighter than it looks. He said it would be.', icon: { shape: 'greatsword', color: '#b8c0c8', accent: '#8a3a2a' }, stackable: false, value: 30000,
+    equip: { slot: 'weapon', reqs: { attack: 75, strength: 75 }, style: 'melee', kind: 'greatsword', speed: 3.6, range: 1.9, bonus: { acc: 99, str: 170 }, affixPool: MELEE_AFFIX } }));
   // The Salt in the Fen: the Second Lockkey, cut out of Jenny Greenteeth
   out.push(I({ id: 'fen_lockkey', name: 'A key of green bronze', desc: 'Slick with weed and warm from where it was. It hums when you hold it near water. A Lockkey.', icon: { shape: 'tooth', color: '#5a7a3a', accent: '#c9a050' }, stackable: false, value: 0, quest: true }));
   // The First Lock: the Compact's tide table (bell-time at the Drowned Spire)

@@ -77,6 +77,7 @@ export const NPCS: Record<string, NpcDef> = {
   // Sunreach's quests (docs/ISLANDS.md, slice 2)
   abena: { id: 'abena', name: 'Abena Owusu', title: 'Fruit seller', idle: ['Mangoes, limes, soursop. Mind the jungle edge after dark, captain.'] },
   nana_ayo: { id: 'nana_ayo', name: 'Nana Ayo', title: 'Herb woman', idle: ['Bush tea for the fever, salt for what comes at night. I keep both.'] },
+  ninefold: { id: 'ninefold', name: 'Halvdan Ninefold', title: 'Captain of the Ninefold', goneWhen: 'ninefold_fought', idle: ['Nine fights. Nine wins. Not one of them worth a verse.', 'My grandfather died fighting a sea-wyrm. They still sing it in the north. What will they sing about me? Taxes?'] },
   brine: { id: 'brine', name: 'Mother Brine', title: 'Captain of the Brinewife', goneWhen: 'tide_brine_enemy', idle: ['Mind the little ones. They bite, and they pick pockets, and I\'ve stopped telling them not to.', 'Every child on this sea has a mother. Some of them just haven\'t met me yet.'] },
   gull: { id: 'gull', name: 'Bastian Gull', title: 'Captain of the Pale Wing', goneWhen: 'tide_gull_crew', idle: ['The Reef\'s never been charted whole. Not once, not since the Breaking. I mean to be the one.', 'Iven still draws his fives like fishhooks. I\'d know them anywhere.'] },
   marisol: { id: 'marisol', name: 'Marisol Ransom', title: 'Captain of the Dear Hostage', idle: ['I don\'t drink with people I haven\'t robbed yet. Sit down anyway.', 'Every captain on this sea wants Keel\'s Hoard. I just want back what was mine.'] },
@@ -537,6 +538,36 @@ export const QUESTS: Record<string, QuestDef> = {
           'The Fen going salt. I\'ll look into it. If he\'s right, the Second Lock is under Bellwether\'s nose, and has been for a thousand years.'],
           effect: { give: [{ id: 'coins', qty: 1200 }], xp: [{ skill: 'sailing', amount: 2500 }], stage: 5, flag: 'palewing_done' } } } },
       { text: 'Quest complete. Bastian Gull sails with you. The Mirewater Fen is going salt.' },
+    ],
+  },
+  saga: {
+    id: 'saga',
+    name: 'A Fight Worth a Saga',
+    island: 'wrack',
+    giver: 'ninefold',
+    reward: 'A choice: Halvdan joins your crew as shieldbreaker (melee max hit +4%), or his greatsword Ninefold is yours. 3000 Attack and Strength XP',
+    stages: [
+      { text: 'Speak with Halvdan Ninefold at Gallows Landing.',
+        talk: { npc: 'ninefold', node: { needsFlags: ['jotunn_defeated'], missing: [
+          'You? No. No offence, captain. I want the strongest fighter in the Reef, and you haven\'t done anything they\'ll sing about yet.',
+          'Go and beat the Thunder Jötunn on the crag. Then come back, and we\'ll see.'], lines: [
+          'You beat the Jötunn. I watched from the landing. I\'ve never seen anything like it, and I\'ve seen a lot.',
+          'Nine fights I\'ve had worth the name. Nine wins. Not one of them made a saga, because none of them could have gone the other way.',
+          'Fight me. Properly. On the north road, swords out, no crews. If I win, I\'ll have a song. If you win, you\'ll have finished a long road for a tired man.',
+          'Don\'t hold back, captain. I\'ll know.'],
+          effect: { flag: 'ninefold_fought', stage: 1 } } } },
+      { text: 'Duel Halvdan Ninefold on the road north of Gallows Landing.',
+        kill: { foe: 'ninefold_duel', count: 1, spawn: { region: 'wrack', x: WRACK_LAYOUT.landing.x - 2, z: WRACK_LAYOUT.landing.z - 22 } } },
+      { text: 'Halvdan is down in the mud, laughing, and asking you to finish it. Help him up, or give him the death he asked for.',
+        marks: [
+          { id: 'spare', label: 'Halvdan, on his back in the road', verb: 'Help him up', region: 'wrack', x: WRACK_LAYOUT.landing.x - 3, z: WRACK_LAYOUT.landing.z - 21,
+            say: ['"No," he says, when you pull him up. "No, that\'s not how it goes." Then he starts to laugh, and can\'t stop.', '"A saga that doesn\'t end. I\'ll have to stay and see how it does. Have you a place on your deck for a man who\'s bad at losing?"'],
+            effect: { crew: 'halvdan', flag: 'tide_ninefold_crew', xp: [{ skill: 'attack', amount: 3000 }, { skill: 'strength', amount: 3000 }], stage: 3 } },
+          { id: 'grant', label: 'Halvdan\'s sword, in the mud beside him', verb: 'Finish it', region: 'wrack', x: WRACK_LAYOUT.landing.x - 1, z: WRACK_LAYOUT.landing.z - 23,
+            say: ['He closes his eyes, and he\'s smiling. "Tell them it went the other way for a moment. It did."', 'You bury him on the crag, facing the sea. His crew sing all night. By morning there\'s a saga, and you\'re in it.'],
+            effect: { give: [{ id: 'sword_ninefold', qty: 1 }], flag: 'tide_ninefold_dead', xp: [{ skill: 'attack', amount: 3000 }, { skill: 'strength', amount: 3000 }], stage: 3 } },
+        ] },
+      { text: 'Quest complete. The fourth of the Tides has met you, and the saga has your name in it.' },
     ],
   },
   brinewife: {
