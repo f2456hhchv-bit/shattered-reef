@@ -315,7 +315,7 @@ export class GameRenderer {
     this.npcs.clear(); this.houses = []; this.walkers = []; this.enemyViews.clear(); this.nodeViews.clear();
     this.dropViews.clear(); this.projViews.clear(); this.teleViews.clear(); this.flames = []; this.glows = [];
     this.seaViews.clear(); this.krakenArms.clear(); this.bolts.clear(); this.ballViews.clear(); this.chargeViews.clear(); this.aimLine = null;
-    this.markViews.clear(); this.stormProps = null; this.fireProps = null; this.seepProps = null; this.treasureBuoy = null; this.bellView = null;
+    this.markViews.clear(); this.stormProps = null; this.fireProps = null; this.seepProps = null; this.treasureBuoy = null; this.bellView = null; this.bottleView = null;
     this.grass = null; this.grassTime = [];
     this.scenery = new InstancedField(addSurfaceDetail(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: false, roughness: 0.9 }), PROP_SURFACE));
     this.sceneryState.clear();
@@ -1096,6 +1096,33 @@ export class GameRenderer {
     this.stormProps.planks.forEach((m, k) => { m.visible = st.running && st.broken[k]; });
   }
 
+  /** A message in a bottle (bottles.ts): green glass and a red-waxed cork, bobbing and turning on the swell. */
+  private bottleView: THREE.Group | null = null;
+  private syncBottle(t: number) {
+    const b = this.game.bottles.bottle;
+    if (!b) { if (this.bottleView) this.bottleView.visible = false; return; }
+    if (!this.bottleView || !this.bottleView.parent) {
+      const v = new THREE.Group();
+      const glass = new THREE.MeshStandardMaterial({ color: 0x3a7a4a, roughness: 0.15, metalness: 0.1, transparent: true, opacity: 0.8, emissive: 0x1a4a2a, emissiveIntensity: 0.35 });
+      const body = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.5, 12), glass);
+      const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.13, 0.22, 10), glass); neck.position.y = 0.36;
+      const cork = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.065, 0.08, 8), new THREE.MeshStandardMaterial({ color: 0xa82a22, roughness: 0.6 })); cork.position.y = 0.5;
+      const paper = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.36, 8), new THREE.MeshStandardMaterial({ color: 0xe8dcc0, roughness: 0.95 }));
+      const bottle = new THREE.Group(); bottle.add(body, neck, cork, paper); bottle.rotation.z = Math.PI / 2 - 0.25; bottle.name = 'bottle';
+      const ring = new THREE.Mesh(new THREE.RingGeometry(0.6, 0.75, 24), new THREE.MeshBasicMaterial({ color: 0xf2e6c8, transparent: true, opacity: 0.4, depthWrite: false, side: THREE.DoubleSide }));
+      ring.rotation.x = -Math.PI / 2; ring.name = 'ring';
+      v.add(bottle, ring);
+      this.region3d.add(v);
+      this.bottleView = v;
+    }
+    const v = this.bottleView;
+    v.visible = true;
+    v.position.set(b.x, 0.08 + Math.sin(t * 1.8) * 0.08, b.z);
+    v.getObjectByName('bottle')!.rotation.y = t * 0.4;
+    const ring = v.getObjectByName('ring') as THREE.Mesh, p = (t * 0.5) % 1;
+    ring.scale.setScalar(1 + p * 2); (ring.material as THREE.MeshBasicMaterial).opacity = 0.4 * (1 - p);
+  }
+
   /** Bell-time (belltime.ts): a bell ringing where there is no bell. You see the sound more than the bell: rings of
    * bronze light spreading over the sand, and the ghost of a bell swinging in the air above them. */
   private bellView: THREE.Group | null = null;
@@ -1578,6 +1605,7 @@ export class GameRenderer {
     this.syncSeep(t);
     this.syncTreasure(t);
     this.syncBell(t);
+    this.syncBottle(t);
     this.syncTelegraphs();
 
     for (const f of this.flames) { f.scale.y = 0.8 + Math.sin(t * 12 + f.position.x * 10) * 0.25; f.scale.x = 1 + Math.sin(t * 9 + f.position.z * 7) * 0.12; }

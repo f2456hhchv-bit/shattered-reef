@@ -7,6 +7,7 @@ import { LORE, KEEL_PAGES } from '../game/data/lore';
 import { DOORS } from '../game/data/doors';
 import { SHIPYARD, SHIP_PARTS, type ShipPart } from '../game/data/shipyard';
 import { FEATS, FEAT_TIERS } from '../game/data/feats';
+import { BOTTLES, BOTTLE_BY } from '../game/data/bottles';
 import { TIDES } from '../game/data/tides';
 import { MEAL_TEXT, item, RARITY, AFFIXES, METALS, METAL_TRAITS, AMMO_NAME, ammoKind, isTwoHanded, pairGroup, type ItemDef, type Slot, type SkillId, type WeaponKind } from '../game/data/items';
 import { morph, forget } from './morph';
@@ -746,9 +747,10 @@ export class UI {
   /** One set of handlers on the tab panel for its whole life (content is patched, never re-bound). */
   private bindContent(c: HTMLElement) {
     const g = this.game;
-    onTap(c, '[data-door], [data-lore], [data-diary], [data-slot], [data-equip], [data-stance], [data-spell], [data-q], [data-dmg], [data-music], [data-sfx], [data-fps], [data-lv], [data-skill], [data-skillback], [data-gcat], [data-sort], [data-home], [data-mapview], [data-key], [data-devkeys], #saveNow, #resetSave', (t, pointer) => {
+    onTap(c, '[data-door], [data-lore], [data-bottle], [data-diary], [data-slot], [data-equip], [data-stance], [data-spell], [data-q], [data-dmg], [data-music], [data-sfx], [data-fps], [data-lv], [data-skill], [data-skillback], [data-gcat], [data-sort], [data-home], [data-mapview], [data-key], [data-devkeys], #saveNow, #resetSave', (t, pointer) => {
       if (t.dataset.home) { g.teleportHome(); return; }
       if (t.dataset.lore) { g.readLore(t.dataset.lore); return; }
+      if (t.dataset.bottle) { g.bottles.reread(t.dataset.bottle); return; }
       if (t.dataset.door) { g.readDoor(t.dataset.door); return; }
       if (t.dataset.diary) { g.claimDiary(t.dataset.diary); this.lastRev = -1; return; }
       if (t.dataset.sort) { this.closePop(); g.sortPack(t.dataset.sort as 'type' | 'value' | 'quality'); this.log(`Pack sorted by ${t.dataset.sort}.`); return; }
@@ -967,7 +969,9 @@ export class UI {
       // the Wardwright vaults you've opened: each House's last record
       + DOORS.filter((d) => g.s.flags[`door_${d.id}`]).map((d) => `<button class="lore-row" data-door="${d.id}"><b>${esc(d.record.title)}</b><small>${esc(REGIONS[d.region].name)}</small></button>`).join('');
     const vaults = DOORS.filter((d) => g.s.flags[`door_${d.id}`]).length;
-    const lore = `<p class="muted" style="font-size:12px;margin:0 0 6px">${keelFound} of ${KEEL_PAGES} pages of Keel's Log found${found.length > keelFound ? `, and ${found.length - keelFound} fragment${found.length - keelFound > 1 ? 's' : ''} of the Varrow` : ''}. Pages turn up on every island, wedged and weighted where the sea left them. ${vaults} of ${DOORS.length} Wardwright vaults opened.</p>${loreRows}`;
+    const bottlesRead = g.s.bottles ?? [];
+    const bottleRows = bottlesRead.map((id) => BOTTLE_BY[id]).filter(Boolean).map((b) => `<button class="lore-row" data-bottle="${b.id}"><b>${esc(b.title)}</b><small>A message in a bottle</small></button>`).join('');
+    const lore = `<p class="muted" style="font-size:12px;margin:0 0 6px">${keelFound} of ${KEEL_PAGES} pages of Keel's Log found${found.length > keelFound ? `, and ${found.length - keelFound} fragment${found.length - keelFound > 1 ? 's' : ''} of the Varrow` : ''}. Pages turn up on every island, wedged and weighted where the sea left them. ${vaults} of ${DOORS.length} Wardwright vaults opened.</p>${loreRows}<p class="muted" style="font-size:12px;margin:8px 0 6px">Messages in bottles: ${bottlesRead.length} of ${BOTTLES.length}. They bob past your bow out at sea.</p>${bottleRows}`;
     // the Tides: every harbour has their posters; what they want, you learn by meeting them
     const tides = TIDES.map((t) => {
       const st = t.status(g.s.flags, g.s.quests);
@@ -1488,6 +1492,8 @@ export class UI {
     if (g.s.flags.lantern_done) for (const d of DOORS) if (d.region === g.s.region && !g.s.flags[`door_${d.id}`]) dot(d.x, d.z, (big ? 4.5 : 3) * scale, '#e8c060');
     // bell-time: the bell ringing where there's no bell, pulsing bronze
     { const bt = g.belltime.here(); if (bt) dot(bt.x, bt.z, (big ? 6 : 4) * scale * (1 + 0.25 * Math.sin(performance.now() / 180)), '#e8a850'); }
+    // a message in a bottle, bobbing off the bow
+    { const bo = g.bottles.bottle; if (bo) dot(bo.x, bo.z, (big ? 4 : 2.8) * scale, '#8ad8a0'); }
     const tx = g.treasure.here();
     if (tx) {
       // the treasure map's X, in red

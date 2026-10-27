@@ -235,6 +235,7 @@ export class Naval {
         g.rev++;
       }
       this.stepKraken(dt);
+      this.g.bottles.step(true, inHarbour);
       this.stepWeather(dt, inHarbour);
     } else this.lastPos = null;
 
