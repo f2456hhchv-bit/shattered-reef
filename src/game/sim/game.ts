@@ -2,6 +2,7 @@ import { StormTide } from './stormtide';
 import { GreenheartFire } from './greenfire';
 import { AmberSeep } from './amberseep';
 import { TreasureHunt } from './treasure';
+import { BellTime } from './belltime';
 import { Naval } from './naval';
 import { AMMO, NAVAL } from '../data/sea';
 import { SHIPYARD, type ShipPart } from '../data/shipyard';
@@ -65,6 +66,8 @@ export type GameEvent =
   | { type: 'craftFx'; station: Station }
   | { type: 'dialog'; npc: string; lines: string[] }
   | { type: 'read'; title: string; sub: string; lines: string[] }
+  /** a big moment worth a banner across the screen (bell-time) */
+  | { type: 'banner'; title: string; sub: string }
   | { type: 'openStation'; station: Station }
   | { type: 'openShop'; shop: string }
   | { type: 'openBank' }
@@ -173,6 +176,7 @@ export class Game {
   fire: GreenheartFire = new GreenheartFire(this);
   seep: AmberSeep = new AmberSeep(this);
   treasure: TreasureHunt = new TreasureHunt(this);
+  belltime!: BellTime;
   private listeners: ((e: GameEvent) => void)[] = [];
 
   // player runtime
@@ -235,6 +239,7 @@ export class Game {
 
   /** Fresh runtime state for the region just loaded: its nodes and foes, a valid place to stand. */
   private enterRegion() {
+    (this.belltime ??= new BellTime(this)).enterRegion();
     this.nodes = this.layout.nodes.map((n) => ({ ...n, depletedUntil: 0, left: this.rollYield(n.def) }));
     // only a few dig spots are disturbed at any time; the rest surface later
     for (const n of this.nodes) if (NODES[n.def].verb === 'Dig' && this.rnd() < 0.75) n.depletedUntil = this.rnd() * NODES[n.def].respawn;
@@ -432,6 +437,7 @@ export class Game {
       out.push({ key: `node:${n.uid}`, kind: 'node', x: n.x, z: n.z, range: this.nodeReach(d), label: d.name, verb: d.verb });
     }
     out.push(...this.treasure.targets());
+    out.push(...this.belltime.targets());
     if (onShip) for (const m of this.questMarks()) if (m.mark.fromShip) out.push({ key: `quest:${m.quest}:${m.mark.id}`, kind: 'quest', x: m.mark.x, z: m.mark.z, range: 6, label: m.mark.label, verb: m.mark.verb });
     if (!onShip) {
       for (const n of this.layout.npcs) if (!this.npcGone(n.id)) out.push({ key: `npc:${n.id}`, kind: 'npc', x: n.x, z: n.z, range: 2.2, label: NPCS[n.id].name, verb: NPCS[n.id].shop ? 'Trade' : NPCS[n.id].bank ? 'Bank' : NPCS[n.id].ferry ? 'Travel' : 'Talk' });
@@ -582,7 +588,7 @@ export class Game {
       case 'quest': { const [, q, m] = t.key.split(':'); return this.useMark(q, m); }
       case 'lore': return this.readLore(t.key.slice(5));
       case 'door': return this.openDoor(t.key.slice(5));
-      case 'event': return t.key.startsWith('event:gf:') ? this.fire.use(t.key) : t.key.startsWith('event:seep:') ? this.seep.use(t.key) : t.key.startsWith('event:tm:') ? this.treasure.use(t.key) : this.storm.use(t.key);
+      case 'event': return t.key.startsWith('event:gf:') ? this.fire.use(t.key) : t.key.startsWith('event:seep:') ? this.seep.use(t.key) : t.key.startsWith('event:tm:') ? this.treasure.use(t.key) : t.key.startsWith('event:bt:') ? this.belltime.use(t.key) : this.storm.use(t.key);
     }
   }
 
@@ -1430,6 +1436,16 @@ export class Game {
   }
 
   // ------------------------------------------------------------------ combat
+  /** Something song-touched that comes to listen (bell-time): a one-off elite with this affix. */
+  spawnListener(def: EnemyDef, x: number, z: number, affix: string) {
+    const e = this.spawnEnemy(def, x, z, false);
+    e.once = true;
+    e.elite = affix;
+    e.maxHp = e.hp = Math.round(def.hp * HP_SCALE * (affix === 'barnacled' ? 3 : 2));
+    e.state = 'chase';
+    return e;
+  }
+
   private spawnEnemy(def: EnemyDef, x: number, z: number, summoned: boolean): Enemy {
     const e: Enemy = {
       id: this.nextId++, def, x, z, facing: this.rnd() * Math.PI * 2, spawnX: x, spawnZ: z,
@@ -2824,6 +2840,7 @@ export class Game {
       this.stepBounties();
       this.stepQuestFoes();
       this.storm.step(dt);
+      this.belltime.step();
       this.fire.step(dt);
       this.seep.step(dt);
       this.stepDiaries();

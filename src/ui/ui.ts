@@ -336,6 +336,7 @@ export class UI {
       case 'hunters': this.banner('Bounty hunters!', 'They\'ve come to collect'); break;
       case 'hit': this.damageNumber(e.x, e.z, e.amount, e.target === 'player', e.crit); break;
       case 'dodge': this.damageNumber(e.x, e.z, 'Dodged', false, true); break;
+      case 'banner': this.banner(e.title, e.sub); break;
       case 'boss': if (e.state === 'defeat') this.banner(e.name ?? 'Victory', e.sub ?? ''); break;
       case 'board': this.closeWindows(); break;
       case 'travel': this.closeWindows(); this.showLoading(e.name, e.tip, REGIONS[e.to].kind === 'cave' ? 'Climbing down into' : this.game.region.kind === 'cave' ? 'Climbing back up to' : 'Setting a course for'); break;
@@ -1476,6 +1477,8 @@ export class UI {
     if (g.activeKey()?.passive.kind === 'listening') for (const l of LORE) if (l.region === g.s.region && !g.s.flags[`lore_${l.id}`]) dot(l.x, l.z, (big ? 4 : 2.6) * scale, '#bcd8ff');
     // the Wardwright compass (The Lantern Burns Low): it never pointed north; it points at the doors the Houses left shut
     if (g.s.flags.lantern_done) for (const d of DOORS) if (d.region === g.s.region && !g.s.flags[`door_${d.id}`]) dot(d.x, d.z, (big ? 4.5 : 3) * scale, '#e8c060');
+    // bell-time: the bell ringing where there's no bell, pulsing bronze
+    { const bt = g.belltime.here(); if (bt) dot(bt.x, bt.z, (big ? 6 : 4) * scale * (1 + 0.25 * Math.sin(performance.now() / 180)), '#e8a850'); }
     const tx = g.treasure.here();
     if (tx) {
       // the treasure map's X, in red
