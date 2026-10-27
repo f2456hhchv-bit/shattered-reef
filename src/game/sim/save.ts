@@ -40,6 +40,8 @@ export interface SaveData {
   boards: Record<string, { offers: Contract[]; refreshAt: number }>;
   contracts: Contract[];
   crew: string[];
+  /** the shipwright's refits: tier per part (data/shipyard.ts) */
+  shipyard?: Partial<Record<'hull' | 'sails' | 'guns' | 'plating', number>>;
   mate: string | null;
   hunterAt: number; // play time of the next bounty-hunter ambush (once your bounty is big enough)
   /** the treasure map you're following: an X in the water off an island */

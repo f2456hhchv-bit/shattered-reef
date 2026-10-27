@@ -4,6 +4,7 @@ import { AmberSeep } from './amberseep';
 import { TreasureHunt } from './treasure';
 import { Naval } from './naval';
 import { AMMO, NAVAL } from '../data/sea';
+import { SHIPYARD, type ShipPart } from '../data/shipyard';
 import { ACTIVE, MOMENTS, type MomentKind, type Struck } from '../data/active';
 import { mulberry32 } from '../../art/noise';
 import { item, ammoKind, AMMO_NAME, isTwoHanded, offhandBlock, pairGroup, type ItemDef, type Slot, type SkillId, type CombatStyle } from '../data/items';
@@ -340,6 +341,29 @@ export class Game {
     this.rev++;
   }
   /** Sum of a crew passive over everyone you've signed. */
+  /** The shipwright (data/shipyard.ts): your ship's refit of each part, its bonus, and why the next can't be done. */
+  shipTier(part: ShipPart) { return this.s.shipyard?.[part] ?? 0; }
+  shipBonus(part: ShipPart) { const t = this.shipTier(part); return t ? SHIPYARD[part].tiers[t - 1].v : 0; }
+  refitBlock(part: ShipPart): string | null {
+    const next = SHIPYARD[part].tiers[this.shipTier(part)];
+    if (!next) return 'Fully refitted';
+    if (this.level('sailing') < next.sailing) return `Needs Sailing ${next.sailing}`;
+    if (count(this.p.inv, 'coins') < next.coins) return `Needs ${next.coins.toLocaleString('en-GB')} coins`;
+    for (const i of next.items) if (count(this.p.inv, i.id) < i.qty) return `Needs ${i.qty} × ${item(i.id).name}`;
+    return null;
+  }
+  refit(part: ShipPart) {
+    const block = this.refitBlock(part);
+    if (block) { this.msg(`${block}.`, 'warn'); return false; }
+    const t = this.shipTier(part), next = SHIPYARD[part].tiers[t];
+    remove(this.p.inv, 'coins', next.coins);
+    for (const i of next.items) remove(this.p.inv, i.id, i.qty); // validated above: all-or-nothing
+    this.s.shipyard = { ...(this.s.shipyard ?? {}), [part]: t + 1 };
+    if (part === 'hull') this.naval.hull = this.naval.hullMax();
+    this.msg(`The shipwrights fit your ${SHIPYARD[part].name.toLowerCase()}: ${next.name}: ${SHIPYARD[part].what}.`, 'good');
+    this.rev++;
+    return true;
+  }
   crewV(kind: CrewPassive) { return (this.s.crew ?? []).reduce((a, id) => a + (CREW_BY[id]?.passive.kind === kind ? CREW_BY[id].passive.v : 0), 0); }
 
   // ------------------------------------------------------------------ xp + items
@@ -1353,7 +1377,7 @@ export class Game {
       if (m > 0.1 || this.hullFits(sh.x, sh.z, sh.heading + turn)) sh.heading += turn;
       else throttle = Math.max(throttle, 0.45);
     }
-    const maxSpeed = 7.5 * (this.activeKey()?.passive.kind === 'ship_speed' ? 1 + this.activeKey()!.passive.v / 100 : 1) * (1 + this.crewV('ship_speed') / 100) * (this.s.flags.toll_pennant ? 1.05 : 1); // the Tollhouse pennant
+    const maxSpeed = 7.5 * (this.activeKey()?.passive.kind === 'ship_speed' ? 1 + this.activeKey()!.passive.v / 100 : 1) * (1 + this.crewV('ship_speed') / 100) * (this.s.flags.toll_pennant ? 1.05 : 1) * (1 + this.shipBonus('sails') / 100); // the Tollhouse pennant; the shipwright's sails
     const targetSpeed = throttle * maxSpeed;
     this.shipSpeed += (targetSpeed - this.shipSpeed) * Math.min(1, dt * (targetSpeed > this.shipSpeed ? 0.7 : 1.2));
     if (this.shipSpeed > 0.01) {

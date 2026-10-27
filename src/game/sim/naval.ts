@@ -73,7 +73,7 @@ export class Naval {
   hullMax() {
     const lvl = this.g.level('sailing');
     const figurehead = this.g.s.flags.nokk_figurehead ? 1.1 : 1; // The Nøkk's Fiddle
-    return Math.round((NAVAL.hull + NAVAL.hullPerLevel * (lvl - 1)) * (1 + perkTotal('sailing', lvl, 'hull') / 100) * figurehead);
+    return Math.round((NAVAL.hull + NAVAL.hullPerLevel * (lvl - 1)) * (1 + perkTotal('sailing', lvl, 'hull') / 100) * figurehead * (1 + this.g.shipBonus('hull') / 100));
   }
   private reloadTime(kind: 'broadside' | 'charge') {
     const base = kind === 'charge' ? NAVAL.charge.reload : NAVAL.reload;
@@ -129,7 +129,7 @@ export class Naval {
     const a = AMMO[this.ammo], sh = this.g.ship;
     if (a.item) remove(this.g.p.inv, a.item, 1);
     this.reloadCd = this.reloadTime(a.kind);
-    const dmg = a.damage * (1 + (this.g.level('sailing') - 1) * 0.04) * (this.g.s.flags.swivel_gun ? 1.15 : 1) * (this.g.s.flags.ransom_pennant ? 1.05 : 1) * (1 + this.g.crewV('cannon') / 100); // gunnery grows with Sailing; the Wreckers' Lantern swivel gun; Marisol's red pennant; Ash Tolliver at the guns
+    const dmg = a.damage * (1 + (this.g.level('sailing') - 1) * 0.04) * (this.g.s.flags.swivel_gun ? 1.15 : 1) * (this.g.s.flags.ransom_pennant ? 1.05 : 1) * (1 + this.g.crewV('cannon') / 100) * (1 + this.g.shipBonus('guns') / 100); // gunnery grows with Sailing; the Wreckers' Lantern swivel gun; Marisol's red pennant; Ash Tolliver at the guns
     if (a.kind === 'charge') {
       // over the stern: it sinks, then bursts
       this.charges.push({ id: this.g.nextId++, x: sh.x - Math.cos(sh.heading) * 4.2, z: sh.z - Math.sin(sh.heading) * 4.2, t: NAVAL.charge.fuse, damage: dmg });
@@ -161,6 +161,7 @@ export class Naval {
   }
 
   private hitHull(dmg: number) {
+    dmg *= 1 - this.g.shipBonus('plating') / 100; // the shipwright's plating
     this.hull -= dmg;
     this.lastHit = this.g.time;
     this.g.emit({ type: 'hit', target: 'player', id: 0, amount: Math.round(dmg), crit: false, x: this.g.ship.x, z: this.g.ship.z });
