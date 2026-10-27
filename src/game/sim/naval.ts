@@ -112,7 +112,7 @@ export class Naval {
     const a = AMMO[this.ammo], sh = this.g.ship;
     if (a.item) remove(this.g.p.inv, a.item, 1);
     this.reloadCd = this.reloadTime(a.kind);
-    const dmg = a.damage * (1 + (this.g.level('sailing') - 1) * 0.04) * (this.g.s.flags.swivel_gun ? 1.15 : 1); // gunnery grows with Sailing; the Wreckers' Lantern swivel gun
+    const dmg = a.damage * (1 + (this.g.level('sailing') - 1) * 0.04) * (this.g.s.flags.swivel_gun ? 1.15 : 1) * (this.g.s.flags.ransom_pennant ? 1.05 : 1); // gunnery grows with Sailing; the Wreckers' Lantern swivel gun; Marisol's red pennant
     if (a.kind === 'charge') {
       // over the stern: it sinks, then bursts
       this.charges.push({ id: this.g.nextId++, x: sh.x - Math.cos(sh.heading) * 4.2, z: sh.z - Math.sin(sh.heading) * 4.2, t: NAVAL.charge.fuse, damage: dmg });
@@ -231,7 +231,8 @@ export class Naval {
       f.cd = Math.max(0, f.cd - dt);
       const d = Math.hypot(sh.x - f.x, sh.z - f.z);
       const sight = this.weather.kind === 'fog' ? WEATHER.fogSight : 1; // fog: they have to come close to see you
-      const engaged = aboard && !inHarbour && d < f.def.aggro * sight * (f.state === 'idle' ? 1 : 1.8);
+      const friend = f.def.id === 'red_ransom' && g.s.flags.tide_marisol_friend; // you paid her ransom: Marisol lets you pass
+      const engaged = aboard && !inHarbour && !friend && d < f.def.aggro * sight * (f.state === 'idle' ? 1 : 1.8);
       if (!engaged) {
         // drift home, sharks back under
         f.state = 'idle'; f.aim = null;

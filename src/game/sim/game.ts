@@ -1087,8 +1087,8 @@ export class Game {
     const opts: { q: string; node: DialogueNode }[] = [];
     for (const q of Object.values(QUESTS)) {
       const stage = q.stages[this.questStage(q.id)];
-      const opt = [stage?.talk, ...(stage?.also ?? [])].find((o) => o?.npc === npcId);
-      if (opt) opts.push({ q: q.id, node: opt.node });
+      // every line this person has for the stage (a choice can give one person two things to say, gated by flags)
+      for (const o of [stage?.talk, ...(stage?.also ?? [])]) if (o?.npc === npcId) opts.push({ q: q.id, node: o.node });
     }
     const waiting = (node: DialogueNode) => (node.requires && count(this.p.inv, node.requires.id) < node.requires.qty) || (node.needsFlags ?? []).some((f) => !this.s.flags[f]);
     // a quest you're already on comes before starting a new one

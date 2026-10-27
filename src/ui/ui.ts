@@ -5,6 +5,7 @@ import { AMMO, CHART_MARKS, type AmmoId } from '../game/data/sea';
 import { DIARIES } from '../game/data/diaries';
 import { LORE, KEEL_PAGES } from '../game/data/lore';
 import { DOORS } from '../game/data/doors';
+import { TIDES } from '../game/data/tides';
 import { item, RARITY, AFFIXES, METALS, METAL_TRAITS, AMMO_NAME, ammoKind, isTwoHanded, pairGroup, type ItemDef, type Slot, type SkillId, type WeaponKind } from '../game/data/items';
 import { morph, forget } from './morph';
 import { wears, condOf, WORN_OUT_EFFECT } from '../game/sim/inventory';
@@ -954,7 +955,14 @@ export class UI {
       + DOORS.filter((d) => g.s.flags[`door_${d.id}`]).map((d) => `<button class="lore-row" data-door="${d.id}"><b>${esc(d.record.title)}</b><small>${esc(REGIONS[d.region].name)}</small></button>`).join('');
     const vaults = DOORS.filter((d) => g.s.flags[`door_${d.id}`]).length;
     const lore = `<p class="muted" style="font-size:12px;margin:0 0 6px">${keelFound} of ${KEEL_PAGES} pages of Keel's Log found${found.length > keelFound ? `, and ${found.length - keelFound} fragment${found.length - keelFound > 1 ? 's' : ''} of the Varrow` : ''}. Pages turn up on every island, wedged and weighted where the sea left them. ${vaults} of ${DOORS.length} Wardwright vaults opened.</p>${loreRows}`;
-    return `<h2 class="title">Quests</h2>${qs}<div class="brass-rule"></div><h2 class="title">Keel's Log</h2>${lore}<div class="brass-rule"></div><h2 class="title">Island diaries</h2>${diaries}<div class="brass-rule"></div><h2 class="title">Your bounty</h2>${poster}<div class="brass-rule"></div><h2 class="title">Places (${g.s.discovered.length}/${PLACES.length})</h2>${disc}`;
+    // the Tides: every harbour has their posters; what they want, you learn by meeting them
+    const tides = TIDES.map((t) => {
+      const st = t.status(g.s.flags, g.s.quests);
+      const tag = st === 'friend' ? '<span class="status done">Owes you</span>' : st === 'beaten' ? '<span class="status done">Beaten</span>' : st === 'met' ? '<span class="status active">Met</span>' : '<span class="status todo">Wanted</span>';
+      const known = st !== 'poster';
+      return `<div class="quest tide"><b>${esc(t.name)}</b> <small class="muted">${esc(t.epithet)}</small>${tag}<p style="margin:4px 0;font-size:12.5px"><b>${t.bounty ? t.bounty.toLocaleString('en-GB') : '—'}</b> · the ${esc(t.ship)}</p><small class="muted">${esc(known && t.dream ? t.dream : t.rumour)}</small></div>`;
+    }).join('');
+    return `<h2 class="title">Quests</h2>${qs}<div class="brass-rule"></div><h2 class="title">The Tides</h2>${tides}<div class="brass-rule"></div><h2 class="title">Keel's Log</h2>${lore}<div class="brass-rule"></div><h2 class="title">Island diaries</h2>${diaries}<div class="brass-rule"></div><h2 class="title">Your bounty</h2>${poster}<div class="brass-rule"></div><h2 class="title">Places (${g.s.discovered.length}/${PLACES.length})</h2>${disc}`;
   }
 
   private settingsHtml() {
