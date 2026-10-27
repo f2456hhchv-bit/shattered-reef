@@ -288,6 +288,9 @@ function tierItems(): ItemDef[] {
     equip: { slot: 'weapon', reqs: { attack: 75, strength: 75 }, style: 'melee', kind: 'greatsword', speed: 3.6, range: 1.9, bonus: { acc: 99, str: 170 }, affixPool: MELEE_AFFIX } }));
   // The Salt in the Fen: the Second Lockkey, cut out of Jenny Greenteeth
   out.push(I({ id: 'fen_lockkey', name: 'A key of green bronze', desc: 'Slick with weed and warm from where it was. It hums when you hold it near water. A Lockkey.', icon: { shape: 'tooth', color: '#5a7a3a', accent: '#c9a050' }, stackable: false, value: 0, quest: true }));
+  // Thirteen's in the Belly: Sigrun's horn, and the thirteenth Lockkey
+  out.push(I({ id: 'sleeper_horn', name: 'The sleeper\'s horn', desc: 'A ram\'s horn bound in bronze, older than Tollhouse. Sigrun says it plays one note, and only the deep hears it.', icon: { shape: 'tooth', color: '#d8c8a0', accent: '#c08a4a' }, stackable: false, value: 0, quest: true }));
+  out.push(I({ id: 'thirteenth_key', name: 'The thirteenth Lockkey', desc: 'Black iron, warm as a hand, and it hums the rhyme the children carve in trees. It isn\'t yours. It isn\'t anyone\'s. Don\'t put it to your ear.', icon: { shape: 'tooth', color: '#2a2a30', accent: '#bcd8ff' }, stackable: false, value: 0, quest: true }));
   // Second Chance (Ash Tolliver): the letter he can't deliver himself
   out.push(I({ id: 'ash_letter', name: 'Ash Tolliver\'s letter', desc: 'Folded small and sealed with candle wax. He wrote it eleven times. This is the one he didn\'t burn.', icon: { shape: 'book', color: '#e8dcc0', accent: '#8a3a1a' }, stackable: false, value: 0, quest: true }));
   // The Lantern Burns Low: Corva's lantern and the letter in her coat
