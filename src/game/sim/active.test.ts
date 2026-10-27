@@ -6,6 +6,9 @@ import { count } from './inventory';
 import { ACTIVE, MOMENTS } from '../data/active';
 
 // Active skilling (docs/ISLANDS.md): a gold window each swing and craft; tap in it for a bonus, never a penalty.
+// most tests here make every swing lucky; the last one checks the real cooldown
+const COOLDOWN = [...ACTIVE.cooldown] as [number, number];
+ACTIVE.cooldown = [0, 0];
 const base = new Game({ seed: 1 });
 const fresh = (seed = 7) => new Game({ seed, save: defaultSave(base.layout.respawn, base.layout.mooring!) });
 
@@ -56,7 +59,7 @@ describe('active skilling', () => {
   });
 
   it('gold doubles the log that lands (1.5x XP), red trebles it (2x XP); mistimed and no taps change nothing', () => {
-    const afk = chop(null), gold = chop(0.66), red = chop(0.77), early = chop(0.2);
+    const afk = chop(null), gold = chop(0.72), red = chop(0.77), early = chop(0.2);
     console.log('CHOP', JSON.stringify({ afk, gold, red, early }));
     expect(gold.perMin / afk.perMin).toBeGreaterThan(1.85);
     expect(gold.perMin / afk.perMin).toBeLessThan(2.15);
@@ -80,6 +83,30 @@ describe('active skilling', () => {
     expect(count(g.p.inv, 'burnt_food')).toBe(0);
     expect(count(g.p.inv, 'fish_sprat')).toBe(20);
   });
+});
+
+describe('lucky swings', () => {
+  it('the bar is rare: about once every four to six minutes of chopping, never on a craft or swing in between', () => {
+    ACTIVE.cooldown = COOLDOWN;
+    try {
+      const g = fresh(5);
+      g.p.xp.woodcutting = xpForLevel(30);
+      g.give('hatchet_iron', 1);
+      for (const e of g.enemies) { e.alive = false; e.respawnAt = Infinity; }
+      let shown = 0, was = false;
+      for (let t = 0; t < 1200; t += 1 / 30) {
+        if (!g.action) { const m = g.nodes.find((x) => x.def === 'tree_oak' && x.depletedUntil <= g.time); if (m) { const w = g.world.nearestWalkable(m.x + 1.2, m.z, 3)!; g.p.x = w[0]; g.p.z = w[1]; g.interact(`node:${m.uid}`); } }
+        const live = !!g.cueState()?.live;
+        if (live && !was) shown++;
+        was = live;
+        g.step(1 / 30);
+        g.p.inv = g.p.inv.map((s) => (s?.id === 'logs_oak' ? null : s));
+      }
+      // 20 minutes: the first comes after 4-6, then every 4-6 (plus the wait for a swing that lands)
+      expect(shown).toBeGreaterThanOrEqual(2);
+      expect(shown).toBeLessThanOrEqual(5);
+    } finally { ACTIVE.cooldown = [0, 0]; }
+  }, 60_000);
 });
 
 describe('gathering moments', () => {

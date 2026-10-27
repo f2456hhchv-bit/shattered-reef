@@ -6,10 +6,13 @@ export type Struck = 'perfect' | 'red' | 'miss';
 // on the swing that's about to land an item. Tap in the gold and that item comes twice, in its red heart three times;
 // a craft gets more XP. It's a bonus for paying attention, never a tax: leave it alone and every skill runs as it did.
 export const ACTIVE = {
-  /** the gold window, as a fraction of the cycle (a 2.4 s swing: about 0.7 s, closing just before the swing lands) */
-  window: [0.62, 0.92] as [number, number],
-  /** the red heart of the gold window: harder, worth more */
-  red: [0.73, 0.81] as [number, number],
+  /** the gold window, as a fraction of the cycle (a 2.4 s swing: about 0.4 s, closing just before the swing lands) */
+  window: [0.70, 0.86] as [number, number],
+  /** the red heart of the gold window: harder, worth more (about 0.1 s) */
+  red: [0.76, 0.80] as [number, number],
+  /** a lucky swing (Tom, 2026-10-27: "a 'rare' random event, like once every 5 mins"): the bar only shows once this
+   *  many seconds have passed since the last one, on the next swing that lands an item or the next craft */
+  cooldown: [240, 360] as [number, number],
   /** items from the swing that lands one (the timing bar only shows on that swing): no tap or a miss one, gold two,
    *  red three (Tom: "should it not just give 2, maybe a small red section that gives 3?"). */
   times: { miss: 1, perfect: 2, red: 3 } as Record<Struck, number>,
@@ -37,7 +40,7 @@ export interface MomentDef {
 }
 export const MOMENTS = {
   /** chance per landed item (skills with a moment only) */
-  chance: 0.04,
+  chance: 0.02,
   bySkill: { woodcutting: 'nest', fishing: 'tug', mining: 'seam' } as Partial<Record<SkillId, MomentKind>>,
   defs: {
     nest: { secs: 1.3, steps: 1, window: [0.5, 0.92], red: [0.68, 0.8], label: 'Catch!',

@@ -1507,7 +1507,7 @@ export class GameRenderer {
   private sized = '';
   /** Phones change the canvas size after rotating (and when browser bars slide) without a reliable resize event:
    * a stale buffer stretches the picture and puts taps in the wrong place. Checked every frame, costs nothing. */
-  private keepSized() {
+  keepSized() {
     const key = `${this.canvas.clientWidth}x${this.canvas.clientHeight}@${window.devicePixelRatio}`;
     if (key !== this.sized) this.resize();
   }
