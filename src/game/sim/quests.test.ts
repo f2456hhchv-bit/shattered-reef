@@ -766,3 +766,28 @@ describe('Coral Key (the Tides: Marisol Ransom)', () => {
     expect(count(g!.p.inv, 'coral_deed')).toBe(0);
   }, 120_000);
 });
+
+describe('The Eighty-First Child (the Tides: Mother Brine)', () => {
+  it('Ulla, the small footprints in order (the barefoot decoy starts again), the Hushed, Sela at the barrow, home to Brine', () => {
+    const L = regionLayout('amberhold');
+    const g = new Game({ seed: 7, save: { ...defaultSave(L.respawn, L.mooring!), region: 'amberhold' } });
+    for (const e of g.enemies) { e.alive = false; e.respawnAt = Infinity; }
+    for (const f of ['tide_brine_friend', 'lantern_done']) g.s.flags[f] = true;
+    talk(g, 'brine');
+    expect(g.questStage('eightyfirst')).toBe(1);
+    talk(g, 'ulla');
+    expect(g.questStage('eightyfirst')).toBe(2);
+    use(g, 'eightyfirst', 'f1'); use(g, 'eightyfirst', 'decoy');
+    use(g, 'eightyfirst', 'f2');
+    expect(g.questStage('eightyfirst')).toBe(2);
+    for (const m of ['f1', 'f2', 'f3']) use(g, 'eightyfirst', m);
+    expect(g.questStage('eightyfirst')).toBe(3);
+    for (let k = 0; k < 3; k++) expect(beat(g, 'hushed_listener', 70, 'cutlass_tide')).toBe(true);
+    expect(g.questStage('eightyfirst')).toBe(4);
+    use(g, 'eightyfirst', 'sela');
+    run(g, 20, () => g.questStage('eightyfirst') === 5);
+    talk(g, 'brine');
+    expect(g.questStage('eightyfirst')).toBe(QUESTS.eightyfirst.stages.length - 1);
+    expect(count(g.p.inv, 'brine_locket')).toBe(1);
+  }, 120_000);
+});
