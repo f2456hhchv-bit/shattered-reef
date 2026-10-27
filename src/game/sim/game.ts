@@ -3,6 +3,7 @@ import { GreenheartFire } from './greenfire';
 import { AmberSeep } from './amberseep';
 import { TreasureHunt } from './treasure';
 import { BellTime } from './belltime';
+import { Bottles } from './bottles';
 import { FEATS, FEAT_BY, FEAT_TIERS } from '../data/feats';
 import { Naval } from './naval';
 import { AMMO, NAVAL } from '../data/sea';
@@ -178,6 +179,7 @@ export class Game {
   seep: AmberSeep = new AmberSeep(this);
   treasure: TreasureHunt = new TreasureHunt(this);
   belltime!: BellTime;
+  bottles!: Bottles;
   private listeners: ((e: GameEvent) => void)[] = [];
 
   // player runtime
@@ -243,6 +245,7 @@ export class Game {
   /** Fresh runtime state for the region just loaded: its nodes and foes, a valid place to stand. */
   private enterRegion() {
     (this.belltime ??= new BellTime(this)).enterRegion();
+    (this.bottles ??= new Bottles(this)).enterRegion();
     this.nodes = this.layout.nodes.map((n) => ({ ...n, depletedUntil: 0, left: this.rollYield(n.def) }));
     // only a few dig spots are disturbed at any time; the rest surface later
     for (const n of this.nodes) if (NODES[n.def].verb === 'Dig' && this.rnd() < 0.75) n.depletedUntil = this.rnd() * NODES[n.def].respawn;
