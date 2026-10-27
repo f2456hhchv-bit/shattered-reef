@@ -49,6 +49,8 @@ export interface ItemDef {
   /** a galley meal: eat it for a while of this (one meal at a time; a new one replaces the last) */
   meal?: { kind: MealKind; v: number; secs: number };
   tool?: { skill: SkillId; power: number; level: number };
+  /** an elemental staff: an endless supply of that element's shards (RuneScape's staff of air) */
+  elemental?: 'gale' | 'tide' | 'stone' | 'ember';
   equip?: {
     slot: Slot;
     reqs: Partial<Record<SkillId, number>>;
@@ -340,7 +342,7 @@ function tierItems(): ItemDef[] {
   out.push(I({ id: 'ash_letter', name: 'Ash Tolliver\'s letter', desc: 'Folded small and sealed with candle wax. He wrote it eleven times. This is the one he didn\'t burn.', icon: { shape: 'book', color: '#e8dcc0', accent: '#8a3a1a' }, stackable: false, value: 0, quest: true }));
   // The Lantern Burns Low: Corva's lantern and the letter in her coat
   out.push(I({ id: 'corva_letter', name: 'A letter signed "V. H."', desc: 'Found in Sister Corva\'s coat. The hand is older than the paper. Iven should see it.', icon: { shape: 'book', color: '#d8ccb0', accent: '#3a3a3a' }, stackable: false, value: 0, quest: true }));
-  out.push(I({ id: 'orb_lantern', name: 'Corva\'s lantern', desc: 'Off-hand, beside a wand. It burns without oil, and its flame leans toward every keyhole you pass. Your spells burn hotter; your charms go further.', icon: { shape: 'orb', color: '#d8e8ff', accent: '#e8c060' }, stackable: false, value: 6000,
+  out.push(I({ id: 'orb_lantern', name: 'Corva\'s lantern', desc: 'Off-hand, beside a wand. It burns without oil, and its flame leans toward every keyhole you pass. Your spells burn hotter; your shards go further.', icon: { shape: 'orb', color: '#d8e8ff', accent: '#e8c060' }, stackable: false, value: 6000,
     equip: { slot: 'offhand', off: 'orb', reqs: { magic: 75 }, bonus: { acc: 15, magicDmg: 9, defMagic: 6 }, affixPool: MAGIC_AFFIX }, innate: [{ id: 'charm_save', v: 10 }] }));
   // The First Lock: the Compact's tide table (bell-time at the Drowned Spire)
   out.push(I({ id: 'tide_table', name: 'Compact tide table', desc: 'Mercy Gale\'s copy, the Spire\'s low water circled in red ink. "A tide table isn\'t a side," she said.', icon: { shape: 'book', color: '#3a5a6a', accent: '#d8442a' }, stackable: false, value: 0, quest: true }));
@@ -426,7 +428,7 @@ function tierItems(): ItemDef[] {
       equip: { slot: 'weapon', reqs: { magic: t.req }, style: 'magic', kind: 'wand', speed: 2.4, range: 8 + Math.floor(t.req / 30), bonus: { acc: WAND.acc[k], magicDmg: WAND.dmg[k], defMagic: 2 + k * 2 }, affixPool: MAGIC_AFFIX } }));
     out.push(I({ id: `orb_${ORB_ID[k]}`, name: ORB_NAME[k], desc: `Off-hand, beside a wand. Focuses your spells: +${ORB.dmg[k]}% spell damage.`, icon: { shape: 'orb', color: t.glow, accent: '#e9fbff' }, stackable: false, value: Math.max(20, t.req * 9),
       equip: { slot: 'offhand', off: 'orb', reqs: { magic: t.req }, bonus: { acc: ORB.acc[k], magicDmg: ORB.dmg[k] }, affixPool: MAGIC_AFFIX } }));
-    out.push(I({ id: `book_${BOOK_ID[k]}`, name: BOOK_NAME[k], desc: 'Off-hand, beside a wand. Its pages ward off spells, and its rites waste fewer tide charms.', icon: { shape: 'book', color: k === 0 ? '#7a5534' : '#3a4a6a', accent: t.glow }, stackable: false, value: Math.max(20, t.req * 9),
+    out.push(I({ id: `book_${BOOK_ID[k]}`, name: BOOK_NAME[k], desc: 'Off-hand, beside a wand. Its pages ward off spells, and its rites waste fewer shards.', icon: { shape: 'book', color: k === 0 ? '#7a5534' : '#3a4a6a', accent: t.glow }, stackable: false, value: Math.max(20, t.req * 9),
       equip: { slot: 'offhand', off: 'book', reqs: { magic: t.req }, bonus: { magicDmg: BOOK.dmg[k], defMagic: BOOK.def[k] }, affixPool: ['max_hp', 'regen', 'xp_bonus', 'accuracy'] }, innate: [{ id: 'charm_save', v: BOOK.save[k] }] }));
   });
   // jewellery: a pendant and a bangle beside the rings (gold ones are forged; Crafting will take jewellery over)
@@ -537,7 +539,18 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(
     I({ id: 'bar_bronze', name: 'Bronze bar', desc: 'Copper and tin, married in fire.', icon: { shape: 'bar', color: '#c08a4a' }, stackable: true, value: 18 }),
     I({ id: 'bar_iron', name: 'Iron bar', desc: 'Grey and honest.', icon: { shape: 'bar', color: '#8f9396' }, stackable: true, value: 40 }),
     I({ id: 'shell_fragment', name: 'Reef shell', desc: 'Barnacle-crusted shell. Traders like it.', icon: { shape: 'shell', color: '#d8c7a8', accent: '#c04a2c' }, stackable: true, value: 7 }),
-    I({ id: 'charm_tide', name: 'Tide charm', desc: 'Sea-glass knotted with kelp. Spells burn them like candles.', icon: { shape: 'charm', color: '#59d0c4', accent: '#2a7f78' }, stackable: true, value: 3 }),
+    // ---- shards: magic's runes. Four elements, a catalyst for each tier of spell, root and compass
+    I({ id: 'charm_tide', name: 'Tide shard', desc: 'Sea-glass that never dries. The water element: every tide spell burns some.', icon: { shape: 'charm', color: '#59d0c4', accent: '#2a7f78' }, stackable: true, value: 3 }),
+    I({ id: 'shard_gale', name: 'Gale shard', desc: 'A sliver of clouded glass that hums in wind. The air element: nearly every spell needs some.', icon: { shape: 'charm', color: '#d8e8ee', accent: '#8aa8b4' }, stackable: true, value: 3 }),
+    I({ id: 'shard_stone', name: 'Stone shard', desc: 'A flake of basalt, heavier than it looks. The earth element.', icon: { shape: 'charm', color: '#9a8a6a', accent: '#5a4a32' }, stackable: true, value: 3 }),
+    I({ id: 'shard_ember', name: 'Ember shard', desc: 'Volcanic glass, warm to hold. The fire element.', icon: { shape: 'charm', color: '#e8743a', accent: '#8a2a14' }, stackable: true, value: 3 }),
+    I({ id: 'shard_whisper', name: 'Whisper shard', desc: 'Pale and faintly singing. Every strike spell needs one.', icon: { shape: 'charm', color: '#e8d8f0', accent: '#9a7ab4' }, stackable: true, value: 4 }),
+    I({ id: 'shard_squall', name: 'Squall shard', desc: 'Storm-dark glass with lightning trapped in it. Every bolt spell needs one.', icon: { shape: 'charm', color: '#6a7ab4', accent: '#e8e070' }, stackable: true, value: 12 }),
+    I({ id: 'shard_grave', name: 'Grave shard', desc: 'Black glass from a barrow floor. Every blast spell needs one.', icon: { shape: 'charm', color: '#3a3a44', accent: '#9aa0b4' }, stackable: true, value: 25 }),
+    I({ id: 'shard_heart', name: 'Heart shard', desc: 'Red glass that beats if you hold it long enough. Every wave spell needs one.', icon: { shape: 'charm', color: '#b42a3a', accent: '#f0a0a8' }, stackable: true, value: 45 }),
+    I({ id: 'shard_wrath', name: 'Wrath shard', desc: 'Glass cut from the Leviathan\'s grave. Every surge spell needs one.', icon: { shape: 'charm', color: '#7a1a6a', accent: '#f0c040' }, stackable: true, value: 80 }),
+    I({ id: 'shard_root', name: 'Root shard', desc: 'Green glass grown through with root. Alchemy needs one.', icon: { shape: 'charm', color: '#4a8a3a', accent: '#b4d870' }, stackable: true, value: 20 }),
+    I({ id: 'shard_compass', name: 'Compass shard', desc: 'Glass with a needle in it that always finds home. Teleports need one.', icon: { shape: 'charm', color: '#c8a85a', accent: '#3a2a14' }, stackable: true, value: 30 }),
     // ---- food (heals are RuneScape-scale: you start with 10 health)
     I({ id: 'fish_sprat_raw', name: 'Raw reef sprat', desc: 'Small, silver, wriggling.', icon: { shape: 'fish', color: '#9fb7bf' }, stackable: true, value: 3 }),
     I({ id: 'fish_sprat', name: 'Grilled sprat', desc: 'Heals 3.', icon: { shape: 'fish', color: '#c9934f' }, stackable: true, value: 6, heal: 3 }),
@@ -578,9 +591,16 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(
       equip: { slot: 'ammo', reqs: { ranged: 1 }, bonus: { rangedStr: 7 }, affixPool: [] } }),
     I({ id: 'shot_iron', name: 'Iron shot', desc: 'Heavier balls. Equip in the ammo slot.', icon: { shape: 'shot', color: '#8f9396' }, stackable: true, value: 3,
       equip: { slot: 'ammo', reqs: { ranged: 10 }, bonus: { rangedStr: 13 }, affixPool: [] } }),
-    // ---- magic (any staff casts your chosen spell; spells burn tide charms)
-    I({ id: 'staff_driftwood', name: 'Driftwood staff', desc: 'Casts your chosen spell. Burns tide charms.', icon: { shape: 'staff', color: '#8a6440', accent: '#59d0c4' }, stackable: false, value: 30,
+    // ---- magic (any staff casts your chosen spell; spells burn shards)
+    I({ id: 'staff_driftwood', name: 'Driftwood staff', desc: 'Casts your chosen spell from your shards.', icon: { shape: 'staff', color: '#8a6440', accent: '#59d0c4' }, stackable: false, value: 30,
       equip: { slot: 'weapon', reqs: { magic: 1 }, style: 'magic', speed: 2.4, range: 9, bonus: { acc: 8, defMagic: 4 }, affixPool: MAGIC_AFFIX } }),
+    // elemental staves: each supplies its element's shards without end (RuneScape's staff of air, water, earth, fire)
+    ...([['gale', 'Gale staff', '#d8e8ee', 'Ash-wood, bound with a hollow glass that whistles. Every gale shard your spells need, it supplies.'],
+      ['tide', 'Tide staff', '#59d0c4', 'Driftwood capped with sea-glass that never dries. Every tide shard your spells need, it supplies.'],
+      ['stone', 'Stone staff', '#9a8a6a', 'Blackthorn shod with basalt. Every stone shard your spells need, it supplies.'],
+      ['ember', 'Ember staff', '#e8743a', 'Charred oak with a coal in its head that never goes out. Every ember shard your spells need, it supplies.']] as const).map(([el, name, col, desc]) =>
+      I({ id: `staff_el_${el}`, name, desc, icon: { shape: 'staff', color: '#6a5034', accent: col }, stackable: false, value: 150, elemental: el,
+        equip: { slot: 'weapon', reqs: { magic: 1 }, style: 'magic', speed: 2.4, range: 9, bonus: { acc: 8, defMagic: 4 }, affixPool: MAGIC_AFFIX } })),
     // ---- armour (Defence requirement)
     I({ id: 'cap_leather', name: 'Leather cap', desc: 'Light. Good against shot.', icon: { shape: 'cap', color: '#7a5534' }, stackable: false, value: 15,
       equip: { slot: 'head', reqs: { defence: 1 }, bonus: { defMelee: 2, defRanged: 4, defMagic: 2 }, affixPool: [...ARMOUR_AFFIX, 'gather_speed'] } }),
@@ -629,6 +649,6 @@ export const AFFIXES: Record<string, AffixDef> = {
   xp_bonus: { id: 'xp_bonus', prefix: 'Studious', suffix: 'of Learning', min: 2, max: 5, fmt: (v) => `+${v}% skill experience` },
   // signature traits only (never rolled)
   durable: { id: 'durable', prefix: 'Tough', suffix: 'of Endurance', min: 40, max: 40, fmt: (v) => `Wears ${v}% slower` },
-  charm_save: { id: 'charm_save', prefix: 'Thrifty', suffix: 'of Thrift', min: 10, max: 25, fmt: (v) => `${v}% chance a spell burns no charms` },
+  charm_save: { id: 'charm_save', prefix: 'Thrifty', suffix: 'of Thrift', min: 10, max: 25, fmt: (v) => `${v}% chance a spell burns no shards` },
   sea_dmg: { id: 'sea_dmg', prefix: 'Sea-bane', suffix: 'of the Deep', min: 15, max: 15, fmt: (v) => `+${v}% damage to crabs and the Drowned` },
 };

@@ -15,7 +15,7 @@ export const SKILLS: { id: SkillId; name: string; colour: string; group: SkillGr
   { id: 'defence', name: 'Defence', colour: '#6b8fc9', group: 'Combat', blurb: 'Avoid hits and wear heavier armour. Train with the Defensive stance.' },
   { id: 'hitpoints', name: 'Hitpoints', colour: '#d8584a', group: 'Combat', blurb: 'Your health. Rises with all combat.' },
   { id: 'ranged', name: 'Ranged', colour: '#7aa83e', group: 'Combat', blurb: 'Pistols, bows and crossbows. Each needs its own ammo in your ammo slot: shot, arrows or bolts.' },
-  { id: 'magic', name: 'Magic', colour: '#59d0c4', group: 'Combat', blurb: 'Tide spells, cast with a staff. Brine Spray is free; stronger spells burn tide charms.' },
+  { id: 'magic', name: 'Magic', colour: '#59d0c4', group: 'Combat', blurb: 'Gale, tide, stone and ember spells from strike to surge, paid for in shards. Brine Spray is free. Hit a foe with the element it fears.' },
   { id: 'woodcutting', name: 'Woodcutting', colour: '#6f9a4a', group: 'Gathering', blurb: 'Chop trees for logs.' },
   { id: 'mining', name: 'Mining', colour: '#a07a5a', group: 'Gathering', blurb: 'Mine ore from rocks.' },
   { id: 'fishing', name: 'Fishing', colour: '#4fa7c2', group: 'Gathering', blurb: 'Fish from the quay, or better fish from your ship.' },
@@ -307,7 +307,7 @@ function buildUnlocks(): Record<SkillId, Unlock[]> {
     if (!it.equip) continue;
     for (const [k, v] of Object.entries(it.equip.reqs)) if ((v ?? 0) > 1) put(k, v!, ITEMS[it.id].name, madeCat(it.id), it.id);
   }
-  for (const sp of SPELLS) put('magic', sp.level, `${sp.name} (max hit ${sp.maxHit * HP_SCALE})`, 'Spells', 'charm_tide');
+  for (const sp of SPELLS) put('magic', sp.level, `${sp.name} (max hit ${sp.maxHit * HP_SCALE})`, 'Spells', sp.element ? SHARD[sp.element] : SHARD.tide);
   for (const x of Object.values(UTILITY_SPELLS)) put('magic', x.level, `${x.name} (${x === UTILITY_SPELLS.alchemy ? 'turn an item into coins' : 'teleport to Bellwether'})`, 'Spells', x === UTILITY_SPELLS.alchemy ? 'coins' : 'charm_tide');
   for (const e of Object.values(ENEMIES)) if (!e.boss) put('attack', Math.max(1, Math.round(e.level * 0.8)), `Fight: ${e.name} (level ${e.level})`, 'Foes');
   put('hitpoints', 11, '+10 health every level', 'Other');
@@ -336,7 +336,7 @@ export const SHOPS: Record<string, Shop> = {
     id: 'general', name: 'Gell\'s Harbour Goods', keeper: 'marta',
     stock: [
       { id: 'bread', qty: 1 }, { id: 'hatchet_chipped', qty: 1 }, { id: 'pickaxe_chipped', qty: 1 },
-      { id: 'pistol_flintlock', qty: 1 }, { id: 'shot_bronze', qty: 25 }, { id: 'shortbow_pine', qty: 1 }, { id: 'arrow_bronze', qty: 25 }, { id: 'dagger_bronze', qty: 1 }, { id: 'staff_driftwood', qty: 1 }, { id: 'charm_tide', qty: 25 },
+      { id: 'pistol_flintlock', qty: 1 }, { id: 'shot_bronze', qty: 25 }, { id: 'shortbow_pine', qty: 1 }, { id: 'arrow_bronze', qty: 25 }, { id: 'dagger_bronze', qty: 1 }, { id: 'shard_gale', qty: 25 }, { id: 'charm_tide', qty: 25 }, { id: 'shard_stone', qty: 25 }, { id: 'shard_ember', qty: 25 }, { id: 'shard_whisper', qty: 25 }, { id: 'staff_el_gale', qty: 1 }, { id: 'staff_el_tide', qty: 1 }, { id: 'staff_el_stone', qty: 1 }, { id: 'staff_el_ember', qty: 1 }, { id: 'staff_driftwood', qty: 1 }, { id: 'charm_tide', qty: 25 },
       { id: 'cap_leather', qty: 1 }, { id: 'coat_padded', qty: 1 }, { id: 'chaps_leather', qty: 1 }, { id: 'boots_leather', qty: 1 }, { id: 'gloves_leather', qty: 1 }, { id: 'leather', qty: 5 },
       { id: 'spade', qty: 1 }, { id: 'staff_coral', qty: 1 }, { id: 'wand_driftwood', qty: 1 }, { id: 'orb_glass', qty: 1 }, { id: 'book_almanac', qty: 1 },
       { id: 'shield_bronze', qty: 1 }, { id: 'amulet_brass', qty: 1 }, { id: 'bracelet_brass', qty: 1 },
@@ -362,7 +362,7 @@ SHOPS.sunreach = {
   stock: [
     { id: 'shortbow_oak', qty: 1 }, { id: 'longbow_willow', qty: 1 }, { id: 'crossbow_iron', qty: 1 }, { id: 'arrow_iron', qty: 25 }, { id: 'bolt_iron', qty: 20 }, { id: 'shot_steel', qty: 25 },
     { id: 'cutlass_steel', qty: 1 }, { id: 'pike_iron', qty: 1 }, { id: 'helm_steel', qty: 1 }, { id: 'shield_steel', qty: 1 }, { id: 'legs_iron', qty: 1 },
-    { id: 'wand_coral', qty: 1 }, { id: 'orb_coral', qty: 1 }, { id: 'book_coral', qty: 1 }, { id: 'harpoon', qty: 1 }, { id: 'lobster_pot', qty: 1 }, { id: 'charm_tide', qty: 50 }, { id: 'sea_salt', qty: 5 }, { id: 'fire_barrel', qty: 20 },
+    { id: 'wand_coral', qty: 1 }, { id: 'orb_coral', qty: 1 }, { id: 'book_coral', qty: 1 }, { id: 'harpoon', qty: 1 }, { id: 'lobster_pot', qty: 1 }, { id: 'charm_tide', qty: 50 }, { id: 'shard_gale', qty: 50 }, { id: 'shard_ember', qty: 50 }, { id: 'shard_whisper', qty: 25 }, { id: 'shard_squall', qty: 20 }, { id: 'shard_root', qty: 10 }, { id: 'shard_compass', qty: 10 }, { id: 'sea_salt', qty: 5 }, { id: 'fire_barrel', qty: 20 },
   ],
   buyMul: 1.15, sellMul: 0.55,
   wants: [{ prefix: 'ore_', mul: 1.3, note: 'Tamsin pays well for ore,' }, { prefix: 'logs_', mul: 1.3, note: 'timber' }, { prefix: 'spider_silk', mul: 1.5, note: 'and spider silk.' }],
@@ -372,7 +372,7 @@ SHOPS.tollmarket = {
   id: 'tollmarket', name: 'Tollhouse Market', keeper: 'brita',
   stock: [
     { id: 'cutlass_storm', qty: 1 }, { id: 'greatsword_storm', qty: 1 }, { id: 'helm_storm', qty: 1 }, { id: 'plate_storm', qty: 1 }, { id: 'legs_storm', qty: 1 }, { id: 'shield_storm', qty: 1 },
-    { id: 'longbow_amber', qty: 1 }, { id: 'arrow_storm', qty: 25 }, { id: 'shot_storm', qty: 25 }, { id: 'staff_storm', qty: 1 }, { id: 'charm_tide', qty: 80 },
+    { id: 'longbow_amber', qty: 1 }, { id: 'arrow_storm', qty: 25 }, { id: 'shot_storm', qty: 25 }, { id: 'staff_storm', qty: 1 }, { id: 'charm_tide', qty: 80 }, { id: 'shard_gale', qty: 80 }, { id: 'shard_stone', qty: 80 }, { id: 'shard_ember', qty: 80 }, { id: 'shard_squall', qty: 25 }, { id: 'shard_grave', qty: 20 }, { id: 'shard_root', qty: 10 }, { id: 'shard_compass', qty: 10 },
     { id: 'fire_barrel', qty: 20 }, { id: 'depth_charge', qty: 10 }, { id: 'chain_shot', qty: 20 }, { id: 'honeycomb', qty: 1 }, { id: 'fish_salmon', qty: 1 },
   ],
   buyMul: 1.2, sellMul: 0.5,
@@ -383,7 +383,7 @@ SHOPS.gallows = {
   id: 'gallows', name: 'Gallows Landing Store', keeper: 'osric',
   stock: [
     { id: 'cutlass_tide', qty: 1 }, { id: 'helm_tide', qty: 1 }, { id: 'plate_tide', qty: 1 }, { id: 'legs_tide', qty: 1 }, { id: 'shield_tide', qty: 1 }, { id: 'staff_tide', qty: 1 },
-    { id: 'arrow_tide', qty: 25 }, { id: 'shot_tide', qty: 25 }, { id: 'bolt_tide', qty: 20 }, { id: 'charm_tide', qty: 120 },
+    { id: 'arrow_tide', qty: 25 }, { id: 'shot_tide', qty: 25 }, { id: 'bolt_tide', qty: 20 }, { id: 'charm_tide', qty: 120 }, { id: 'shard_gale', qty: 120 }, { id: 'shard_stone', qty: 80 }, { id: 'shard_ember', qty: 80 }, { id: 'shard_grave', qty: 25 }, { id: 'shard_heart', qty: 20 }, { id: 'shard_wrath', qty: 10 }, { id: 'shard_root', qty: 10 }, { id: 'shard_compass', qty: 10 },
     { id: 'fish_shark', qty: 1 }, { id: 'fish_sword', qty: 1 }, { id: 'depth_charge', qty: 20 }, { id: 'fire_barrel', qty: 30 }, { id: 'sea_salt', qty: 10 },
   ],
   buyMul: 1.3, sellMul: 0.5,
@@ -400,28 +400,76 @@ SHOPS.anchor = {
 export const SHOP = SHOPS.general;
 
 // ---- magic -------------------------------------------------------------------
-export interface Spell { id: string; name: string; level: number; maxHit: number; baseXp: number; charms: number; /** taught by a quest: this flag must be set */ quest?: string }
-// RuneScape's spell book by max hit: strikes 1-13, bolts to 35, blasts to 59, waves to 75, surges to 95.
-export const SPELLS: Spell[] = [
-  { id: 'spray', name: 'Brine Spray', level: 1, maxHit: 2, baseXp: 5.5, charms: 0 }, // free: magic is always usable
-  { id: 'bolt', name: 'Tide Bolt', level: 5, maxHit: 5, baseXp: 11.5, charms: 2 },
-  { id: 'lash', name: 'Wave Lash', level: 9, maxHit: 6, baseXp: 14, charms: 2 },
-  { id: 'undertow', name: 'Undertow', level: 13, maxHit: 8, baseXp: 17.5, charms: 2 },
-  { id: 'souc_fire', name: 'Soucouyant\'s Fire', level: 20, maxHit: 9, baseXp: 19, charms: 2, quest: 'souc_done' }, // Salt for the Soucouyant
-  { id: 'surge', name: 'Surge Bolt', level: 23, maxHit: 10, baseXp: 21, charms: 3 },
-  { id: 'blast', name: 'Brine Blast', level: 35, maxHit: 12, baseXp: 25, charms: 3 },
-  { id: 'tidecall', name: 'Tidecall', level: 47, maxHit: 14, baseXp: 28.5, charms: 3 },
-  { id: 'riptide', name: 'Riptide', level: 59, maxHit: 16, baseXp: 32.5, charms: 4 },
-  { id: 'lance', name: 'Abyssal Lance', level: 65, maxHit: 18, baseXp: 36, charms: 4 },
-  { id: 'maelstrom', name: 'Maelstrom', level: 75, maxHit: 20, baseXp: 40, charms: 5 },
-  { id: 'tempest', name: 'Tempest', level: 81, maxHit: 22, baseXp: 44, charms: 5 },
-  { id: 'wrath', name: 'Leviathan\'s Wrath', level: 90, maxHit: 24, baseXp: 47.5, charms: 6 },
-  { id: 'deluge', name: 'Deluge', level: 95, maxHit: 27, baseXp: 55, charms: 7 },
+// ---- magic: shards (RuneScape's runes) -------------------------------------------------
+/** The four elements a spell is cast in; foes can be weak to one (ELEMENT_WEAK). */
+export type Element = 'gale' | 'tide' | 'stone' | 'ember';
+/** Shard items, like RuneScape's runes: four elements; a catalyst for each tier of combat spell (mind, chaos, death,
+ * blood, wrath); root for alchemy (nature), compass for teleports (law). The tide shard keeps the old tide charm's
+ * id, so every save, drop and recipe that had charms has tide shards. */
+export const SHARD = {
+  gale: 'shard_gale', tide: 'charm_tide', stone: 'shard_stone', ember: 'shard_ember',
+  whisper: 'shard_whisper', squall: 'shard_squall', grave: 'shard_grave', heart: 'shard_heart', wrath: 'shard_wrath',
+  root: 'shard_root', compass: 'shard_compass',
+} as const;
+export type ShardCost = { id: string; qty: number }[];
+export interface Spell { id: string; name: string; level: number; maxHit: number; baseXp: number; cost: ShardCost; element?: Element; /** taught by a quest: this flag must be set */ quest?: string }
+const EL_NAME: Record<Element, string> = { gale: 'Gale', tide: 'Tide', stone: 'Stone', ember: 'Ember' };
+/** RuneScape's standard spellbook: four elements through strike, bolt, blast, wave and surge, at its levels, max hits,
+ * XP and rune costs (air → gale, water → tide, earth → stone, fire → ember; mind/chaos/death/blood/wrath →
+ * whisper/squall/grave/heart/wrath shards). */
+function combatSpells(): Spell[] {
+  const els: Element[] = ['gale', 'tide', 'stone', 'ember'];
+  const tiers: { key: string; name: string; cat: keyof typeof SHARD; levels: number[]; hits: number[]; xp: number[]; own: number[]; gale: number[] }[] = [
+    { key: 'strike', name: 'Strike', cat: 'whisper', levels: [1, 5, 9, 13], hits: [2, 4, 6, 8], xp: [5.5, 7.5, 9.5, 11.5], own: [1, 1, 2, 3], gale: [1, 1, 1, 2] },
+    { key: 'bolt', name: 'Bolt', cat: 'squall', levels: [17, 23, 29, 35], hits: [9, 10, 11, 12], xp: [13.5, 16.5, 19.5, 22.5], own: [2, 2, 3, 4], gale: [2, 2, 2, 3] },
+    { key: 'blast', name: 'Blast', cat: 'grave', levels: [41, 47, 53, 59], hits: [13, 14, 15, 16], xp: [25.5, 28.5, 31.5, 34.5], own: [3, 3, 4, 5], gale: [3, 3, 3, 4] },
+    { key: 'wave', name: 'Wave', cat: 'heart', levels: [62, 65, 70, 75], hits: [17, 18, 19, 20], xp: [36, 37.5, 40, 42.5], own: [5, 7, 7, 7], gale: [5, 5, 5, 5] },
+    { key: 'surge', name: 'Surge', cat: 'wrath', levels: [81, 85, 90, 95], hits: [21, 22, 23, 24], xp: [44, 46, 48, 50], own: [7, 10, 10, 10], gale: [7, 7, 7, 7] },
+  ];
+  const out: Spell[] = [];
+  for (const t of tiers) els.forEach((el, k) => {
+    // the gale spell costs only gale and its catalyst; the others their own element, some gale, and the catalyst
+    const cost: ShardCost = el === 'gale' ? [{ id: SHARD.gale, qty: t.own[0] }] : [{ id: SHARD[el], qty: t.own[k] }, { id: SHARD.gale, qty: t.gale[k] }];
+    cost.push({ id: SHARD[t.cat], qty: 1 });
+    out.push({ id: `${el}_${t.key}`, name: `${EL_NAME[el]} ${t.name}`, level: t.levels[k], maxHit: t.hits[k], baseXp: t.xp[k], cost, element: el });
+  });
+  return out;
+}
+const SPELL_LIST: Spell[] = [
+  { id: 'spray', name: 'Brine Spray', level: 1, maxHit: 1, baseXp: 3, cost: [] }, // free and weak: magic is always usable
+  ...combatSpells(),
+  // taught by a quest: Salt for the Soucouyant
+  { id: 'souc_fire', name: 'Soucouyant\'s Fire', level: 20, maxHit: 10, baseXp: 19, cost: [{ id: SHARD.ember, qty: 3 }, { id: SHARD.squall, qty: 1 }], element: 'ember', quest: 'souc_done' },
 ];
+export const SPELLS: Spell[] = SPELL_LIST.sort((a, b) => a.level - b.level);
+/** The old single-element spells, for saves made before the shards: each to the new spell nearest its level. */
+export const SPELL_ALIAS: Record<string, string> = {
+  bolt: 'tide_strike', lash: 'stone_strike', undertow: 'ember_strike', surge: 'tide_bolt', blast: 'ember_bolt', tidecall: 'tide_blast',
+  riptide: 'ember_blast', lance: 'tide_wave', maelstrom: 'ember_wave', tempest: 'gale_surge', wrath: 'stone_surge', deluge: 'ember_surge',
+};
+export const spellById = (id: string) => SPELLS.find((x) => x.id === (SPELL_ALIAS[id] ?? id));
+/** A spell in a foe's weak element: this much more accuracy and max hit (RuneScape's elemental weakness). */
+export const ELEMENT_BONUS = 0.2;
+/** Which element each foe is weak to. Plants, bugs, spiders and the dead burn; fire and stone are quenched or worn by
+ * the tide; sea things are smothered by stone; fliers and the Knockers (things of the deep rock) are blown off by the
+ * gale. People and beasts have no element to fear. */
+export const ELEMENT_WEAK: Record<string, Element> = {
+  spriggan: 'ember', shore_beetle: 'ember', leafcutter_ant: 'ember', jungle_mantis: 'ember', bark_beetle: 'ember', giant_centipede: 'ember',
+  cave_spider: 'ember', giant_spider: 'ember', weaver_young: 'ember', broodmother: 'ember', moss_troll: 'ember', oakheart: 'ember',
+  haugbui: 'ember', barrow_draugr: 'ember', draugr_troll: 'ember', barrow_king: 'ember', lockjaw: 'ember', elder_lockjaw: 'ember',
+  ember_snake: 'tide', ember_bat: 'tide', soucouyant: 'tide', temple_serpent: 'tide', guardian: 'tide', stone_sentinel: 'tide',
+  doorwarden: 'tide', crag_troll: 'tide', starstruck: 'tide',
+  reef_crab: 'stone', mire_crab: 'stone', ironshell_crab: 'stone', lockshell_crab: 'stone', glass_crab: 'stone', bog_leech: 'stone',
+  drowned: 'stone', sea_draugr: 'stone', undertow_hand: 'stone', undertow_deckhand: 'stone', nokk: 'stone', greenteeth: 'stone',
+  finfolk: 'stone', finwife: 'stone', finfolk_chief: 'stone', storm_jotunn: 'stone',
+  gull: 'gale', cave_bat: 'gale', amber_hornet: 'gale', knocker: 'gale', knocker_elder: 'gale',
+};
+export const ELEMENT_NAME = EL_NAME;
 /** Utility spells (RuneScape's High Alchemy and Home Teleport, in the island's terms). */
 export const UTILITY_SPELLS = {
-  alchemy: { name: 'Brine Alchemy', level: 21, charms: 2, xp: 31, rate: 0.6, cooldown: 1.8 },
-  home: { name: 'Tide-walk Home', level: 25, charms: 3, xp: 35, cooldown: 30 },
+  // RuneScape's High Alchemy is 5 fire and a nature rune; its teleports a law rune and some air
+  alchemy: { name: 'Brine Alchemy', level: 21, cost: [{ id: SHARD.ember, qty: 3 }, { id: SHARD.root, qty: 1 }] as ShardCost, xp: 31, rate: 0.6, cooldown: 1.8 },
+  home: { name: 'Tide-walk Home', level: 25, cost: [{ id: SHARD.gale, qty: 3 }, { id: SHARD.compass, qty: 1 }] as ShardCost, xp: 35, cooldown: 30 },
 };
 
 // ---- player tuning -------------------------------------------------------------
@@ -433,7 +481,7 @@ export const PLAYER_BASE = {
   special: {
     melee: { name: 'Whirl', cooldown: 8, level: 1, skill: 'attack' as SkillId, radius: 3.2, mul: 1.0 },
     ranged: { name: 'Scatter shot', cooldown: 8, level: 5, skill: 'ranged' as SkillId, shots: 3, spread: 0.35 },
-    magic: { name: 'Squall', cooldown: 10, level: 5, skill: 'magic' as SkillId, radius: 4, charms: 3, maxHit: 3, knock: 2.5 },
+    magic: { name: 'Squall', cooldown: 10, level: 5, skill: 'magic' as SkillId, radius: 4, cost: [{ id: 'shard_gale', qty: 3 }], maxHit: 3, knock: 2.5 },
   },
 };
 
@@ -687,8 +735,8 @@ export const LOOT: Record<string, LootTable> = {
     gear: { chance: 0.35, items: ['helm_tide', 'plate_tide', 'cutlass_tide', 'staff_tide', 'book_tide', 'shield_tide', 'bracelet_gold'], weights: { fine: 50, rare: 40, relic: 10 } } },
   salvage: { coins: [5, 30], drops: [{ item: 'bar_bronze', chance: 0.25 }, { item: 'bar_iron', chance: 0.15 }, { item: 'chain_shot', chance: 0.25, qty: [3, 8] }, { item: 'charm_tide', chance: 0.4, qty: [4, 10] }, { item: 'sea_salt', chance: 0.2, qty: [1, 3] }, { item: 'casket', chance: 0.04 }],
     gear: { chance: 0.05, items: ['cutlass_iron', 'pistol_flintlock', 'ring_brass', 'amulet_brass'], weights: { common: 55, fine: 37, rare: 8 } } },
-  geode: { coins: [10, 60], drops: [{ item: 'crystal_geode', chance: 0.4 }, { item: 'charm_tide', chance: 0.5, qty: [3, 10] }, { item: 'ore_gold', chance: 0.15 }, { item: 'shell_fragment', chance: 0.3 }] },
-  nest: { coins: [5, 40], drops: [{ item: 'charm_tide', chance: 0.4, qty: [3, 8] }, { item: 'berries', chance: 0.4, qty: [2, 5] }, { item: 'crystal_geode', chance: 0.08 }],
+  geode: { coins: [10, 60], drops: [{ item: 'crystal_geode', chance: 0.4 }, { item: 'shard_stone', chance: 0.5, qty: [3, 10] }, { item: 'ore_gold', chance: 0.15 }, { item: 'shell_fragment', chance: 0.3 }] },
+  nest: { coins: [5, 40], drops: [{ item: 'shard_gale', chance: 0.4, qty: [3, 8] }, { item: 'berries', chance: 0.4, qty: [2, 5] }, { item: 'crystal_geode', chance: 0.08 }],
     gear: { chance: 0.05, items: ['ring_brass', 'ring_gold'], weights: { common: 50, fine: 40, rare: 10 } } },
   treasure: { coins: [20, 120], drops: [{ item: 'treasure_map', chance: 0.1 }, { item: 'charm_tide', chance: 0.5, qty: [5, 15] }, { item: 'geode', chance: 0.25 }, { item: 'bar_iron', chance: 0.15 }, { item: 'bar_steel', chance: 0.07 }, { item: 'ore_gold', chance: 0.15 }],
     gear: { chance: 0.08, items: ['ring_brass', 'ring_gold', 'cutlass_steel', 'pistol_steel', 'helm_steel'], weights: { common: 50, fine: 40, rare: 10 } } },
@@ -697,7 +745,7 @@ export const LOOT: Record<string, LootTable> = {
     { item: 'ore_gold', chance: 0.3, qty: [3, 6] }, { item: 'crystal_geode', chance: 0.2 }, { item: 'bar_storm', chance: 0.12, qty: [1, 3] }, { item: 'treasure_map', chance: 0.15 }] },
   cave_spider: { coins: [3, 12], drops: [{ item: 'spider_silk', chance: 0.45 }, { item: 'charm_tide', chance: 0.3, qty: [3, 6] }], gear: { chance: 0.04, items: ['ring_brass', 'dagger_iron'], weights: { common: 55, fine: 38, rare: 7 } } },
   boar: { coins: [6, 20], drops: [{ item: 'boar_meat_raw', chance: 0.9 }, { item: 'boar_hide', chance: 0.7 }, { item: 'boar_meat_raw', chance: 0.25 }, { item: 'charm_tide', chance: 0.2, qty: [3, 8] }], gear: { chance: 0.04, items: ['cap_leather', 'coat_padded', 'chaps_leather', 'boots_leather', 'gloves_leather'], weights: { common: 55, fine: 38, rare: 7 } } },
-  snake: { coins: [8, 25], drops: [{ item: 'snake_skin', chance: 0.55 }, { item: 'charm_tide', chance: 0.35, qty: [4, 9] }], gear: { chance: 0.05, items: ['ring_gold', 'dagger_steel'], weights: { common: 50, fine: 40, rare: 10 } } },
+  snake: { coins: [8, 25], drops: [{ item: 'snake_skin', chance: 0.55 }, { item: 'shard_ember', chance: 0.35, qty: [4, 9] }], gear: { chance: 0.05, items: ['ring_gold', 'dagger_steel'], weights: { common: 50, fine: 40, rare: 10 } } },
   spider: { sig: { item: 'sig_skypiercer', chance: 1 / 350 }, coins: [30, 70], drops: [{ item: 'spider_silk', chance: 0.8, qty: [1, 3] }, { item: 'crystal_geode', chance: 0.06 }, { item: 'charm_tide', chance: 0.5, qty: [8, 16] }],
     gear: { chance: 0.1, items: ['helm_abyss', 'dagger_abyss', 'ring_gold', 'crossbow_storm'], weights: { common: 48, fine: 38, rare: 14 } } },
   ember: { sig: { item: 'sig_maelstrom', chance: 1 / 350 }, coins: [20, 50], drops: [{ item: 'snake_skin', chance: 0.5 }, { item: 'ore_coal', chance: 0.5, qty: [2, 4] }, { item: 'ore_iron', chance: 0.3, qty: [1, 3] }],
@@ -707,7 +755,7 @@ export const LOOT: Record<string, LootTable> = {
     gear: { chance: 1, items: ['cutlass_storm', 'pistol_storm', 'staff_storm', 'helm_storm', 'plate_storm', 'longbow_amber'], weights: { rare: 65, relic: 35 } } },
   ninefold: { coins: [0, 0], drops: [] },
   greenteeth: { coins: [0, 0], drops: [{ item: 'fen_lockkey', chance: 1 }, { item: 'sword_kelp', chance: 1, qty: [3, 6] }] },
-  hushed: { coins: [40, 120], drops: [{ item: 'charm_tide', chance: 0.8, qty: [10, 25] }, { item: 'crystal_geode', chance: 0.2 }] },
+  hushed: { coins: [40, 120], drops: [{ item: 'shard_whisper', chance: 0.8, qty: [10, 25] }, { item: 'crystal_geode', chance: 0.2 }] },
   starstruck: { coins: [0, 0], drops: [{ item: 'ore_sky', chance: 1, qty: [2, 3] }] },
   corva: { coins: [600, 1200], drops: [{ item: 'orb_lantern', chance: 1 }, { item: 'casket', chance: 1, qty: [2, 3] }] },
   undertow_hand: { coins: [80, 180], drops: [{ item: 'charm_tide', chance: 0.8, qty: [15, 30] }, { item: 'casket', chance: 0.15 }, { item: 'bar_levi', chance: 0.1 }] },
@@ -730,7 +778,7 @@ export const LOOT: Record<string, LootTable> = {
   barrow_king: { coins: [150, 300], drops: [{ item: 'bar_storm', chance: 1, qty: [2, 4] }, { item: 'crystal_geode', chance: 0.5 }] },
   douen_elder: { coins: [40, 80], drops: [{ item: 'charm_tide', chance: 1, qty: [10, 20] }] },
   soucouyant: { coins: [30, 60], drops: [{ item: 'charm_tide', chance: 1, qty: [12, 24] }] },
-  hornet: { coins: [10, 25], drops: [{ item: 'honeycomb', chance: 0.5 }, { item: 'charm_tide', chance: 0.3, qty: [5, 10] }] },
+  hornet: { coins: [10, 25], drops: [{ item: 'honeycomb', chance: 0.5 }, { item: 'shard_gale', chance: 0.3, qty: [5, 10] }] },
   bark_beetle: { coins: [8, 20], drops: [{ item: 'chitin', chance: 0.7, qty: [1, 3] }, { item: 'logs_amber', chance: 0.4, qty: [1, 2] }] },
   warg: { coins: [18, 45], drops: [{ item: 'boar_hide', chance: 0.6, qty: [1, 2] }, { item: 'logs_amber', chance: 0.2 }] },
   nokk: { coins: [20, 50], drops: [{ item: 'kelp', chance: 0.6, qty: [2, 4] }, { item: 'fish_salmon_raw', chance: 0.4 }], gear: { chance: 0.04, items: ['ring_gold', 'amulet_gold'], weights: { common: 50, fine: 40, rare: 10 } } },

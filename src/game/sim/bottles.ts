@@ -44,7 +44,7 @@ export class Bottles {
       g.msg('You fish the bottle aboard. Rolled up inside: a treasure map.', 'loot');
     } else {
       g.give('charm_tide', 15 + Math.floor(this.rnd() * 25));
-      g.msg('You fish the bottle aboard. Someone filled it with tide charms and threw it away. People do.', 'loot');
+      g.msg('You fish the bottle aboard. Someone filled it with tide shards and threw it away. People do.', 'loot');
     }
     g.addXp('sailing', 40 + g.level('sailing') * 2);
     g.rev++;

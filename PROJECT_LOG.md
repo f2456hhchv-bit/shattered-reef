@@ -275,6 +275,21 @@ Reflects the actual repository, not the roadmap.
     - The bot got the knocking order wrong 140 times and the game never helped. Ordered puzzles now nudge after 3 misses ("It starts at …") and give the whole order after 6.
     - Bellwether jumped from 15 level-2 foes to the level-9 brigands with only 3 level-5 gulls between. A second gull flock is now on the empty west strand. The first placement landed inside the harbour's safe circle, where a foe can never be fought; the reachability audit now flags any foe placed there.
     - Measured, not changed: gathering is smooth (1→31 in about 50 min, 1→99 in about 195 h per skill). Equal-level combat is slow early (crab 18 s, most Bellwether foes 30–48 s) and costly without food (brigand 0/3, spriggan, knocker and smuggler 1/3). Combat XP/h early (2.5–10k) is a fifth to a half of gathering's. An early-combat XP boost was tried and reverted: Tom's RuneScape rule (no XP boost, sim.test pacing) stands. It's raised as a question instead.
+  - **Magic, phase 1: RuneScape's spellbook paid in shards** (Tom: "look at RuneScape's magic spells… we need the shards of different types").
+    - 11 shard types (`SHARD` in content.ts):
+      - four elements: Gale (air), Tide (water; it keeps the old tide charm's id, so saves, drops and recipes carry over), Stone (earth), Ember (fire);
+      - a catalyst per spell tier: Whisper (mind, for strikes), Squall (chaos, bolts), Grave (death, blasts), Heart (blood, waves), Wrath (surges);
+      - Root (nature) for alchemy and Compass (law) for teleports.
+    - 20 elemental combat spells on RuneScape's levels, max hits, base XP and rune counts (strike 1–13, bolt 17–35, blast 41–59, wave 62–75, surge 81–95). Brine Spray stays free (max 1) and Soucouyant's Fire stays as the quest spell. `SPELL_ALIAS` maps old spell ids in saves to the nearest new spell.
+    - Elemental weakness for every non-human foe (`ELEMENT_WEAK`): plants, bugs, spiders and the dead fear Ember; fire things and stone constructs fear Tide; sea things fear Stone; fliers and Knockers fear Gale. A matching spell gets +20% accuracy and max hit, about +11% damage on average at high accuracy, and the inspect card shows the weakness.
+    - Elemental staves (`staff_el_*`, sold on Bellwether) supply their element without end, like RuneScape's staff of air.
+    - Utility spells moved to shards: alchemy is 3 Ember + 1 Root, Tide-walk Home is 3 Gale + 1 Compass, and the magic special is 3 Gale.
+    - Shard sources:
+      - Bellwether sells the elements and Whisper; Sunreach adds Squall, Root and Compass; Amberhold adds Grave; Stormwrack adds Heart and Wrath.
+      - The common drop table gives elements plus the catalyst for the foe's level.
+      - Some foes drop the shard that fits them (ember bats Ember, hornets Gale, barrow-dead Grave, …).
+    - Spell projectiles are coloured by element. The spell menu shows each cost as shard icons, with any you're short of in orange and ∞ for your staff's element.
+    - Phase 2 (planned): curses, binds, Superheat, island teleports and enchanting, which need a cast-on-target UI.
 
 ## Known issues / limitations
 - `touch-e2e` intermittently taps the pack slot 0/3 times (2026-10-24, twice on 2026-10-25). Not root-caused. **Correction:** the low health in those reports (4, 14) was not an attacker: the test sets health to 4 itself, and it regenerates. Ten runs on 2026-10-25 all passed with no level-up card on screen. The test now records what was under the finger on every missed tap, so the next failure names its cause.

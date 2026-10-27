@@ -1,5 +1,5 @@
 import { item, AFFIXES, RARITY, AMMO_FOR, weaponKind, ammoKind, pairGroup, type Rarity, type Slot, type SkillId, type CombatStyle, type WeaponKind, type AmmoKind, type SigId } from '../data/items';
-import { HP_SCALE, SPELLS } from '../data/content';
+import { HP_SCALE, SPELLS, spellById } from '../data/content';
 import { condOf, WORN_OUT_EFFECT, type Inst, type Stack } from './inventory';
 import { levelForXp } from './xp';
 import { perkTotal } from '../data/perks';
@@ -180,7 +180,8 @@ export function computeStats(xp: Record<SkillId, number>, equip: Partial<Record<
     dualMax = maxHit;
     trains = stance === 'defensive' ? ['ranged', 'defence'] : ['ranged'];
   } else {
-    spell = [...SPELLS].reverse().find((s) => s.id === spellId && s.level <= L.magic) ?? SPELLS[0];
+    const want = spellById(spellId);
+    spell = want && want.level <= L.magic ? want : SPELLS[0];
     attRoll = attackRoll(L.magic + 8 + stanceAcc, acc + accAffix);
     maxHit = Math.floor(spell.maxHit * (1 + magicDmg / 100) + (L.magic >= spell.level + 10 ? 1 : 0));
     dualAtt = attackRoll(L.magic + 8 + stanceAcc, offAccTotal + accAffix);

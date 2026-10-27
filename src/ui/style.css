@@ -655,3 +655,11 @@ body.landscape #track { top: calc(10px + env(safe-area-inset-top, 0px)); max-wid
 
 .rec { color: #bfe0a8; font-size: 11px; } .rec.low { color: var(--warn, #ffb070); font-weight: 600; }
 #track small.rec.low { color: var(--warn, #ffb070); }
+
+/* ------------------------------------------------ shard costs */
+.cost { display: inline-flex; gap: 4px; align-items: center; flex-wrap: wrap; vertical-align: middle; }
+.cost .sh { display: inline-flex; align-items: center; gap: 1px; font: 700 11px var(--body); color: #efe3c4; }
+.cost .sh img { width: 16px; height: 16px; }
+.cost .sh.short { color: var(--warn, #ffb070); }
+.spells button .cost { margin-top: 2px; }
+.spells button.el-gale b { color: #d8e8ee; } .spells button.el-tide b { color: #7fe0d8; } .spells button.el-stone b { color: #d4c08a; } .spells button.el-ember b { color: #f09a6a; }

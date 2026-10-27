@@ -39,12 +39,20 @@ const FOOD_BY_LEVEL: [number, string][] = [[0, 'fish_sprat'], [10, 'fish_bell'],
 const METAL_BY_LEVEL: [number, string][] = [[0, 'bronze'], [10, 'iron'], [20, 'steel'], [30, 'storm'], [45, 'abyss'], [60, 'tide'], [75, 'cinder']];
 const at = (list: [number, string][], lvl: number) => [...list].reverse().find(([l]) => lvl >= l)![1];
 
-/** The common table: coins, charms, a meal and ammunition that suit the creature's level. */
+/** The tier shard (RuneScape's catalyst runes) a creature of this level carries. */
+const CATALYST_BY_LEVEL: [number, string][] = [[0, 'shard_whisper'], [15, 'shard_squall'], [35, 'shard_grave'], [55, 'shard_heart'], [75, 'shard_wrath']];
+/** The common table: coins, shards, a meal and ammunition that suit the creature's level. */
 export function commonTable(lvl: number): { w: number; pick: Pick }[] {
   const metal = at(METAL_BY_LEVEL, lvl);
   return [
     { w: 40, pick: { item: 'coins', qty: [lvl * 2 + 2, lvl * 6 + 6] } },
-    { w: 20, pick: { item: 'charm_tide', qty: [3, 8 + Math.floor(lvl / 4)] } },
+    // shards: the elements (gale most, as in spells), and the catalyst for spells of the creature's level
+    { w: 6, pick: { item: 'shard_gale', qty: [4, 10 + Math.floor(lvl / 3)] } },
+    { w: 4, pick: { item: 'charm_tide', qty: [3, 8 + Math.floor(lvl / 4)] } },
+    { w: 3, pick: { item: 'shard_stone', qty: [3, 8 + Math.floor(lvl / 4)] } },
+    { w: 3, pick: { item: 'shard_ember', qty: [3, 8 + Math.floor(lvl / 4)] } },
+    { w: 4, pick: { item: at(CATALYST_BY_LEVEL, lvl), qty: [1, 3 + Math.floor(lvl / 20)] } },
+    ...(lvl >= 20 ? [{ w: 1, pick: { item: 'shard_root', qty: [1, 2] as [number, number] } }, { w: 1, pick: { item: 'shard_compass', qty: [1, 2] as [number, number] } }] : []),
     { w: 15, pick: { item: at(FOOD_BY_LEVEL, lvl), qty: [1, 2] } },
     { w: 10, pick: { item: `shot_${metal}`, qty: [5, 15] } },
     { w: 8, pick: { item: `arrow_${metal}`, qty: [5, 15] } },
