@@ -1,14 +1,14 @@
-import { SUN, WRACK, AMBER, LOCK } from './island';
+import { SUN, WRACK, AMBER, LOCK, SALT } from './island';
 import type { Bounds } from './world';
 
 // The world is split into regions, loaded one at a time (Tom, 2026-10-24: "one island at a time... a threshold
 // crossed and a loading screen"). An island region is the island and its waters; sailing off a charted edge of
 // its square carries you to the next island. Caves are their own regions under the islands, entered on foot.
 
-export type RegionId = 'bellwether' | 'sunreach' | 'amberhold' | 'wrack' | 'lockhaven' | 'smugglers_caves' | 'ember_deep';
+export type RegionId = 'bellwether' | 'sunreach' | 'amberhold' | 'wrack' | 'lockhaven' | 'saltglass' | 'smugglers_caves' | 'ember_deep';
 /** The islands, in the order you outgrow them (Tom, 2026-10-25: three starter islands at 1-20, 15-30 and 25-50,
  * then islands past 50 with mixed difficulty). */
-export type IslandId = 'bellwether' | 'sunreach' | 'amberhold' | 'wrack' | 'lockhaven';
+export type IslandId = 'bellwether' | 'sunreach' | 'amberhold' | 'wrack' | 'lockhaven' | 'saltglass';
 export type Side = 'n' | 's' | 'e' | 'w';
 
 export interface RegionDef {
@@ -51,9 +51,15 @@ export const REGIONS: Record<RegionId, RegionDef> = {
   },
   lockhaven: {
     id: 'lockhaven', name: 'Lockhaven', kind: 'island', bounds: { cx: LOCK.x, cz: LOCK.z, half: 115 }, home: 'lockhaven', band: [60, 90],
-    exits: [{ side: 'w', to: 'wrack' }],
+    exits: [{ side: 'w', to: 'wrack' }, { side: 'e', to: 'saltglass' }],
     tip: 'Levels 60 to 90. The Wardwrights\' island: thirteen Houses fell down round their doors, and the doors are still standing.',
     gate: { flag: 'parley_done', text: 'The chart ends here. Past this line the sea has no soundings, and the swell runs wrong. Not yet: not until someone has charted what lies east.' },
+  },
+  saltglass: {
+    id: 'saltglass', name: 'Saltglass', kind: 'island', bounds: { cx: SALT.x, cz: SALT.z, half: 110 }, home: 'saltglass', band: [70, 95],
+    exits: [{ side: 'w', to: 'lockhaven' }],
+    tip: 'Levels 70 to 95. The star came down hottest here: the beaches are glass, and the pools show you a moment late.',
+    gate: { flag: 'lanternrelit_done', text: 'East of Lockhaven the sea goes glassy and the compass spins. Nobody has charted a way through. Hale has; if you had her charts...' },
   },
   smugglers_caves: {
     id: 'smugglers_caves', name: 'Smugglers\' Caves', kind: 'cave', bounds: { cx: 0, cz: 1000, half: 46 }, home: 'bellwether', band: [15, 20], exits: [],

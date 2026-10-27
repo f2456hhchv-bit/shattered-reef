@@ -440,7 +440,7 @@ export const PLAYER_BASE = {
 // ---- enemies -------------------------------------------------------------------
 export type EnemyModel = 'crab' | 'brigand' | 'gunner' | 'guardian' | 'boar' | 'spider' | 'snake' | 'golem' | 'hound' | 'bat' | 'beetle' | 'door';
 /** Visual variant: crab shell / humanoid outfit / stone tint, chosen by the renderer. */
-export type EnemyLook = 'reef' | 'mire' | 'ironshell' | 'brigand' | 'gunner' | 'smuggler' | 'poacher' | 'drowned' | 'captain' | 'sentinel' | 'cave' | 'giant' | 'jungle' | 'ember' | 'sunscale' | 'hunter' | 'moon' | 'amber' | 'oak' | 'queen' | 'shore' | 'gull' | 'thorn' | 'knocker' | 'leech' | 'howe' | 'troll' | 'seadraugr' | 'wrecker' | 'ant' | 'mantis' | 'douen' | 'centipede' | 'souc' | 'warg' | 'nokk' | 'hornet' | 'bark' | 'mosstroll' | 'draugr' | 'draugrtroll' | 'jotunn' | 'starstruck' | 'hushed' | 'greenteeth' | 'ninefold' | 'corva' | 'lockjaw' | 'elder';
+export type EnemyLook = 'reef' | 'mire' | 'ironshell' | 'brigand' | 'gunner' | 'smuggler' | 'poacher' | 'drowned' | 'captain' | 'sentinel' | 'cave' | 'giant' | 'jungle' | 'ember' | 'sunscale' | 'hunter' | 'moon' | 'amber' | 'oak' | 'queen' | 'shore' | 'gull' | 'thorn' | 'knocker' | 'leech' | 'howe' | 'troll' | 'seadraugr' | 'wrecker' | 'ant' | 'mantis' | 'douen' | 'centipede' | 'souc' | 'warg' | 'nokk' | 'hornet' | 'bark' | 'mosstroll' | 'draugr' | 'draugrtroll' | 'jotunn' | 'starstruck' | 'hushed' | 'greenteeth' | 'ninefold' | 'corva' | 'lockjaw' | 'elder' | 'glass' | 'reflection';
 
 export interface EnemyDef {
   id: string;
@@ -581,6 +581,11 @@ export const ENEMIES: Record<string, EnemyDef> = {
   // the Elder Lockjaw (Lockhaven's arena): the oldest door in the Field, iron-black, brass-bound; it has been a mouth longest
   elder_lockjaw: { id: 'elder_lockjaw', name: 'The Elder Lockjaw', model: 'door', look: 'elder', boss: true, level: 88, hp: 380, att: 84, def: 78, defBonus: { melee: 70, ranged: 75, magic: -10 }, weakness: 'magic', style: 'melee', accBonus: 80, maxHit: 22,
     speed: 2.4, radius: 1.3, aggro: 30, attack: { kind: 'melee', range: 3.0, windup: 0.8, cooldown: 2.6 }, loot: 'elder_lockjaw', respawn: 0, scale: 2.4 },
+  // Saltglass's own: crabs whose shells fused to glass in the star's heat; reflections that stepped out of the pools
+  glass_crab: { hostile: true, id: 'glass_crab', name: 'Glass crab', model: 'crab', look: 'glass', level: 72, hp: 80, att: 64, def: 62, defBonus: { melee: 65, ranged: 70, magic: -20 }, weakness: 'magic', style: 'melee', accBonus: 54, maxHit: 12,
+    speed: 2.6, radius: 1.0, aggro: 8, attack: { kind: 'melee', range: 2.0, windup: 0.55, cooldown: 2.8 }, loot: 'glass_crab', respawn: 60, scale: 2.0 },
+  reflection: { hostile: true, id: 'reflection', name: 'Reflection', model: 'brigand', look: 'reflection', level: 76, hp: 88, att: 70, def: 62, defBonus: { melee: 55, ranged: 55, magic: 55 }, weakness: 'ranged', style: 'melee', accBonus: 62, maxHit: 13,
+    speed: 3.2, radius: 0.5, aggro: 11, attack: { kind: 'melee', range: 1.9, windup: 0.5, cooldown: 2.6 }, loot: 'reflection', respawn: 70, scale: 1.05 },
   key_collector: { hostile: true, id: 'key_collector', name: 'The Key Collector', model: 'brigand', look: 'hunter', level: 78, hp: 95, att: 74, def: 64, defBonus: { melee: 55, ranged: 45, magic: 30 }, weakness: 'ranged', style: 'melee', accBonus: 66, maxHit: 13,
     speed: 3.8, radius: 0.5, aggro: 14, attack: { kind: 'melee', range: 1.9, windup: 0.4, cooldown: 2.2 }, loot: 'key_collector', respawn: 0, scale: 1.3 },
   // further out (their islands' slices replace the rest of this list)
@@ -700,6 +705,9 @@ export const LOOT: Record<string, LootTable> = {
     gear: { chance: 0.07, items: ['shield_tide', 'helm_tide', 'staff_tide'], weights: { common: 45, fine: 40, rare: 13, relic: 2 } } },
   elder_lockjaw: { coins: [800, 1600], drops: [{ item: 'casket', chance: 1, qty: [2, 3] }, { item: 'bar_ori', chance: 0.6, qty: [1, 3] }, { item: 'logs_star', chance: 1, qty: [4, 8] }, { item: 'crystal_geode', chance: 1, qty: [2, 4] }],
     gear: { chance: 0.35, items: ['shield_tide', 'helm_tide', 'staff_tide', 'cutlass_tide'], weights: { common: 20, fine: 45, rare: 28, relic: 7 } } },
+  glass_crab: { coins: [40, 100], drops: [{ item: 'crystal_geode', chance: 0.2 }, { item: 'fish_lobster_raw', chance: 0.4 }, { item: 'gem_diamond_rough', chance: 0.03 }] },
+  reflection: { coins: [70, 160], drops: [{ item: 'charm_tide', chance: 0.7, qty: [15, 30] }, { item: 'bar_sky', chance: 0.1 }, { item: 'gem_eye_rough', chance: 0.01 }],
+    gear: { chance: 0.08, items: ['staff_tide', 'helm_tide', 'shield_tide', 'cutlass_tide'], weights: { common: 40, fine: 40, rare: 16, relic: 4 } } },
   key_collector: { coins: [400, 800], drops: [{ item: 'casket', chance: 1, qty: [2, 3] }, { item: 'crystal_geode', chance: 1, qty: [2, 3] }] },
   barrow_king: { coins: [150, 300], drops: [{ item: 'bar_storm', chance: 1, qty: [2, 4] }, { item: 'crystal_geode', chance: 0.5 }] },
   douen_elder: { coins: [40, 80], drops: [{ item: 'charm_tide', chance: 1, qty: [10, 20] }] },

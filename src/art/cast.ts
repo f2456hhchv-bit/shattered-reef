@@ -31,6 +31,8 @@ export const NPC_LOOKS: Record<string, HumanoidLook> = {
   brita: { skin: 0xf0d0b0, coat: 0x6a3a2a, coatTrim: 0xe8c86a, shirt: 0xe8dcc0, trousers: 0x3a2a24, boots: 'leather', hat: 0xe8c86a, hair: 0xe8c86a, hatStyle: 'none', hairStyle: 'queue', beard: false, apron: 0xd8cfb8 },
   // Orla Fane, Keeper of the Doors: an old woman in a Wardwright's leather apron, a ring of four hundred keys at her belt
   orla: { skin: 0xc8a888, coat: 0x5a4a3a, coatTrim: 'brass', shirt: 0xd8ccb0, trousers: 0x3a3028, boots: 'leather', hat: 0x3a3028, hair: 0xd8d4c8, hatStyle: 'none', hairStyle: 'bun', beard: false, spectacles: true, held: 'none' },
+  // Sunniva Brask, glassblower of Saltglass: scorched apron, blue goggles pushed up, burn-freckled arms
+  sunniva: { skin: 0xd8b090, coat: 0x6a4a2e, coatTrim: 0x5ab8d8, shirt: 0xe8dcc0, trousers: 0x3a3028, boots: 'leather', hat: 0x5ab8d8, hair: 0xd8984a, hatStyle: 'none', hairStyle: 'bun', beard: false, spectacles: true, held: 'none' },
   edda: { skin: 0xe0b896, coat: 0x2a3a5a, coatTrim: 0xc8d0d8, shirt: 0xd8ccb0, trousers: 0x2a2a34, boots: 0x2a2420, hat: 0x2a3a5a, hair: 0x8a5a2a, hatStyle: 'none', hairStyle: 'bun', beard: false },
   eir: { skin: 0xf0d0b0, coat: 0x6a7a5a, coatTrim: 0xe8dcc0, shirt: 0xe8dcc0, trousers: 0x3a3a30, boots: 0x3a2a20, hat: 0xe8dcc0, hair: 0xd8c07a, hatStyle: 'bandana', hairStyle: 'queue', beard: false, apron: 0xe8dcc0 },
   gull: { skin: 0xe8d0b8, coat: 0xe8e4d8, coatTrim: 0x8a9aa8, shirt: 0xd8d4c8, trousers: 0x3a4048, boots: 0x2a2a2e, hat: 0xe8e4d8, hair: 0xb8b8b0, hatStyle: 'tricorn', beard: false, held: 'pistol' },
@@ -85,6 +87,8 @@ export const HUMAN_LOOKS: Record<string, HumanoidLook> = {
   // the Hushed: undyed grey, hoods down, nothing on them that rattles; their eyes have gone the pale of the song
   hushed: { skin: 0xd8c8b8, coat: 0x6a6a68, coatTrim: 0x8a8a86, shirt: 0x8a8a86, trousers: 0x4a4a48, boots: 0x3a3a38, hat: 0x6a6a68, hair: 0x2a2a2a, hatStyle: 'none', hairStyle: 'short', beard: false, held: 'dagger', eyes: 0xd8e8ff },
   // Sister Corva: the Hushed's grey under a captain's black coat, brass at the cuffs, hair cropped like a novice's; the song in her eyes
+  // a Reflection out of the Mirror Pools: silvered all over, a moment behind itself
+  reflection: { skin: 0xc8d8e0, coat: 0x9aa8b0, coatTrim: 0xe8f0f4, shirt: 0xb8c8d0, trousers: 0x7a8890, boots: 0x6a7880, hat: 0x9aa8b0, hair: 0xe8f0f4, hatStyle: 'none', hairStyle: 'short', beard: false, held: 'cutlass', eyes: 0xffffff },
   corva: { skin: 0xe0cfc0, coat: 0x18181c, coatTrim: 'brass', shirt: 0x8a8a86, trousers: 0x2a2a2c, boots: 0x1a1a1c, hat: 0x18181c, hair: 0x1a1a1a, hatStyle: 'none', hairStyle: 'short', beard: false, held: 'staff', eyes: 0xd8e8ff },
   captain: { skin: DROWNED_SKIN, coat: 0x3a1828, coatTrim: 'brass', shirt: 0x8a9a8a, trousers: 0x22201e, boots: 0x1e2424, hat: 0x141414, hair: 0x3a4a44, hatStyle: 'tricorn', held: 'cutlass', eyes: 0xbfeee4 },
 };

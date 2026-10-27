@@ -3,7 +3,7 @@ import { remove, canAdd } from './inventory';
 import { item } from '../data/items';
 import { LOOT } from '../data/content';
 import { REGIONS, type RegionId } from '../world/regions';
-import { coastPoint, sunPoint, amberPoint, wrackPoint, lockPoint, SUN, AMBER, WRACK, LOCK } from '../world/island';
+import { coastPoint, sunPoint, amberPoint, wrackPoint, lockPoint, saltPoint, SUN, AMBER, WRACK, LOCK, SALT } from '../world/island';
 
 // Treasure maps (docs/ISLANDS.md, "things to do at sea": treasure maps from digging leading to wrecks). Dig one up
 // (or find one in a casket), read it on an island, and an X appears in the water off that island's coast. Sail to it
@@ -25,6 +25,7 @@ const ISLAND: Partial<Record<RegionId, { at: (deg: number, inset: number) => [nu
   amberhold: { at: amberPoint, cx: AMBER.x, cz: AMBER.z },
   wrack: { at: wrackPoint, cx: WRACK.x, cz: WRACK.z },
   lockhaven: { at: lockPoint, cx: LOCK.x, cz: LOCK.z },
+  saltglass: { at: saltPoint, cx: SALT.x, cz: SALT.z },
 };
 
 const COMPASS = ['east', 'south-east', 'south', 'south-west', 'west', 'north-west', 'north', 'north-east'];
