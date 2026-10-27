@@ -16,7 +16,7 @@ import { KEY, KEYS, KEY_CONFIG, type KeyDef, type KeyFamily } from '../data/keys
 import { DROP_CONFIG, GEMS, rareTable, commonTable } from '../data/drops';
 import { BOARDS, BOUNTY_CONFIG, CREW_BY, WANTED_FIRST, WANTED_LAST, rankOf, type Contract, type CrewPassive } from '../data/bounties';
 import { HP_SCALE, NODES, RECIPES, ENEMIES, LOOT, ELITE_AFFIXES, SHOPS, PLAYER_BASE, UTILITY_SPELLS, SPELLS, COMBAT_SKILLS, XP_PER_DAMAGE, type EnemyDef, type Recipe, type Station } from '../data/content';
-import { NPCS, QUESTS, type DialogueNode, type Effect, type QuestMark } from '../data/quests';
+import { type React, NPCS, QUESTS, type DialogueNode, type Effect, type QuestMark } from '../data/quests';
 import { DIARIES, diaryDone } from '../data/diaries';
 import { LORE, LORE_BY_ID, KEEL_PAGES } from '../data/lore';
 import { DOORS, DOOR_BY_ID } from '../data/doors';
@@ -1195,6 +1195,11 @@ export class Game {
     return !!(d?.goneWhen && this.s.flags[d.goneWhen] && !(d.backWhen && this.s.flags[d.backWhen]));
   }
   questStage(id: string) { return this.s.quests[id] ?? 0; }
+  /** Lines as this world has them: the base, the reactive lines whose flags hold, then the close. */
+  reactive(lines: string[], react?: React[], after?: string[]) {
+    const f = this.s.flags;
+    return [...lines, ...(react ?? []).filter((r) => r.flags.every((x) => f[x]) && !(r.not ?? []).some((x) => f[x])).flatMap((r) => r.lines), ...(after ?? [])];
+  }
 
   private talk(npcId: string) {
     const npc = NPCS[npcId];
@@ -1209,7 +1214,7 @@ export class Game {
     // a quest you're already on comes before starting a new one
     const ready = opts.find((o) => !waiting(o.node) && this.questStage(o.q) > 0) ?? opts.find((o) => !waiting(o.node) && QUESTS[o.q].main) ?? opts.find((o) => !waiting(o.node)), first = opts[0];
     if (ready) {
-      this.emit({ type: 'dialog', npc: npcId, lines: ready.node.lines });
+      this.emit({ type: 'dialog', npc: npcId, lines: this.reactive(ready.node.lines, ready.node.react, ready.node.after) });
       if (ready.node.effect) this.applyEffect(ready.q, ready.node.effect, ready.node);
       return;
     }
@@ -1237,7 +1242,7 @@ export class Game {
     if (e.flag) this.s.flags[e.flag] = true;
     if (e.flag === 'bell_done') this.giveKey('keels_tooth'); // the Broken Ring gives up its key
     if (e.key) this.giveKey(e.key);
-    if (e.vision) this.emit({ type: 'read', title: e.vision.title, sub: e.vision.sub, lines: e.vision.lines });
+    if (e.vision) this.emit({ type: 'read', title: e.vision.title, sub: e.vision.sub, lines: this.reactive(e.vision.lines, e.vision.react, e.vision.after) });
     if (e.crew && CREW_BY[e.crew] && !this.s.crew.includes(e.crew)) {
       this.s.crew.push(e.crew);
       if (!this.s.mate) this.s.mate = e.crew;
@@ -1303,6 +1308,8 @@ export class Game {
       if (!at) continue;
       const e = this.spawnEnemy(ENEMIES[k.foe], at[0], at[1], false);
       e.once = true;
+      // a quest's foe is the one the story promised: never a random song-touched elite
+      e.elite = null; e.maxHp = e.hp = e.def.hp * HP_SCALE;
     }
   }
 

@@ -50,7 +50,7 @@ export const DIARIES: Diary[] = [
       { id: 'lore', text: 'Find every page of Keel\'s Log and every Varrow fragment on Amberhold', done: lore('amberhold') },
       { id: 'smith', text: 'Reach level 40 in Smithing and Crafting', done: levels(40, 'smithing', 'crafting') }] },
   { island: 'wrack', name: 'Stormwrack Diary', coins: 3500, xp: [{ skill: 'attack', amount: 8000 }, { skill: 'defence', amount: 8000 }, { skill: 'magic', amount: 8000 }],
-    tasks: [q('captain'), q('starfall'), q('collector'), q('firstlock'), q('saga'), q('belly'),
+    tasks: [q('captain'), q('starfall'), q('collector'), q('firstlock'), q('saga'), q('belly'), q('parley'),
       { id: 'jotunn', text: 'Beat the Thunder Jötunn on Thunder Crag', done: flag('jotunn_defeated') },
       { id: 'treasure', text: 'Haul up a chest from a treasure map', done: flag('treasure_hauled') },
       { id: 'places', text: 'Discover every place on Stormwrack', done: places('wrack') },

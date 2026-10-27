@@ -791,3 +791,43 @@ describe('The Eighty-First Child (the Tides: Mother Brine)', () => {
     expect(count(g.p.inv, 'brine_locket')).toBe(1);
   }, 120_000);
 });
+
+describe('A Parley of Tides (Act III begins)', () => {
+  it('Mercy hosts; the parley remembers who you befriended, beat and lost; the Undertow\'s hands; Hale\'s letter; Iven', () => {
+    let g = fresh();
+    for (const q of ['bell', 'collector', 'firstlock', 'palewing', 'fen', 'lantern', 'belly']) { g.s.quests[q] = QUESTS[q].stages.length - 1; g.s.flags[`${q}_done`] = true; }
+    for (const f of ['iven_taken', 'iven_back', 'tide_marisol_cove', 'tide_marisol_friend', 'tide_ninefold_dead', 'tide_gull_crew']) g.s.flags[f] = true;
+    const said: string[][] = [];
+    g.on((e) => { if (e.type === 'dialog' || e.type === 'read') said.push(e.lines); });
+    talk(g, 'iven');
+    expect(g.questStage('parley')).toBe(1);
+    const L = regionLayout('wrack'), sv = g.serialize();
+    sv.player.x = L.respawn.x; sv.player.z = L.respawn.z; sv.player.onShip = false;
+    g = new Game({ seed: 7, save: { ...JSON.parse(JSON.stringify(sv)), region: 'wrack' } });
+    for (const e of g.enemies) { e.alive = false; e.respawnAt = Infinity; }
+    g.on((e) => { if (e.type === 'dialog' || e.type === 'read') said.push(e.lines); });
+    talk(g, 'mercy');
+    expect(g.questStage('parley')).toBe(2);
+    expect(said.flat().some((l) => l.includes('one goat'))).toBe(true);
+    use(g, 'parley', 'table');
+    run(g, 20, () => g.questStage('parley') === 3);
+    const parley = said.find((ls) => ls.some((l) => l.includes('long table into the yard')))!;
+    expect(parley.some((l) => l.includes('Nine goats'))).toBe(true); // Marisol, Coral Key home
+    expect(parley.some((l) => l.includes('boots on the table'))).toBe(false); // not both Marisols
+    expect(parley.some((l) => l.includes('horn of mead'))).toBe(true); // Ninefold, dead
+    expect(parley.some((l) => l.includes('Mother Brine'))).toBe(false); // never met her
+    expect(parley[parley.length - 1]).toContain('bone-grey sails');
+    for (let k = 0; k < 4; k++) expect(beat(g, 'undertow_hand', 99, 'cutlass_tide')).toBe(true);
+    expect(g.questStage('parley')).toBe(4);
+    use(g, 'parley', 'letter');
+    run(g, 20, () => g.questStage('parley') === 5);
+    expect(g.s.flags.hale_letter).toBe(true);
+    const L2 = regionLayout('bellwether'), sv2 = g.serialize();
+    sv2.player.x = L2.respawn.x; sv2.player.z = L2.respawn.z;
+    g = new Game({ seed: 7, save: { ...JSON.parse(JSON.stringify(sv2)), region: 'bellwether' } });
+    g.on((e) => { if (e.type === 'dialog') said.push(e.lines); });
+    talk(g, 'iven');
+    expect(g.questStage('parley')).toBe(QUESTS.parley.stages.length - 1);
+    expect(said[said.length - 1].some((l) => l.includes('insufferable'))).toBe(true);
+  }, 120_000);
+});
