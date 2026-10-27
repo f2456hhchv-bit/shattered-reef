@@ -45,3 +45,20 @@ describe('Lockhaven', () => {
     expect(went).toBe(true);
   }, 60_000);
 });
+
+describe('passage to Lockhaven', () => {
+  it('Mercy won\'t ferry you to an uncharted island; after the parley she will', () => {
+    const W = regionLayout('wrack');
+    const g = new Game({ seed: 4, save: { ...defaultSave(W.respawn, W.mooring!), region: 'wrack' } });
+    g.give('coins', 1000);
+    const n = W.npcs.find((x) => x.id === 'mercy')!;
+    const q = g.world.nearestWalkable(n.x + 1, n.z, 3)!; g.p.x = q[0]; g.p.z = q[1];
+    let to = '';
+    g.on((e) => { if (e.type === 'travel') to = e.to; });
+    g.takeFerry('mercy', 'lockhaven');
+    expect(to).toBe('');
+    g.s.flags.parley_done = true;
+    g.takeFerry('mercy', 'lockhaven');
+    expect(to).toBe('lockhaven');
+  });
+});

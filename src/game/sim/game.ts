@@ -2170,6 +2170,8 @@ export class Game {
   takeFerry(npcId: string, to?: string) {
     const routes = NPCS[npcId]?.ferry, f = routes?.find((r) => !to || r.to === to), n = this.layout.npcs.find((x) => x.id === npcId);
     if (!f || !n || this.dead || this.p.onShip || Math.hypot(n.x - this.p.x, n.z - this.p.z) > 4.5) return;
+    const gate = REGIONS[f.to as RegionId].gate;
+    if (gate && !this.s.flags[gate.flag]) { this.msg('The Compact doesn\'t sail where nobody\'s charted. Not yet.', 'warn'); return; }
     const price = this.ferryPrice(f.price);
     if (count(this.p.inv, 'coins') < price) { this.msg(`Passage costs ${price} coins.`, 'warn'); return; }
     remove(this.p.inv, 'coins', price);
