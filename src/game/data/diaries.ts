@@ -42,7 +42,7 @@ export const DIARIES: Diary[] = [
       { id: 'lore', text: 'Find every page of Keel\'s Log and every Varrow fragment on Sunreach', done: lore('sunreach') },
       { id: 'sail', text: 'Reach level 25 in Sailing', done: levels(25, 'sailing') }] },
   { island: 'amberhold', name: 'Amberhold Diary', coins: 2000, xp: [{ skill: 'mining', amount: 5000 }, { skill: 'smithing', amount: 5000 }, { skill: 'crafting', amount: 5000 }],
-    tasks: [q('toll'), q('barrow'), q('fiddle'), q('brood'), q('brinewife'), q('secondchance'),
+    tasks: [q('toll'), q('barrow'), q('fiddle'), q('brood'), q('brinewife'), q('eightyfirst'), q('secondchance'),
       { id: 'seep', text: 'Hold the Amber Seep until the hill closes', done: flag('seep_held') },
       { id: 'kraken', text: 'Live through a Kraken sighting', done: flag('kraken_escaped') },
       { id: 'charts', text: 'Chart all of Amberhold\'s waters', done: charts('amberhold') },
