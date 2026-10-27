@@ -317,6 +317,9 @@ function tierItems(): ItemDef[] {
   // The Line: Saoirse's line and the Fifth Lockkey
   out.push(I({ id: 'saoirse_line', name: 'Saoirse\'s line', desc: 'Brass wire fine as hair, on a whalebone reel, a lure of Finfolk silver at its end. The Line House\'s last line. It hums against your palm.', icon: { shape: 'rod', color: '#c9a050', accent: '#d8dce0' }, stackable: false, value: 0, quest: true }));
   out.push(I({ id: 'line_lockkey', name: 'A brass key with a hook in its bow', desc: 'It came out of the Line-fish\'s gill. Salt-bright, and silent: no sea-hum in it at all.', icon: { shape: 'tooth', color: '#c9a050', accent: '#d8dce0' }, stackable: false, value: 0, quest: true }));
+  // Ingirid: a wedding band thirty years under the sea
+  out.push(I({ id: 'ring_ingirid', name: 'Ingirid\'s band', desc: 'A plain silver wedding band, worn thin, with a fish-scale grown into the metal. The Finfolk let it come ashore. The sea is kinder to you while you wear it.', icon: { shape: 'ring', color: '#d8dce0', accent: '#8aa89a' }, stackable: false, value: 5000,
+    equip: { slot: 'ring', reqs: { fishing: 80 }, bonus: { acc: 6, defMelee: 8, defRanged: 8, defMagic: 8 }, affixPool: JEWEL_AFFIX }, innate: [{ id: 'gather_speed', v: 4 }] }));
   // The Name on the Frame: the Keepers' ring
   out.push(I({ id: 'ring_keeper', name: 'Keeper\'s ring', desc: 'A plain iron ring made from the two-hundred-and-thirteenth key on Orla\'s hoop. "Every Keeper wears one. You\'ve kept something. Wear it."', icon: { shape: 'ring', color: '#6a6a6e', accent: '#c9a050' }, stackable: false, value: 4000,
     equip: { slot: 'ring', reqs: { defence: 60 }, bonus: { acc: 5, defMelee: 8, defRanged: 8, defMagic: 10 }, affixPool: JEWEL_AFFIX }, innate: [{ id: 'regen', v: 1 }] }));
