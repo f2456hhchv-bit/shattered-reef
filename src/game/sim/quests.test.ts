@@ -29,6 +29,17 @@ function beat(g: Game, foe: string, lvl = 40, weapon = 'cutlass_steel') {
 }
 
 describe('Bellwether\'s quests', () => {
+  it('stuck on an order puzzle: a nudge after three misses, the whole order after six', () => {
+    const g = fresh(); const said: string[] = []; g.on((e) => { if (e.type === 'msg') said.push(e.text); });
+    talk(g, 'pellow');
+    for (let k = 0; k < 2; k++) use(g, 'knock', 'k3');
+    expect(said.some((t) => /It starts at/.test(t))).toBe(false);
+    use(g, 'knock', 'k3');
+    expect(said.some((t) => /It starts at rock face \(knock\)\./.test(t))).toBe(true);
+    for (let k = 0; k < 3; k++) use(g, 'knock', 'k3');
+    expect(said.some((t) => /rock face \(knock\), then rock face \(knock knock\), then rock face \(knock knock knock\)/.test(t))).toBe(true);
+  });
+
   it('Knock Three Times: listen in order (a wrong one starts again), beat the Elder, take Pellow\'s lamp', () => {
     const g = fresh();
     talk(g, 'pellow');

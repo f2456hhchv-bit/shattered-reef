@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { Game } from './game';
 import { defaultSave } from './save';
 import { QUESTS } from '../data/quests';
+import { REGIONS, type RegionId } from '../world/regions';
+import { regionLayout } from '../world/layout';
 
 describe('quest tracker', () => {
   const base = new Game({ seed: 1 });
@@ -34,4 +36,15 @@ describe('quest tracker', () => {
       if (st.marks?.length && !st.talk && !st.also) expect(st.marks.some((m) => m.x === goal.x && m.z === goal.z)).toBe(true);
     });
   });
+  it('every step of every quest points somewhere on a map (a person, a spot, a foe, an arena, a horn or soundings)', () => {
+    for (const r of Object.keys(REGIONS) as RegionId[]) regionLayout(r); // every island and cave charted
+    const g = fresh(), lost: string[] = [];
+    for (const q of Object.values(QUESTS)) q.stages.slice(0, -1).forEach((st, i) => {
+      g.s.quests[q.id] = i;
+      const goal = g.questGoal(q.id)!;
+      // a stage that waits on flags set elsewhere (a choice, another quest) has nowhere to stand
+      if (!goal.region && !(st.waitFlags && !st.waitFlags.some((f) => f.startsWith('chart_')))) lost.push(`${q.id}:${i} ${st.text.slice(0, 60)}`);
+    });
+    expect(lost).toEqual([]);
+  }, 120_000);
 });

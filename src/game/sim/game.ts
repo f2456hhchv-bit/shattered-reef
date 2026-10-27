@@ -8,7 +8,7 @@ import { Bottles } from './bottles';
 import { Regatta } from './regatta';
 import { FEATS, FEAT_BY, FEAT_TIERS } from '../data/feats';
 import { Naval } from './naval';
-import { AMMO, NAVAL } from '../data/sea';
+import { AMMO, NAVAL, CHART_MARKS, SEA_SPAWNS } from '../data/sea';
 import { SHIPYARD, type ShipPart } from '../data/shipyard';
 import { ACTIVE, MOMENTS, type MomentKind, type Struck } from '../data/active';
 import { mulberry32 } from '../../art/noise';
@@ -725,7 +725,7 @@ export class Game {
         }
         this.rollKeyFind(d.fromShip ? 'sailing' : d.skill as KeyFamily, KEY_CONFIG.gatherChance);
         const mk = MOMENTS.bySkill[d.skill];
-        if (mk && this.rnd() < MOMENTS.chance) this.startMoment(mk, a.node);
+        if (mk && this.rnd() < MOMENTS.chance && this.time >= this.momentAt) this.startMoment(mk, a.node); // the roll first: the cooldown never reshuffles the RNG
       }
     }
     if (d.skill) this.addXp(d.skill, (catchOf?.xp ?? d.xp) * ACTIVE.xpTimes[strike]);
@@ -816,7 +816,12 @@ export class Game {
   }
 
   // ------------------------------------------------------------------ gathering moments (data/active.ts)
+  /** wrong tries at an ordered quest puzzle this session, by quest and stage (for the hints) */
+  private puzzleMisses: Record<string, number> = {};
+  /** gathering moments wait this long after the last one (MOMENTS.cooldown) */
+  momentAt = 0;
   startMoment(kind: MomentKind, node: string) {
+    this.momentAt = this.time + MOMENTS.cooldown;
     this.moment = { kind, node, from: this.time, step: 0 };
     this.msg(MOMENTS.defs[kind].start, 'quest');
     this.emit({ type: 'cue', perfect: true, text: MOMENTS.defs[kind].label });
@@ -1355,6 +1360,17 @@ export class Game {
     // nothing under way: the main story you haven't begun on this island (its first stage says who to see)
     return (on.find((q) => q.main) ?? on[0] ?? Object.values(QUESTS).find((q) => q.main && this.questStage(q.id) === 0 && (q.island ?? 'bellwether') === this.s.region))?.id ?? null;
   }
+  /** The combat level a quest asks for: its toughest foe on land (a stage's kill, or the arena boss it rings). Null:
+   * a quest with no fighting in it. */
+  questCombat(id: string): number | null {
+    if (QUESTS[id]?.rec) return QUESTS[id].rec!;
+    let lvl = 0;
+    for (const st of QUESTS[id]?.stages ?? []) {
+      const foe = st.kill && !st.kill.sea ? st.kill.foe : st.at?.arena;
+      if (foe && ENEMIES[foe]) lvl = Math.max(lvl, ENEMIES[foe].level);
+    }
+    return lvl || null;
+  }
   /** Pin a quest to the tracker (again to unpin). */
   trackQuest(id: string) { this.s.track = this.s.track === id ? undefined : id; this.rev++; }
   /**
@@ -1380,6 +1396,34 @@ export class Game {
       const used = (m: QuestMark) => m.seq !== undefined && !!this.s.flags[`${id}_${st}_s${m.seq}`];
       near(stage.marks.filter((m) => !used(m)));
     } else if (stage.kill?.spawn) near([stage.kill.spawn]);
+    else if (stage.kill) {
+      // a foe to beat anywhere: its arena, else the nearest one about (on land or at sea), else where its kind lives
+      const foe = stage.kill.foe, pts: { region: string; x: number; z: number }[] = [];
+      for (const r of Object.keys(REGIONS) as RegionId[]) {
+        const L = r === this.s.region ? this.layout : cachedLayout(r);
+        for (const a of L?.arenas ?? []) if (a.boss === foe) pts.push({ region: r, x: a.altar.x, z: a.altar.z });
+      }
+      if (!pts.length) {
+        for (const e of this.enemies) if (e.alive && e.def.id === foe) pts.push({ region: this.s.region, x: e.x, z: e.z });
+        for (const f of this.naval.foes) if (f.alive && f.def.id === foe) pts.push({ region: this.s.region, x: f.x, z: f.z });
+      }
+      if (!pts.length) for (const r of Object.keys(REGIONS) as RegionId[]) {
+        const L = r === this.s.region ? this.layout : cachedLayout(r);
+        for (const sp of L?.spawns ?? []) if (sp.enemy === foe) pts.push({ region: r, x: sp.x, z: sp.z });
+        for (const sp of SEA_SPAWNS[r] ?? []) if (sp.foe === foe) pts.push({ region: r, x: sp.x, z: sp.z });
+      }
+      near(pts);
+    } else if (stage.at?.arena) {
+      const pts: { region: string; x: number; z: number }[] = [];
+      for (const r of Object.keys(REGIONS) as RegionId[]) { const L = r === this.s.region ? this.layout : cachedLayout(r); for (const a of L?.arenas ?? []) if (a.boss === stage.at.arena) pts.push({ region: r, x: a.altar.x, z: a.altar.z }); }
+      near(pts);
+    } else if (stage.at?.horn === 'greenheart') {
+      const h = this.fire.spots()?.horn;
+      if (h) near([{ region: 'sunreach', ...h }]); else out.region = 'sunreach';
+    } else if (stage.waitFlags?.some((f) => f.startsWith('chart_'))) {
+      // soundings to take: the charting marks not yet logged
+      near(CHART_MARKS.filter((m) => stage.waitFlags!.includes(`chart_${m.id}`) && !this.s.flags[`chart_${m.id}`]));
+    }
     return out;
   }
 
@@ -1403,7 +1447,16 @@ export class Game {
       const done = real.filter((x) => this.s.flags[key(x.seq!)]).length;
       if (m.decoy || m.seq !== done + 1) {
         for (const x of real) delete this.s.flags[key(x.seq!)];
-        if (done > 0 || m.seq !== 1) this.msg(stage!.wrong ?? 'That wasn\'t the right order. Start again.', 'warn');
+        if (done > 0 || m.seq !== 1) {
+          this.msg(stage!.wrong ?? 'That wasn\'t the right order. Start again.', 'warn');
+          // stuck on the order: after three misses a nudge to where it starts, after six the whole order (a
+          // playtest bot got it wrong 140 times and the game never helped)
+          const misses = (this.puzzleMisses[`${questId}_${st}`] ?? 0) + 1;
+          this.puzzleMisses[`${questId}_${st}`] = misses;
+          const order = [...real].sort((a, b) => a.seq! - b.seq!);
+          if (misses === 3) this.msg(`You think it over. It starts at ${order[0].label.toLowerCase()}.`, 'quest');
+          else if (misses >= 6 && misses % 3 === 0) this.msg(`You work it out at last: ${order.map((x) => x.label.toLowerCase()).join(', then ')}.`, 'quest');
+        }
         if (m.seq === 1 && !m.decoy) this.s.flags[key(1)] = true; // the first one is always a fresh start
         this.rev++;
         return;

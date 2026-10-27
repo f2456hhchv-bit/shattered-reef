@@ -39,8 +39,11 @@ export interface MomentDef {
   start: string; label: string; win: string; lose: string;
 }
 export const MOMENTS = {
-  /** chance per landed item (skills with a moment only) */
+  /** chance per landed item (skills with a moment only), once the cooldown has run */
   chance: 0.02,
+  /** seconds after one moment before another can start (a playtest saw the big fish bite every 2 minutes of
+   *  fishing: fishing lands items fast, so a per-item chance alone isn't rare) */
+  cooldown: 300,
   bySkill: { woodcutting: 'nest', fishing: 'tug', mining: 'seam' } as Partial<Record<SkillId, MomentKind>>,
   defs: {
     nest: { secs: 1.3, steps: 1, window: [0.5, 0.92], red: [0.68, 0.8], label: 'Catch!',

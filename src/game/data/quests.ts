@@ -150,9 +150,11 @@ export interface QuestStage {
   waitFlags?: string[];
   /** a ship that hunts you while this stage lasts (it can't be sunk; it leaves when the stage does) */
   chase?: { foe: string; spawn: { region: string; x: number; z: number } };
+  /** where the tracker points when nothing above says (an arena to ring, a skilling boss's horn) */
+  at?: { arena?: string; horn?: 'greenheart' };
 }
 
-export interface QuestDef { id: string; name: string; giver: string; stages: QuestStage[]; reward: string; /** the main story (docs/STORY.md): offered ahead of side quests by the same person */ main?: boolean; /** the island it belongs to (the journal groups by it) */ island?: 'bellwether' | 'sunreach' | 'amberhold' | 'wrack' | 'lockhaven' | 'saltglass' | 'longstrand' }
+export interface QuestDef { id: string; name: string; giver: string; stages: QuestStage[]; reward: string; /** the combat level it's tuned for, where a balance test says (else its toughest foe's level) */ rec?: number; /** the main story (docs/STORY.md): offered ahead of side quests by the same person */ main?: boolean; /** the island it belongs to (the journal groups by it) */ island?: 'bellwether' | 'sunreach' | 'amberhold' | 'wrack' | 'lockhaven' | 'saltglass' | 'longstrand' }
 
 /** the pool behind the Ironshell Shore where the nøkk live */
 const POOL = { x: AMBER_LAYOUT.ironshore.x + (AMBER.x - AMBER_LAYOUT.ironshore.x) * 0.22, z: AMBER_LAYOUT.ironshore.z + (AMBER.z - AMBER_LAYOUT.ironshore.z) * 0.22 + 6 };
@@ -164,6 +166,7 @@ export const QUESTS: Record<string, QuestDef> = {
     island: 'bellwether',
     name: 'The Bell at Low Water',
     giver: 'iven',
+    rec: 12, // balance.test.ts: the Guardian needs ~12 in melee or ranged, with food
     reward: '150 coins, 300 Attack XP, 300 Defence XP, 200 Smithing XP',
     stages: [
       {
@@ -190,7 +193,7 @@ export const QUESTS: Record<string, QuestDef> = {
           effect: { take: [{ id: 'bar_bronze', qty: 1 }], give: [{ id: 'tuning_bell', qty: 1 }], stage: 2 },
         } },
       },
-      { text: 'Ring the tuning bell at the Broken Ring, north of the island, and face what answers.' },
+      { text: 'Ring the tuning bell at the Broken Ring, north of the island, and face what answers.', at: { arena: 'guardian' } },
       {
         text: 'Return Keel\'s Tooth to Iven Marr at the quay.',
         talk: { npc: 'iven', node: {
@@ -520,7 +523,7 @@ export const QUESTS: Record<string, QuestDef> = {
           { id: 'bench', label: 'Fire camp bench', verb: 'Look over', region: 'sunreach', x: SUN_LAYOUT.jungle.x - 12, z: SUN_LAYOUT.jungle.z + 13, seq: 1, say: ['Twine, a mallet, and bamboo offcuts. Two lengths lashed together make a bucket that holds water.'] },
           { id: 'stream', label: 'The stream', verb: 'Look over', region: 'sunreach', x: SUN_LAYOUT.jungle.x - 30, z: SUN_LAYOUT.jungle.z + 8, seq: 2, say: ['Cold and quick. You can fill a bucket here in a breath.', 'Somewhere over the canopy, thunder. Ama shouts: "That\'s it! Sound the horn when you\'re ready!"'] },
         ] },
-      { text: 'Sound the fire horn and save the grove: douse the burning thickets before too much of it burns.', },
+      { text: 'Sound the fire horn and save the grove: douse the burning thickets before too much of it burns.', at: { horn: 'greenheart' } },
       { text: 'Tell Ama Boateng the grove is saved.',
         talk: { npc: 'ama', node: { lines: [
           'Steam over the canopy, and not a tree lost that won\'t grow back. You\'ve the makings of a warden.',
