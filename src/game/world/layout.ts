@@ -163,6 +163,7 @@ function buildIslandRegion(region: IslandId): IslandLayout {
     { id: 'abena', x: SL.plaza.x - 5, z: SL.plaza.z + 2, facing: 0 },
     { id: 'nana_ayo', x: SL.plaza.x + 6, z: SL.plaza.z + 3, facing: Math.PI },
     { id: 'ama', x: SL.jungle.x - 16, z: SL.jungle.z + 13, facing: Math.PI / 2 }, // the Greenheart Fire's camp
+    { id: 'ash', x: SL.dockBase.x + 3.2, z: SL.dockBase.z - 1.0, facing: Math.PI / 2 }, // Ash Tolliver, on the dock's end where nobody sits with him
     { id: 'marisol', x: SL.palms.x + 2, z: SL.palms.z - 2, facing: 0 }, // the Red Ransom ashore at Palm Cove
   );
   else if (amb) npcs.push(

@@ -34,6 +34,8 @@ export const NPC_LOOKS: Record<string, HumanoidLook> = {
   gull: { skin: 0xe8d0b8, coat: 0xe8e4d8, coatTrim: 0x8a9aa8, shirt: 0xd8d4c8, trousers: 0x3a4048, boots: 0x2a2a2e, hat: 0xe8e4d8, hair: 0xb8b8b0, hatStyle: 'tricorn', beard: false, held: 'pistol' },
   brine: { skin: 0xb88a62, coat: 0x3a5a5a, coatTrim: 0xc8d0c0, shirt: 0xd8ccb0, trousers: 0x2a3030, boots: 0x2a2a28, hat: 0x5a3a2a, hair: 0xb8b0a8, hatStyle: 'bandana', hairStyle: 'bun', beard: false, apron: 0x8a7a5a },
   ninefold: { skin: 0xd8b090, coat: 0x6a6a6a, coatTrim: 0x8a2a1a, shirt: 0x4a3a2a, trousers: 0x3a3028, boots: 0x3a2a1a, hat: 0x6a6a6a, hair: 0xc89a5a, hatStyle: 'cap', beard: true, held: 'greatsword' },
+  // Ash Tolliver: burn-scarred hands, a gunner's coat too big for him, red hair he keeps cutting short
+  ash: { skin: 0xc8a080, coat: 0x3a2e28, coatTrim: 0x8a5a2a, shirt: 0xb8a890, trousers: 0x2a2420, boots: 0x2a1a14, hat: 0x2a2420, hair: 0x8a3a1a, hatStyle: 'none', hairStyle: 'short', beard: false, held: 'pistol' },
   marisol: { skin: 0x7a4a30, coat: 0xa82a22, coatTrim: 0xd8b84a, shirt: 0xe8dcc0, trousers: 0x2a2220, boots: 0x2a1a14, hat: 0x2a1a14, hair: 0x1a1210, hatStyle: 'tricorn', hairStyle: 'queue', beard: false, held: 'cutlass' },
   osric: { skin: 0xb88a62, coat: 0x2a3a3a, coatTrim: 0x8a9a9a, shirt: 0x9a9a8a, trousers: 0x22201e, boots: 'leather', hat: 0x2a2a2a, hair: 0x6a6a62, hatStyle: 'cap', beard: true },
   // Sunreach's quest folk (slice 2)

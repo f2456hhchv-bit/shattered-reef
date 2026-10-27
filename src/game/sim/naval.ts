@@ -129,7 +129,7 @@ export class Naval {
     const a = AMMO[this.ammo], sh = this.g.ship;
     if (a.item) remove(this.g.p.inv, a.item, 1);
     this.reloadCd = this.reloadTime(a.kind);
-    const dmg = a.damage * (1 + (this.g.level('sailing') - 1) * 0.04) * (this.g.s.flags.swivel_gun ? 1.15 : 1) * (this.g.s.flags.ransom_pennant ? 1.05 : 1); // gunnery grows with Sailing; the Wreckers' Lantern swivel gun; Marisol's red pennant
+    const dmg = a.damage * (1 + (this.g.level('sailing') - 1) * 0.04) * (this.g.s.flags.swivel_gun ? 1.15 : 1) * (this.g.s.flags.ransom_pennant ? 1.05 : 1) * (1 + this.g.crewV('cannon') / 100); // gunnery grows with Sailing; the Wreckers' Lantern swivel gun; Marisol's red pennant; Ash Tolliver at the guns
     if (a.kind === 'charge') {
       // over the stern: it sinks, then bursts
       this.charges.push({ id: this.g.nextId++, x: sh.x - Math.cos(sh.heading) * 4.2, z: sh.z - Math.sin(sh.heading) * 4.2, t: NAVAL.charge.fuse, damage: dmg });
