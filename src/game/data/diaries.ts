@@ -35,7 +35,7 @@ export const DIARIES: Diary[] = [
       { id: 'lore', text: 'Find every page of Keel\'s Log and every Varrow fragment on Bellwether', done: lore('bellwether') },
       { id: 'gather', text: 'Reach level 20 in Woodcutting, Mining and Fishing', done: levels(20, 'woodcutting', 'mining', 'fishing') }] },
   { island: 'sunreach', name: 'Sunreach Diary', coins: 1200, xp: [{ skill: 'woodcutting', amount: 3000 }, { skill: 'fletching', amount: 3000 }, { skill: 'sailing', amount: 3000 }],
-    tasks: [q('tracks'), q('souc'), q('greenheart'), q('temple'), q('ransom'),
+    tasks: [q('tracks'), q('souc'), q('greenheart'), q('temple'), q('ransom'), q('coralkey'),
       { id: 'fire', text: 'Save the Greenheart from fire', done: flag('greenfire_won') },
       { id: 'charts', text: 'Chart all of Sunreach\'s waters', done: charts('sunreach') },
       { id: 'places', text: 'Discover every place on Sunreach', done: places('sunreach') },

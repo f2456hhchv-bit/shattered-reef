@@ -724,3 +724,45 @@ describe('Thirteen\'s in the Belly (Act II ends)', () => {
     expect(count(g.p.inv, 'thirteenth_key')).toBe(1); // kept, not turned
   }, 120_000);
 });
+
+describe('Coral Key (the Tides: Marisol Ransom)', () => {
+  it('Ada\'s deed, four harbourmasters\' seals (Jory\'s toll, Mercy\'s reason), the deed to Marisol, her tricorn', () => {
+    let g: Game;
+    const go = (to: 'wrack' | 'amberhold' | 'bellwether' | 'sunreach') => {
+      const L = regionLayout(to), sv = g ? g.serialize() : { ...defaultSave(L.respawn, L.mooring!) };
+      sv.player.x = L.respawn.x; sv.player.z = L.respawn.z; sv.player.onShip = false;
+      Object.assign(sv.ship, { ...L.mooring!, region: to });
+      g = new Game({ seed: 7, save: { ...JSON.parse(JSON.stringify(sv)), region: to } });
+      for (const e of g.enemies) { e.alive = false; e.respawnAt = Infinity; }
+    };
+    go('sunreach');
+    g!.s.flags.ransom_done = true; g!.s.flags.tide_marisol_friend = true; g!.s.quests.ransom = QUESTS.ransom.stages.length - 1;
+    talk(g!, 'marisol');
+    expect(g!.questStage('coralkey')).toBe(1);
+    go('bellwether');
+    talk(g!, 'ada');
+    expect(count(g!.p.inv, 'coral_deed')).toBe(1);
+    talk(g!, 'wynn');
+    expect(g!.questStage('coralkey')).toBe(3);
+    go('sunreach');
+    talk(g!, 'sefa');
+    expect(g!.questStage('coralkey')).toBe(4);
+    go('amberhold');
+    talk(g!, 'jory');
+    expect(g!.questStage('coralkey')).toBe(4); // no toll, no seal
+    g!.give('coins', 10000);
+    talk(g!, 'jory');
+    expect(g!.questStage('coralkey')).toBe(5);
+    go('wrack');
+    talk(g!, 'mercy');
+    expect(g!.questStage('coralkey')).toBe(5); // she wants a reason
+    g!.s.flags.lore_varrow_charter = true;
+    talk(g!, 'mercy');
+    expect(g!.questStage('coralkey')).toBe(6);
+    go('sunreach');
+    talk(g!, 'marisol');
+    expect(g!.questStage('coralkey')).toBe(QUESTS.coralkey.stages.length - 1);
+    expect(count(g!.p.inv, 'hat_ransom')).toBe(1);
+    expect(count(g!.p.inv, 'coral_deed')).toBe(0);
+  }, 120_000);
+});

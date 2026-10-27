@@ -1080,4 +1080,63 @@ export const QUESTS: Record<string, QuestDef> = {
       { text: 'Quest complete. You carry the thirteenth Lockkey, unturned. The Undertow still sails, and Vesper Hale is waiting. Act II ends.' },
     ],
   },
+  coralkey: {
+    id: 'coralkey',
+    name: 'Coral Key',
+    island: 'sunreach',
+    giver: 'marisol',
+    reward: 'Coral Key goes home to the Ransoms; Ransom\'s tricorn; 5000 coins, 5000 Sailing and Ranged XP',
+    stages: [
+      { text: 'Speak with Marisol Ransom at Palm Cove, once The Ransom Note is done.',
+        talk: { npc: 'marisol', node: { needsFlags: ['ransom_done'], missing: ['I don\'t drink with people I haven\'t robbed yet. Sit down anyway.'], lines: [
+          'Eleven years. A hundred and sixty thousand in silver, in a sea-chest under a goat shed. That\'s enough to buy Coral Key twice.',
+          'And the Compact won\'t sell it to me. A pirate can\'t own land. Rule of their own, older than their rules.',
+          'You can, though. On paper you\'re an honest captain. Buy it for me. I\'ll give you the silver, you give me the deed, and every harbourmaster can go and choke on their seals.',
+          'The deed\'s in the archive at Bellwether. Ada Quill keeps it. Ask her nicely; she\'s the only person on this sea I\'m afraid of.'],
+          effect: { stage: 1 } } } },
+      { text: 'Ask Ada Quill, the banker at Bellwether, for the deed to Coral Key.',
+        talk: { npc: 'ada', node: { lines: [
+          'Coral Key. Lot one, the Compact\'s first sale. I could find it in the dark.',
+          'It was sold by four harbourmasters, so it can only be sold back by four. Bellwether, Port Halyard, Tollhouse, Gallows Landing. Every seal, or it\'s just paper.',
+          'I don\'t ask who the buyer really is. I\'m a banker. But if Marisol Ransom wanted to stop by and pay her respects, I would make tea.',
+          'Here. Bring it back with four seals and the price, and Coral Key is yours.'],
+          effect: { give: [{ id: 'coral_deed', qty: 1 }], stage: 2 } } } },
+      { text: 'Get Wynn Harrow\'s seal on the deed, at Bellwether Quay.',
+        talk: { npc: 'wynn', node: { requires: { id: 'coral_deed', qty: 1 }, missing: ['A deed? Then bring it. I don\'t seal what I can\'t see.'], lines: [
+          'Coral Key. For a "private buyer". With red sailcloth fluff stuck to the wax.',
+          'I logged a black brig and told you the weather. I can put my seal on a deed.',
+          'There. One of four. Sefa\'s next, I\'d guess; she owes the Red Ransom a dinner.'],
+          effect: { stage: 3 } } } },
+      { text: 'Get Sefa Odun\'s seal on the deed, at Port Halyard.',
+        talk: { npc: 'sefa', node: { lines: [
+          'Kwesi still talks about the food on that ship. He says she makes a pepperpot that would bring a man back from the dead.',
+          'My great-great-grandmother\'s seal is on the first sale. I\'ve looked at it every day since you brought him home.',
+          'Here\'s mine on the second. Two of four. Jory will want paying; Jory always wants paying.'],
+          effect: { stage: 4 } } } },
+      { text: 'Get Jory Penhallow\'s seal on the deed, at Tollhouse Landing.',
+        talk: { npc: 'jory', node: { requires: { id: 'coins', qty: 10000 }, missing: ['Everything that leaves Amberhold pays a toll, captain. Even an island, even on paper. Ten thousand, and I\'ll seal it.'], lines: [
+          'Ten thousand. You didn\'t even haggle. That\'s how I know it isn\'t your money.',
+          'Don\'t look like that. The toll pays for the harbour wall, and the wall keeps the sea off people who\'ve never heard of Coral Key.',
+          'Sealed. Three of four. Mercy\'s last, and Mercy won\'t want paying. Mercy will want a reason.'],
+          effect: { take: [{ id: 'coins', qty: 10000 }], stage: 5 } } } },
+      { text: 'Get Mercy Gale\'s seal on the deed, at Gallows Landing. She\'ll want a reason the Compact should undo its first sale.',
+        talk: { npc: 'mercy', node: { needsFlags: ['lore_varrow_charter'], missing: [
+          'Undo the Compact\'s first sale? On whose word? Rule three: we take no side.',
+          'If you can show me where our own Charter says we could sell what wasn\'t ours, I\'ll seal it. There\'s a copy nailed in a strongbox lid on Bellwether\'s quay. Read it, then come back.'], lines: [
+          '"Every harbour stays open to every keel. We carry every letter. We take no side."',
+          'And not one word about selling a family\'s island to pay for a war we didn\'t fight. Somebody wrote "We meant it, didn\'t we?" under that copy. I used to think it was a joke.',
+          'We sold Coral Key before we had rules. Then we wrote the rules so nobody would ask about it.',
+          'Sealed. Four of four. Take it to her, captain. And tell her Gallows Landing will fly a red pennant the day she lands her goats.'],
+          effect: { stage: 6 } } } },
+      { text: 'Take the sealed deed to Marisol Ransom at Palm Cove.',
+        talk: { npc: 'marisol', node: { requires: { id: 'coral_deed', qty: 1 }, missing: ['You\'re back. Tell me you\'ve got it. No. Don\'t tell me. Show me.'], lines: [
+          'Four seals. Wynn. Sefa. Jory, the miser. Mercy Gale. Mercy Gale sealed it.',
+          'She doesn\'t say anything for a while. She reads the line about the goats three times.',
+          'My grandmother\'s grandmother\'s name is on the first page. Here. Ransom. We\'ve been Ransoms since before the Breaking. I thought we got the name from what we did. We got what we did from the name.',
+          'I\'m not going to cry on a beach in front of a captain. Take the hat. Eleven years on my head. It\'s lucky, and it\'s yours, and if you lose it I will sink you.',
+          'Coral Key. Nine goats. I\'ll need nine goats.'],
+          effect: { take: [{ id: 'coral_deed', qty: 1 }], give: [{ id: 'hat_ransom', qty: 1 }, { id: 'coins', qty: 5000 }], xp: [{ skill: 'sailing', amount: 5000 }, { skill: 'ranged', amount: 5000 }], stage: 7, flag: 'tide_marisol_cove' } } } },
+      { text: 'Quest complete. Coral Key is the Ransoms\' again. Marisol has gone to find nine goats.' },
+    ],
+  },
 };
