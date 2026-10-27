@@ -897,3 +897,31 @@ describe('The Name on the Frame (Lockhaven)', () => {
     expect(count(g!.p.inv, 'ring_keeper')).toBe(1);
   }, 120_000);
 });
+
+describe('The Lantern Relit (the Tides: Sister Corva)', () => {
+  for (const path of ['spare', 'fight'] as const) it(`the wax in the ear, the shore at dusk, and Corva ${path === 'spare' ? 'turned' : 'beaten'}; Iven reads Hale's map`, () => {
+    let g: Game;
+    const go = (to: 'lockhaven' | 'bellwether') => {
+      const L = regionLayout(to), sv = g ? g.serialize() : { ...defaultSave(L.respawn, L.mooring!) };
+      sv.player.x = L.respawn.x; sv.player.z = L.respawn.z; sv.player.onShip = false;
+      Object.assign(sv.ship, { ...L.mooring!, region: to });
+      g = new Game({ seed: 7, save: { ...JSON.parse(JSON.stringify(sv)), region: to } });
+      for (const e of g.enemies) { e.alive = false; e.respawnAt = Infinity; }
+    };
+    go('lockhaven');
+    for (const f of ['thirdlock_done', 'lantern_done', 'iven_taken', 'iven_back']) g!.s.flags[f] = true;
+    talk(g!, 'orla');
+    use(g!, 'lanternrelit', 'ear');
+    run(g!, 5, () => g!.questStage('lanternrelit') === 2);
+    use(g!, 'lanternrelit', path);
+    run(g!, 5, () => g!.questStage('lanternrelit') >= 3);
+    if (path === 'fight') { expect(beat(g!, 'corva', 99, 'cutlass_ori')).toBe(true); }
+    expect(g!.questStage('lanternrelit')).toBe(4);
+    const said: string[][] = [];
+    go('bellwether');
+    g!.on((e) => { if (e.type === 'dialog') said.push(e.lines); });
+    talk(g!, 'iven');
+    expect(g!.questStage('lanternrelit')).toBe(QUESTS.lanternrelit.stages.length - 1);
+    expect(said.flat().some((l) => l.includes(path === 'spare' ? 'tell children the truth' : 'soaked through'))).toBe(true);
+  }, 120_000);
+});
