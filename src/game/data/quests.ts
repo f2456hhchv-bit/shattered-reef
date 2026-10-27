@@ -1,5 +1,5 @@
 import type { SkillId } from './items';
-import { LAGOON, LAYOUT, SUN_LAYOUT, AMBER_LAYOUT, AMBER, WRACK_LAYOUT, coastPoint } from '../world/island';
+import { LAGOON, LAYOUT, SUN_LAYOUT, AMBER_LAYOUT, AMBER, WRACK_LAYOUT, LOCK_LAYOUT, coastPoint } from '../world/island';
 // NPCs and the first quest, as data. Dialogue is chosen by quest stage; effects are interpreted by the quest system.
 
 export interface Effect {
@@ -1260,6 +1260,57 @@ export const QUESTS: Record<string, QuestDef> = {
             'Rest, captain. Then we chart the rest of the sea.'],
           effect: { give: [{ id: 'coins', qty: 10000 }], xp: [{ skill: 'sailing', amount: 10000 }, { skill: 'attack', amount: 10000 }, { skill: 'strength', amount: 10000 }], stage: 6, flag: 'parley_done' } } } },
       { text: 'Quest complete. The Tides have sat at one table. Vesper Hale has written to you by name. Act III begins: eleven Locks on islands nobody has charted.' },
+    ],
+  },
+  thirdlock: {
+    id: 'thirdlock',
+    main: true,
+    name: 'The Third Lock',
+    island: 'lockhaven',
+    giver: 'orla',
+    reward: 'Ilse\'s Door Key (the Third Lockkey), 12,000 coins, 12,000 Magic, Defence and Crafting XP',
+    stages: [
+      { text: 'Speak with Orla Fane at the Warden\'s Stair on Lockhaven, once A Parley of Tides is done.',
+        talk: { npc: 'orla', node: { needsFlags: ['parley_done'], missing: ['Mind where you knock. Half of these doors still open.'], lines: [
+          'You\'re the one with the thirteenth on a string round your neck. I can hear it from here. Everyone on the island can.',
+          'Hale\'s men came last month. They walked up and down the Field of Doors with their ears on the wood, every door, all night. Then they went away again. They\'ll be back.',
+          'The Third Lock is in the Locksmith\'s Well. Ilse of the Door\'s Lock. And the key\'s on my ring. My mother told me so. She didn\'t tell me which one.',
+          'Four hundred and nine keys. Here. Take the ring. One of the doors in the field is Ilse\'s own, and Ilse\'s key will be warm in it. You\'ve a Listener\'s Key: listen for the door that hums.'],
+          effect: { give: [{ id: 'orla_ring', qty: 1 }], stage: 1 } } } },
+      { text: 'Listen at the doors standing in the Field of Doors (you\'ll need the Listener\'s Key on your keyring). Find the one that hums.',
+        marks: [
+          { id: 'd1', label: 'A door in the field, weathered grey', verb: 'Put your ear to it', region: 'lockhaven', x: LOCK_LAYOUT.doorfield.x - 10, z: LOCK_LAYOUT.doorfield.z + 6, requiresKey: 'listener', missing: ['Just a door. You\'d need to listen properly: the Listener\'s Key.'], say: ['Cold wood, and silence, and a draught from nowhere. Not this one.'] },
+          { id: 'd2', label: 'A door in the field, painted blue once', verb: 'Put your ear to it', region: 'lockhaven', x: LOCK_LAYOUT.doorfield.x + 11, z: LOCK_LAYOUT.doorfield.z - 1, requiresKey: 'listener', missing: ['Just a door. You\'d need to listen properly: the Listener\'s Key.'], say: ['Cold wood, and silence, and a draught from nowhere. Not this one.'] },
+          { id: 'd3', label: 'A door in the field, very small, child-height', verb: 'Put your ear to it', region: 'lockhaven', x: LOCK_LAYOUT.doorfield.x - 8, z: LOCK_LAYOUT.doorfield.z - 9, requiresKey: 'listener', missing: ['Just a door. You\'d need to listen properly: the Listener\'s Key.'],
+            say: ['A child-height door, the kind a Wardwright would cut for an apprentice. Behind it, very faint, someone is humming the skipping rhyme.',
+              'You try the keys on Orla\'s ring one by one, and your fingers know the right one before the lock does. The two-hundred-and-twelfth. Warm as a hand.',
+              'It turns. The door opens onto grass, the same grass as this side. But for a moment the air through it smells of deep water.'],
+            effect: { take: [{ id: 'orla_ring', qty: 1 }], give: [{ id: 'door_lockkey', qty: 1 }], stage: 2 } },
+          { id: 'd4', label: 'A door in the field, iron-bound', verb: 'Put your ear to it', region: 'lockhaven', x: LOCK_LAYOUT.doorfield.x + 3, z: LOCK_LAYOUT.doorfield.z - 12, requiresKey: 'listener', missing: ['Just a door. You\'d need to listen properly: the Listener\'s Key.'], say: ['Cold wood, and silence, and a draught from nowhere. Not this one.'] },
+        ] },
+      { text: 'The Undertow\'s crew have come back for the doors, and they heard that one open. Stop them in the Field of Doors.',
+        kill: { foe: 'undertow_hand', count: 3, spawn: { region: 'lockhaven', x: LOCK_LAYOUT.doorfield.x + 2, z: LOCK_LAYOUT.doorfield.z + 10 } } },
+      { text: 'Turn the plain iron key in the Third Lock, at the Locksmith\'s Well under the Keyward Cliffs.',
+        marks: [{ id: 'well', label: 'The Locksmith\'s Well, a keyhole cut in its lid', verb: 'Turn the key', region: 'lockhaven', x: LOCK_LAYOUT.well.x, z: LOCK_LAYOUT.well.z + 2.4,
+          requires: { id: 'door_lockkey', qty: 1 }, missing: ['The well\'s lid has a keyhole the shape of a plain door key. It\'s on Orla\'s ring somewhere.'],
+          effect: { take: [{ id: 'door_lockkey', qty: 1 }], flag: 'thirdlock_opened', stage: 4, vision: { title: 'The Third Lock', sub: 'What Ilse\'s key remembers', lines: [
+            'The youngest of the thirteen. Nineteen, with ink on her fingers and a door key round her neck she\'s cut herself, the first she ever made.',
+            'She loved doors. Not what was behind them: the doors. That a plank and a hinge could be a promise.',
+            '"I\'ll go into the well," she says. "Somebody has to be the door. It might as well be someone who likes it."',
+            'The lid closes over her. For a thousand years she is a door. On the other side, very close, the Choir knocks, politely, every hour.',
+            'And for the last forty years, between the knocks, a woman\'s voice, kind and very patient, through the wood: "Ilse, dear. It\'s only me. Open up."',
+            'You come back to yourself with your hand on the well\'s lid, and the lid is warm, and something underneath it is climbing.'] } } }] },
+      { text: 'Something the Wardwrights left at the bottom of the well is climbing out to shut it again. Beat the Doorwarden.',
+        kill: { foe: 'doorwarden', count: 1, spawn: { region: 'lockhaven', x: LOCK_LAYOUT.well.x, z: LOCK_LAYOUT.well.z + 8 } } },
+      { text: 'Tell Orla Fane, at the Warden\'s Stair, that the Third Lock is open.',
+        talk: { npc: 'orla', node: { lines: [
+          'I felt it go. Every door on the island swung open at once, and then shut, very gently, like someone letting go of a breath.',
+          'Ilse\'s key went back in the well, did it? Then it\'s yours now, the way the Lockkeys are anyone\'s. Here: the copy my mother cut, for whoever came. It does the same, mostly.',
+          'Captain. Something else. I went to tell my mother\'s grave, after. And I stood there, and I couldn\'t remember her name.',
+          'Fifty-one years I\'ve said it every morning. It\'s gone. The Lock took it. Every Lock takes something, she used to say. I thought she meant from the one who turned it.'],
+          after: ['Don\'t look like that. It\'s written on the stone. I\'ll go and read it every morning instead. Four hundred and ten things to do now. Go on.'],
+          effect: { give: [{ id: 'coins', qty: 12000 }], xp: [{ skill: 'magic', amount: 12000 }, { skill: 'defence', amount: 12000 }, { skill: 'crafting', amount: 12000 }], stage: 6, flag: 'thirdlock_done', key: 'ilse_key' } } } },
+      { text: 'Quest complete. Three Locks open, ten to go. Every Lock takes something; this one took a name.' },
     ],
   },
 };

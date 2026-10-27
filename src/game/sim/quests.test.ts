@@ -831,3 +831,38 @@ describe('A Parley of Tides (Act III begins)', () => {
     expect(said[said.length - 1].some((l) => l.includes('insufferable'))).toBe(true);
   }, 120_000);
 });
+
+describe('The Third Lock (Act IV, Lockhaven)', () => {
+  it('Orla\'s ring, listening at the doors (the Listener\'s Key), the Undertow\'s hands, the well, the Doorwarden, a name lost, Ilse\'s Door Key', () => {
+    const L = regionLayout('lockhaven');
+    const g = new Game({ seed: 7, save: { ...defaultSave(L.respawn, L.mooring!), region: 'lockhaven' } });
+    for (const e of g.enemies) { e.alive = false; e.respawnAt = Infinity; }
+    g.s.flags.parley_done = true;
+    talk(g, 'orla');
+    expect(g.questStage('thirdlock')).toBe(1);
+    expect(count(g.p.inv, 'orla_ring')).toBe(1);
+    // without the Listener's Key the doors are only doors
+    g.s.keyring = g.s.keyring.filter((k) => k !== 'listener');
+    use(g, 'thirdlock', 'd3');
+    expect(g.questStage('thirdlock')).toBe(1);
+    g.s.keyring.push('listener');
+    use(g, 'thirdlock', 'd1');
+    expect(g.questStage('thirdlock')).toBe(1);
+    use(g, 'thirdlock', 'd3');
+    run(g, 5, () => g.questStage('thirdlock') === 2);
+    expect(g.questStage('thirdlock')).toBe(2);
+    expect(count(g.p.inv, 'door_lockkey')).toBe(1);
+    for (let k = 0; k < 3; k++) expect(beat(g, 'undertow_hand', 99, 'cutlass_tide')).toBe(true);
+    expect(g.questStage('thirdlock')).toBe(3);
+    const seen: string[] = [];
+    g.on((e) => { if (e.type === 'read') seen.push(e.title); });
+    use(g, 'thirdlock', 'well');
+    run(g, 20, () => g.questStage('thirdlock') === 4);
+    expect(seen).toContain('The Third Lock');
+    expect(beat(g, 'doorwarden', 99, 'cutlass_tide')).toBe(true);
+    expect(g.questStage('thirdlock')).toBe(5);
+    talk(g, 'orla');
+    expect(g.questStage('thirdlock')).toBe(QUESTS.thirdlock.stages.length - 1);
+    expect(g.s.keyring).toContain('ilse_key');
+  }, 120_000);
+});
