@@ -42,6 +42,8 @@ const TABS: { id: Tab; name: string; key: string }[] = [
   { id: 'map', name: 'Map', key: 'M' },
   { id: 'settings', name: 'Settings', key: 'O' },
 ];
+/** how long the quest tracker card stays open after the step changes or you tap it, before it shrinks to a pill */
+const TRACK_OPEN_MS = 8000;
 /** Equipment grid, four across: head and jewellery on top, the hands in the middle, the rest below. */
 const SLOT_ORDER: Slot[] = ['head', 'neck', 'ammo', 'ring', 'weapon', 'body', 'offhand', 'ring2', 'hands', 'legs', 'feet', 'wrist'];
 const KEY_HINT: Record<string, string> = { any: 'anywhere at all', woodcutting: 'in trees', mining: 'in rock', fishing: 'on the line', melee: 'on foes you cut down', ranged: 'on foes you shoot', magic: 'on foes you spell down', sailing: 'fishing from your ship', explore: 'in places nobody has charted', production: 'at the anvil, the fire or the bench' };
@@ -152,7 +154,8 @@ export class UI {
     // the quest tracker: what the pinned quest wants next; tap it for the journal
     const trackEl = add('track', h('div', { role: 'button', tabindex: '0', 'aria-label': 'Tracked quest. Tap for the journal.' }));
     trackEl.hidden = true; // until the first frame fills it
-    onTap(trackEl, '#track', () => this.selectTab('quests', true));
+    // compact: tap to open it up; open: tap for the journal
+    onTap(trackEl, '#track', () => { if (trackEl.classList.contains('mini')) { this.trackOpenUntil = performance.now() + TRACK_OPEN_MS; this.trackKey = ''; } else this.selectTab('quests', true); });
     const side = add('side', h('div', { class: 'panel' }));
     const tabs = h('div', { id: 'tabs', role: 'tablist' });
     const SHORT: Partial<Record<Tab, string>> = { gear: 'Gear', settings: 'Options' };
@@ -780,7 +783,7 @@ export class UI {
   /** One set of handlers on the tab panel for its whole life (content is patched, never re-bound). */
   private bindContent(c: HTMLElement) {
     const g = this.game;
-    onTap(c, '[data-door], [data-lore], [data-bottle], [data-diary], [data-slot], [data-equip], [data-stance], [data-spell], [data-q], [data-dmg], [data-music], [data-sfx], [data-fps], [data-lv], [data-skill], [data-skillback], [data-gcat], [data-sort], [data-home], [data-mapview], [data-key], [data-devkeys], #saveNow, #resetSave, #calibrate, [data-track], [data-book]', (t, pointer) => {
+    onTap(c, '[data-door], [data-lore], [data-bottle], [data-diary], [data-slot], [data-equip], [data-stance], [data-spell], [data-q], [data-dmg], [data-trk], [data-music], [data-sfx], [data-fps], [data-lv], [data-skill], [data-skillback], [data-gcat], [data-sort], [data-home], [data-mapview], [data-key], [data-devkeys], #saveNow, #resetSave, #calibrate, [data-track], [data-book]', (t, pointer) => {
       if (t.dataset.home) { g.teleportHome(); return; }
       if (t.dataset.lore) { g.readLore(t.dataset.lore); return; }
       if (t.dataset.bottle) { g.bottles.reread(t.dataset.bottle); return; }
@@ -806,6 +809,7 @@ export class UI {
       else if (t.dataset.devkeys) { g.s.settings.devFreeKeys = t.dataset.devkeys === '1'; if (g.s.settings.devFreeKeys && g.s.keyDormant > 0) { g.s.keyDormant = 0; g.recalc(); } this.lastRev = -1; }
       else if (t.dataset.key) { g.slotKey(t.dataset.key); this.lastRev = -1; }
       else if (t.dataset.dmg) { g.s.settings.showDamage = t.dataset.dmg === '1'; this.lastRev = -1; }
+      else if (t.dataset.trk) { g.s.settings.tracker = t.dataset.trk === '1'; this.trackKey = ''; this.lastRev = -1; }
       else if (t.dataset.music) { g.s.settings.music = t.dataset.music === '1'; this.onAudio(); this.lastRev = -1; }
       else if (t.dataset.sfx) { g.s.settings.sfx = t.dataset.sfx === '1'; this.onAudio(); this.lastRev = -1; }
       else if (t.dataset.lv !== undefined && t.closest('.toggle')) { g.s.settings.nodeLevels = t.dataset.lv === '1'; this.lastRev = -1; }
@@ -1059,6 +1063,7 @@ export class UI {
       <div class="toggle"><span>Graphics<br><small class="muted">${s.quality === 'auto' ? 'Lowers detail on its own if your phone struggles' : s.quality === 'max' ? 'Full detail always, even if frames drop' : '30 fps, no shadows: longest battery'}</small></span><span class="seg"><button data-q="auto" class="${s.quality === 'auto' ? 'on' : ''}">Auto</button><button data-q="max" class="${s.quality === 'max' ? 'on' : ''}">Max</button><button data-q="low" class="${s.quality === 'low' ? 'on' : ''}">Saver</button></span></div>
       <div class="toggle"><span>Show frame rate</span><span class="seg"><button data-fps="1" class="${s.showFps ? 'on' : ''}">On</button><button data-fps="0" class="${!s.showFps ? 'on' : ''}">Off</button></span></div>
       <div class="toggle"><span>Developer: free key swaps<small class="muted" style="display:block;font-size:11px">A new key wakes at once instead of after 30 minutes</small></span><span class="seg"><button data-devkeys="1" class="${s.devFreeKeys ? 'on' : ''}">On</button><button data-devkeys="0" class="${!s.devFreeKeys ? 'on' : ''}">Off</button></span></div>
+      <div class="toggle"><span>Quest tracker<br><small class="muted">The card under your health: opens when the step changes, then shrinks</small></span><span class="seg"><button data-trk="1" class="${s.tracker ? 'on' : ''}">On</button><button data-trk="0" class="${!s.tracker ? 'on' : ''}">Off</button></span></div>
       <div class="toggle"><span>Damage numbers</span><span class="seg"><button data-dmg="1" class="${s.showDamage ? 'on' : ''}">On</button><button data-dmg="0" class="${!s.showDamage ? 'on' : ''}">Off</button></span></div>
       <div class="toggle"><span>Level badges on skill spots</span><span class="seg"><button data-lv="1" class="${s.nodeLevels ? 'on' : ''}">On</button><button data-lv="0" class="${!s.nodeLevels ? 'on' : ''}">Off</button></span></div>
       <div class="toggle"><span>Music</span><span class="seg"><button data-music="1" class="${s.music ? 'on' : ''}">On</button><button data-music="0" class="${!s.music ? 'on' : ''}">Off</button></span></div>
@@ -1547,13 +1552,23 @@ export class UI {
     // the warning only on a step that's a fight (the journal always gives the level)
     const stg = id ? QUESTS[id].stages[g.questStage(id)] : null, fight = !!stg && ((!!stg.kill && !stg.kill.sea) || !!stg.at?.arena);
     const rec = id && fight ? g.questCombat(id) : null, low = rec !== null && g.stats.combatLevel < rec - 2;
-    const key = `${id}|${goal?.text}|${away}|${!!g.dead}|${low}`;
+    // Tom: "I like the text at the top but it's in the way being permanently there". The card opens up when the step
+    // changes (or you tap it) and shrinks to a one-line pill after a few seconds; Settings can turn it off
+    const step = `${id}|${goal?.text}`;
+    if (step !== this.trackStep) { this.trackStep = step; this.trackOpenUntil = performance.now() + TRACK_OPEN_MS; }
+    const open = performance.now() < this.trackOpenUntil;
+    const key = `${step}|${away}|${!!g.dead}|${low}|${open}|${g.s.settings.tracker}`;
     if (key === this.trackKey) return;
     this.trackKey = key;
-    el.hidden = !id || !goal || !!g.dead;
+    el.hidden = !id || !goal || !!g.dead || !g.s.settings.tracker;
     if (el.hidden) return;
-    el.innerHTML = `<b>${esc(QUESTS[id!].name)}</b><span>${esc(goal!.text)}</span>${away ? `<small>In ${esc(away)}</small>` : ''}${low ? `<small class="rec low">Combat ${rec} recommended</small>` : ''}`;
+    el.classList.toggle('mini', !open);
+    el.innerHTML = open
+      ? `<b>${esc(QUESTS[id!].name)}</b><span>${esc(goal!.text)}</span>${away ? `<small>In ${esc(away)}</small>` : ''}${low ? `<small class="rec low">Combat ${rec} recommended</small>` : ''}`
+      : `<b>${esc(QUESTS[id!].name)}</b>${low ? '<i class="warn-dot" aria-label="under-levelled"></i>' : ''}`;
   }
+  private trackStep = '';
+  private trackOpenUntil = 0;
 
   /** The tracked quest's goal on a map: a gold ring where it is, or (minimap) a gold arrow at the rim pointing to it. */
   private drawGoal(c: CanvasRenderingContext2D, toPx: (x: number, z: number) => [number, number], W: number, rim: boolean) {

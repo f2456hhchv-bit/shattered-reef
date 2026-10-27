@@ -673,3 +673,10 @@ button.book .why { color: var(--warn, #ffb070); }
 button.book:disabled { opacity: .62; }
 button.book.locked { opacity: .4; }
 button.book .good { color: var(--good, #8fd06a); }
+
+/* the tracker shrunk to a pill: one line, quest name only (tap to open it up) */
+#track.mini { min-height: 32px; padding: 4px 10px; flex-direction: row; align-items: center; gap: 6px; border-radius: 16px; max-width: min(56vw, 240px); }
+#track.mini b { font-size: 11px; }
+#track.mini::before { content: '!'; display: inline-grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; background: var(--quest, #ffd34a); color: #1a120a; font: 700 11px Georgia, serif; flex: none; }
+#track .warn-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warn, #ffb070); flex: none; }
+#track { transition: max-width .25s ease, padding .25s ease; }
