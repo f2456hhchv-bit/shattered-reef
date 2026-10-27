@@ -30,7 +30,7 @@ export interface SaveData {
   flags: Record<string, boolean>;
   discovered: string[];
   nextUid: number;
-  settings: { quality: 'auto' | 'max' | 'low'; showDamage: boolean; music: boolean; sfx: boolean; nodeLevels: boolean; showFps: boolean; devFreeKeys: boolean };
+  settings: { quality: 'auto' | 'max' | 'low'; showDamage: boolean; music: boolean; sfx: boolean; nodeLevels: boolean; showFps: boolean; devFreeKeys: boolean; /** the quest tracker card on the HUD */ tracker: boolean };
   /** keys you've found (permanent), the one slotted in you, and how long it still sleeps after a swap (seconds of play) */
   keyring: string[];
   key: string | null;
@@ -120,7 +120,7 @@ export function defaultSave(spawn: { x: number; z: number }, ship: { x: number; 
     discovered: [],
     bank: [],
     nextUid: 1,
-    settings: { quality: 'auto', showDamage: true, music: true, sfx: true, nodeLevels: true, showFps: false, devFreeKeys: false },
+    settings: { quality: 'auto', showDamage: true, music: true, sfx: true, nodeLevels: true, showFps: false, devFreeKeys: false, tracker: true },
     keyring: [STARTER_KEY],
     key: STARTER_KEY,
     keyDormant: 0,
@@ -266,7 +266,7 @@ export function parseSave(json: string | null, fallback: SaveData): SaveData | n
   d.savedAt = num(raw.savedAt, 0, 0);
   const st = (raw.settings ?? {}) as Record<string, unknown>;
   // the old 'high' was everyone's default before Auto existed, so it becomes Auto; 'max' is a deliberate choice
-  d.settings = { quality: st.quality === 'low' ? 'low' : st.quality === 'max' ? 'max' : 'auto', showDamage: st.showDamage !== false, music: st.music !== false, sfx: st.sfx !== false, nodeLevels: st.nodeLevels !== false, showFps: st.showFps === true, devFreeKeys: st.devFreeKeys === true };
+  d.settings = { quality: st.quality === 'low' ? 'low' : st.quality === 'max' ? 'max' : 'auto', showDamage: st.showDamage !== false, music: st.music !== false, sfx: st.sfx !== false, nodeLevels: st.nodeLevels !== false, showFps: st.showFps === true, devFreeKeys: st.devFreeKeys === true, tracker: st.tracker !== false };
   // keys: only known ids; the starter is always on the ring; a slotted key must be on it
   const ring = Array.isArray(raw.keyring) ? raw.keyring.filter((k): k is string => typeof k === 'string' && !!KEY[k]) : [];
   d.keyring = [...new Set([STARTER_KEY, ...ring])];
