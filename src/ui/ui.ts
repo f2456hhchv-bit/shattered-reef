@@ -761,7 +761,7 @@ export class UI {
   /** One set of handlers on the tab panel for its whole life (content is patched, never re-bound). */
   private bindContent(c: HTMLElement) {
     const g = this.game;
-    onTap(c, '[data-door], [data-lore], [data-bottle], [data-diary], [data-slot], [data-equip], [data-stance], [data-spell], [data-q], [data-dmg], [data-music], [data-sfx], [data-fps], [data-lv], [data-skill], [data-skillback], [data-gcat], [data-sort], [data-home], [data-mapview], [data-key], [data-devkeys], #saveNow, #resetSave', (t, pointer) => {
+    onTap(c, '[data-door], [data-lore], [data-bottle], [data-diary], [data-slot], [data-equip], [data-stance], [data-spell], [data-q], [data-dmg], [data-music], [data-sfx], [data-fps], [data-lv], [data-skill], [data-skillback], [data-gcat], [data-sort], [data-home], [data-mapview], [data-key], [data-devkeys], #saveNow, #resetSave, #calibrate', (t, pointer) => {
       if (t.dataset.home) { g.teleportHome(); return; }
       if (t.dataset.lore) { g.readLore(t.dataset.lore); return; }
       if (t.dataset.bottle) { g.bottles.reread(t.dataset.bottle); return; }
@@ -792,6 +792,7 @@ export class UI {
       else if (t.dataset.lv !== undefined && t.closest('.toggle')) { g.s.settings.nodeLevels = t.dataset.lv === '1'; this.lastRev = -1; }
       else if (t.dataset.skill) { this.skillView = t.dataset.skill as SkillId; this.guideCat = null; this.skillScroll = true; this.lastRev = -1; }
       else if (t.dataset.skillback !== undefined) { this.skillView = null; this.lastRev = -1; }
+      else if (t.id === 'calibrate') this.calibrate();
       else if (t.id === 'saveNow') { this.onSave(); this.log('Voyage saved.', 'good'); this.lastRev = -1; }
       else if (t.id === 'resetSave') this.confirm('Erase your progress and start again?', 'Erase and restart', () => this.onReset());
     });
@@ -1036,6 +1037,7 @@ export class UI {
       <div class="toggle"><span>Level badges on skill spots</span><span class="seg"><button data-lv="1" class="${s.nodeLevels ? 'on' : ''}">On</button><button data-lv="0" class="${!s.nodeLevels ? 'on' : ''}">Off</button></span></div>
       <div class="toggle"><span>Music</span><span class="seg"><button data-music="1" class="${s.music ? 'on' : ''}">On</button><button data-music="0" class="${!s.music ? 'on' : ''}">Off</button></span></div>
       <div class="toggle"><span>Sound effects</span><span class="seg"><button data-sfx="1" class="${s.sfx ? 'on' : ''}">On</button><button data-sfx="0" class="${!s.sfx ? 'on' : ''}">Off</button></span></div>
+      <div class="toggle"><span>Recalibrate touch<br><small class="muted">If taps land away from your finger: tap three marks to line them up (${this.portrait ? 'portrait' : 'landscape'}${this.touchOffset().some((v) => v) ? ', adjusted' : ''})</small></span><button class="btn" id="calibrate">Calibrate</button></div>
       <div class="toggle"><span>Progress saves automatically<br><small class="muted">Last saved ${ago}</small></span><button class="btn" id="saveNow">Save now</button></div>
       <div class="toggle"><span>Start a new voyage<br><small class="muted">Erases this browser's save</small></span><button class="btn" id="resetSave">Reset</button></div>
       <div class="brass-rule"></div><h2 class="title">Controls</h2>
@@ -1434,6 +1436,52 @@ export class UI {
   }
 
   get dialogOpen() { return !!this.dialog; }
+
+  // ------------------------------------------------------------------ touch calibration
+  /** How far this phone's taps land from the finger, per orientation (kept on the device, not in the save). */
+  touchOffset(): [number, number] {
+    try {
+      const v = JSON.parse(localStorage.getItem(`sr.touch.${this.portrait ? 'p' : 'l'}`) ?? 'null');
+      if (Array.isArray(v) && v.length === 2 && v.every((n) => Number.isFinite(n) && Math.abs(n) <= 150)) return [v[0], v[1]];
+    } catch { /* no storage: no offset */ }
+    return [0, 0];
+  }
+
+  /**
+   * Tom: "a button on settings to recalibrate if needed". Re-measures the screen first (as a rotation does), then
+   * asks for taps on three marks; the average miss becomes this orientation's offset, taken off every world tap.
+   */
+  calibrate() {
+    if (window.scrollX || window.scrollY) window.scrollTo(0, 0);
+    this.layout();
+    this.r.resize();
+    document.getElementById('calib')?.remove();
+    const el = h('div', { id: 'calib' });
+    el.innerHTML = '<div class="mark"></div><p>Tap the centre of the mark</p><button class="btn" data-c="cancel">Cancel</button><button class="btn" data-c="clear">Clear calibration</button>';
+    document.body.appendChild(el);
+    const mark = el.querySelector('.mark') as HTMLElement, note = el.querySelector('p')!;
+    const spots = [[0.5, 0.5], [0.3, 0.3], [0.7, 0.72]], miss: [number, number][] = [];
+    const key = `sr.touch.${this.portrait ? 'p' : 'l'}`;
+    const store = (v: [number, number] | null) => { try { if (v) localStorage.setItem(key, JSON.stringify(v)); else localStorage.removeItem(key); } catch { /* private mode: lasts this session only */ } };
+    const place = () => { const [fx, fy] = spots[miss.length]; mark.style.left = `${fx * 100}%`; mark.style.top = `${fy * 100}%`; note.textContent = `Tap the centre of the mark (${miss.length + 1} of ${spots.length})`; };
+    const done = (text: string, kind: 'good' | 'warn') => { el.remove(); this.log(text, kind); this.lastRev = -1; };
+    el.addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+      const b = (e.target as HTMLElement).closest('button');
+      if (b?.dataset.c === 'cancel') { done('Calibration cancelled.', 'warn'); return; }
+      if (b?.dataset.c === 'clear') { store(null); done('Touch calibration cleared.', 'good'); return; }
+      const r = mark.getBoundingClientRect();
+      miss.push([e.clientX - (r.left + r.width / 2), e.clientY - (r.top + r.height / 2)]);
+      if (miss.length < spots.length) { place(); return; }
+      const ox = miss.reduce((a, m) => a + m[0], 0) / miss.length, oy = miss.reduce((a, m) => a + m[1], 0) / miss.length;
+      const spread = Math.max(...miss.map((m) => Math.hypot(m[0] - ox, m[1] - oy)));
+      if (spread > 40) { done('Those taps were too far apart to trust. Try again, aiming at the centre each time.', 'warn'); return; }
+      if (Math.hypot(ox, oy) < 8) { store(null); done('Touch is lined up: no adjustment needed.', 'good'); return; }
+      store([Math.max(-150, Math.min(150, ox)), Math.max(-150, Math.min(150, oy))]);
+      done(`Touch recalibrated (${Math.round(ox)}, ${Math.round(oy)} px).`, 'good');
+    });
+    place();
+  }
 
   confirm(text: string, okLabel: string, ok: () => void) {
     const el = this.win('confirm', 'Are you sure?', `<p>${esc(text)}</p><div class="acts"><button class="btn" data-c="no">Cancel</button><button class="btn primary" data-c="yes">${esc(okLabel)}</button></div>`);
