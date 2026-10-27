@@ -6,6 +6,7 @@ import { DIARIES } from '../game/data/diaries';
 import { LORE, KEEL_PAGES } from '../game/data/lore';
 import { DOORS } from '../game/data/doors';
 import { SHIPYARD, SHIP_PARTS, type ShipPart } from '../game/data/shipyard';
+import { FEATS, FEAT_TIERS } from '../game/data/feats';
 import { TIDES } from '../game/data/tides';
 import { MEAL_TEXT, item, RARITY, AFFIXES, METALS, METAL_TRAITS, AMMO_NAME, ammoKind, isTwoHanded, pairGroup, type ItemDef, type Slot, type SkillId, type WeaponKind } from '../game/data/items';
 import { morph, forget } from './morph';
@@ -974,7 +975,15 @@ export class UI {
       const known = st !== 'poster';
       return `<div class="quest tide"><b>${esc(t.name)}</b> <small class="muted">${esc(t.epithet)}</small>${tag}<p style="margin:4px 0;font-size:12.5px"><b>${t.bounty ? t.bounty.toLocaleString('en-GB') : '—'}</b> · the ${esc(t.ship)}</p><small class="muted">${esc(known && t.dream ? t.dream : t.rumour)}</small></div>`;
     }).join('');
-    return `<h2 class="title">Quests</h2>${qs}<div class="brass-rule"></div><h2 class="title">The Tides</h2>${tides}<div class="brass-rule"></div><h2 class="title">Keel's Log</h2>${lore}<div class="brass-rule"></div><h2 class="title">Island diaries</h2>${diaries}<div class="brass-rule"></div><h2 class="title">Your bounty</h2>${poster}<div class="brass-rule"></div><h2 class="title">Places (${g.s.discovered.length}/${PLACES.length})</h2>${disc}`;
+    // feats: each arena boss's harder ways to win, and what the points have earned
+    const done = new Set(g.s.feats ?? []), pts = g.featPoints();
+    const featRows = [...new Set(FEATS.map((f) => f.boss))].map((boss) => {
+      const list = FEATS.filter((f) => f.boss === boss), kills = g.s.bossKills?.[boss] ?? 0;
+      return `<div class="quest"><b>${esc(ENEMIES[boss]?.name ?? boss)}</b> <small class="muted">beaten ${kills}×</small><ul class="diary">${list.map((f) => `<li class="${done.has(f.id) ? 'done' : ''}">${done.has(f.id) ? '✓' : '○'} <b>${esc(f.name)}</b> (${f.pts}) <small class="muted">${esc(f.text)}</small></li>`).join('')}</ul></div>`;
+    }).join('');
+    const tierRows = FEAT_TIERS.map((t) => `<li class="${pts >= t.pts ? 'done' : ''}">${pts >= t.pts ? '✓' : '○'} <b>${t.pts} points: ${esc(t.name)}</b> <small class="muted">${esc(t.text)}</small></li>`).join('');
+    const feats = `<p class="muted" style="font-size:12px;margin:0 0 6px">${pts} of ${FEATS.reduce((a, f) => a + f.pts, 0)} points. Harder ways to beat the arena bosses; points earn lasting edges.</p><ul class="diary">${tierRows}</ul>${featRows}`;
+    return `<h2 class="title">Quests</h2>${qs}<div class="brass-rule"></div><h2 class="title">The Tides</h2>${tides}<div class="brass-rule"></div><h2 class="title">Feats</h2>${feats}<div class="brass-rule"></div><h2 class="title">Keel's Log</h2>${lore}<div class="brass-rule"></div><h2 class="title">Island diaries</h2>${diaries}<div class="brass-rule"></div><h2 class="title">Your bounty</h2>${poster}<div class="brass-rule"></div><h2 class="title">Places (${g.s.discovered.length}/${PLACES.length})</h2>${disc}`;
   }
 
   private settingsHtml() {
