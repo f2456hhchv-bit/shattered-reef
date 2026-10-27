@@ -1,5 +1,5 @@
 import type { SkillId } from './items';
-import { LAGOON, LAYOUT, SUN_LAYOUT, AMBER_LAYOUT, AMBER, WRACK_LAYOUT, LOCK_LAYOUT, SALT_LAYOUT, coastPoint, saltPoint } from '../world/island';
+import { LAGOON, LAYOUT, SUN_LAYOUT, AMBER_LAYOUT, AMBER, WRACK_LAYOUT, LOCK_LAYOUT, SALT_LAYOUT, LONG_LAYOUT, coastPoint, saltPoint } from '../world/island';
 // NPCs and the first quest, as data. Dialogue is chosen by quest stage; effects are interpreted by the quest system.
 
 export interface Effect {
@@ -15,6 +15,8 @@ export interface Effect {
   vision?: { title: string; sub: string; lines: string[]; react?: React[]; after?: string[] };
   /** someone signs on to your crew */
   crew?: string;
+  /** a moment begins that you answer with the timing tap (data/active.ts MOMENTS) */
+  moment?: 'line';
 }
 
 /** Lines that are only said when the world is a certain way: who you befriended, beat, recruited or lost. */
@@ -1525,6 +1527,55 @@ export const QUESTS: Record<string, QuestDef> = {
           after: ['Rest tonight. Tomorrow we go further out than anybody\'s charted. That\'s where the last Locks are, and that\'s where she\'s going.'],
           effect: { give: [{ id: 'coins', qty: 20000 }], xp: [{ skill: 'sailing', amount: 20000 }], stage: 5, flag: 'undertow_done' } } } },
       { text: 'Quest complete. You\'ve spoken to Vesper Hale, ship to ship, and given her your answer. The rest of the story will remember it.' },
+    ],
+  },
+  theline: {
+    id: 'theline',
+    main: true,
+    name: 'The Line',
+    island: 'longstrand',
+    giver: 'tormod',
+    reward: 'Saoirse\'s Line Key (the Fifth Lockkey), 18,000 coins, 18,000 Fishing, Strength and Hitpoints XP. You no longer hear the sea.',
+    stages: [
+      { text: 'Speak with Tormod Linklater at Weir Landing on Longstrand, once The Undertow is done.',
+        talk: { npc: 'tormod', node: { needsFlags: ['undertow_done'], missing: ['Forty houses on stilts, when I was a boy. Mind your purse round the Finfolk.'], lines: [
+          'Saoirse of the Line. My granny used to say the name like a prayer. The Line House cut every key the fishers ever used, and every one came back.',
+          'The Fifth Lock\'s under the Weir. Its key went into the sea the night the Houses went into their Locks. Saoirse gave it to a fish to keep: the Line-fish, silver as a coin, the Finfolk\'s own pet.',
+          'You\'ll not hook it on a cod line. You need Saoirse\'s own: brass wire, on a whalebone reel. I have it. I\'ve had it forty years. I never dared.',
+          'And the lure must be Finfolk silver, or the fish won\'t look at it. Take some off them. Three of them should carry enough between them. They\'ll not give it kindly.'],
+          effect: { stage: 1 } } } },
+      { text: 'Take Finfolk silver off three Finmen on Longstrand (the haaf at the west tip, or the Netting Grounds).',
+        kill: { foe: 'finfolk', count: 3 } },
+      { text: 'Take the Finfolk silver to Tormod Linklater at Weir Landing.',
+        talk: { npc: 'tormod', node: { lines: [
+          'That\'s Finfolk silver right enough. Every kingdom\'s coin, strung on gut. They\'ll be cross.',
+          'Here. Saoirse\'s line, with the silver for a lure. Cast it at the Netting Grounds, east end, where the Line House hung its nets.',
+          'When it takes, you\'ll know. The whole sea goes quiet. Pull on the gold, five times, and don\'t let go between.'],
+          effect: { give: [{ id: 'saoirse_line', qty: 1 }], stage: 3 } } } },
+      { text: 'Cast Saoirse\'s line at the Netting Grounds, the east end of Longstrand, and land the Line-fish: five pulls, each on the gold.',
+        waitFlags: ['linefish_caught'],
+        marks: [{ id: 'cast', label: 'The Netting Grounds, where the Line House hung its brass nets', verb: 'Cast Saoirse\'s line', region: 'longstrand', x: LONG_LAYOUT.netting.x - 2, z: LONG_LAYOUT.netting.z + 1,
+          requires: { id: 'saoirse_line', qty: 1 }, missing: ['A cod line won\'t do. Tormod has Saoirse\'s.'],
+          say: ['The brass wire goes out further than any line should, and the silver lure flashes once, going down.'],
+          effect: { moment: 'line' } }] },
+      { text: 'Turn the brass key in the Fifth Lock, at the Weir.',
+        marks: [{ id: 'weir', label: 'The Weir, a keyhole in its sluice-gate', verb: 'Turn the key', region: 'longstrand', x: LONG_LAYOUT.weir.x, z: LONG_LAYOUT.weir.z + 3,
+          requires: { id: 'line_lockkey', qty: 1 }, missing: ['The sluice-gate\'s keyhole has a hook-shaped notch. The Line-fish has the key.'],
+          effect: { take: [{ id: 'line_lockkey', qty: 1 }, { id: 'saoirse_line', qty: 1 }], flag: 'line_opened', stage: 5, vision: { title: 'The Fifth Lock', sub: 'What Saoirse\'s key remembers', lines: [
+            'A woman up to her waist in the sea at night, singing to fish. Saoirse of the Line, who cut keys for fishers and listened to the water the way the Hushed listen at keyholes.',
+            'She hears the Choir in the surf. Under every wave, the same song. She has heard it all her life.',
+            '"I can\'t go into a Lock with that in my ears," she says to the silver fish in her hands. "Take the key. And take the sound. I don\'t want to hear the sea where I\'m going."',
+            'The fish takes both. For a thousand years the Fifth Lock is silent, and the sea round Longstrand hums to nobody.',
+            'You come back to yourself at the Weir. The tide\'s running. The waves are breaking on the bar. You can see them. You can\'t hear them. You never will again.'] } } }] },
+      { text: 'Tell Tormod Linklater the Fifth Lock is open.',
+        talk: { npc: 'tormod', node: { lines: [
+          'You\'ve a look on you like a man listening for his name.',
+          'It took the sea, didn\'t it. The sound of it. Saoirse\'s Lock took the surf out of your ears.',
+          'I\'m sorry. Forty years I\'ve lain awake listening to that bar break and cursing it. I\'d not wish it gone. Not off anybody.',
+          'Here. Her key. It\'s quiet as a stone, and it\'ll make you a fisher like no one living. That\'s the trade.'],
+          after: ['Five Locks open, eight to go. Out past the bar, a long way off, a ship with grey sails is sitting very still.'],
+          effect: { give: [{ id: 'coins', qty: 18000 }], xp: [{ skill: 'fishing', amount: 18000 }, { skill: 'strength', amount: 18000 }, { skill: 'hitpoints', amount: 18000 }], stage: 6, flag: 'theline_done', key: 'saoirse_key' } } } },
+      { text: 'Quest complete. Five Locks open, eight to go. This one took the sound of the sea.' },
     ],
   },
 };

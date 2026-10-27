@@ -68,6 +68,10 @@ export const DIARIES: Diary[] = [
       { id: 'places', text: 'Discover every place on Saltglass', done: places('saltglass') },
       { id: 'lore', text: 'Find every page of Keel\'s Log and every Varrow fragment on Saltglass', done: lore('saltglass') },
       { id: 'skills', text: 'Reach level 80 in Fishing and Mining', done: levels(80, 'fishing', 'mining') }] },
+  { island: 'longstrand', name: 'Longstrand Diary', coins: 10000, xp: [{ skill: 'fishing', amount: 20000 }, { skill: 'sailing', amount: 20000 }, { skill: 'cooking', amount: 20000 }],
+    tasks: [q('theline'),
+      { id: 'places', text: 'Discover every place on Longstrand', done: places('longstrand') },
+      { id: 'fish', text: 'Reach level 90 in Fishing and Cooking', done: levels(90, 'fishing', 'cooking') }] },
 ];
 
 export const diaryOf = (island: RegionId) => DIARIES.find((d) => d.island === island);

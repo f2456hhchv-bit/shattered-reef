@@ -142,6 +142,10 @@ export const KEYS: KeyDef[] = [
     passive: { kind: 'ship_speed', v: 8, text: 'The tide runs with you: your ship sails 8% faster' },
     power: { id: 'blink', name: 'Mirror Step', cooldown: 18, text: 'You step into the foe\'s reflection and out of it on the far side' },
     lore: 'The Fourth Lockkey, cut from the glass the star left: Mira of the Tide\'s. Hold it up and you see everything in it but yourself.' },
+  { id: 'saoirse_key', name: 'Saoirse\'s Line Key', family: 'any', rarity: 'quest',
+    passive: { kind: 'fish_success', v: 10, text: 'The sea gives back to you: +10% fishing success' },
+    power: { id: 'hook', name: 'Line Cast', cooldown: 18, text: 'You cast Saoirse\'s line into the foe\'s keyhole and reel it in to you' },
+    lore: 'The Fifth Lockkey: brass, worn smooth, with a fish-hook bent into its bow. It came up in a silver fish\'s gill. Hold it to your ear and there\'s no sound at all.' },
 ];
 
 export const KEY: Record<string, KeyDef> = Object.fromEntries(KEYS.map((k) => [k.id, k]));

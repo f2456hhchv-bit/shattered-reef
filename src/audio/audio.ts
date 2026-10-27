@@ -247,7 +247,8 @@ export class GameAudio {
     if (!this.ctx) return;
     const g = this.game, t = this.ctx.currentTime;
     const cave = g.region.kind === 'cave';
-    const coast = cave ? 0 : g.p.onShip ? 1 : clamp(1 - coastDist(g.p.x, g.p.z) / 28, 0.05, 1);
+    // the Fifth Lock took the sound of the sea (The Line): you never hear the surf again
+    const coast = cave || g.s.flags.line_opened ? 0 : g.p.onShip ? 1 : clamp(1 - coastDist(g.p.x, g.p.z) / 28, 0.05, 1);
     this.waves.gain.setTargetAtTime(coast, t, 1.2);
     this.wind.gain.setTargetAtTime(cave ? 0.18 : g.p.onShip ? 1.4 : 0.7, t, 2);
     this.gullT -= dt;

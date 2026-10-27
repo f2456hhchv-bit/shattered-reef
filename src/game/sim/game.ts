@@ -773,11 +773,12 @@ export class Game {
    */
   cueState(): { t: number; window: [number, number]; red: [number, number]; struck: Struck | null; skill: SkillId | null; live: boolean; label?: string } | null {
     const a = this.action;
-    if (!a || this.dead) return null;
+    if (this.dead) return null;
     if (this.moment) {
       const m = this.moment, def = MOMENTS.defs[m.kind], sk = (Object.entries(MOMENTS.bySkill).find(([, k]) => k === m.kind)?.[0] ?? null) as SkillId | null;
-      return { t: Math.max(0, Math.min(1, (this.time - m.from) / def.secs)), window: def.window, red: def.red, struck: null, skill: sk, live: true, label: def.label };
+      return { t: Math.max(0, Math.min(1, (this.time - m.from) / def.secs)), window: def.window, red: def.red, struck: null, skill: sk ?? 'fishing', live: true, label: def.label };
     }
+    if (!a) return null;
     const skill = a.type === 'gather' ? NODES[this.nodes.find((n) => n.uid === a.node)?.def ?? '']?.skill ?? null : RECIPES.find((r) => r.id === a.recipe)?.skill ?? null;
     if (!skill) return null; // picking and digging have no skill to be good at
     const len = Math.max(0.01, a.next - a.from);
@@ -791,7 +792,7 @@ export class Game {
 
   /** Tap during a swing or craft: in the gold window it's perfect; outside, that cycle's chance is gone. */
   strike(): Struck | null {
-    if (this.moment && this.action) return this.momentTap();
+    if (this.moment) return this.momentTap();
     const c = this.cueState(), a = this.action;
     if (!c || !a || a.struck || !c.live) return null;
     a.struck = c.t >= c.red[0] && c.t <= c.red[1] ? 'red' : c.t >= c.window[0] && c.t <= c.window[1] ? 'perfect' : 'miss';
@@ -826,6 +827,13 @@ export class Game {
   private endMoment(won: boolean) {
     const m = this.moment!, def = MOMENTS.defs[m.kind], n = this.nodes.find((x) => x.uid === m.node), d = n && NODES[n.def];
     this.moment = null;
+    if (m.kind === 'line') {
+      // Saoirse's line (The Line): the Line-fish, with the Fifth Lockkey in its gill
+      this.msg(won ? def.win : def.lose, won ? 'good' : 'warn');
+      if (won) { this.s.flags.linefish_caught = true; this.give('line_lockkey', 1); this.addXp('fishing', 20000); this.emit({ type: 'banner', title: 'The Line-fish', sub: 'Silver as a coin, and a key in its gill' }); }
+      this.rev++;
+      return;
+    }
     if (!won || !d) {
       this.msg(def.lose, 'warn');
       if (m.kind === 'seam') this.p.hp = Math.max(1, this.p.hp - Math.ceil(this.stats.maxHp * 0.04));
@@ -1283,6 +1291,7 @@ export class Game {
     if (e.flag) this.s.flags[e.flag] = true;
     if (e.flag === 'bell_done') this.giveKey('keels_tooth'); // the Broken Ring gives up its key
     if (e.key) this.giveKey(e.key);
+    if (e.moment && !this.moment) this.startMoment(e.moment, '');
     if (e.vision) this.emit({ type: 'read', title: e.vision.title, sub: e.vision.sub, lines: this.reactive(e.vision.lines, e.vision.react, e.vision.after) });
     if (e.crew && CREW_BY[e.crew] && !this.s.crew.includes(e.crew)) {
       this.s.crew.push(e.crew);
@@ -2946,6 +2955,7 @@ export class Game {
         const amt = (this.combatTimer > 6 ? 1 : 0) + (this.rnd() < this.stats.regen * PLAYER_BASE.regenEvery / 10 ? 1 : 0);
         if (amt > 0 && this.p.hp < this.stats.maxHp) this.p.hp = Math.min(this.stats.maxHp, this.p.hp + amt * HP_SCALE);
       }
+      if (this.moment && this.action?.type !== 'gather') this.stepMoment(); // a moment with no swing behind it (Saoirse's line)
       if (this.mendLeft > 0) { const d = Math.min(dt, this.mendLeft); this.mendLeft -= d; this.p.hp = Math.min(this.stats.maxHp, this.p.hp + this.stats.maxHp * 0.03 * d); }
       if (this.s.meal && this.s.meal.left > 0) {
         this.s.meal.left -= dt;
