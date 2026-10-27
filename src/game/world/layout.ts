@@ -227,6 +227,13 @@ function buildIslandRegion(region: IslandId): IslandLayout {
     const bones = { x: HO.x + Math.cos(ga) * 4.6, z: HO.z + Math.sin(ga) * 4.6 };
     world.solids.push({ x: bones.x, z: bones.z, r: 0.7 });
     arenas.push({ boss: 'broodmother', x: HO.x, z: HO.z, r: 7, altar: bones, label: 'Web-wrapped bones', verb: 'Disturb' });
+  } else if (lock) {
+    // the Ring of Thirteen, east of the Field: thirteen Houses' threshold stones round the oldest door on the island
+    const RT = { x: LOCK.x + 30, z: LOCK.z + 8 };
+    ring(RT.x, RT.z, 4, 1300);
+    const knocker = { x: RT.x - 4.6, z: RT.z + 0.4 };
+    world.solids.push({ x: knocker.x, z: knocker.z, r: 0.7 });
+    arenas.push({ boss: 'elder_lockjaw', x: RT.x, z: RT.z, r: 7, altar: knocker, label: 'The oldest door, alone in a ring of stones', verb: 'Knock' });
   } else if (wrack) {
     // Thunder Crag's crown: a ring of storm-cracked stones north of the vent forge; a war horn at the gap (south)
     const TC = { x: WL.crag.x + 2, z: WL.crag.z - 20 };
@@ -438,7 +445,7 @@ function buildIslandRegion(region: IslandId): IslandLayout {
     : sun ? [{ x: SL.temple.x, z: SL.temple.z, r: 11 }, { x: SL.plaza.x, z: SL.plaza.z, r: 12 }, { x: SL.port.x, z: SL.port.z, r: 16 },
       { x: SL.jungle.x - 24, z: SL.jungle.z, r: 12 }, { x: SL.jungle.x - 14, z: SL.jungle.z + 11, r: 5 }] // the Greenheart Fire's grove and camp
     : amb ? [{ x: AL.landing.x, z: AL.landing.z, r: 14 }, { x: AL.camp.x, z: AL.camp.z, r: 9 }, { x: AL.hollow.x, z: AL.hollow.z, r: 11 }, { x: AL.goldhill.x - 22, z: AL.goldhill.z - 4, r: 9 }] // the Amber Seep's ground
-    : lock ? [{ x: KL.landing.x, z: KL.landing.z, r: 14 }, { x: KL.doorfield.x, z: KL.doorfield.z, r: 14 }, { x: KL.well.x, z: KL.well.z, r: 9 }, { x: KL.forges.x, z: KL.forges.z, r: 9 }]
+    : lock ? [{ x: LOCK.x + 30, z: LOCK.z + 8, r: 11 }, { x: KL.landing.x, z: KL.landing.z, r: 14 }, { x: KL.doorfield.x, z: KL.doorfield.z, r: 14 }, { x: KL.well.x, z: KL.well.z, r: 9 }, { x: KL.forges.x, z: KL.forges.z, r: 9 }]
     : [{ x: WL.starfall.x, z: WL.starfall.z, r: 10 }, { x: WL.landing.x, z: WL.landing.z, r: 14 }, { x: WL.crag.x, z: WL.crag.z - 6, r: 7 }, { x: WL.crag.x + 2, z: WL.crag.z - 20, r: 10 }];
   if (bell) {
     const woods = [{ x: F.x, z: F.z, r: 20 }, { x: GV.x, z: GV.z, r: 13 }, { x: HW.x, z: HW.z, r: 20 }, { x: LAYOUT.fen.x, z: LAYOUT.fen.z, r: 16 }];

@@ -62,3 +62,20 @@ describe('passage to Lockhaven', () => {
     expect(to).toBe('lockhaven');
   });
 });
+
+describe('the Elder Lockjaw', () => {
+  it('knock at the oldest door in the Ring of Thirteen; beat it; it scores its feats and nothing else\'s', () => {
+    const L = regionLayout('lockhaven');
+    const g = new Game({ seed: 9, save: { ...defaultSave(L.respawn, L.mooring!), region: 'lockhaven' } });
+    for (const e of g.enemies) { e.alive = false; e.respawnAt = Infinity; }
+    for (const k of ['attack', 'strength', 'defence', 'hitpoints'] as const) g.p.xp[k] = 13_034_431; // 99
+    g.p.equip.weapon = { id: 'cutlass_tide', qty: 1 }; g.recalc(); g.p.hp = g.stats.maxHp;
+    const A = L.arenas.find((a) => a.boss === 'elder_lockjaw')!;
+    const q = g.world.nearestWalkable(A.altar.x, A.altar.z, 3)!; g.p.x = q[0]; g.p.z = q[1];
+    g.interact(`arena:${L.arenas.indexOf(A)}`);
+    for (let t = 0; t < 300 && !g.s.flags.elderjaw_defeated; t += 1 / 30) { if (g.boss && g.boss.state !== 'rise') g.target = g.boss.id; g.p.hp = g.stats.maxHp; g.step(1 / 30); }
+    expect(g.s.flags.elderjaw_defeated).toBe(true);
+    expect(g.s.flags.guardian_defeated).toBeFalsy();
+    expect(g.s.feats).toContain('elder_lockjaw_kill');
+  }, 60_000);
+});
