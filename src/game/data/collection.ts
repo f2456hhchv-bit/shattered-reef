@@ -24,6 +24,8 @@ export function collectionGroups(): CollectionGroup[] {
     out.push({ id: key, name, level: foes.length ? Math.min(...foes.map((e) => e.level)) : 999, boss: foes.some((e) => e.boss), items });
   }
   out.sort((a, b) => Number(b.boss) - Number(a.boss) || a.level - b.level);
+  // made, not dropped: the jewellery you've enchanted (data/spellbook.ts)
+  out.push({ id: 'enchanted', name: 'Enchanted jewellery', level: 999, boss: false, items: Object.keys(ITEMS).filter((id) => id.startsWith('ench_')) });
   return (cached = out);
 }
 export const COLLECTIBLE = (() => { const s = new Set<string>(); for (const g of collectionGroups()) for (const i of g.items) s.add(i); return s; })();

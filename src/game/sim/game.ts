@@ -2349,6 +2349,12 @@ export class Game {
   superheatOptions() {
     return RECIPES.filter((r) => r.station === 'furnace' && r.output.id.startsWith('bar_') && this.level('smithing') >= r.level && r.inputs.every((i) => count(this.p.inv, i.id) >= i.qty));
   }
+  /** Pack slots holding jewellery an Enchant spell can wake (that gem's plain ring, bracelet or amulet). */
+  enchantOptions(id: string): number[] {
+    const gem = BOOK_BY[id]?.gem;
+    if (!gem) return [];
+    return this.p.inv.flatMap((st, i) => (st && ['ring', 'bracelet', 'amulet'].some((k) => st.id === `${k}_${gem}`) ? [i] : []));
+  }
   /** Why a spellbook spell can't be cast now, or null. */
   bookBlock(id: string, arg?: string, ignoreCooldown = false): string | null {
     const b = BOOK_BY[id];
@@ -2370,6 +2376,10 @@ export class Game {
     if (b.kind === 'superheat') {
       const r = arg ? this.superheatOptions().find((x) => x.id === arg) : this.superheatOptions()[0];
       if (!r) return 'No ore in your pack you can smelt';
+    }
+    if (b.kind === 'enchant') {
+      const opts = this.enchantOptions(id);
+      if (!(arg !== undefined ? opts.includes(Number(arg)) : opts.length)) return `No ${b.gem === 'eye' ? 'Leviathan\'s eye' : b.gem} jewellery in your pack`;
     }
     const cost = b.kind === 'teleport' && this.activeKey()?.passive.kind === 'free_teleport' ? [] : b.cost;
     const sh = this.shardBlock(cost);
@@ -2407,6 +2417,15 @@ export class Game {
         this.give(r.output.id, r.output.qty);
         this.addXp('smithing', r.xp);
         this.msg(`The ore runs molten in your hand and sets: ${item(r.output.id).name.toLowerCase()}.`, 'good');
+        break;
+      }
+      case 'enchant': {
+        // the same piece, woken: its rolled stats and rarity stay
+        const i = arg !== undefined ? Number(arg) : this.enchantOptions(id)[0], st = this.p.inv[i]!;
+        const was = item(st.id).name;
+        this.p.inv[i] = { ...st, id: `ench_${st.id}` };
+        this.collect(`ench_${st.id}`);
+        this.msg(`The ${was.toLowerCase()} wakes: ${item(`ench_${st.id}`).name}.`, 'good');
         break;
       }
       case 'teleport': {

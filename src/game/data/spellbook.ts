@@ -5,7 +5,7 @@ import type { ShardCost } from './content';
 // teleport etc."), RuneScape's standard book in the islands' terms. Cast from the Magic tab, any time, with or
 // without a staff: your chosen combat spell is untouched. Costs in shards, like runes.
 
-export type BookKind = 'curse' | 'bind' | 'buff' | 'superheat' | 'teleport';
+export type BookKind = 'curse' | 'bind' | 'buff' | 'superheat' | 'enchant' | 'teleport';
 export interface BookSpell {
   id: string; name: string; level: number; xp: number; cost: ShardCost; kind: BookKind; text: string;
   /** curse: what it lowers on the foe, by how much, for how long */
@@ -16,10 +16,12 @@ export interface BookSpell {
   buff?: { what: 'woodcutting' | 'fishing' | 'mining' | 'cooking'; pct: number; secs: number };
   /** teleport: where to */
   to?: RegionId;
+  /** enchant: the gem whose jewellery it wakes (ring, bracelet or amulet) */
+  gem?: 'pearl' | 'jade' | 'ruby' | 'diamond' | 'eye';
 }
 
 const c = (...pairs: [string, number][]): ShardCost => pairs.map(([id, qty]) => ({ id, qty }));
-const G = 'shard_gale', T = 'charm_tide', S = 'shard_stone', E = 'shard_ember', B = 'shard_bone', R = 'shard_root', C = 'shard_compass';
+const G = 'shard_gale', T = 'charm_tide', S = 'shard_stone', E = 'shard_ember', B = 'shard_bone', R = 'shard_root', C = 'shard_compass', X = 'shard_star';
 
 export const BOOK: BookSpell[] = [
   // curses, on the foe you're fighting (RuneScape's Confuse, Weaken, Curse: water, earth and a body rune)
@@ -36,6 +38,12 @@ export const BOOK: BookSpell[] = [
   { id: 'stone_sense', name: 'Stone Sense', level: 39, xp: 45, kind: 'buff', cost: c([S, 3], [R, 1]), buff: { what: 'mining', pct: 15, secs: 300 }, text: 'You feel where the rock will split: +15% mining success for 5 minutes.' },
   { id: 'superheat', name: 'Superheat', level: 43, xp: 53, kind: 'superheat', cost: c([E, 4], [R, 1]), text: 'Smelt one bar from the ore in your pack, no furnace needed. Smithing XP as if you\'d used one.' },
   { id: 'ember_hand', name: 'Ember Hand', level: 47, xp: 55, kind: 'buff', cost: c([E, 3], [T, 1], [R, 1]), buff: { what: 'cooking', pct: 100, secs: 300 }, text: 'You feel the heat in the food: nothing burns for 5 minutes.' },
+  // enchanting: a gem's jewellery woken with a star shard (RuneScape's Enchant 1-5: a cosmic rune and an element)
+  { id: 'enchant_pearl', name: 'Enchant Pearl', level: 7, xp: 17.5, kind: 'enchant', gem: 'pearl', cost: c([X, 1], [T, 1]), text: 'Wake a sea-pearl ring, bracelet or amulet.' },
+  { id: 'enchant_jade', name: 'Enchant Jade', level: 27, xp: 37, kind: 'enchant', gem: 'jade', cost: c([X, 1], [G, 3]), text: 'Wake a kelp-jade ring, bracelet or amulet.' },
+  { id: 'enchant_ruby', name: 'Enchant Ruby', level: 49, xp: 59, kind: 'enchant', gem: 'ruby', cost: c([X, 1], [E, 5]), text: 'Wake a coral-ruby ring, bracelet or amulet.' },
+  { id: 'enchant_diamond', name: 'Enchant Diamond', level: 57, xp: 67, kind: 'enchant', gem: 'diamond', cost: c([X, 1], [S, 10]), text: 'Wake a storm-diamond ring, bracelet or amulet.' },
+  { id: 'enchant_eye', name: 'Enchant Leviathan\'s Eye', level: 68, xp: 78, kind: 'enchant', gem: 'eye', cost: c([X, 1], [T, 15], [S, 15]), text: 'Wake a ring, bracelet or amulet set with a Leviathan\'s eye.' },
   // teleports: to an island's harbour, once you've been there and the sea's open (RuneScape's law-rune teleports)
   { id: 'tp_bellwether', name: 'Bellwether Teleport', level: 25, xp: 35, kind: 'teleport', cost: c([G, 3], [C, 1]), to: 'bellwether', text: 'To Bellwether quay. (Tide-walk Home.)' },
   { id: 'tp_sunreach', name: 'Sunreach Teleport', level: 31, xp: 41, kind: 'teleport', cost: c([G, 3], [S, 1], [C, 1]), to: 'sunreach', text: 'To Sunreach harbour.' },

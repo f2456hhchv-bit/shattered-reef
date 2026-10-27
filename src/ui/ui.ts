@@ -1141,6 +1141,11 @@ export class UI {
       }
       if (this.bankOpen) acts.unshift('<button class="btn primary" data-a="deposit">Deposit</button>');
       if (!d.quest) acts.push('<button class="btn" data-a="drop">Drop</button>');
+      const slot = this.pop?.slot;
+      if (slot !== undefined) { // enchantable jewellery: the spell that wakes it, if you know it
+        const en = BOOK.find((b) => b.kind === 'enchant' && g.enchantOptions(b.id).includes(slot) && g.level('magic') >= b.level);
+        if (en) { const blk = g.bookBlock(en.id, String(slot), true); acts.push(`<button class="btn" data-a="enchant" data-book-id="${en.id}" ${blk ? `disabled title="${esc(blk)}"` : ''}>Enchant</button>`); }
+      }
       if (!d.quest && st.id !== 'coins') acts.push(`<button class="btn" data-a="junk">${g.isJunk(st.id) ? 'Not junk' : 'Mark junk'}</button>`);
     }
     const req = e && g.equipBlock(st);
@@ -1166,6 +1171,7 @@ export class UI {
       if (a === 'offhand') { g.equip(i, true); this.closePop(); }
       if (a === 'drop') { g.dropSlot(i); this.closePop(); }
       if (a === 'junk') { g.toggleJunk(g.p.inv[i]!.id); this.renderPop(); this.lastRev = -1; }
+      if (a === 'enchant' && b.dataset.bookId) { g.castBook(b.dataset.bookId, String(i)); this.renderPop(); this.lastRev = -1; }
       if (a === 'alch') { g.alchemy(i); if (!g.p.inv[i]) this.closePop(); else this.renderPop(); }
       if (a === 'deposit') { g.deposit(i); this.closePop(); }
       if (a === 'sell1') g.sell(i, false);
@@ -1500,8 +1506,18 @@ export class UI {
       <h3 class="title bk">Combat spell <small class="muted">cast by your staff or wand</small></h3><div class="stances spells">${this.spellButtons()}</div>
       <h3 class="title bk">Curses and binds <small class="muted">on the foe you're fighting</small></h3>${kind(['curse', 'bind']).map((b) => row(b)).join('')}
       <h3 class="title bk">Skilling</h3>${kind(['buff']).map((b) => row(b)).join('')}${superheat}
+      <h3 class="title bk">Enchanting <small class="muted">sea pearl to Leviathan's eye</small></h3>${this.enchantRows(row)}
       <h3 class="title bk">Teleports</h3>${kind(['teleport']).map((b) => row(b)).join('')}
       <p class="muted" style="font-size:12px">Brine Alchemy (Magic ${UTILITY_SPELLS.alchemy.level}) is cast on an item: tap it in your pack.</p>`;
+  }
+
+  /** Each Enchant spell: a button per piece in your pack it can wake, else the spell itself (greyed, saying why). */
+  private enchantRows(row: (b: BookSpell, label?: string, arg?: string) => string): string {
+    const g = this.game;
+    return BOOK.filter((b) => b.kind === 'enchant').map((b) => {
+      const opts = g.level('magic') >= b.level ? g.enchantOptions(b.id) : [];
+      return opts.length ? opts.map((i) => row(b, `${b.name}: ${item(g.p.inv[i]!.id).name}`, String(i))).join('') : row(b);
+    }).join('');
   }
 
   // ------------------------------------------------------------------ pack full

@@ -53,6 +53,7 @@ export function commonTable(lvl: number): { w: number; pick: Pick }[] {
     { w: 3, pick: { item: 'shard_ember', qty: [3, 8 + Math.floor(lvl / 4)] } },
     { w: 4, pick: { item: at(CATALYST_BY_LEVEL, lvl), qty: [1, 3 + Math.floor(lvl / 20)] } },
     { w: 2, pick: { item: 'shard_bone', qty: [1, 3] } },
+    { w: 1, pick: { item: 'shard_star', qty: [1, 2] } },
     ...(lvl >= 20 ? [{ w: 1, pick: { item: 'shard_root', qty: [1, 2] as [number, number] } }, { w: 1, pick: { item: 'shard_compass', qty: [1, 2] as [number, number] } }] : []),
     { w: 15, pick: { item: at(FOOD_BY_LEVEL, lvl), qty: [1, 2] } },
     { w: 10, pick: { item: `shot_${metal}`, qty: [5, 15] } },
