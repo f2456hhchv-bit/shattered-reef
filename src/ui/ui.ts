@@ -655,7 +655,7 @@ export class UI {
     }
     (this.el.ctx as HTMLElement).classList.toggle('cue', !!cue && !cue.struck && cue.t >= cue.window[0] && cue.t <= cue.window[1]);
     if (cue) { // mid-swing the button is the timing tap: say so
-      (this.el.ctx.querySelector('span') as HTMLElement).textContent = 'Tap!';
+      (this.el.ctx.querySelector('span') as HTMLElement).textContent = cue.label ?? 'Tap!';
       const sm = this.el.ctx.querySelector('small') as HTMLElement; sm.textContent = 'on the gold'; sm.classList.remove('no', 'long');
     }
   }

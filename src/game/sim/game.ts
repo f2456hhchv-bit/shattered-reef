@@ -4,7 +4,7 @@ import { AmberSeep } from './amberseep';
 import { TreasureHunt } from './treasure';
 import { Naval } from './naval';
 import { AMMO, NAVAL } from '../data/sea';
-import { ACTIVE, type Struck } from '../data/active';
+import { ACTIVE, MOMENTS, type MomentKind, type Struck } from '../data/active';
 import { mulberry32 } from '../../art/noise';
 import { item, ammoKind, AMMO_NAME, isTwoHanded, offhandBlock, pairGroup, type ItemDef, type Slot, type SkillId, type CombatStyle } from '../data/items';
 import { perkTotal } from '../data/perks';
@@ -180,6 +180,8 @@ export class Game {
   path: [number, number][] = [];
   pending: string | null = null; // interaction to perform on arrival
   action: Action = null;
+  /** a gathering moment in progress (data/active.ts MOMENTS): the swing waits on it */
+  moment: { kind: MomentKind; node: string; from: number; step: number; struck?: Struck } | null = null;
   attackCd = 0;
   specialCd = 0;
   /** seconds until the slotted key's power can be turned again */
@@ -555,6 +557,7 @@ export class Game {
 
   stopAction() {
     this.action = null;
+    this.moment = null;
   }
 
   // ------------------------------------------------------------------ gathering
@@ -598,6 +601,7 @@ export class Game {
     const n = this.nodes.find((x) => x.uid === a.node)!;
     const d = NODES[n.def];
     if (n.depletedUntil > this.time || Math.hypot(n.x - this.p.x, n.z - this.p.z) > this.nodeReach(d) + 0.5) { this.stopAction(); return; }
+    if (this.moment) { this.stepMoment(); a.next = Math.max(a.next, this.time + 0.4); a.from = this.time; return; }
     this.facing = Math.atan2(n.z - this.p.z, n.x - this.p.x);
     if (this.time < a.next) return;
     const tool = this.gatherTool(d);
@@ -650,6 +654,8 @@ export class Game {
           this.give(`gem_${gm.key}_rough`, 1); this.msg(`You find a rough ${gm.name.toLowerCase()} in the rock!`, 'loot');
         }
         this.rollKeyFind(d.fromShip ? 'sailing' : d.skill as KeyFamily, KEY_CONFIG.gatherChance);
+        const mk = MOMENTS.bySkill[d.skill];
+        if (mk && this.rnd() < MOMENTS.chance) this.startMoment(mk, a.node);
       }
     }
     if (d.skill) this.addXp(d.skill, (catchOf?.xp ?? d.xp) * ACTIVE.xpTimes[strike]);
@@ -705,9 +711,13 @@ export class Game {
    * The current swing or craft's timing: how far through the cycle it is, the gold window and its red heart, and
    * whether you've tapped. `live`: a gather swing only counts when it's the one that lands an item.
    */
-  cueState(): { t: number; window: [number, number]; red: [number, number]; struck: Struck | null; skill: SkillId | null; live: boolean } | null {
+  cueState(): { t: number; window: [number, number]; red: [number, number]; struck: Struck | null; skill: SkillId | null; live: boolean; label?: string } | null {
     const a = this.action;
     if (!a || this.dead) return null;
+    if (this.moment) {
+      const m = this.moment, def = MOMENTS.defs[m.kind], sk = (Object.entries(MOMENTS.bySkill).find(([, k]) => k === m.kind)?.[0] ?? null) as SkillId | null;
+      return { t: Math.max(0, Math.min(1, (this.time - m.from) / def.secs)), window: def.window, red: def.red, struck: null, skill: sk, live: true, label: def.label };
+    }
     const skill = a.type === 'gather' ? NODES[this.nodes.find((n) => n.uid === a.node)?.def ?? '']?.skill ?? null : RECIPES.find((r) => r.id === a.recipe)?.skill ?? null;
     if (!skill) return null; // picking and digging have no skill to be good at
     const len = Math.max(0.01, a.next - a.from);
@@ -721,6 +731,7 @@ export class Game {
 
   /** Tap during a swing or craft: in the gold window it's perfect; outside, that cycle's chance is gone. */
   strike(): Struck | null {
+    if (this.moment && this.action) return this.momentTap();
     const c = this.cueState(), a = this.action;
     if (!c || !a || a.struck || !c.live) return null;
     a.struck = c.t >= c.red[0] && c.t <= c.red[1] ? 'red' : c.t >= c.window[0] && c.t <= c.window[1] ? 'perfect' : 'miss';
@@ -728,6 +739,52 @@ export class Game {
     if (a.struck !== 'miss') this.emit({ type: 'cue', perfect: true, text: `${ACTIVE.calls[c.skill!] ?? 'Perfect!'}${x}` });
     else this.emit({ type: 'cue', perfect: false, text: c.t < c.window[0] ? 'Too soon' : 'Too late' });
     return a.struck;
+  }
+
+  // ------------------------------------------------------------------ gathering moments (data/active.ts)
+  startMoment(kind: MomentKind, node: string) {
+    this.moment = { kind, node, from: this.time, step: 0 };
+    this.msg(MOMENTS.defs[kind].start, 'quest');
+    this.emit({ type: 'cue', perfect: true, text: MOMENTS.defs[kind].label });
+  }
+
+  private stepMoment() {
+    const m = this.moment!, def = MOMENTS.defs[m.kind];
+    if (this.time - m.from >= def.secs) this.endMoment(false);
+  }
+
+  private momentTap(): Struck {
+    const m = this.moment!, def = MOMENTS.defs[m.kind], t = (this.time - m.from) / def.secs;
+    const s: Struck = t >= def.red[0] && t <= def.red[1] ? 'red' : t >= def.window[0] && t <= def.window[1] ? 'perfect' : 'miss';
+    if (s === 'miss') { this.emit({ type: 'cue', perfect: false, text: t < def.window[0] ? 'Too soon' : 'Too late' }); this.endMoment(false); return s; }
+    m.struck = s === 'red' || m.struck === 'red' ? 'red' : 'perfect';
+    if (m.step + 1 < def.steps) { m.step++; m.from = this.time; this.emit({ type: 'cue', perfect: true, text: `${def.label} ${m.step + 1}/${def.steps}` }); return s; }
+    this.endMoment(true);
+    return s;
+  }
+
+  private endMoment(won: boolean) {
+    const m = this.moment!, def = MOMENTS.defs[m.kind], n = this.nodes.find((x) => x.uid === m.node), d = n && NODES[n.def];
+    this.moment = null;
+    if (!won || !d) {
+      this.msg(def.lose, 'warn');
+      if (m.kind === 'seam') this.p.hp = Math.max(1, this.p.hp - Math.ceil(this.stats.maxHp * 0.04));
+      return;
+    }
+    const red = m.struck === 'red', got: string[] = [];
+    const add = (id: string, q: number) => { let k = 0; while (k < q && canAdd(this.p.inv, id)) { this.give(id, 1); k++; } if (k) got.push(`${k > 1 ? `${k} × ` : ''}${item(id).name}`); };
+    if (m.kind === 'nest') { add('bird_nest', red ? 2 : 1); this.addXp('woodcutting', d.xp * 3); }
+    else if (m.kind === 'tug') {
+      const c = d.catches ? this.pickCatch(d.catches) : null, fish = c?.item ?? d.item;
+      if (fish) add(fish, red ? 4 : 3);
+      this.addXp('fishing', (c?.xp ?? d.xp) * 5);
+      if (this.rnd() < 0.15) add('casket', 1);
+    } else {
+      add('crystal_geode', 1); if (d.item) add(d.item, red ? 3 : 2); this.addXp('mining', d.xp * 3);
+      if (this.rnd() < (red ? 0.6 : 0.3)) { const gm = GEMS[Math.floor(this.rnd() * GEMS.length)]; add(`gem_${gm.key}_rough`, 1); }
+    }
+    this.msg(`${def.win}${got.length ? ` ${got.join(', ')}.` : ''}`, 'good');
+    this.emit({ type: 'cue', perfect: true, text: red ? 'Perfect!' : 'Got it!' });
   }
 
   // ------------------------------------------------------------------ crafting
