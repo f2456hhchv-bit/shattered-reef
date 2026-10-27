@@ -1210,7 +1210,7 @@ export class UI {
       body = `<p class="muted" style="font-size:12px;margin:0 0 6px">The shipwrights refit your sloop with what you bring them. A refit is for good.</p>${rows}`;
     } else {
       const npc = NPCS[B.npc], f = npc.ferry;
-      body = f ? `<p>${esc(npc.idle[0])}</p>${f.map((r) => `<div class="recipe brow"><div><b>${esc(REGIONS[r.to].name)}</b><div class="need">levels ${REGIONS[r.to].band?.join('–') ?? '?'}</div></div><div class="btns"><button class="btn primary" data-ferry="${B.npc}:${r.to}">Sail (${r.price} coins)</button></div></div>`).join('')}` : '<p class="muted">No passage from here.</p>';
+      body = f ? `<p>${esc(npc.idle[0])}</p>${f.filter((r) => { const gt = REGIONS[r.to].gate; return !gt || g.s.flags[gt.flag]; }).map((r) => `<div class="recipe brow"><div><b>${esc(REGIONS[r.to].name)}</b><div class="need">levels ${REGIONS[r.to].band?.join('–') ?? '?'}</div></div><div class="btns"><button class="btn primary" data-ferry="${B.npc}:${r.to}">Sail (${r.price} coins)</button></div></div>`).join('')}` : '<p class="muted">No passage from here.</p>';
     }
     this.win('boardwin', `${NPCS[B.npc].name}'s board`, tabs + body);
   }

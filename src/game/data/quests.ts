@@ -44,7 +44,7 @@ export interface NpcDef {
   goneWhen?: string;
   /** ...and back again once this flag is set (someone taken, then rescued) */
   backWhen?: string;
-  ferry?: { to: 'bellwether' | 'sunreach' | 'amberhold' | 'wrack'; price: number }[]; // offers passage to other harbours
+  ferry?: { to: 'bellwether' | 'sunreach' | 'amberhold' | 'wrack' | 'lockhaven'; price: number }[]; // offers passage to other harbours
 }
 
 export const NPCS: Record<string, NpcDef> = {
@@ -73,7 +73,7 @@ export const NPCS: Record<string, NpcDef> = {
     idle: ['Sit. Eat. The jungle will still be there, and so will the things in it.'] },
   ines: { id: 'ines', name: 'Ines Carro', title: 'Banker', bank: true,
     idle: ['Ada keeps the books in Bellwether, I keep them here. Same ledger: what you leave with one, you take from the other.'] },
-  mercy: { id: 'mercy', name: 'Mercy Gale', title: 'Harbourmaster of Gallows Landing', ferry: [{ to: 'amberhold', price: 50 }, { to: 'sunreach', price: 90 }, { to: 'bellwether', price: 120 }],
+  mercy: { id: 'mercy', name: 'Mercy Gale', title: 'Harbourmaster of Gallows Landing', ferry: [{ to: 'amberhold', price: 50 }, { to: 'sunreach', price: 90 }, { to: 'bellwether', price: 120 }, { to: 'lockhaven', price: 150 }],
     idle: ['Gallows Landing. Named for what the Wrack does to ships, not for anything we do. Mostly.'] },
   jory: { id: 'jory', name: 'Jory Penhallow', title: 'Harbourmaster of Tollhouse Landing', ferry: [{ to: 'sunreach', price: 40 }, { to: 'wrack', price: 50 }, { to: 'bellwether', price: 70 }],
     idle: ['Tollhouse Landing. Everything that leaves Amberhold pays a toll, gold and amber mostly. You can pay yours in coin.', 'The poachers up on the headland don\'t pay tolls. Nobody\'s been brave enough to ask.'] },
