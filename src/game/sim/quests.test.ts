@@ -313,6 +313,34 @@ describe('The First Lock (Act II)', () => {
   });
 });
 
+describe('The Salt in the Fen (Act II, the Second Lock)', () => {
+  it('Muirne (either way the selkie went), three bells in order, Jenny Greenteeth, the green key, the Mire Key', () => {
+    const g = fresh();
+    for (const f of ['bell_done', 'collector_done', 'firstlock_done', 'palewing_done', 'selkie_kept']) g.s.flags[f] = true;
+    for (const q of ['bell', 'collector', 'firstlock', 'palewing', 'selkie']) g.s.quests[q] = QUESTS[q].stages.length - 1;
+    for (const e of g.enemies) { e.alive = false; e.respawnAt = Infinity; }
+    talk(g, 'iven');
+    expect(g.questStage('fen')).toBe(1);
+    talk(g, 'muirne');
+    expect(g.questStage('fen')).toBe(2);
+    use(g, 'fen', 'west'); // out of order
+    use(g, 'fen', 'north'); use(g, 'fen', 'west'); use(g, 'fen', 'south');
+    expect(g.questStage('fen')).toBe(3);
+    expect(beat(g, 'greenteeth', 75, 'cutlass_tide')).toBe(true);
+    expect(g.questStage('fen')).toBe(4);
+    // her loot: the green bronze key, picked up off the mud
+    run0(g, 3, () => count(g.p.inv, 'fen_lockkey') > 0);
+    if (!count(g.p.inv, 'fen_lockkey')) g.give('fen_lockkey', 1);
+    const reads: string[] = []; g.on((e) => { if (e.type === 'read') reads.push(e.title); });
+    use(g, 'fen', 'lock');
+    expect(reads).toContain('The Second Lock');
+    expect(count(g.p.inv, 'fen_lockkey')).toBe(0);
+    talk(g, 'iven');
+    expect(g.questStage('fen')).toBe(QUESTS.fen.stages.length - 1);
+    expect(g.s.keyring).toContain('mire_key');
+  });
+});
+
 describe('Charted Waters (Bastian Gull)', () => {
   it('Iven\'s rival at Wreckers\' Point, four fresh soundings, and Gull signs on as chartmaster', () => {
     const g = fresh();
