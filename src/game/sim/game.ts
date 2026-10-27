@@ -5,6 +5,7 @@ import { TreasureHunt } from './treasure';
 import { BellTime } from './belltime';
 import { COLLECTIBLE } from '../data/collection';
 import { Bottles } from './bottles';
+import { Regatta } from './regatta';
 import { FEATS, FEAT_BY, FEAT_TIERS } from '../data/feats';
 import { Naval } from './naval';
 import { AMMO, NAVAL } from '../data/sea';
@@ -181,6 +182,7 @@ export class Game {
   treasure: TreasureHunt = new TreasureHunt(this);
   belltime!: BellTime;
   bottles!: Bottles;
+  regatta!: Regatta;
   private listeners: ((e: GameEvent) => void)[] = [];
 
   // player runtime
@@ -249,6 +251,7 @@ export class Game {
   private enterRegion() {
     (this.belltime ??= new BellTime(this)).enterRegion();
     (this.bottles ??= new Bottles(this)).enterRegion();
+    (this.regatta ??= new Regatta(this)).enterRegion();
     this.nodes = this.layout.nodes.map((n) => ({ ...n, depletedUntil: 0, left: this.rollYield(n.def) }));
     // only a few dig spots are disturbed at any time; the rest surface later
     for (const n of this.nodes) if (NODES[n.def].verb === 'Dig' && this.rnd() < 0.75) n.depletedUntil = this.rnd() * NODES[n.def].respawn;
@@ -457,6 +460,7 @@ export class Game {
     }
     out.push(...this.treasure.targets());
     out.push(...this.belltime.targets());
+    out.push(...this.regatta.targets());
     if (onShip) for (const m of this.questMarks()) if (m.mark.fromShip) out.push({ key: `quest:${m.quest}:${m.mark.id}`, kind: 'quest', x: m.mark.x, z: m.mark.z, range: 6, label: m.mark.label, verb: m.mark.verb });
     if (!onShip) {
       for (const n of this.layout.npcs) if (!this.npcGone(n.id)) out.push({ key: `npc:${n.id}`, kind: 'npc', x: n.x, z: n.z, range: 2.2, label: NPCS[n.id].name, verb: NPCS[n.id].shop ? 'Trade' : NPCS[n.id].bank ? 'Bank' : NPCS[n.id].ferry ? 'Travel' : 'Talk' });
@@ -607,7 +611,7 @@ export class Game {
       case 'quest': { const [, q, m] = t.key.split(':'); return this.useMark(q, m); }
       case 'lore': return this.readLore(t.key.slice(5));
       case 'door': return this.openDoor(t.key.slice(5));
-      case 'event': return t.key.startsWith('event:gf:') ? this.fire.use(t.key) : t.key.startsWith('event:seep:') ? this.seep.use(t.key) : t.key.startsWith('event:tm:') ? this.treasure.use(t.key) : t.key.startsWith('event:bt:') ? this.belltime.use(t.key) : this.storm.use(t.key);
+      case 'event': return t.key.startsWith('event:gf:') ? this.fire.use(t.key) : t.key.startsWith('event:seep:') ? this.seep.use(t.key) : t.key.startsWith('event:tm:') ? this.treasure.use(t.key) : t.key.startsWith('event:bt:') ? this.belltime.use(t.key) : t.key.startsWith('event:rg:') ? this.regatta.use(t.key) : this.storm.use(t.key);
     }
   }
 
@@ -1423,7 +1427,7 @@ export class Game {
       if (m > 0.1 || this.hullFits(sh.x, sh.z, sh.heading + turn)) sh.heading += turn;
       else throttle = Math.max(throttle, 0.45);
     }
-    const maxSpeed = 7.5 * (this.activeKey()?.passive.kind === 'ship_speed' ? 1 + this.activeKey()!.passive.v / 100 : 1) * (1 + this.crewV('ship_speed') / 100) * (this.s.flags.toll_pennant ? 1.05 : 1) * (1 + this.shipBonus('sails') / 100); // the Tollhouse pennant; the shipwright's sails
+    const maxSpeed = 7.5 * (this.activeKey()?.passive.kind === 'ship_speed' ? 1 + this.activeKey()!.passive.v / 100 : 1) * (1 + this.crewV('ship_speed') / 100) * (this.s.flags.toll_pennant ? 1.05 : 1) * (1 + this.shipBonus('sails') / 100) * (this.s.flags.gull_pennant ? 1.03 : 1); // the Tollhouse pennant; the shipwright's sails; a Gull Race gold
     const targetSpeed = throttle * maxSpeed;
     this.shipSpeed += (targetSpeed - this.shipSpeed) * Math.min(1, dt * (targetSpeed > this.shipSpeed ? 0.7 : 1.2));
     if (this.shipSpeed > 0.01) {
@@ -2925,6 +2929,7 @@ export class Game {
       this.stepQuestFoes();
       this.storm.step(dt);
       this.belltime.step();
+      this.regatta.step();
       this.fire.step(dt);
       this.seep.step(dt);
       this.stepDiaries();

@@ -44,6 +44,9 @@ export interface SaveData {
   crew: string[];
   /** bells answered at bell-time (data/belltime.ts) */
   bellsRung?: number;
+  /** the Gull Race: best time per course (seconds), and the best medal won (0 gold, 1 silver, 2 bronze) */
+  races?: Record<string, number>;
+  raceMedals?: Record<string, number>;
   /** the collection log: every notable item that has ever landed in your pack (data/collection.ts) */
   collected?: string[];
   /** messages in bottles read (data/bottles.ts) */
