@@ -72,7 +72,7 @@ export interface SeaFoeDef {
   boss?: boolean;
   respawn: number;
   /** how it's drawn when its behaviour doesn't say: a serpent swims like a shark; ships fly their colours */
-  look?: 'serpent' | 'pirate' | 'fireship' | 'ransom' | 'longship';
+  look?: 'serpent' | 'pirate' | 'fireship' | 'ransom' | 'longship' | 'lantern';
 }
 
 export const SEA_FOES: Record<string, SeaFoeDef> = {
@@ -98,6 +98,9 @@ export const SEA_FOES: Record<string, SeaFoeDef> = {
     coins: [50, 110], drops: [{ item: 'fire_barrel', chance: 0.5, qty: [4, 8] }, { item: 'bar_storm', chance: 0.3 }, { item: 'logs_amber', chance: 0.4, qty: [2, 4] }], scale: 1.05, respawn: 80, look: 'longship' },
   lindworm: { id: 'lindworm', name: 'Lindworm', level: 42, hp: 560, counter: 'depth_charge', behaviour: 'shark', speed: 8, damage: 38, aggro: 22, cooldown: 4.0, xp: 200,
     coins: [20, 50], drops: [{ item: 'shark_tooth', chance: 0.7, qty: [1, 3] }, { item: 'casket', chance: 0.1 }, { item: 'fish_shark_raw', chance: 0.3 }], scale: 1.4, respawn: 90, look: 'serpent' },
+  // Sister Corva's black brig (The Lantern Burns Low): no flag, no drum, no shouting; a pale lamp at the bow that never gutters
+  lantern: { id: 'lantern', name: 'The Lantern', level: 70, hp: 1400, counter: 'fire_barrel', behaviour: 'brig', speed: 4.4, damage: 20, aggro: 26, cooldown: 3.4, xp: 900,
+    coins: [400, 700], drops: [{ item: 'casket', chance: 1, qty: [2, 3] }, { item: 'fire_barrel', chance: 1, qty: [8, 14] }, { item: 'charm_tide', chance: 1, qty: [30, 60] }], scale: 1.6, boss: true, respawn: 0, look: 'lantern' },
 };
 
 /** Weather at sea (docs/ISLANDS.md: from the-shattered-reef). Out of harbour, every few minutes a spell of weather

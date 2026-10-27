@@ -80,5 +80,7 @@ export const HUMAN_LOOKS: Record<string, HumanoidLook> = {
   greenteeth: { skin: 0x7a9a5a, coat: 0x3a4a2a, coatTrim: 0x5a6a3a, shirt: 0x4a5a32, trousers: 0x2a3420, boots: 0x7a9a5a, hat: 0x2a3a1a, hair: 0x2a3a1a, hatStyle: 'none', hairStyle: 'bun', beard: false, held: 'none', eyes: 0xe8f070 },
   // the Hushed: undyed grey, hoods down, nothing on them that rattles; their eyes have gone the pale of the song
   hushed: { skin: 0xd8c8b8, coat: 0x6a6a68, coatTrim: 0x8a8a86, shirt: 0x8a8a86, trousers: 0x4a4a48, boots: 0x3a3a38, hat: 0x6a6a68, hair: 0x2a2a2a, hatStyle: 'none', hairStyle: 'short', beard: false, held: 'dagger', eyes: 0xd8e8ff },
+  // Sister Corva: the Hushed's grey under a captain's black coat, brass at the cuffs, hair cropped like a novice's; the song in her eyes
+  corva: { skin: 0xe0cfc0, coat: 0x18181c, coatTrim: 'brass', shirt: 0x8a8a86, trousers: 0x2a2a2c, boots: 0x1a1a1c, hat: 0x18181c, hair: 0x1a1a1a, hatStyle: 'none', hairStyle: 'short', beard: false, held: 'staff', eyes: 0xd8e8ff },
   captain: { skin: DROWNED_SKIN, coat: 0x3a1828, coatTrim: 'brass', shirt: 0x8a9a8a, trousers: 0x22201e, boots: 0x1e2424, hat: 0x141414, hair: 0x3a4a44, hatStyle: 'tricorn', held: 'cutlass', eyes: 0xbfeee4 },
 };

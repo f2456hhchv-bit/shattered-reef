@@ -38,7 +38,6 @@ import { BillboardBatch } from './billboards';
 import { buildPine, buildBroadleaf, buildJungleTree, collapse, buildRock, buildOreRock, buildCrate, buildLanternPost, buildDock, buildPalm, buildGrass, buildBush, buildKelp } from '../art/models/props';
 import { buildBench, buildFurnace, buildAnvil, buildCookfire, buildTent, buildSmithyShed, buildPillar, buildPlinth, buildStrongbox, buildDigSpot, buildGuardian, buildStump, buildRipples, type GuardianRig } from '../art/models/world';
 import { LORE } from '../game/data/lore';
-import { NPCS } from '../game/data/quests';
 import { DOORS } from '../game/data/doors';
 import { buildLootShard, buildItemModel, SHARD_TINT, type LootShard, type ShardKind } from '../art/models/items';
 import { NODES, PLAYER_BASE, SKILLS } from '../game/data/content';
@@ -850,15 +849,21 @@ export class GameRenderer {
           v = { root, gulls };
         } else {
           // the wreckers' red, the pirates' black, a fire ship's tar, the Red Ransom's crimson
-          const colour = f.def.look === 'pirate' ? 0x1e1e22 : f.def.look === 'fireship' ? 0x3a2a1a : f.def.look === 'ransom' ? 0xb01818 : f.def.look === 'longship' ? 0xc9a050 : 0x8a2a24;
+          const colour = f.def.look === 'pirate' || f.def.look === 'lantern' ? 0x1e1e22 : f.def.look === 'fireship' ? 0x3a2a1a : f.def.look === 'ransom' ? 0xb01818 : f.def.look === 'longship' ? 0xc9a050 : 0x8a2a24;
           const cut = buildSloop(colour);
           // pirates fly black canvas, the Red Ransom red, a fire ship's is scorched
-          const sails = f.def.look === 'pirate' ? [0x2a2a2e, 0x1a1a1e] : f.def.look === 'ransom' ? [0xa82020, 0x6a1010] : f.def.look === 'fireship' ? [0x5a4a3a, 0x3a2a1e]
+          const sails = f.def.look === 'pirate' ? [0x2a2a2e, 0x1a1a1e] : f.def.look === 'lantern' ? [0x141418, 0x6a6a68] : f.def.look === 'ransom' ? [0xa82020, 0x6a1010] : f.def.look === 'fireship' ? [0x5a4a3a, 0x3a2a1e]
             : f.def.look === 'longship' ? [0xd8cfb8, 0xa83a2a] : null; // a raider's sail: undyed wool banded red
           if (sails) recolour(cut.root, { sail: sails[0], sailPatch: sails[1] });
           cut.root.scale.setScalar(f.def.scale);
           root.add(cut.root);
           v = { root };
+          if (f.def.look === 'lantern') {
+            // Corva's lamp at the bow: pale as the song, and it never gutters
+            const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.28, 10, 8), new THREE.MeshStandardMaterial({ color: 0xd8e8ff, emissive: 0xbcd8ff, emissiveIntensity: 2.4 }));
+            lamp.position.set(3.9, 1.9, 0); // on the bowsprit, in the hull's own frame
+            cut.root.add(lamp);
+          }
           if (f.def.look === 'fireship') {
             // burning from bow to stern
             const flameMat = new THREE.MeshStandardMaterial({ color: 0xffb04a, emissive: 0xff6a1a, emissiveIntensity: 2.6 });
@@ -1486,7 +1491,7 @@ export class GameRenderer {
     // npcs: look toward the player when close
     for (const n of g.layout.npcs) {
       const rig = this.npcs.get(n.id)!;
-      const gone = NPCS[n.id]?.goneWhen; rig.root.visible = !(gone && g.s.flags[gone]);
+      rig.root.visible = !g.npcGone(n.id);
       const d = Math.hypot(p.x - n.x, p.z - n.z);
       const want = d < 6 && !p.onShip ? Math.atan2(p.z - n.z, p.x - n.x) : n.facing;
       const cur = Math.PI / 2 - rig.root.rotation.y;

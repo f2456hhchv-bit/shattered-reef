@@ -67,6 +67,16 @@ describe('reachability audit', () => {
       };
       const bad: string[] = [];
       const onIsletL = (x: number, z: number) => ISLETS.some((i) => Math.hypot(i.x - x, i.z - z) < i.r);
+      // on an islet: a walkable point within reach that has a path from the islet's own shore
+      const fromShore = (x: number, z: number, reach: number) => {
+        const i = ISLETS.find((v) => Math.hypot(v.x - x, v.z - z) < v.r)!, shore = w.nearestWalkable(i.x, i.z, i.r);
+        if (!shore) return false;
+        for (let k = 0; k < 16; k++) for (const d of [0.6, Math.max(0.6, reach - 0.4)]) {
+          const a = (k / 16) * Math.PI * 2, px = x + Math.cos(a) * d, pz = z + Math.sin(a) * d;
+          if (w.walkable(px, pz) && w.findPath(shore[0], shore[1], px, pz)) return true;
+        }
+        return false;
+      };
       for (const n of L.npcs) if (!ok(n.x, n.z, 2.2)) bad.push(`npc ${n.id}`);
       L.stations.forEach((s) => { if (!ok(s.x, s.z, 2.3)) bad.push(`station ${s.id}`); });
       L.banks.forEach((b, i) => { if (!ok(b.x, b.z, 2.2)) bad.push(`bank ${i}`); });
@@ -77,6 +87,7 @@ describe('reachability audit', () => {
       for (const a of L.arenas) if (!ok(a.altar.x, a.altar.z, 2.2)) bad.push(`arena ${a.boss}`);
       for (const q of Object.values(QUESTS)) for (const st of q.stages) for (const m of st.marks ?? []) {
         if (m.region !== r) continue;
+        if (onIsletL(m.x, m.z)) { if (!fromShore(m.x, m.z, 2.2)) bad.push(`islet quest ${q.id}:${m.id}`); continue; }
         if (m.fromShip) {
           // used from the deck: the ship must get within the 6 m a sea mark allows
           const route = L.mooring && w.findSeaPath(L.mooring.x, L.mooring.z, m.x, m.z), end = route?.[route.length - 1];
@@ -102,7 +113,12 @@ describe('reachability audit', () => {
         }
       }
       // every foe stands somewhere you can walk up and fight it (melee reach ~1.6 m)
-      for (const q of Object.values(QUESTS)) for (const st of q.stages) { const k = st.kill?.spawn; if (k && k.region === r) { const at = w.nearestWalkable(k.x, k.z, 6); if (!at || !ok(at[0], at[1], 1.6)) bad.push(`quest foe ${st.kill!.foe}`);
+      for (const q of Object.values(QUESTS)) for (const st of q.stages) { const k = st.kill?.spawn; if (k && k.region === r && st.kill!.sea) {
+        // a ship to sink: she's put in the water near here, and you must be able to sail to her
+        const at = w.seaClear(k.x, k.z) ? [k.x, k.z] as [number, number] : null, route = at && L.mooring && w.findSeaPath(L.mooring.x, L.mooring.z, at[0], at[1]), end = route?.[route.length - 1];
+        if (!at || !end || Math.hypot(end[0] - at[0], end[1] - at[1]) > 8) bad.push(`quest ship ${st.kill!.foe}`);
+      } else if (k && k.region === r && onIsletL(k.x, k.z)) { const at = w.nearestWalkable(k.x, k.z, 6); if (!at || !fromShore(at[0], at[1], 1.6)) bad.push(`islet quest foe ${st.kill!.foe}`); }
+      else if (k && k.region === r) { const at = w.nearestWalkable(k.x, k.z, 6); if (!at || !ok(at[0], at[1], 1.6)) bad.push(`quest foe ${st.kill!.foe}`);
         // a foe inside the landing's safe circle (16 m: SAFE_RADIUS in game.ts) breaks off and goes home: it can't be fought
         else if (Math.hypot(at[0] - L.respawn.x, at[1] - L.respawn.z) < 18) bad.push(`quest foe ${st.kill!.foe} in the safe harbour`); } }
       for (const sp of L.spawns) if (!onIslet(sp.x, sp.z) && !ok(sp.x, sp.z, 1.6)) bad.push(`foe ${sp.enemy}@${Math.round(sp.x)},${Math.round(sp.z)}`);

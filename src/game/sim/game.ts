@@ -401,7 +401,7 @@ export class Game {
     out.push(...this.treasure.targets());
     if (onShip) for (const m of this.questMarks()) if (m.mark.fromShip) out.push({ key: `quest:${m.quest}:${m.mark.id}`, kind: 'quest', x: m.mark.x, z: m.mark.z, range: 6, label: m.mark.label, verb: m.mark.verb });
     if (!onShip) {
-      for (const n of this.layout.npcs) if (!(NPCS[n.id].goneWhen && this.s.flags[NPCS[n.id].goneWhen!])) out.push({ key: `npc:${n.id}`, kind: 'npc', x: n.x, z: n.z, range: 2.2, label: NPCS[n.id].name, verb: NPCS[n.id].shop ? 'Trade' : NPCS[n.id].bank ? 'Bank' : NPCS[n.id].ferry ? 'Travel' : 'Talk' });
+      for (const n of this.layout.npcs) if (!this.npcGone(n.id)) out.push({ key: `npc:${n.id}`, kind: 'npc', x: n.x, z: n.z, range: 2.2, label: NPCS[n.id].name, verb: NPCS[n.id].shop ? 'Trade' : NPCS[n.id].bank ? 'Bank' : NPCS[n.id].ferry ? 'Travel' : 'Talk' });
       this.layout.stations.forEach((st, i) => out.push({ key: `station:${i}`, kind: 'station', x: st.x, z: st.z, range: 2.3, label: STATION_NAMES[st.id], verb: st.id === 'fire' ? 'Cook' : st.id === 'furnace' || st.id === 'vent' ? 'Smelt' : st.id === 'bench' ? 'Craft' : 'Forge' }));
       this.layout.banks.forEach((b, i) => out.push({ key: `bank:${i}`, kind: 'bank', x: b.x, z: b.z, range: 2.2, label: b.booth ? 'Bank counter' : 'Strongbox', verb: b.booth ? 'Bank' : 'Open' }));
       if (this.shipHere) out.push({ key: 'ship', kind: 'ship', x: this.ship.x, z: this.ship.z, range: 4.2, label: 'Your sloop', verb: 'Board' });
@@ -1080,6 +1080,11 @@ export class Game {
   }
 
   // ------------------------------------------------------------------ npcs + quests
+  /** Someone who isn't where they live right now (recruited, fled, taken). */
+  npcGone(id: string) {
+    const d = NPCS[id];
+    return !!(d?.goneWhen && this.s.flags[d.goneWhen] && !(d.backWhen && this.s.flags[d.backWhen]));
+  }
   questStage(id: string) { return this.s.quests[id] ?? 0; }
 
   private talk(npcId: string) {
@@ -1184,7 +1189,7 @@ export class Game {
   private stepQuestFoes() {
     for (const q of Object.values(QUESTS)) {
       const k = q.stages[this.questStage(q.id)]?.kill;
-      if (!k?.spawn || k.spawn.region !== this.s.region || this.enemies.some((e) => e.def.id === k.foe && e.alive)) continue;
+      if (!k?.spawn || k.sea || k.spawn.region !== this.s.region || this.enemies.some((e) => e.def.id === k.foe && e.alive)) continue;
       const at = this.world.nearestWalkable(k.spawn.x, k.spawn.z, 6);
       if (!at) continue;
       const e = this.spawnEnemy(ENEMIES[k.foe], at[0], at[1], false);

@@ -70,7 +70,7 @@ describe('content data', () => {
     ]));
     // boss/starter/flavour pieces with crafted equivalents, quest rewards, and the skilling bosses' outfits
     const TROPHY = new Set(['lockplate', 'cutlass_rusty', 'cutlass_brigand', 'ring_brass', ...questGifts, 'oilskin_hat', 'oilskin_coat', 'oilskin_legs', 'sea_boots',
-      'warden_hat', 'warden_coat', 'warden_legs', 'warden_boots', 'prospector_hat', 'prospector_coat', 'prospector_legs', 'prospector_boots']);
+      'warden_hat', 'warden_coat', 'warden_legs', 'warden_boots', 'prospector_hat', 'prospector_coat', 'prospector_legs', 'prospector_boots', 'orb_lantern']);
     // signature weapons are drop-only on purpose (the abyssal whip of each style); each must have a source
     const dropOnly = Object.values(ITEMS).filter((d) => d.equip && !d.sig && !made.has(d.id) && !sold.has(d.id) && !TROPHY.has(d.id)).map((d) => d.id);
     expect(dropOnly).toEqual([]);
@@ -152,7 +152,8 @@ describe('content placement', () => {
     const questFoes = new Set(Object.values(QUESTS).flatMap((q) => q.stages.flatMap((st) => (st.kill?.spawn ? [st.kill.foe] : []))));
     expect(Object.values(ENEMIES).filter((e) => !e.boss && !spawned.has(e.id) && !e.id.startsWith('bounty_') && !questFoes.has(e.id)).map((e) => e.id)).toEqual([]);
     const arenas = new Set(all.flatMap((L) => L.arenas.map((a) => a.boss)));
-    expect(Object.values(ENEMIES).filter((e) => e.boss && !arenas.has(e.id)).map((e) => e.id)).toEqual([]);
+    // (a quest's boss waits where its stage puts her, not in an arena)
+    expect(Object.values(ENEMIES).filter((e) => e.boss && !arenas.has(e.id) && !questFoes.has(e.id)).map((e) => e.id)).toEqual([]);
   });
 
   it('places report their danger and what can be gathered there', () => {

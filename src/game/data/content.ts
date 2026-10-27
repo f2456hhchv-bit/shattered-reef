@@ -428,7 +428,7 @@ export const PLAYER_BASE = {
 // ---- enemies -------------------------------------------------------------------
 export type EnemyModel = 'crab' | 'brigand' | 'gunner' | 'guardian' | 'boar' | 'spider' | 'snake' | 'golem' | 'hound' | 'bat' | 'beetle';
 /** Visual variant: crab shell / humanoid outfit / stone tint, chosen by the renderer. */
-export type EnemyLook = 'reef' | 'mire' | 'ironshell' | 'brigand' | 'gunner' | 'smuggler' | 'poacher' | 'drowned' | 'captain' | 'sentinel' | 'cave' | 'giant' | 'jungle' | 'ember' | 'sunscale' | 'hunter' | 'moon' | 'amber' | 'oak' | 'queen' | 'shore' | 'gull' | 'thorn' | 'knocker' | 'leech' | 'howe' | 'troll' | 'seadraugr' | 'wrecker' | 'ant' | 'mantis' | 'douen' | 'centipede' | 'souc' | 'warg' | 'nokk' | 'hornet' | 'bark' | 'mosstroll' | 'draugr' | 'draugrtroll' | 'jotunn' | 'starstruck' | 'hushed' | 'greenteeth' | 'ninefold';
+export type EnemyLook = 'reef' | 'mire' | 'ironshell' | 'brigand' | 'gunner' | 'smuggler' | 'poacher' | 'drowned' | 'captain' | 'sentinel' | 'cave' | 'giant' | 'jungle' | 'ember' | 'sunscale' | 'hunter' | 'moon' | 'amber' | 'oak' | 'queen' | 'shore' | 'gull' | 'thorn' | 'knocker' | 'leech' | 'howe' | 'troll' | 'seadraugr' | 'wrecker' | 'ant' | 'mantis' | 'douen' | 'centipede' | 'souc' | 'warg' | 'nokk' | 'hornet' | 'bark' | 'mosstroll' | 'draugr' | 'draugrtroll' | 'jotunn' | 'starstruck' | 'hushed' | 'greenteeth' | 'ninefold' | 'corva';
 
 export interface EnemyDef {
   id: string;
@@ -546,6 +546,9 @@ export const ENEMIES: Record<string, EnemyDef> = {
   // the Hushed (docs/STORY.md): they listen at keyholes until the song answers; they fight with their hands, quietly
   hushed_listener: { hostile: true, id: 'hushed_listener', name: 'Hushed listener', model: 'brigand', look: 'hushed', level: 58, hp: 72, att: 56, def: 50, defBonus: { melee: 40, ranged: 30, magic: 55 }, weakness: 'ranged', style: 'melee', accBonus: 52, maxHit: 9,
     speed: 3.4, radius: 0.5, aggro: 14, attack: { kind: 'melee', range: 1.8, windup: 0.5, cooldown: 2.1 }, loot: 'hushed', respawn: 0, scale: 1.05 },
+  // Sister Corva (the Tides): she fights the way the Hushed do, without a sound, with the lantern-pole she listens by
+  corva: { hostile: true, id: 'corva', name: 'Sister Corva', model: 'brigand', look: 'corva', boss: true, level: 86, hp: 210, att: 82, def: 70, defBonus: { melee: 60, ranged: 70, magic: 30 }, weakness: 'magic', style: 'melee', accBonus: 80, maxHit: 17,
+    speed: 3.9, radius: 0.5, aggro: 16, attack: { kind: 'melee', range: 2.4, windup: 0.5, cooldown: 2.3 }, loot: 'corva', respawn: 0, scale: 1.25 },
   key_collector: { hostile: true, id: 'key_collector', name: 'The Key Collector', model: 'brigand', look: 'hunter', level: 78, hp: 95, att: 74, def: 64, defBonus: { melee: 55, ranged: 45, magic: 30 }, weakness: 'ranged', style: 'melee', accBonus: 66, maxHit: 13,
     speed: 3.8, radius: 0.5, aggro: 14, attack: { kind: 'melee', range: 1.9, windup: 0.4, cooldown: 2.2 }, loot: 'key_collector', respawn: 0, scale: 1.3 },
   // further out (their islands' slices replace the rest of this list)
@@ -657,6 +660,7 @@ export const LOOT: Record<string, LootTable> = {
   greenteeth: { coins: [0, 0], drops: [{ item: 'fen_lockkey', chance: 1 }, { item: 'sword_kelp', chance: 1, qty: [3, 6] }] },
   hushed: { coins: [40, 120], drops: [{ item: 'charm_tide', chance: 0.8, qty: [10, 25] }, { item: 'crystal_geode', chance: 0.2 }] },
   starstruck: { coins: [0, 0], drops: [{ item: 'ore_sky', chance: 1, qty: [2, 3] }] },
+  corva: { coins: [600, 1200], drops: [{ item: 'orb_lantern', chance: 1 }, { item: 'casket', chance: 1, qty: [2, 3] }] },
   key_collector: { coins: [400, 800], drops: [{ item: 'casket', chance: 1, qty: [2, 3] }, { item: 'crystal_geode', chance: 1, qty: [2, 3] }] },
   barrow_king: { coins: [150, 300], drops: [{ item: 'bar_storm', chance: 1, qty: [2, 4] }, { item: 'crystal_geode', chance: 0.5 }] },
   douen_elder: { coins: [40, 80], drops: [{ item: 'charm_tide', chance: 1, qty: [10, 20] }] },
