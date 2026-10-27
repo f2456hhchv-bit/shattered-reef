@@ -449,6 +449,7 @@ describe('combat skills (RuneScape model)', () => {
     m.setSpell('bolt');
     expect(m.s.combat.spell).toBe('tide_strike');
     m.give('charm_tide', 40); m.give('shard_gale', 40); m.give('shard_whisper', 40);
+    const whisper0 = count(m.p.inv, 'shard_whisper'); // the starter pack has some too
     m.recalc();
     const c2 = m.enemies.find((e) => e.def.id === 'reef_crab' && !e.elite)!;
     goNear(m, c2.x + 5, c2.z);
@@ -456,7 +457,7 @@ describe('combat skills (RuneScape model)', () => {
     run(m, 60, () => !c2.alive);
     expect(c2.alive).toBe(false);
     expect(count(m.p.inv, 'charm_tide')).toBeLessThan(40);
-    expect(count(m.p.inv, 'shard_whisper')).toBeLessThan(40);
+    expect(count(m.p.inv, 'shard_whisper')).toBeLessThan(whisper0);
     expect(m.p.xp.magic).toBeGreaterThan(xpForLevel(9));
     // ...but Brine Spray is free: magic works with no shards at all
     const f = fresh(35);

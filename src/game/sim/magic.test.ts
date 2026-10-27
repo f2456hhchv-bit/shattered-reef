@@ -40,6 +40,7 @@ describe('the spellbook', () => {
 
   it('casting burns the spell\'s shards; short of one, it says which and how many you have', () => {
     const g = fresh();
+    g.p.inv = g.p.inv.map(() => null); // no starter shards: counting from nothing
     g.p.xp.magic = xpForLevel(13); g.p.equip.weapon = { id: 'staff_driftwood', qty: 1 };
     g.setSpell('ember_strike'); g.recalc();
     expect(g.ammoBlock()).toMatch(/needs 3 ember shards \(you have 0\)/i);
@@ -85,5 +86,51 @@ describe('the spellbook', () => {
     const sold = new Set(Object.values(SHOPS).flatMap((sh) => sh.stock.map((x) => x.id)));
     const dropped = new Set([...Object.values(LOOT).flatMap((l) => l.drops.map((d) => d.item)), ...[1, 20, 40, 60, 80].flatMap((l) => commonTable(l).map((x) => x.pick.item))]);
     for (const sh of ALL) { expect(sold.has(sh), `${sh} sold`).toBe(true); expect(dropped.has(sh), `${sh} dropped`).toBe(true); }
+  });
+});
+
+describe('magic review fixes (2026-10-28)', () => {
+  const setup = (weapon: string, spell: string, lvl = 30) => {
+    const g = fresh(11);
+    g.p.inv = g.p.inv.map(() => null);
+    g.p.xp.magic = xpForLevel(lvl); g.p.equip.weapon = { id: weapon, qty: 1 }; g.setSpell(spell); g.recalc();
+    const crab = g.enemies.find((e) => e.def.id === 'reef_crab' && !e.elite)!;
+    for (const o of g.enemies) if (o !== crab) { o.alive = false; o.respawnAt = Infinity; }
+    const q = g.world.nearestWalkable(crab.x + 5, crab.z, 4)!; g.p.x = q[0]; g.p.z = q[1];
+    return { g, crab };
+  };
+  it('out of shards mid-fight, a mage falls back on Brine Spray instead of standing there', () => {
+    const { g, crab } = setup('staff_driftwood', 'ember_strike');
+    const said: string[] = []; g.on((e) => { if (e.type === 'msg') said.push(e.text); });
+    g.interact(`enemy:${crab.id}`);
+    for (let t = 0; t < 60 && crab.alive; t += 1 / 30) g.step(1 / 30);
+    expect(crab.alive).toBe(false);
+    expect(said.some((t) => /Casting Brine Spray/.test(t))).toBe(true);
+  });
+  it('two wands with shards for one cast: one still fires', () => {
+    const { g, crab } = setup('wand_driftwood', 'gale_strike');
+    g.p.equip.offhand = { id: 'wand_driftwood', qty: 1 }; g.recalc();
+    expect(g.stats.dual).toBeTruthy();
+    g.give(SHARD.gale, 1); g.give(SHARD.whisper, 1);
+    g.interact(`enemy:${crab.id}`);
+    for (let t = 0; t < 3; t += 1 / 30) g.step(1 / 30);
+    expect(count(g.p.inv, SHARD.whisper)).toBe(0); // the one cast was paid and cast
+  });
+  it('a new voyage starts with fifty Gale Strikes\' worth of shards', () => {
+    const g = fresh();
+    expect(count(g.p.inv, SHARD.gale)).toBe(50);
+    expect(count(g.p.inv, SHARD.whisper)).toBe(50);
+  });
+  it('Superheat with ore beyond your Smithing says which level it needs', () => {
+    const g = fresh();
+    g.p.xp.magic = xpForLevel(50); g.recalc();
+    g.give(SHARD.ember, 10); g.give('shard_root', 2); g.give('ore_iron', 1); g.give('ore_coal', 2);
+    expect(g.bookBlock('superheat')).toMatch(/Needs Smithing \d+ for/);
+  });
+  it('shards cost what a mage can earn: elements and whisper a coin, the tier shards rising to wrath', async () => {
+    const { ITEMS } = await import('../data/items');
+    expect([SHARD.gale, SHARD.tide, SHARD.stone, SHARD.ember, SHARD.whisper].map((s) => ITEMS[s].value)).toEqual([1, 1, 1, 1, 1]);
+    const tiers = [SHARD.squall, SHARD.grave, SHARD.heart, SHARD.wrath].map((s) => ITEMS[s].value);
+    expect([...tiers].sort((a, b) => a - b)).toEqual(tiers);
   });
 });

@@ -17,7 +17,7 @@ import { perkTotal } from '../data/perks';
 import { KEY, KEYS, KEY_CONFIG, type KeyDef, type KeyFamily } from '../data/keys';
 import { DROP_CONFIG, GEMS, rareTable, commonTable } from '../data/drops';
 import { BOARDS, BOUNTY_CONFIG, CREW_BY, WANTED_FIRST, WANTED_LAST, rankOf, type Contract, type CrewPassive } from '../data/bounties';
-import { HP_SCALE, NODES, RECIPES, ENEMIES, LOOT, ELITE_AFFIXES, SHOPS, PLAYER_BASE, UTILITY_SPELLS, COMBAT_SKILLS, XP_PER_DAMAGE, ELEMENT_WEAK, ELEMENT_BONUS, ELEMENT_NAME, spellById, type ShardCost, type EnemyDef, type Recipe, type Station } from '../data/content';
+import { HP_SCALE, NODES, RECIPES, ENEMIES, LOOT, ELITE_AFFIXES, SHOPS, PLAYER_BASE, UTILITY_SPELLS, COMBAT_SKILLS, XP_PER_DAMAGE, ELEMENT_WEAK, ELEMENT_BONUS, ELEMENT_NAME, spellById, type ShardCost, type Element, type EnemyDef, type Recipe, type Station } from '../data/content';
 import { type React, NPCS, QUESTS, type DialogueNode, type Effect, type QuestMark } from '../data/quests';
 import { DIARIES, diaryDone } from '../data/diaries';
 import { LORE, LORE_BY_ID, KEEL_PAGES } from '../data/lore';
@@ -2136,7 +2136,7 @@ export class Game {
       if (!a || a.qty < n) return `Your ${wname} needs ${AMMO_NAME[need]} in your ammo slot.`;
       if (ammoKind(item(a.id)) !== need) return `Your ${wname} can't fire ${item(a.id).name.toLowerCase()}: it needs ${AMMO_NAME[need]}.`;
     }
-    if (st.style === 'magic' && st.spell) { const b = this.shardBlock(st.spell.cost, n); if (b) return `${st.spell.name} ${b.toLowerCase()}. Brine Spray is free.`; }
+    if (st.style === 'magic' && st.spell) { const b = this.shardBlock(st.spell.cost, n); if (b) return `${st.spell.name} ${b.toLowerCase()}`; }
     return null;
   }
 
@@ -2177,10 +2177,10 @@ export class Game {
   }
 
   /** Accuracy roll against an enemy's defence for the current style; damage 0..max on a hit. */
-  private rollAgainst(e: Enemy, maxHit = this.stats.maxHit, attRoll = this.stats.attRoll): { dmg: number; crit: boolean } {
+  private rollAgainst(e: Enemy, maxHit = this.stats.maxHit, attRoll = this.stats.attRoll, element: Element | null = this.stats.style === 'magic' ? this.stats.spell?.element ?? null : null): { dmg: number; crit: boolean } {
     const st = this.stats;
     // a spell in the foe's weak element lands more often and harder (RuneScape's elemental weakness)
-    if (st.style === 'magic' && st.spell?.element && ELEMENT_WEAK[e.def.id] === st.spell.element) { attRoll = Math.round(attRoll * (1 + ELEMENT_BONUS)); maxHit = Math.round(maxHit * (1 + ELEMENT_BONUS) / HP_SCALE) * HP_SCALE; }
+    if (element && ELEMENT_WEAK[e.def.id] === element) { attRoll = Math.round(attRoll * (1 + ELEMENT_BONUS)); maxHit = Math.round(maxHit * (1 + ELEMENT_BONUS) / HP_SCALE) * HP_SCALE; }
     const defLvl = e.def.def + (e.elite === 'barnacled' ? 10 : 0);
     const defRoll = (defLvl + 9) * (e.def.defBonus[st.style] + 64) * (e.fx.shatter > 0 ? 1 - (KEY.prospector.power.v ?? 40) / 100 : 1) * (e.fx.cursed ? 1 - CURSE_PCT.def / 100 : 1); // Shatter, Curse
     // Mark: the next hits land at their maximum, no roll
@@ -2254,23 +2254,31 @@ export class Game {
       return true;
     }
     // two pistols (or two wands) fire together: the off-hand's shot is weaker and costs its own shot or charms
-    const shots = st.dual ? 2 : 1;
-    const block = this.ammoBlock(shots);
+    let shots = st.dual ? 2 : 1;
+    let block = this.ammoBlock(shots);
+    if (block && shots === 2 && !this.ammoBlock(1)) { shots = 1; block = null; } // enough for one hand: that one still fires
+    if (block && st.style === 'magic' && st.spell?.cost.length) {
+      // out of shards: Brine Spray instead (free), rather than standing there mid-fight
+      const spray = spellById('spray')!;
+      this.warnAmmo(`${block}. Casting Brine Spray`);
+      this.fireAt(t, this.rollAgainst(t, spray.maxHit * HP_SCALE, st.attRoll, null), 'magic', spray.baseXp, 0, 0.2, null);
+      return true;
+    }
     if (block) { this.warnAmmo(block); return false; }
     this.consumeAmmo(shots);
     this.fireAt(t, this.rollAgainst(t), st.style, st.spell?.baseXp ?? 0, st.dual ? -0.05 : 0);
     if (st.sig) this.sigRanged(t);
-    if (st.dual) { this.wear(this.p.equip.offhand, WEAR.weapon); this.fireAt(t, this.rollAgainst(t, st.dual.maxHit, st.dual.attRoll), st.style, 0, 0.05); }
+    if (st.dual && shots === 2) { this.wear(this.p.equip.offhand, WEAR.weapon); this.fireAt(t, this.rollAgainst(t, st.dual.maxHit, st.dual.attRoll), st.style, 0, 0.05); }
     return true;
   }
 
-  private fireAt(t: Enemy, r: { dmg: number; crit: boolean }, style: CombatStyle, spellBase: number, angleOffset = 0, knock = 0.2) {
+  private fireAt(t: Enemy, r: { dmg: number; crit: boolean }, style: CombatStyle, spellBase: number, angleOffset = 0, knock = 0.2, element: Element | null = style === 'magic' ? this.stats.spell?.element ?? null : null) {
     const ang = Math.atan2(t.z - this.p.z, t.x - this.p.x) + angleOffset;
     this.facing = ang;
     const speed = style === 'magic' ? 18 : 30;
     const dist = Math.hypot(t.x - this.p.x, t.z - this.p.z) + 1.5;
     const fletched = this.stats.needsAmmo === 'arrow' || this.stats.needsAmmo === 'bolt';
-    this.projectiles.push({ id: this.nextId++, x: this.p.x, z: this.p.z, vx: Math.cos(ang) * speed, vz: Math.sin(ang) * speed, life: dist / speed, damage: r.dmg, from: 'player', kind: style === 'magic' ? 'magic' : fletched ? 'arrow' : 'shot', crit: r.crit, style, spellBase, knock, element: style === 'magic' ? this.stats.spell?.element : undefined });
+    this.projectiles.push({ id: this.nextId++, x: this.p.x, z: this.p.z, vx: Math.cos(ang) * speed, vz: Math.sin(ang) * speed, life: dist / speed, damage: r.dmg, from: 'player', kind: style === 'magic' ? 'magic' : fletched ? 'arrow' : 'shot', crit: r.crit, style, spellBase, knock, element: element ?? undefined });
     this.emit({ type: 'shoot', x: this.p.x, z: this.p.z, tx: t.x, tz: t.z });
   }
 
@@ -2360,7 +2368,7 @@ export class Game {
     const b = BOOK_BY[id];
     if (!b) return 'No such spell';
     if (this.level('magic') < b.level) return `Needs Magic level ${b.level}`;
-    if (this.dead) return 'Not now';
+    if (this.dead || this.travelling) return 'Not now';
     if (b.kind === 'teleport') {
       if (this.p.onShip) return 'Not from the deck';
       if (!this.visited(b.to!)) return `You've never been to ${REGIONS[b.to!].name}`;
@@ -2375,7 +2383,11 @@ export class Game {
     }
     if (b.kind === 'superheat') {
       const r = arg ? this.superheatOptions().find((x) => x.id === arg) : this.superheatOptions()[0];
-      if (!r) return 'No ore in your pack you can smelt';
+      if (!r) {
+        // ore you carry, but a bar beyond your Smithing: say which level it takes
+        const later = RECIPES.filter((x) => x.station === 'furnace' && x.output.id.startsWith('bar_') && x.inputs.every((i) => count(this.p.inv, i.id) >= i.qty)).sort((a, b) => a.level - b.level)[0];
+        return later ? `Needs Smithing ${later.level} for ${item(later.output.id).name.toLowerCase()}` : 'No ore in your pack you can smelt';
+      }
     }
     if (b.kind === 'enchant') {
       const opts = this.enchantOptions(id);
