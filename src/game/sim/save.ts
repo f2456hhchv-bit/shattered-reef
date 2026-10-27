@@ -100,6 +100,9 @@ export function defaultSave(spawn: { x: number; z: number }, ship: { x: number; 
   inv[2] = { id: 'fishing_rod', qty: 1 };
   inv[3] = { id: 'bread', qty: 3 };
   inv[4] = { id: 'coins', qty: 25 };
+  // RuneScape's tutorial runes: enough for fifty Gale Strikes, so a would-be mage can start (Marta sells a staff)
+  inv[5] = { id: 'shard_gale', qty: 50 };
+  inv[6] = { id: 'shard_whisper', qty: 50 };
   return {
     version: SAVE_VERSION,
     savedAt: 0,
