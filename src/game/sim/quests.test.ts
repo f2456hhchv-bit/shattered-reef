@@ -998,3 +998,34 @@ describe('The Undertow (Act IV)', () => {
     expect(said.flat().some((l) => l.includes(path === 'refuse' ? 'outran the Undertow' : 'You gave it to her'))).toBe(true);
   }, 120_000);
 });
+
+describe('The Line (Act IV, Longstrand)', () => {
+  it('Tormod, Finfolk silver, Saoirse\'s line, the Line-fish in five pulls (a miss lets it go), the Weir, the sea goes silent', () => {
+    const L = regionLayout('longstrand');
+    const g = new Game({ seed: 7, save: { ...defaultSave(L.respawn, L.mooring!), region: 'longstrand' } });
+    for (const e of g.enemies) { e.alive = false; e.respawnAt = Infinity; }
+    g.s.flags.undertow_done = true;
+    talk(g, 'tormod');
+    expect(g.questStage('theline')).toBe(1);
+    for (let k = 0; k < 3; k++) g.questKill('finfolk');
+    expect(g.questStage('theline')).toBe(2);
+    talk(g, 'tormod');
+    expect(count(g.p.inv, 'saoirse_line')).toBe(1);
+    use(g, 'theline', 'cast');
+    expect(g.moment?.kind).toBe('line');
+    expect(g.strike()).toBe('miss'); // too soon: it gets away
+    expect(g.moment).toBeNull();
+    expect(g.questStage('theline')).toBe(3);
+    use(g, 'theline', 'cast');
+    for (let k = 0; k < 5; k++) { while (g.cueState()!.t < 0.62) g.step(1 / 30); expect(g.strike()).not.toBe('miss'); }
+    run(g, 2, () => g.questStage('theline') === 4);
+    expect(g.questStage('theline')).toBe(4);
+    expect(count(g.p.inv, 'line_lockkey')).toBe(1);
+    use(g, 'theline', 'weir');
+    run(g, 20, () => g.questStage('theline') === 5);
+    expect(g.s.flags.line_opened).toBe(true);
+    talk(g, 'tormod');
+    expect(g.questStage('theline')).toBe(QUESTS.theline.stages.length - 1);
+    expect(g.s.keyring).toContain('saoirse_key');
+  }, 120_000);
+});

@@ -29,7 +29,7 @@ export const ACTIVE = {
  * something you have to answer with the timing tap. A nest falls (catch it), something big takes the line (three
  * pulls, each on the gold), a hidden seam cracks open (strike it before it crumbles). Ignore one and you lose
  * only what it offered; answer it and it pays well. */
-export type MomentKind = 'nest' | 'tug' | 'seam';
+export type MomentKind = 'nest' | 'tug' | 'seam' | 'line';
 export interface MomentDef {
   /** seconds for each tap, how many taps in a row, and the gold window and red heart of each */
   secs: number; steps: number; window: [number, number]; red: [number, number];
@@ -44,6 +44,8 @@ export const MOMENTS = {
       start: 'A nest tumbles out of the branches!', win: 'Caught it, eggs and all.', lose: 'The nest hits the ground and the eggs break.' },
     tug: { secs: 1.15, steps: 3, window: [0.55, 0.9], red: [0.68, 0.78], label: 'Pull!',
       start: 'Something big takes the line! Pull on the gold, three times.', win: 'You haul it in, thrashing, over the side.', lose: 'The line goes slack. Whatever it was, it\'s gone.' },
+    line: { secs: 1.0, steps: 5, window: [0.6, 0.88], red: [0.7, 0.78], label: 'Pull!',
+      start: 'Something takes Saoirse\'s line and the whole Netting Grounds goes still. Five pulls, each on the gold.', win: 'The Line-fish comes up silver as a coin, and something in its gill flashes.', lose: 'The line goes slack. It\'s still down there. It\'ll bite again.' },
     seam: { secs: 1.2, steps: 1, window: [0.6, 0.9], red: [0.7, 0.8], label: 'Strike!',
       start: 'The rock cracks along a hidden seam!', win: 'The seam splits open. Something glitters inside.', lose: 'The seam crumbles to grit. Chips sting your hands.' },
   } as Record<MomentKind, MomentDef>,
