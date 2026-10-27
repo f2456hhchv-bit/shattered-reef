@@ -433,9 +433,9 @@ export const PLAYER_BASE = {
 };
 
 // ---- enemies -------------------------------------------------------------------
-export type EnemyModel = 'crab' | 'brigand' | 'gunner' | 'guardian' | 'boar' | 'spider' | 'snake' | 'golem' | 'hound' | 'bat' | 'beetle';
+export type EnemyModel = 'crab' | 'brigand' | 'gunner' | 'guardian' | 'boar' | 'spider' | 'snake' | 'golem' | 'hound' | 'bat' | 'beetle' | 'door';
 /** Visual variant: crab shell / humanoid outfit / stone tint, chosen by the renderer. */
-export type EnemyLook = 'reef' | 'mire' | 'ironshell' | 'brigand' | 'gunner' | 'smuggler' | 'poacher' | 'drowned' | 'captain' | 'sentinel' | 'cave' | 'giant' | 'jungle' | 'ember' | 'sunscale' | 'hunter' | 'moon' | 'amber' | 'oak' | 'queen' | 'shore' | 'gull' | 'thorn' | 'knocker' | 'leech' | 'howe' | 'troll' | 'seadraugr' | 'wrecker' | 'ant' | 'mantis' | 'douen' | 'centipede' | 'souc' | 'warg' | 'nokk' | 'hornet' | 'bark' | 'mosstroll' | 'draugr' | 'draugrtroll' | 'jotunn' | 'starstruck' | 'hushed' | 'greenteeth' | 'ninefold' | 'corva';
+export type EnemyLook = 'reef' | 'mire' | 'ironshell' | 'brigand' | 'gunner' | 'smuggler' | 'poacher' | 'drowned' | 'captain' | 'sentinel' | 'cave' | 'giant' | 'jungle' | 'ember' | 'sunscale' | 'hunter' | 'moon' | 'amber' | 'oak' | 'queen' | 'shore' | 'gull' | 'thorn' | 'knocker' | 'leech' | 'howe' | 'troll' | 'seadraugr' | 'wrecker' | 'ant' | 'mantis' | 'douen' | 'centipede' | 'souc' | 'warg' | 'nokk' | 'hornet' | 'bark' | 'mosstroll' | 'draugr' | 'draugrtroll' | 'jotunn' | 'starstruck' | 'hushed' | 'greenteeth' | 'ninefold' | 'corva' | 'lockjaw' | 'elder';
 
 export interface EnemyDef {
   id: string;
@@ -570,6 +570,9 @@ export const ENEMIES: Record<string, EnemyDef> = {
   // the Doorwarden (The Third Lock): what the Wardwrights set at the bottom of the Locksmith's Well to keep it shut
   doorwarden: { hostile: true, id: 'doorwarden', name: 'The Doorwarden', model: 'golem', look: 'sentinel', boss: true, level: 88, hp: 300, att: 84, def: 80, defBonus: { melee: 75, ranged: 70, magic: 20 }, weakness: 'magic', style: 'melee', accBonus: 80, maxHit: 18,
     speed: 2.2, radius: 1.2, aggro: 16, attack: { kind: 'melee', range: 2.8, windup: 0.75, cooldown: 3.0 }, loot: 'doorwarden', respawn: 0, scale: 1.7 },
+  // the Lockjaw (Lockhaven): a door that has stood too long with nothing behind it. It looks like a door until it doesn't
+  lockjaw: { hostile: true, id: 'lockjaw', name: 'Lockjaw', model: 'door', look: 'lockjaw', level: 68, hp: 80, att: 62, def: 58, defBonus: { melee: 50, ranged: 60, magic: -10 }, weakness: 'magic', style: 'melee', accBonus: 54, maxHit: 11,
+    speed: 2.6, radius: 0.7, aggro: 5, attack: { kind: 'melee', range: 2.0, windup: 0.6, cooldown: 2.8 }, loot: 'lockjaw', respawn: 70, scale: 1.25 },
   key_collector: { hostile: true, id: 'key_collector', name: 'The Key Collector', model: 'brigand', look: 'hunter', level: 78, hp: 95, att: 74, def: 64, defBonus: { melee: 55, ranged: 45, magic: 30 }, weakness: 'ranged', style: 'melee', accBonus: 66, maxHit: 13,
     speed: 3.8, radius: 0.5, aggro: 14, attack: { kind: 'melee', range: 1.9, windup: 0.4, cooldown: 2.2 }, loot: 'key_collector', respawn: 0, scale: 1.3 },
   // further out (their islands' slices replace the rest of this list)
@@ -685,6 +688,8 @@ export const LOOT: Record<string, LootTable> = {
   undertow_hand: { coins: [80, 180], drops: [{ item: 'charm_tide', chance: 0.8, qty: [15, 30] }, { item: 'casket', chance: 0.15 }, { item: 'bar_levi', chance: 0.1 }] },
   lockshell: { coins: [30, 80], drops: [{ item: 'fish_lobster_raw', chance: 0.5, qty: [1, 2] }, { item: 'gem_pearl_rough', chance: 0.12 }, { item: 'ore_levi', chance: 0.1 }] },
   doorwarden: { coins: [1500, 2500], drops: [{ item: 'casket', chance: 1, qty: [3, 4] }, { item: 'bar_ori', chance: 1, qty: [2, 4] }, { item: 'crystal_geode', chance: 1, qty: [3, 5] }] },
+  lockjaw: { coins: [40, 110], drops: [{ item: 'logs_star', chance: 0.25 }, { item: 'bar_levi', chance: 0.08 }, { item: 'casket', chance: 0.05 }, { item: 'crystal_geode', chance: 0.15 }],
+    gear: { chance: 0.07, items: ['shield_tide', 'helm_tide', 'staff_tide'], weights: { common: 45, fine: 40, rare: 13, relic: 2 } } },
   key_collector: { coins: [400, 800], drops: [{ item: 'casket', chance: 1, qty: [2, 3] }, { item: 'crystal_geode', chance: 1, qty: [2, 3] }] },
   barrow_king: { coins: [150, 300], drops: [{ item: 'bar_storm', chance: 1, qty: [2, 4] }, { item: 'crystal_geode', chance: 0.5 }] },
   douen_elder: { coins: [40, 80], drops: [{ item: 'charm_tide', chance: 1, qty: [10, 20] }] },

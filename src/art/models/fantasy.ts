@@ -6,7 +6,7 @@ import { mulberry32 } from '../noise';
 // trolls), hounds, winged things (bats, gulls) and beetles. Four bodies, each with looks; every moving part is its own
 // pivot so bakeRig keeps it animatable. Faces +z. One rig shape for all of them keeps the renderer to a single case.
 
-export type FantasyModel = 'golem' | 'hound' | 'bat' | 'beetle';
+export type FantasyModel = 'golem' | 'hound' | 'bat' | 'beetle' | 'door';
 export interface FantasyRig { model: FantasyModel; root: THREE.Group; body: THREE.Group; a: THREE.Group[]; b: THREE.Group[]; form?: 'mantis'; /** body height at rest (a horse stands taller than a hound) */ baseY?: number }
 
 const glow = (c: number, k = 1) => mat(c, { emissive: c, emissiveIntensity: k });
@@ -394,11 +394,54 @@ function mantis(seed: number): FantasyRig {
   return { model: 'beetle', root, body, a: [arms], b: legs, form: 'mantis' };
 }
 
+// ---- the Lockjaw (Lockhaven): a Wardwright door left standing so long with nothing behind it that it learned to be
+// a mouth. Split across the middle like a stable door, the top half hinges back; teeth where the two halves meet,
+// the keyhole a single glowing eye. It hops on its frame's feet.
+const DOOR_LOOK: Record<string, { wood: number; dark: number; iron: number; eye: number }> = {
+  lockjaw: { wood: 0x6a4a30, dark: 0x3a2818, iron: 0x4a4a4e, eye: 0xe8c060 },
+  elder: { wood: 0x3a3a40, dark: 0x1e1e24, iron: 0xc9a050, eye: 0xbcd8ff },
+};
+function door(look: string): FantasyRig {
+  const L = DOOR_LOOK[look] ?? DOOR_LOOK.lockjaw;
+  const root = new THREE.Group(), body = new THREE.Group();
+  body.position.y = 0.2;
+  root.add(body);
+  const wood = mat(L.wood), dark = mat(L.dark), iron = mat(L.iron);
+  // the bottom half and its frame feet
+  const lower = mesh(new THREE.BoxGeometry(1.0, 0.9, 0.16), wood);
+  lower.position.y = 0.45;
+  const sill = mesh(new THREE.BoxGeometry(1.2, 0.12, 0.3), dark);
+  for (const s of [-1, 1]) { const post = mesh(new THREE.BoxGeometry(0.12, 0.95, 0.24), dark); post.position.set(0.56 * s, 0.47, 0); body.add(post); }
+  const bandL = mesh(new THREE.BoxGeometry(1.02, 0.08, 0.18), iron); bandL.position.y = 0.25;
+  body.add(lower, sill, bandL);
+  // the top half: the jaw, hinged at the back of the split
+  const jaw = new THREE.Group();
+  jaw.position.set(0, 0.92, -0.08);
+  const upper = mesh(new THREE.BoxGeometry(1.0, 0.95, 0.16), wood);
+  upper.position.set(0, 0.47, 0.08);
+  const bandU = mesh(new THREE.BoxGeometry(1.02, 0.08, 0.18), iron); bandU.position.set(0, 0.72, 0.08);
+  const lintel = mesh(new THREE.BoxGeometry(1.2, 0.14, 0.3), dark); lintel.position.set(0, 1.0, 0.08);
+  // the keyhole eye, and a knocker for a nose
+  const eye = mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.04, 10), glow(L.eye, 1.6)); eye.rotation.x = Math.PI / 2; eye.position.set(0.28, 0.5, 0.18);
+  const slot = mesh(new THREE.BoxGeometry(0.05, 0.14, 0.04), glow(L.eye, 1.6)); slot.position.set(0.28, 0.4, 0.18);
+  const knock = mesh(new THREE.TorusGeometry(0.09, 0.022, 6, 14), iron); knock.position.set(0, 0.35, 0.19);
+  jaw.add(upper, bandU, lintel, eye, slot, knock);
+  // teeth along both edges of the split
+  for (let k = 0; k < 7; k++) {
+    const x = -0.42 + k * 0.14;
+    const top = mesh(new THREE.ConeGeometry(0.045, 0.16, 4), mat(0xe8e0c8)); top.rotation.x = Math.PI; top.position.set(x, -0.04, 0.12); jaw.add(top);
+    const bot = mesh(new THREE.ConeGeometry(0.045, 0.14, 4), mat(0xe8e0c8)); bot.position.set(x + 0.07, 0.96, 0.04); body.add(bot);
+  }
+  body.add(jaw);
+  return { model: 'door', root, body, a: [jaw], b: [] };
+}
+
 export function buildFantasy(model: FantasyModel, look = '', seed = 7): FantasyRig {
   switch (model) {
     case 'golem': return golem(look, seed);
     case 'hound': return hound(look, seed);
     case 'bat': return bat(look, seed);
+    case 'door': return door(look);
     default: return beetle(look, seed);
   }
 }
@@ -419,6 +462,14 @@ export function animateFantasy(r: FantasyRig, t: number, moving: boolean, windup
       r.b.forEach((leg, i) => { leg.rotation.x = moving ? Math.sin(t * f + (i === 0 || i === 3 ? 0 : Math.PI)) * 0.7 : 0; });
       r.body.position.y = (r.baseY ?? 0.66) + (moving ? Math.abs(Math.sin(t * f)) * 0.06 : Math.sin(t * 2) * 0.01);
       r.a[0].rotation.x = windup ? -0.4 : moving ? 0.15 : Math.sin(t * 1.4) * 0.08; // jaws up before a bite
+      break;
+    }
+    case 'door': {
+      // hops on its frame; the top half yawns open on the wind-up and slams shut on the bite
+      const hop = moving ? Math.abs(Math.sin(t * 7)) : 0;
+      r.body.position.y = 0.2 + hop * 0.35;
+      r.body.rotation.x = moving ? -0.08 + hop * 0.12 : 0;
+      r.a[0].rotation.x = windup ? -1.15 : moving ? -0.15 - hop * 0.25 : -0.05 - Math.max(0, Math.sin(t * 0.9)) ** 8 * 0.4;
       break;
     }
     case 'bat': {
