@@ -331,9 +331,10 @@ export class GameRenderer {
     this.region3d.add(this.terrain.group);
     this.water = null;
     if (!this.cave) {
-      // the sea runs past the region's edge (the horizon), the shallows read the terrain grid
+      // the sea runs past the region's edge (the horizon), the shallows read the terrain grid (per pixel, so a big
+      // island's sea needn't be finer than a small one's: the mesh only carries the swell)
       const size = world.half * 2 + 120;
-      this.water = createWater(size, Math.round(size / 1.9), (x, z) => (world.inside(x, z) ? -world.ground(x, z) : 6), LOOK, { data: world.heights, side: world.HN + 1, cell: HCELL, half: world.half, ox: world.ox, oz: world.oz }, { x: world.cx, z: world.cz });
+      this.water = createWater(size, Math.min(260, Math.round(size / 1.9)), (x, z) => (world.inside(x, z) ? -world.ground(x, z) : 6), LOOK, { data: world.heights, side: world.HN + 1, cell: HCELL, half: world.half, ox: world.ox, oz: world.oz }, { x: world.cx, z: world.cz });
       this.water.uniforms.uSunDir.value.copy(this.sunDir);
       this.region3d.add(this.water.mesh);
     }
