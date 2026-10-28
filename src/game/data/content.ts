@@ -25,6 +25,7 @@ export const SKILLS: { id: SkillId; name: string; colour: string; group: SkillGr
   { id: 'fletching', name: 'Fletching', colour: '#8aa04a', group: 'Production', blurb: 'Carve bows from logs, fit crossbows, make arrows and bolts at the workbench.' },
   { id: 'cooking', name: 'Cooking', colour: '#d88a4a', group: 'Production', blurb: 'Cook food that heals you in a fight.' },
   { id: 'sailing', name: 'Sailing', colour: '#3a8ab0', group: 'Sea', blurb: 'Captain your sloop: fight at sea with broadsides, salvage wrecks, chart the waters. Higher levels toughen the hull and speed the reload.' },
+  { id: 'shardcraft', name: 'Shardcraft', colour: '#8ab4e8', group: 'Production', blurb: 'Mine glimmerstone and take it to a shrine, where it becomes that shrine\'s shard. Each shard has its own shrine, spread across the islands. At higher levels one stone makes several shards.' },
   { id: 'crafting', name: 'Crafting', colour: '#b0785a', group: 'Production', blurb: 'Tan hides and stitch leather, snakeskin, silk and sunscale armour at the workbench; cast jewellery at the furnace; bind spellbooks.' },
 ];
 export const COMBAT_SKILLS: SkillId[] = ['attack', 'strength', 'defence', 'hitpoints', 'ranged', 'magic'];
@@ -97,13 +98,15 @@ export const NODES: Record<string, NodeDef> = Object.fromEntries(([
   // the Greenheart Fire's bamboo by the fire camp: only there while the fire is (greenfire.ts)
   { id: 'bamboo_fire', name: 'Bamboo stand', skill: 'woodcutting', level: 1, xp: 12, item: 'bamboo', difficulty: 0.3, tier: 0, rate: 0.7, yield: null, respawn: 0, verb: 'Chop' },
   // the Amber Seep's seams inside Goldvein Hill: only there while the hill is open (amberseep.ts)
+  // glimmerstone for Shardcraft: a vein that never runs out, worked with any pickaxe (RuneScape's essence mine)
+  { id: 'rock_glimmer', name: 'Glimmerstone vein', skill: 'mining', level: 1, xp: 5, item: 'glimmerstone', difficulty: 0.3, tier: 0, rate: 0.75, yield: null, respawn: 0, verb: 'Mine' },
   { id: 'amber_seep', name: 'Amber seam', skill: 'mining', level: 1, xp: 14, item: 'raw_amber', difficulty: 0.3, tier: 0, rate: 0.65, yield: null, respawn: 0, verb: 'Mine' },
   // a wreck on the seabed, worked from the deck with a salvage hook (Sailing)
   { id: 'wreck_salvage', name: 'Sunken wreck', skill: 'sailing', level: 3, xp: 28, item: 'coins', loot: 'salvage', tool: 'salvage_hook', difficulty: 0.4, tier: 0, rate: 0.45, yield: [3, 5], respawn: 150, verb: 'Salvage', fromShip: true },
   { id: 'dig_spot', name: 'Disturbed sand', level: 1, xp: 0, item: 'coins', loot: 'treasure', tool: 'spade', difficulty: 0, tier: 0, rate: 0.45, yield: [1, 1], respawn: 420, verb: 'Dig' },
 ] as NodeDef[]).map((d) => [d.id, d]));
 
-export type Station = 'furnace' | 'anvil' | 'fire' | 'bench' | 'vent';
+export type Station = 'furnace' | 'anvil' | 'fire' | 'bench' | 'vent' | `shrine_${ShardKey}`;
 
 export interface Recipe {
   id: string;
@@ -115,7 +118,29 @@ export interface Recipe {
   output: { id: string; qty: number };
   burn?: { item: string; stopLevel: number }; // cooking: chance to burn falls to 0 at stopLevel
   rarityRoll?: boolean; // forged equipment can roll Fine/Rare
+  multi?: number; // shardcraft: one more shard per stone at every multiple of this level
+  pace?: number; // the time each item takes, as a share of the usual
 }
+
+/** which island each shrine stands on (world/layout.ts places them) */
+export const SHRINE_ISLE: Record<ShardKey, string> = {
+  gale: 'Bellwether', whisper: 'Bellwether', tide: 'Bellwether', stone: 'Bellwether', ember: 'Bellwether', bone: 'Bellwether',
+  star: 'Sunreach', squall: 'Amberhold', root: 'Amberhold', compass: 'Stormwrack', grave: 'Stormwrack', heart: 'Lockhaven', wrath: 'Saltglass',
+};
+/** Shardcraft (RuneScape's Runecrafting): glimmerstone, taken to an element's shrine, becomes that element's shard.
+ * Levels and XP follow RuneScape's altars (air 1 ... wrath 95); `multi` is the level step for one more shard per
+ * stone (air 11, mind 14, water 19 ... nature 91). Shrines sit on the island whose level band suits them. */
+export const SHRINES: { key: ShardKey; level: number; xp: number; multi?: number; colour: number; isle: string }[] = ([
+  { key: 'gale', level: 1, xp: 5, multi: 11, colour: 0x9ac8ec }, { key: 'whisper', level: 2, xp: 5.5, multi: 14, colour: 0xd8b8f0 },
+  { key: 'tide', level: 5, xp: 6, multi: 19, colour: 0x59d0c4 }, { key: 'stone', level: 9, xp: 6.5, multi: 26, colour: 0xc8a86a },
+  { key: 'ember', level: 14, xp: 7, multi: 35, colour: 0xff8a3a }, { key: 'bone', level: 20, xp: 7.5, multi: 46, colour: 0xc8b890 },
+  { key: 'star', level: 27, xp: 8, multi: 59, colour: 0x8a9af0 }, { key: 'squall', level: 35, xp: 8.5, multi: 74, colour: 0x7a8af0 },
+  { key: 'root', level: 44, xp: 9, multi: 91, colour: 0x6ad84a }, { key: 'compass', level: 54, xp: 9.5, colour: 0xe8c060 },
+  { key: 'grave', level: 65, xp: 10, colour: 0x9aa0c8 }, { key: 'heart', level: 77, xp: 10.5, colour: 0xe83a4a },
+  { key: 'wrath', level: 95, xp: 12.5, colour: 0xc83ab4 },
+] as const).map((s) => ({ ...s, isle: SHRINE_ISLE[s.key] }));
+/** a shrine's name, from its shard's (the Tide shard's shrine is the Tide shrine) */
+export const shrineName = (k: ShardKey) => `${k[0].toUpperCase()}${k.slice(1)} shrine`;
 
 // Smithing follows RuneScape's shape (bar XP 6.25 bronze ... 50 rune) stretched over ten metals. From Abyssite up
 // each bar needs a flux from another skill: kelp ash (cooking), sea salt (salt pans), geode crystals (mining and
@@ -273,6 +298,9 @@ function buildRecipes(): Recipe[] {
     craft(`bracelet_${g.key}`, 'furnace', Math.min(99, g.cut + 3), g.xp * 0.9, [['bar_gold', 1], [`gem_${g.key}`, 1]], `bracelet_${g.key}`);
     craft(`amulet_${g.key}`, 'furnace', Math.min(99, g.cut + 8), g.xp * 1.1, [['bar_gold', 2], [`gem_${g.key}`, 1]], `amulet_${g.key}`);
   }
+  // ---- Shardcraft: a stone at a time, quickly, at the shard's own shrine
+  for (const sh of SHRINES)
+    out.push({ id: `attune_${sh.key}`, station: `shrine_${sh.key}`, skill: 'shardcraft', level: sh.level, xp: sh.xp, inputs: [{ id: 'glimmerstone', qty: 1 }], output: { id: sh.key === 'tide' ? 'charm_tide' : `shard_${sh.key}`, qty: 1 }, multi: sh.multi, pace: 0.5 });
   return out;
 }
 export const RECIPES: Recipe[] = buildRecipes();
@@ -291,6 +319,7 @@ function buildUnlocks(): Record<SkillId, Unlock[]> {
   const madeCat = (id: string) => {
     const it = ITEMS[id];
     if (id.startsWith('bar_')) return 'Bars';
+    if (id.startsWith('shard_') || id === 'charm_tide') return 'Shards';
     if (it.tool) return 'Tools';
     if (it.heal) return id.startsWith('fish_') ? 'Fish' : 'Dishes';
     if (it.equip?.slot === 'ammo') return 'Ammo';
@@ -302,7 +331,13 @@ function buildUnlocks(): Record<SkillId, Unlock[]> {
   };
   for (const n of Object.values(NODES)) if (n.skill) put(n.skill, n.level, `${n.name}${n.skill === 'woodcutting' && n.id.startsWith('tree_') ? ' trees' : ''}${n.fromShip ? ' (from your ship)' : ''}`, NODE_CAT[n.skill] ?? 'Other', n.catches?.[0].item ?? n.item);
   for (const n of Object.values(NODES)) for (const c of n.catches ?? []) if (c.level > n.level) put('fishing', c.level, `${ITEMS[c.item].name.replace(/^Raw /, '')} at the ${n.name.toLowerCase()}`, 'Fish', c.item);
-  for (const r of RECIPES) put(r.skill, r.level, ITEMS[r.output.id].name, madeCat(r.output.id), r.output.id);
+  for (const r of RECIPES) if (r.skill !== 'shardcraft') put(r.skill, r.level, ITEMS[r.output.id].name, madeCat(r.output.id), r.output.id);
+  put('shardcraft', 1, 'Mine glimmerstone (Mining 1): veins at the Old Quarry, the pithead and by every shrine', 'Shards', 'glimmerstone');
+  for (const sh of SHRINES) {
+    const id = sh.key === 'tide' ? 'charm_tide' : `shard_${sh.key}`, name = ITEMS[id].name;
+    put('shardcraft', sh.level, `${name}s at the ${shrineName(sh.key)} (${sh.isle})`, 'Shards', id);
+    if (sh.multi) for (let l = sh.multi; l <= 99; l += sh.multi) put('shardcraft', l, `${l / sh.multi + 1} ${name.toLowerCase()}s from each stone`, 'Multiples', id);
+  }
   for (const it of Object.values(ITEMS)) {
     if (it.tool && it.tool.level > 1) put(it.tool.skill, it.tool.level, ITEMS[it.id].name, TOOL_CAT[it.tool.skill] ?? 'Tools', it.id);
     if (!it.equip) continue;
@@ -472,6 +507,7 @@ export const SHARD = {
   whisper: 'shard_whisper', squall: 'shard_squall', grave: 'shard_grave', heart: 'shard_heart', wrath: 'shard_wrath',
   root: 'shard_root', compass: 'shard_compass', bone: 'shard_bone', star: 'shard_star',
 } as const;
+export type ShardKey = keyof typeof SHARD;
 export type ShardCost = { id: string; qty: number }[];
 export interface Spell { id: string; name: string; level: number; maxHit: number; baseXp: number; cost: ShardCost; element?: Element; /** taught by a quest: this flag must be set */ quest?: string }
 const EL_NAME: Record<Element, string> = { gale: 'Gale', tide: 'Tide', stone: 'Stone', ember: 'Ember' };

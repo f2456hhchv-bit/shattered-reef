@@ -184,7 +184,8 @@ export class GameAudio {
         break;
       }
       case 'craftFx':
-        if (e.station === 'anvil' || e.station === 'bench') { this.bell(880, 0.6, 0.14); this.tone(220, 0.1, { gain: 0.2 }); }
+        if (e.station.startsWith('shrine_')) { this.bell(1320 + Math.random() * 200, 0.7, 0.08); this.bell(1980, 0.5, 0.05); }
+        else if (e.station === 'anvil' || e.station === 'bench') { this.bell(880, 0.6, 0.14); this.tone(220, 0.1, { gain: 0.2 }); }
         else if (e.station === 'furnace') this.hiss(0.9, { type: 'lowpass', freq: 600, gain: 0.3, attack: 0.2, brown: true });
         else this.hiss(0.8, { type: 'highpass', freq: 3500, gain: 0.12, attack: 0.05 }); // sizzle
         break;

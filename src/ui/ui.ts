@@ -24,7 +24,7 @@ import { PLACES, placeRegion } from '../game/world/places';
 import { REGIONS, type RegionId } from '../game/world/regions';
 import { count, displayName, stackValue, INV_SIZE, type Stack } from '../game/sim/inventory';
 import { levelForXp, levelProgress, xpForLevel, MAX_LEVEL } from '../game/sim/xp';
-import { type Game, type GameEvent, type MsgKind } from '../game/sim/game';
+import { STATION_NAMES, type Game, type GameEvent, type MsgKind } from '../game/sim/game';
 import type { GameRenderer } from '../render/renderer';
 import { itemIcon, rarityColour, TAB_ICONS, SKILL_ICONS, SLOT_ICONS } from './icons';
 import { LEVEL_GAIN } from '../game/data/perks';
@@ -1301,7 +1301,7 @@ export class UI {
 
   private renderStation() {
     const g = this.game, st = this.station!;
-    const title = st === 'furnace' ? 'Furnace: smelt and cast' : st === 'anvil' ? 'Anvil: forge' : st === 'bench' ? 'Workbench' : st === 'vent' ? 'Vent forge' : 'Cookfire: cook';
+    const title = st.startsWith('shrine_') ? `${STATION_NAMES[st]}: attune glimmerstone` : st === 'furnace' ? 'Furnace: smelt and cast' : st === 'anvil' ? 'Anvil: forge' : st === 'bench' ? 'Workbench' : st === 'vent' ? 'Vent forge' : 'Cookfire: cook';
     // a station that serves several skills (the workbench: gunsmithing, fletching, crafting) gets a tab per skill
     const skills = [...new Set(RECIPES.filter((r) => r.station === st).map((r) => r.skill))];
     const pick = skills.includes(this.stationSkill[st] as SkillId) ? this.stationSkill[st]! : skills[0];
@@ -1312,7 +1312,7 @@ export class UI {
       const needs = r.inputs.map((i) => { const have = count(g.p.inv, i.id); return `<span class="${have < i.qty ? 'miss' : ''}">${i.qty}× ${esc(item(i.id).name)} (${have})</span>`; }).join(', ');
       const lvlOk = g.level(r.skill) >= r.level;
       const out = item(r.output.id);
-      return `<div class="recipe"><img src="${itemIcon(r.output.id)}" alt=""><div><b>${esc(out.name)}</b><div class="need">${needs}<br><span class="${lvlOk ? '' : 'miss'}">${cap(r.skill)} ${r.level}</span> · ${r.xp} XP${r.rarityRoll ? ' · can roll Fine or Rare' : ''}${r.burn ? ' · may burn' : ''}</div>${block ? `<div class="need miss">${esc(block)}</div>` : ''}</div>
+      return `<div class="recipe"><img src="${itemIcon(r.output.id)}" alt=""><div><b>${esc(out.name)}</b><div class="need">${needs}<br><span class="${lvlOk ? '' : 'miss'}">${cap(r.skill)} ${r.level}</span> · ${r.xp} XP${r.multi ? ` · ${1 + Math.floor(g.level(r.skill) / r.multi)} per stone` : ''}${r.rarityRoll ? ' · can roll Fine or Rare' : ''}${r.burn ? ' · may burn' : ''}</div>${block ? `<div class="need miss">${esc(block)}</div>` : ''}</div>
         <div class="btns"><button class="btn primary" data-r="${r.id}" data-n="1" ${block ? 'disabled' : ''}>Make 1</button><button class="btn" data-r="${r.id}" data-n="${Math.max(1, max)}" ${block || max < 2 ? 'disabled' : ''}>All (${Math.max(0, max)})</button></div></div>`;
     }).join('');
     const busy = g.action?.type === 'craft' ? `<p class="muted">Working... (${g.action.remaining} left)</p>` : '';

@@ -53,6 +53,8 @@ export const PERKS: Record<SkillId, Perk[]> = {
     P(60, 'Wreck sense', 'find', 3), P(70, 'Broadside', 'reload', 10), P(80, 'Iron ribs', 'hull', 10), P(90, 'Sea dog', 'xp', 5), P(99, 'Mastery', 'reload', 10)],
   crafting: [P(10, 'Thrifty', 'save', 3), P(20, 'Fine stitch', 'fine', 2), P(30, 'Quick needle', 'quick', 10), P(40, 'Waste not', 'save', 4), P(50, 'Jeweller\'s eye', 'fine', 3),
     P(60, 'Rhythm', 'quick', 10), P(70, 'Frugal', 'save', 5), P(80, 'Artisan', 'fine', 4), P(90, 'Master crafter', 'xp', 5), P(99, 'Mastery', 'fine', 5)],
+  shardcraft: [P(10, 'Steady hand', 'save', 3), P(20, 'Quick hands', 'quick', 10), P(30, 'Thrifty', 'save', 4), P(40, 'Attuned', 'quick', 10), P(50, 'Waste not', 'save', 5),
+    P(60, 'Rhythm', 'quick', 10), P(70, 'Frugal', 'save', 5), P(80, 'Bright mind', 'xp', 5), P(90, 'Shardwright', 'xp', 5), P(99, 'Mastery', 'save', 8)],
   attack: [P(10, 'Sure strike', 'acc', 2), P(20, 'Footwork', 'acc', 2), P(30, 'Feint', 'acc', 2), P(40, 'Read the blade', 'acc', 2), P(50, 'Clean cut', 'crit', 2),
     P(60, 'Riposte', 'acc', 2), P(70, 'Duellist', 'acc', 3), P(80, 'Precision', 'crit', 2), P(90, 'Swordmaster', 'acc', 3), P(99, 'Mastery', 'crit', 3)],
   strength: [P(10, 'Heavy hand', 'dmg', 2), P(20, 'Brawler', 'dmg', 2), P(30, 'Cleaver', 'cleave', 15), P(40, 'Power', 'dmg', 2), P(50, 'Momentum', 'dmg', 2),
@@ -78,6 +80,9 @@ const halfProduction = [H('Practised', 'quick', 5), H('Careful', 'save', 2), H('
 const HALF: Record<SkillId, { name: string; kind: PerkKind; v: number }[]> = {
   woodcutting: halfGathering('timber'), mining: halfGathering('veins'), fishing: halfGathering('shoals'),
   smithing: halfProduction, gunsmithing: halfProduction, fletching: halfProduction, crafting: halfProduction,
+  // no masterworks in Shardcraft: its half-steps are all speed, thrift and XP
+  shardcraft: [H('Practised', 'quick', 5), H('Careful', 'save', 2), H('Brisk', 'quick', 5), H('Sparing', 'save', 3), H('Old hand', 'xp', 3),
+    H('Swift', 'quick', 5), H('Economical', 'save', 3), H('Journeyman', 'xp', 3), H('Deft', 'quick', 5), H('Sure', 'save', 3)],
   sailing: [H('Sea legs', 'hull', 5), H('Quick match', 'reload', 4), H('Tarred seams', 'hull', 5), H('Hook hand', 'speed', 3), H('Loader', 'reload', 4),
     H('Planked', 'hull', 5), H('Old salt', 'xp', 3), H('Swift crew', 'reload', 5), H('Doubled hull', 'hull', 5), H('Weathered', 'speed', 5)],
   cooking: [H('Low flame', 'burn', 5), H('Good stock', 'heal', 3), H('Busy galley', 'quick', 10), H('Practised cook', 'burn', 5), H('Seconds', 'double', 2),
@@ -139,7 +144,7 @@ export function perkText(p: Perk): string {
 /** What every single level-up improves, for the levels without a perk or an unlock. */
 export const LEVEL_GAIN: Record<SkillId, string> = {
   woodcutting: '+1% success on every tree', mining: '+1% success on every rock', fishing: '+1% success at every spot',
-  smithing: '+1% masterwork chance', gunsmithing: '+1% masterwork chance on pistols', fletching: '+1% masterwork chance on bows and crossbows', crafting: '+1% masterwork chance', cooking: 'You burn food less often',
+  smithing: '+1% masterwork chance', gunsmithing: '+1% masterwork chance on pistols', fletching: '+1% masterwork chance on bows and crossbows', crafting: '+1% masterwork chance', shardcraft: 'More shards from each stone as you go', cooking: 'You burn food less often',
   attack: 'Better accuracy', strength: 'Harder hits', defence: 'Harder to hit', hitpoints: '+1 max health',
   ranged: 'Better aim and stopping power', magic: 'Better accuracy and stronger spells',
   sailing: 'A tougher hull and harder-hitting broadsides',

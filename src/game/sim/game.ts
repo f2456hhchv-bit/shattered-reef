@@ -17,7 +17,7 @@ import { perkTotal } from '../data/perks';
 import { KEY, KEYS, KEY_CONFIG, type KeyDef, type KeyFamily } from '../data/keys';
 import { DROP_CONFIG, GEMS, rareTable, commonTable } from '../data/drops';
 import { BOARDS, BOUNTY_CONFIG, CREW_BY, WANTED_FIRST, WANTED_LAST, rankOf, type Contract, type CrewPassive } from '../data/bounties';
-import { HP_SCALE, NODES, RECIPES, ENEMIES, LOOT, ELITE_AFFIXES, SHOPS, PLAYER_BASE, UTILITY_SPELLS, COMBAT_SKILLS, XP_PER_DAMAGE, ELEMENT_WEAK, ELEMENT_BONUS, ELEMENT_NAME, spellById, type ShardCost, type Element, type EnemyDef, type Recipe, type Station } from '../data/content';
+import { HP_SCALE, NODES, RECIPES, ENEMIES, LOOT, ELITE_AFFIXES, SHOPS, PLAYER_BASE, UTILITY_SPELLS, COMBAT_SKILLS, XP_PER_DAMAGE, ELEMENT_WEAK, ELEMENT_BONUS, ELEMENT_NAME, SHRINES, shrineName, spellById, type ShardCost, type Element, type EnemyDef, type Recipe, type Station } from '../data/content';
 import { type React, NPCS, QUESTS, type DialogueNode, type Effect, type QuestMark } from '../data/quests';
 import { DIARIES, diaryDone } from '../data/diaries';
 import { LORE, LORE_BY_ID, KEEL_PAGES } from '../data/lore';
@@ -158,7 +158,8 @@ const WEAR = { weapon: 0.1, armour: 0.08, tool: 0.05 };
 /** Rare finds from the gathering perks. */
 const FINDS: Partial<Record<SkillId, string>> = { woodcutting: 'bird_nest', mining: 'geode', fishing: 'casket', sailing: 'casket' };
 
-export const STATION_NAMES: Record<Station, string> = { furnace: 'Furnace', anvil: 'Anvil', fire: 'Cookfire', bench: 'Workbench', vent: 'Vent forge' };
+export const STATION_NAMES = { furnace: 'Furnace', anvil: 'Anvil', fire: 'Cookfire', bench: 'Workbench', vent: 'Vent forge',
+  ...Object.fromEntries(SHRINES.map((s) => [`shrine_${s.key}`, shrineName(s.key)])) } as Record<Station, string>;
 
 export class Game {
   layout: IslandLayout;
@@ -485,7 +486,7 @@ export class Game {
     if (onShip) for (const m of this.questMarks()) if (m.mark.fromShip) out.push({ key: `quest:${m.quest}:${m.mark.id}`, kind: 'quest', x: m.mark.x, z: m.mark.z, range: 6, label: m.mark.label, verb: m.mark.verb });
     if (!onShip) {
       for (const n of this.layout.npcs) if (!this.npcGone(n.id)) out.push({ key: `npc:${n.id}`, kind: 'npc', x: n.x, z: n.z, range: 2.2, label: NPCS[n.id].name, verb: NPCS[n.id].shop ? 'Trade' : NPCS[n.id].bank ? 'Bank' : NPCS[n.id].ferry ? 'Travel' : 'Talk' });
-      this.layout.stations.forEach((st, i) => out.push({ key: `station:${i}`, kind: 'station', x: st.x, z: st.z, range: 2.3, label: STATION_NAMES[st.id], verb: st.id === 'fire' ? 'Cook' : st.id === 'furnace' || st.id === 'vent' ? 'Smelt' : st.id === 'bench' ? 'Craft' : 'Forge' }));
+      this.layout.stations.forEach((st, i) => out.push({ key: `station:${i}`, kind: 'station', x: st.x, z: st.z, range: 2.3, label: STATION_NAMES[st.id], verb: st.id.startsWith('shrine_') ? 'Attune' : st.id === 'fire' ? 'Cook' : st.id === 'furnace' || st.id === 'vent' ? 'Smelt' : st.id === 'bench' ? 'Craft' : 'Forge' }));
       this.layout.banks.forEach((b, i) => out.push({ key: `bank:${i}`, kind: 'bank', x: b.x, z: b.z, range: 2.2, label: b.booth ? 'Bank counter' : 'Strongbox', verb: b.booth ? 'Bank' : 'Open' }));
       if (this.shipHere) out.push({ key: 'ship', kind: 'ship', x: this.ship.x, z: this.ship.z, range: 4.2, label: 'Your sloop', verb: 'Board' });
       this.layout.arenas.forEach((a, i) => out.push({ key: `arena:${i}`, kind: 'arena', x: a.altar.x, z: a.altar.z, range: 2.2, label: a.label, verb: a.verb }));
@@ -947,7 +948,8 @@ export class Game {
       if (rarity !== 'common') this.msg(`Masterwork! ${displayName({ id: r.output.id, qty: 1, inst })}.`, 'loot');
     } else {
       const extra = item(r.output.id).stackable && r.output.qty > 1 ? perkTotal(r.skill, lvl, 'extra') : 0;
-      this.give(r.output.id, r.output.qty + extra);
+      const many = r.multi ? Math.floor(lvl / r.multi) : 0; // Shardcraft: more shards per stone as you level
+      this.give(r.output.id, r.output.qty + extra + many);
       if (r.burn && this.rnd() < perkTotal(r.skill, lvl, 'double') / 100 && canAdd(this.p.inv, r.output.id)) { this.give(r.output.id, 1); this.msg('Two pans: you cook an extra one.', 'good'); }
     }
     this.addXp(r.skill, r.xp * (perfect ? ACTIVE.craftXp : 1));
@@ -959,7 +961,7 @@ export class Game {
     a.remaining--;
     const r = RECIPES.find((x) => x.id === a.recipe);
     a.from = this.time; a.lucky = this.time >= this.luckyAt;
-    a.next = this.time + DT_CRAFT * (1 - (r ? perkTotal(r.skill, this.level(r.skill), 'quick') / 100 : 0));
+    a.next = this.time + DT_CRAFT * (r?.pace ?? 1) * (1 - (r ? perkTotal(r.skill, this.level(r.skill), 'quick') / 100 : 0));
     if (a.remaining <= 0) this.stopAction();
     this.rev++;
   }
