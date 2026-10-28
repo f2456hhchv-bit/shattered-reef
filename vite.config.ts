@@ -1,3 +1,4 @@
+/// <reference types="vitest" />
 import { defineConfig, type Plugin } from 'vite';
 import { syncArt } from './scripts/art-sync.mjs';
 
@@ -22,4 +23,6 @@ export default defineConfig({
       input: { main: 'index.html', 'style-test': 'style-test.html' },
     },
   },
+  // Bellwether at 4.5x takes a couple of seconds to build in each test file: more than the 5 s default leaves room for
+  test: { testTimeout: 30_000 },
 });
