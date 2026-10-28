@@ -1,0 +1,20 @@
+{
+  "outlineSegments": 768,
+  "selfIntersections": [],
+  "mainlandComponents": 1,
+  "landAreaSquareMetres": 531040,
+  "baselineMainlandAreaSquareMetres": 435088,
+  "boundsMetres": [
+    [
+      -406.4665368421443,
+      -469.97454757919326
+    ],
+    [
+      475.24034963777797,
+      410.5762277704168
+    ]
+  ],
+  "lagoonCentreToSeaMetresSampled": 75.47184753417969,
+  "lagoonDepressionOuterRadiusMetres": 26.5,
+  "note": "Mainland only; 2m raster; separate production islet and freshwater depression are excluded from this field."
+}
