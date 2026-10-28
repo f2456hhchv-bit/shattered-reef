@@ -1,3 +1,4 @@
+import { worldStorageKey } from './game/world/variant';
 import './ui/style.css';
 import { readVoyage, resetVoyage } from './game/sim/saveStorage';
 import { Game } from './game/sim/game';
@@ -58,7 +59,7 @@ ui.onReset = () => {
 
 // ---- opening: first visit gets a "tap to begin" gate (so the credits have sound), then the credits;
 // returning players go straight to the title menu. Both sit over a slow camera sway across the quay.
-const INTRO_KEY = 'shattered-reef-intro-seen';
+const INTRO_KEY = worldStorageKey('shattered-reef-intro-seen');
 let started = false;
 const title = document.getElementById('title')!;
 const hasSave = !!existing;

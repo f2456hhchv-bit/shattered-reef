@@ -4,3 +4,6 @@ dist-artifact
 .playwright-mcp
 public/art-overrides
 __pycache__/
+
+# Isolated public-preview build and publication metadata
+.preview-dist/

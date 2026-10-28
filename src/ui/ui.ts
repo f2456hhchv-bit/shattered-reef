@@ -1,4 +1,4 @@
-import { BELLWETHER_REDESIGN } from '../game/world/variant';
+import { BELLWETHER_REDESIGN, worldStorageKey } from '../game/world/variant';
 import { BELLWETHER_OUTLINE } from '../game/world/bellwether-coast';
 import { SEEP } from '../game/sim/amberseep';
 import { onIconReady } from '../art/overrides';
@@ -1596,7 +1596,7 @@ export class UI {
   /** How far this phone's taps land from the finger, per orientation (kept on the device, not in the save). */
   touchOffset(): [number, number] {
     try {
-      const v = JSON.parse(localStorage.getItem(`sr.touch.${this.portrait ? 'p' : 'l'}`) ?? 'null');
+      const v = JSON.parse(localStorage.getItem(worldStorageKey(`sr.touch.${this.portrait ? 'p' : 'l'}`)) ?? 'null');
       if (Array.isArray(v) && v.length === 2 && v.every((n) => Number.isFinite(n) && Math.abs(n) <= 150)) return [v[0], v[1]];
     } catch { /* no storage: no offset */ }
     return [0, 0];
@@ -1616,7 +1616,7 @@ export class UI {
     document.body.appendChild(el);
     const mark = el.querySelector('.mark') as HTMLElement, note = el.querySelector('p')!;
     const spots = [[0.5, 0.5], [0.3, 0.3], [0.7, 0.72]], miss: [number, number][] = [];
-    const key = `sr.touch.${this.portrait ? 'p' : 'l'}`;
+    const key = worldStorageKey(`sr.touch.${this.portrait ? 'p' : 'l'}`);
     const store = (v: [number, number] | null) => { try { if (v) localStorage.setItem(key, JSON.stringify(v)); else localStorage.removeItem(key); } catch { /* private mode: lasts this session only */ } };
     const place = () => { const [fx, fy] = spots[miss.length]; mark.style.left = `${fx * 100}%`; mark.style.top = `${fy * 100}%`; note.textContent = `Tap the centre of the mark (${miss.length + 1} of ${spots.length})`; };
     const done = (text: string, kind: 'good' | 'warn') => { el.remove(); this.log(text, kind); this.lastRev = -1; };
