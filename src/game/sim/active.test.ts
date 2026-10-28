@@ -102,9 +102,10 @@ describe('lucky swings', () => {
         g.step(1 / 30);
         g.p.inv = g.p.inv.map((s) => (s?.id === 'logs_oak' ? null : s));
       }
-      // 20 minutes: the first comes after 4-6, then every 4-6 (plus the wait for a swing that lands)
+      // 20 minutes: the first comes after 4-6, then every 4-6 (plus the wait for a swing that lands); a bar still
+      // waiting when its tree falls shows again on the next tree, so one can count twice
       expect(shown).toBeGreaterThanOrEqual(2);
-      expect(shown).toBeLessThanOrEqual(5);
+      expect(shown).toBeLessThanOrEqual(6);
     } finally { ACTIVE.cooldown = [0, 0]; }
   }, 60_000);
 });

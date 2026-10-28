@@ -444,7 +444,7 @@ function buildIslandRegion(region: IslandId): IslandLayout {
     const lagoonIn = (a: number) => [LAGOON.x + Math.cos(a) * (LAGOON.r + 6), LAGOON.z + Math.sin(a) * (LAGOON.r + 6), a + Math.PI] as const;
     for (const [a, def] of [[0.2, 'spot_trout'], [1.6, 'spot_trout'], [3.4, 'spot_salmon'], [4.8, 'spot_salmon']] as const) { const [fx, fz, ang] = lagoonIn(a); placeShore(def, fx, fz, [ang]); }
     // shore fishing off the city's beach, Crab Strand, Gullhaven's rocks and the west coast
-    for (const [def, th] of [['spot_sprat', 108], ['spot_sprat', 116], ['spot_sprat', 132], ['spot_trout', 170], ['spot_sprat', 288], ['spot_sprat', 300], ['spot_salmon', 250], ['spot_trout', 200], ['spot_salmon', 20]] as const) {
+    for (const [def, th] of [['spot_sprat', 108], ['spot_sprat', 116], ['spot_sprat', 132], ['spot_trout', 170], ['spot_sprat', 288], ['spot_sprat', 300], ['spot_salmon', 236], ['spot_trout', 200], ['spot_salmon', 20]] as const) {
       const [fx, fz] = coastPoint(th, 8), p = shoreSpot(fx, fz, sunOut(th));
       if (p && !nodes.some((n) => Math.hypot(n.x - p[0], n.z - p[1]) < 5)) nodes.push({ uid: `n${uid++}`, def, x: p[0], z: p[1], seed: th });
     }

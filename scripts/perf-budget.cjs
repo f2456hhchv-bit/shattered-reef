@@ -4,9 +4,10 @@
 const path = require('path');
 const { chromium } = require(path.join(require('child_process').execSync('npm root -g').toString().trim(), 'playwright'));
 const BUDGET = { calls: Number(process.env.MAX_CALLS ?? 450), tris: Number(process.env.MAX_TRIS ?? 900000) };
-const PLACES = [['quay', 0, 60], ['market', 0, 38], ['inn (inside)', -13, 31], ['saltpine', -36, 20], ['heartwood', -46, -50], ['ironcrag', 2, -42], ['wreck', 0, 0, 'wreck'],
-  ['port halyard', 420, 14, null, 'sunreach'], ['greenheart', 406, -28, null, 'sunreach'], ['palm cove', 375, 5, null, 'sunreach'], ['temple', 414, -60, null, 'sunreach'],
-  ['smugglers hall', 0, 1008, null, 'smugglers_caves'], ['grotto', 23, 996, null, 'smugglers_caves'], ['ember hall', 420, 1010, null, 'ember_deep'], ['weaver nest', 393, 997, null, 'ember_deep'],
+const PLACES = [['quay', 'L.village', 6], ['market', 'L.crossroads', 0], ['inn (inside)', 'L.crossroads', -7.5, -13], ['high street', 'L.crossroads', -60], ['copperback', 'L.copperback', 0], ['saltpine', 'L.saltpine', 0], ['gullhaven', 'L.gullhaven', 0],
+  ['saltpine wood', 'L.forest', 0], ['heartwood', 'L.heartwood', 0], ['ironcrag', 'L.peak', 12], ['wreck', 0, 0, 'wreck'],
+  ['port halyard', 820, 14, null, 'sunreach'], ['greenheart', 806, -28, null, 'sunreach'], ['palm cove', 775, 5, null, 'sunreach'], ['temple', 814, -60, null, 'sunreach'],
+  ['smugglers hall', 0, 1008, null, 'smugglers_caves'], ['grotto', 23, 996, null, 'smugglers_caves'], ['ember hall', 820, 1010, null, 'ember_deep'], ['weaver nest', 793, 997, null, 'ember_deep'],
   // Amberhold and Stormwrack: positions come from the island layouts (AMBER_LAYOUT / WRACK_LAYOUT keys)
   ['tollhouse', 'A.landing', 0, null, 'amberhold'], ['amberwood', 'A.amberwood', 0, null, 'amberhold'], ['weaver hollow', 'A.hollow', 0, null, 'amberhold'], ['goldvein', 'A.goldhill', 0, null, 'amberhold'],
   ['gallows', 'W.landing', 0, null, 'wrack'], ['old wood', 'W.oldwood', 0, null, 'wrack'], ['thunder crag', 'W.crag', 0, null, 'wrack'], ['starfall', 'W.starfall', 0, null, 'wrack'], ['the wrack', 'W.wreck', 0, null, 'wrack']];
@@ -23,7 +24,7 @@ const PLACES = [['quay', 0, 60], ['market', 0, 38], ['inn (inside)', -13, 31], [
       await p.waitForFunction((rg) => window.__reef.game.s.region === rg && !document.querySelector('.loading'), region, { timeout: 180000 });
     }
     await p.evaluate(async ([x, z, zone]) => { const r = window.__reef, g = r.game; let px = x, pz = z;
-      if (typeof x === 'string') { const I = await import('/src/game/world/island.ts'); const L = x[0] === 'A' ? I.AMBER_LAYOUT : I.WRACK_LAYOUT; px = L[x.slice(2)].x; pz = L[x.slice(2)].z; } if (zone && r.zones?.[zone]) { px = r.zones[zone].x; pz = r.zones[zone].z; }
+      if (typeof x === 'string') { const I = await import('/src/game/world/island.ts'); const L = x[0] === 'A' ? I.AMBER_LAYOUT : x[0] === 'L' ? I.LAYOUT : I.WRACK_LAYOUT; px = L[x.slice(2)].x + (x[0] === 'L' && typeof zone === 'number' ? zone : 0); pz = L[x.slice(2)].z + (x[0] === 'L' ? z : 0); } if (zone && r.zones?.[zone]) { px = r.zones[zone].x; pz = r.zones[zone].z; }
       const q = g.world.nearestWalkable(px, pz, 8); g.p.x = q[0]; g.p.z = q[1]; g.p.onShip = false; r.renderer.zoom = 1; r.renderer.snapCamera(); }, [x, z, zone]);
     const t0 = await p.evaluate(() => window.__reef.game.time); await p.waitForFunction((t0) => window.__reef.game.time > t0 + 0.6, t0, { timeout: 180000 });
     const info = await p.evaluate(() => new Promise((res) => { const i = window.__reef.renderer.renderer.info; i.autoReset = false; requestAnimationFrame(() => { i.reset(); requestAnimationFrame(() => { const o = { calls: i.render.calls, tris: i.render.triangles }; i.autoReset = true; res(o); }); }); }));

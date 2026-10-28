@@ -20,7 +20,7 @@ const HOMES: [string, Kind][] = [
   ['A fisher\'s house', HOUSE([F('bed', -1.7, -0.6), F('nets', 1.2, -1.95), F('table', 1.0, 0.4), F('stool', 1.0, 1.1)], 'timber')],
   ['A carter\'s house', HOUSE([F('bed', 1.7, -0.6), F('table', -0.8, -1.2), F('stool', -0.8, -0.3), F('fireplace', -1.2, -1.95), F('chest', 1.7, 1.4)], 'plaster', -0.6)],
   ['A widow\'s house', HOUSE([F('bed', -1.7, -0.6), F('rug', 0.3, 0.4), F('plant', 1.9, 1.5), F('fireplace', 1.2, -1.95), F('stool', 1.0, -0.6)], 'timber')],
-  ['A docker\'s house', HOUSE([F('bed', -1.7, -0.6), F('bed', 1.7, -0.6), F('table', 0, 0.8), F('chest', 0, -1.6)], 'stone')],
+  ['A docker\'s house', HOUSE([F('bed', -1.7, -0.6), F('bed', 1.7, -0.6), F('table', 0, -0.5), F('chest', 0, -1.75)], 'stone')],
   ['A boatwright\'s house', HOUSE([F('bed', 1.7, -0.6), F('crate', -1.8, -1.6), F('table', -0.6, 0.5), F('stool', 0.1, 0.5)], 'timber', -0.6)],
   ['A pilot\'s house', HOUSE([F('bed', -1.7, -0.6), F('globe', 1.8, -1.5), F('table', 0.8, 0.6), F('stool', 0.8, 1.3)], 'plaster')],
   ['A clerk\'s house', HOUSE([F('bed', -1.7, -0.6), F('bookshelf', 1.2, -1.95), F('table', 1.0, 0.4), F('stool', 1.0, 1.1)], 'stone')],
@@ -42,7 +42,7 @@ const TRADES: [string, Kind][] = [
   ['A smokehouse', { w: 6, d: 5, style: 'stone', chimney: true, furniture: [F('fireplace', 0, -1.95), F('barrel', -2.2, 0.8), F('barrel', 2.2, 0.8), F('nets', -1.6, -1.95)] }],
   ['A spice merchant\'s', { w: 6, d: 5, style: 'plaster', sign: 0xb8862a, furniture: [F('counter', 0, -0.5, 0, 2.6), F('sacks', -1.9, -2.0), F('sacks', -0.7, -2.1), F('sacks', 1.4, -2.0), F('plant', 2.3, 1.6)] }],
   ['The scrivener\'s', { w: 6, d: 5, style: 'stone', sign: 0x2f4a6a, furniture: [F('bookshelf', -1.4, -2.1), F('bookshelf', 1.4, -2.1), F('table', 0, 0.2), F('stool', 0, 0.9), F('rug', 0, 0.4)] }],
-  ['A boatyard shed', { w: 8, d: 6, style: 'timber', chimney: false, furniture: [F('crate', -3.0, -2.4), F('crate', -2.2, -2.4), F('bench', 1.0, -2.3), F('barrel', 3.0, 1.9), F('nets', 0.6, 2.4, Math.PI)] }],
+  ['A boatyard shed', { w: 8, d: 6, style: 'timber', chimney: false, furniture: [F('crate', -3.0, -2.4), F('crate', -2.2, -2.4), F('bench', 1.0, -2.3), F('barrel', 3.0, 1.9), F('nets', -2.9, 1.6, Math.PI / 2)] }],
   ['A warehouse', { w: 8, d: 6, style: 'timber', chimney: false, furniture: [F('crate', -3.0, -2.4), F('crate', -2.2, -2.4), F('crate', -3.0, -1.6), F('kegs', 1.6, -2.4), F('sacks', 2.6, 1.8), F('barrel', -2.9, 2.0)] }],
 ];
 
@@ -200,7 +200,7 @@ class Planner {
 }
 
 /** The people who keep the new buildings (their NpcDefs and looks are in data/bellfolk.ts). */
-export const CITY_KEEPERS = ['brannock', 'wren', 'nell', 'harlan', 'bracken', 'sabine', 'thrift', 'rook', 'linnet', 'tam', 'bess'] as const;
+export const CITY_KEEPERS = ['brannock', 'wren', 'marlow', 'harlan', 'bracken', 'sabine', 'thrift', 'rook', 'linnet', 'tam', 'bess'] as const;
 
 /**
  * Bellwether city and the island's towns. `old` is the harbour town (town.ts townPlan), kept as the city's heart:
@@ -219,16 +219,16 @@ export function bellwetherPlan(ctx: PlanCtx, old: TownPlan, V: { x: number; z: n
 
   // ---- Harbour Row: the east waterfront, warehouses and the fish market
   const harbour = P.street([[V.x + 18, V.z - 4], ...[86, 82, 78, 74, 70, 66].map((a) => cp(a, 24))], 2.6);
-  const fishSq = cp(78, 30);
+  const fishSq = cp(78, 34);
   P.keep.push({ x: fishSq[0], z: fishSq[1], r: 7 });
   P.squares.push({ x: fishSq[0], z: fishSq[1], r: 7 });
   const hd = P.line(harbour, 'hr', [
     { id: 'customs', name: 'The Customs House', kind: HALL_KIND(0x2f4a6a), npc: { id: 'brannock', x: 0, z: -1.6 } },
     { id: 'furrier', name: 'Wren\'s Furs and Hides', kind: SHOP_KIND(0x6a4a2a, 'timber'), npc: { id: 'wren', x: 0, z: -1.7 } },
-    { id: 'shipwright', name: 'Crewe\'s Shipyard', kind: { w: 8, d: 6, style: 'timber', sign: 0x5a3a20, chimney: false, furniture: [F('crate', -3.0, -2.4), F('bench', 0, -2.3), F('barrel', 3.0, -2.0), F('nets', 0.6, 2.4, Math.PI)] }, npc: { id: 'harlan', x: 0, z: -0.8 } },
+    { id: 'shipwright', name: 'Crewe\'s Shipyard', kind: { w: 8, d: 6, style: 'timber', sign: 0x5a3a20, chimney: false, furniture: [F('crate', -3.0, -2.4), F('bench', 0, -2.3), F('barrel', 3.0, -2.0), F('nets', -2.9, 1.6, Math.PI / 2)] }, npc: { id: 'harlan', x: 0, z: -0.8 } },
   ], P.mix(9, HOMES, TRADES, 0.5), { gap: 1.6 });
-  P.stalls.push({ x: fishSq[0] - 4, z: fishSq[1] + 2, rot: 0.3, colour: 0x2f6a8a }, { x: fishSq[0] + 4, z: fishSq[1] + 2, rot: -0.3, colour: 0xd8d0c0 });
-  P.outdoor.push({ id: 'nell', x: fishSq[0], z: fishSq[1] - 1.2, facing: Math.PI / 2 });
+  P.stalls.push({ x: fishSq[0] - 4, z: fishSq[1] - 2, rot: 0.3, colour: 0x2f6a8a }, { x: fishSq[0] + 4, z: fishSq[1] - 2, rot: -0.3, colour: 0xd8d0c0 });
+  P.outdoor.push({ id: 'marlow', x: fishSq[0], z: fishSq[1] - 3.2, facing: Math.PI / 2 });
   P.walkers(hd, harbour.pts, 5);
 
   // ---- the West End: the west waterfront, homes and net lofts

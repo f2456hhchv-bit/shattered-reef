@@ -400,10 +400,10 @@ SHOPS.anchor = {
 
 // Bellwether city and its towns (the island at 4.5x): the island's starter gear, spread round its shops
 SHOPS.fishmonger = {
-  id: 'fishmonger', name: 'Nell\'s Fish Stall', keeper: 'nell',
+  id: 'fishmonger', name: 'Meg\'s Fish Stall', keeper: 'marlow',
   stock: [{ id: 'fish_sprat', qty: 1 }, { id: 'fish_mackerel', qty: 1 }, { id: 'crab_meat', qty: 1 }, { id: 'fish_sprat_raw', qty: 5 }],
   buyMul: 1.1, sellMul: 0.5,
-  wants: [{ prefix: 'fish_', mul: 1.6, note: 'Nell pays well for fish' }, { prefix: 'crab_meat', mul: 1.5, note: 'and crab.' }],
+  wants: [{ prefix: 'fish_', mul: 1.6, note: 'Meg pays well for fish' }, { prefix: 'crab_meat', mul: 1.5, note: 'and crab.' }],
 };
 SHOPS.blades = {
   id: 'blades', name: 'Bracken\'s Blades', keeper: 'bracken',

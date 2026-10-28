@@ -11,7 +11,7 @@ export const BELL_FOLK: Record<string, NpcDef> = {
   wren: { id: 'wren', name: 'Tobias Wren', title: 'Furrier', idle: [
     'Hides, pelts, furs. Boar, wolf, seal. Bring me good leather and I\'ll make you something warm.',
     'I don\'t ask where a skin comes from. That\'s the trade.'] },
-  nell: { id: 'nell', name: 'Nell Marlow', title: 'Fishmonger', shop: true, idle: [
+  marlow: { id: 'marlow', name: 'Meg Marlow', title: 'Fishmonger', shop: true, idle: [
     'Fresh this morning. Well, this week. Smell it, go on.',
     'I pay fair for a good catch. Better than Silas, if you catch me before lunch.'] },
   harlan: { id: 'harlan', name: 'Harlan Crewe', title: 'Shipwright', idle: [
@@ -77,5 +77,5 @@ export const BELL_FOLK: Record<string, NpcDef> = {
     'Sixty years on the water. I\'ve seen things out there I wouldn\'t tell the chapel about.',
     'In my day we looked after the sea, and the sea looked after us.'] },
   kit: { id: 'kit', name: 'Kit Morrow', title: 'Fish and tackle', shop: true, idle: [
-    'Rods, pots and bait. And I\'ll buy your catch, if Nell in the city hasn\'t already.'] },
+    'Rods, pots and bait. And I\'ll buy your catch, if Meg in the city hasn\'t already.'] },
 };

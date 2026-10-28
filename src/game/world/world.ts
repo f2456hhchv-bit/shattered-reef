@@ -6,6 +6,8 @@ export const WCELL = 0.5; // walk grid spacing
 export const SCELL = 1; // sail grid spacing
 /** the biggest A* search window, in cells a side (an island's whole grid up to now fits); and the margin round a route */
 const MAX_WINDOW = 1024, WINDOW_MARGIN = 96;
+/** grids up to this many cells a side are searched whole (Bellwether's sail grid: ~25 MB of scratch) */
+const WHOLE_MAX = 1300;
 /** fine walk cells per coarse cell, for planning long routes on big islands (4 m) */
 const WALK_COARSE = 8;
 
@@ -153,7 +155,8 @@ export class World {
     if (!start) return null;
     // a long walk on a big island: plan it on the coarse grid, then walk it out leg by leg on the fine one
     if (Math.max(Math.abs(goal[0] - start[0]), Math.abs(goal[1] - start[1])) / WCELL > MAX_WINDOW - 2 * WINDOW_MARGIN) return this.longPath(start, goal, maxNodes);
-    return this.astar(this.walk, this.WN, WCELL, start, goal, maxNodes);
+    // (a short hop whose way round lies outside its window: plan it the long way)
+    return this.astar(this.walk, this.WN, WCELL, start, goal, maxNodes) ?? (this.WN > WHOLE_MAX ? this.longPath(start, goal, maxNodes) : null);
   }
 
   /** A route too long for one search window: coarse A* for the line of it, then fine A* between waypoints. */
@@ -165,7 +168,10 @@ export class World {
       for (let j = 0; j < W; j++) for (let i = 0; i < W; i++) if (this.walk[j * W + i]) n[((j / C) | 0) * CN + ((i / C) | 0)]++;
       for (let k = 0; k < CN * CN; k++) g[k] = n[k] > C * C * 0.4 ? 1 : 0;
     }
-    const plan = this.astar(this.coarse, CN, cell, start, goal, maxNodes);
+    // (the ends may sit in a mostly-blocked coarse cell, at a shore or a doorway: plan from the nearest open one)
+    const cs = this.nearestOn(this.coarse, CN, cell, start[0], start[1], cell * 4), cg = this.nearestOn(this.coarse, CN, cell, goal[0], goal[1], cell * 4);
+    if (!cs || !cg) return null;
+    const plan = this.astar(this.coarse, CN, cell, cs, cg, maxNodes);
     if (!plan) return null;
     // fine legs between waypoints no further apart than a window can hold
     const out: [number, number][] = [];
@@ -198,7 +204,7 @@ export class World {
     const goal = this.nearestOn(this.sea, SN, SCELL, tx, tz, 26); // wide enough to find water round an islet's shallows
     const start = this.nearestOn(this.sea, SN, SCELL, sx, sz, 8);
     if (!goal || !start) return null;
-    const route = this.astar(this.sea, SN, SCELL, start, goal, 90000);
+    const route = this.astar(this.sea, SN, SCELL, start, goal, SN > 600 ? 500000 : 90000);
     if (!route) return null;
     if ((start[0] !== sx || start[1] !== sz) && !this.lineOn(this.sail, SN, SCELL, sx, sz, route[0][0], route[0][1])) route.unshift(start);
     if (this.sailable(tx, tz) && this.lineOn(this.sail, SN, SCELL, goal[0], goal[1], tx, tz)) route.push([tx, tz]);
@@ -230,7 +236,7 @@ export class World {
     const ox = this.ox, oz = this.oz;
     const si = Math.floor((start[0] - ox) / cell), sj = Math.floor((start[1] - oz) / cell), gi = Math.floor((goal[0] - ox) / cell), gj = Math.floor((goal[1] - oz) / cell);
     // the search window: the whole grid when it's small (every island up to now), else the start-goal box plus a margin
-    const whole = N <= MAX_WINDOW;
+    const whole = N <= WHOLE_MAX;
     const wi0 = whole ? 0 : Math.max(0, Math.min(si, gi) - WINDOW_MARGIN), wj0 = whole ? 0 : Math.max(0, Math.min(sj, gj) - WINDOW_MARGIN);
     const wi1 = whole ? N - 1 : Math.min(N - 1, Math.max(si, gi) + WINDOW_MARGIN), wj1 = whole ? N - 1 : Math.min(N - 1, Math.max(sj, gj) + WINDOW_MARGIN);
     const WW = wi1 - wi0 + 1, WH = wj1 - wj0 + 1;

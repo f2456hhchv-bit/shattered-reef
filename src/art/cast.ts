@@ -59,7 +59,7 @@ const folk = (skin: number, coat: number, trim: HumanoidLook['coatTrim'], hat: n
 Object.assign(NPC_LOOKS, {
   brannock: folk(0xd8a07a, 0x1e2e4a, 'brass', 0x161616, 0x5a5a52, 'tricorn', { spectacles: true, beard: true }),
   wren: folk(0xc98f66, 0x6a4a2a, 0xb8a080, 0x3a2a1a, 0x3a2a1a, 'cap', { apron: 0x8a6a4a }),
-  nell: folk(0xe0b08a, 0x2f6a8a, 0xd8ccb0, 0x8a3a2a, 0x8a3a1a, 'bandana', { apron: 0xe6dcc0, beard: false, hairStyle: 'bun' }),
+  marlow: folk(0xe0b08a, 0x2f6a8a, 0xd8ccb0, 0x8a3a2a, 0x8a3a1a, 'bandana', { apron: 0xe6dcc0, beard: false, hairStyle: 'bun' }),
   harlan: folk(0xb07a52, 0x5a3a20, 0x8a6a3a, 0x3a3028, 0x9a9a92, 'cap', { beard: true, held: 'hammer' }),
   bracken: folk(0xc48c62, 0x4a4038, 0x8a2a22, 0x2a2420, 0x2a1a12, 'none', { apron: 0x5a3a26, beard: true, held: 'hammer' }),
   sabine: folk(0xd8a07a, 0x5a5a62, 0xc9a050, 0x2a2a2e, 0x6a3a1a, 'none', { beard: false, hairStyle: 'queue', apron: 0x4a3a2a }),

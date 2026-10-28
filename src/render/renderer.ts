@@ -506,7 +506,11 @@ export class GameRenderer {
   /** Walk in and the roof lifts away and the walls drop to waist height, so you can see the room. */
   private syncTown(dt: number, t: number) {
     const p = this.game.p, world = this.game.world;
+    const far = this.streamR() + 20;
     for (const h of this.houses) {
+      // a city's worth of houses: past the haze they aren't drawn at all
+      h.v.group.visible = Math.hypot(h.b.x - this.camLook.x, h.b.z - this.camLook.z) < far;
+      if (!h.v.group.visible) continue;
       const want = !p.onShip && isInside(h.b, p.x, p.z) ? 1 : 0;
       h.k += (want - h.k) * Math.min(1, dt * 8);
       if (Math.abs(want - h.k) < 0.01) h.k = want;

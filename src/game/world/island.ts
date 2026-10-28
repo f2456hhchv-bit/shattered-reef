@@ -21,7 +21,7 @@ export const BEACH = 10;
 export const EAST = 400;
 
 // 'auto': level at the natural height there; 'pad': level at the height the earlier flats left there (a building's pad)
-export interface Flat { x: number; z: number; r: number; h: number | 'auto' | 'pad'; soft?: number } // soft: blend width (m, default 4)
+export interface Flat { x: number; z: number; r: number; h: number | 'auto' | 'pad'; soft?: number; /** a building's footprint: dead level inside it, whatever its neighbours' pads or a road do */ rect?: { w: number; d: number; rot: number } } // soft: blend width (m, default 4)
 export interface Hill { x: number; z: number; r: number; h: number }
 export interface Dip { x: number; z: number; r: number; floor: number }
 /** `paved`: a cobbled street (drawn as stone, not dirt) */
@@ -338,6 +338,7 @@ export const FLATS: Flat[] = [
   { x: L.peak.x + 6, z: L.peak.z + 20, r: 6.5, h: 'auto' },
   { x: L.summit.x, z: L.summit.z, r: 5, h: 'auto' }, // the vent forge stands on a levelled summit
   { x: L.pithead.x, z: L.pithead.z, r: 7, h: 'auto' }, // the pithead's yard
+  { x: L.gullhaven.x, z: L.gullhaven.z, r: 24, h: 'auto', soft: 10 }, // Gullhaven sits on a shelf above the shore
   // the towns' squares
   ...([L.copperback, L.saltpine, L.mirewater, L.gullhaven] as const).map((t, i) => ({ x: t.x, z: t.z, r: [10, 8, 6, 8][i], h: 'auto' as const })),
   // Port Halyard: the quay square and the plaza, the dock's landing, the temple's floor
@@ -370,7 +371,7 @@ export const FLATS: Flat[] = [
   { x: NL.weir.x, z: NL.weir.z, r: 6, h: 'auto' },
   { x: NL.stiltwick.x, z: NL.stiltwick.z, r: 8, h: 'auto' },
   // a level pad under every town building, at the height of the ground already there (so the quay's stay on the quay)
-  ...TOWN.buildings.map((b) => ({ x: b.x, z: b.z, r: Math.hypot(b.w, b.d) / 2 + 0.6, h: 'pad' as const, soft: 2.5 })),
+  ...TOWN.buildings.map((b) => ({ x: b.x, z: b.z, r: Math.hypot(b.w, b.d) / 2 + 0.6, h: 'pad' as const, soft: 2.5, rect: { w: b.w + 2.6, d: b.d + 2.6, rot: b.rot } })),
 ];
 
 export const HILLS: Hill[] = [
@@ -564,17 +565,21 @@ export function rawHeight(x: number, z: number): number {
 /** Natural ground height, optionally levelled by the flats (auto flats take the natural height at their centre). */
 function shapedHeight(x: number, z: number, levelled: boolean, upto = FLATS.length): number {
   const d = coastDist(x, z);
-  const n = fbm(x * 0.06 + 40, z * 0.06 + 40, 4, 3);
+  // the eastern islands moved EAST metres when Bellwether grew: their ground noise is read where it was, so their
+  // terrain didn't change
+  const qx = x > 650 ? x - EAST : x;
+  const n = fbm(qx * 0.06 + 40, z * 0.06 + 40, 4, 3);
   // open sea (most of the world): nothing but seabed out here, so skip the flats, roads and hills
   if (d < -10 && !ISLETS.some((is) => Math.hypot(x - is.x, z - is.z) < is.r + 14)) return Math.max(0.05 + d * 0.35 * (0.8 + n * 0.5), -6 + n);
   let h: number;
   if (d > 0) {
-    const broad = fbm(x * 0.022 + 3, z * 0.022 + 3, 3, 9);
+    const broad = fbm(qx * 0.022 + 3, z * 0.022 + 3, 3, 9);
     // a wide, gently climbing beach, then the island's rolling ground. The toe keeps the seabed's slope
     // going for the first few metres, so the waterline crosses a real slope instead of hugging a flat shelf
     // (a shelf just above the water makes the shoreline trace the height grid as a staircase)
     h = 0.05 + 0.3 * (1 - Math.exp(-d / 1.1)) + Math.min(d / BEACH, 1) * 0.3 + smooth(d, BEACH - 1, BEACH + 12) * (0.5 + n * 2.0 + broad * 1.6);
-    const inland = smooth(d, BEACH * 0.4, BEACH + 6);
+    // (Bellwether's big hills ease down over 45 m to the shore instead of 6, so its coasts stay walkable)
+    const inland = smooth(d, BEACH * 0.4, BEACH + (Math.abs(x) < 700 && Math.abs(z) < 700 ? 45 : 6));
     for (const hl of HILLS) {
       const q = ((x - hl.x) ** 2 + (z - hl.z) ** 2) / (hl.r * hl.r);
       if (q < 9) h += hl.h * Math.exp(-q) * inland;
@@ -598,6 +603,14 @@ function shapedHeight(x: number, z: number, levelled: boolean, upto = FLATS.leng
   if (d > 1.5) {
     const p = nearestPathDist(x, z);
     h -= (1 - smooth(p.d, p.width * 0.5, p.width + 1.5)) * 0.12;
+  }
+  // a building's floor is its pad's height, edge to edge (in a crowded street the next pad's slope would tilt it)
+  if (levelled) for (const i of flatsNear(x, z)) {
+    if (i >= upto) break;
+    const f = FLATS[i];
+    if (!f.rect || typeof f.h !== 'number') continue;
+    const c = Math.cos(f.rect.rot), sn = Math.sin(f.rect.rot), dx = x - f.x, dz = z - f.z;
+    if (Math.abs(dx * c + dz * sn) <= f.rect.w / 2 && Math.abs(-dx * sn + dz * c) <= f.rect.d / 2) h = f.h;
   }
   for (const is of ISLETS) {
     const a = Math.atan2(z - is.z, x - is.x);
@@ -677,7 +690,7 @@ export const ISLAND_PLACES: Place[] = [
   { id: 'cove', name: 'Smugglers\' Cove', x: SC.x, z: SC.z, r: 22 },
   { id: 'wreck', name: 'Wreckers\' Point', x: W.x, z: W.z, r: 24 },
   { id: 'howes', name: 'The Howes', x: L.howes.x, z: L.howes.z, r: 24 },
-  ...([['shallows', 'Bellfish Shallows', 20, -16], ['gnasher', 'Gnasher\'s Reef', 50, -26]] as const)
+  ...([['shallows', 'Bellfish Shallows', 20, -16], ['gnasher', 'Gnasher\'s Reef', 45, -26]] as const)
     .map(([id, name, a, i]) => { const [x, z] = coastPoint(a, i); return { id, name, x, z, r: 16, sea: true }; }),
   // Sunreach Isle
   { id: 'halyard', name: 'Port Halyard', x: SL.port.x, z: SL.port.z - 6, r: 18, region: 'sunreach' },
