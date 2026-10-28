@@ -111,7 +111,7 @@ export class UI {
   private bannerT = 0;
   private portrait = false;
   private confirmOk: (() => void) | null = null;
-  onSave: () => void = () => {};
+  onSave: () => boolean = () => false;
   onReset: () => void = () => {};
   onQuality: (q: 'auto' | 'max' | 'low') => void = () => {};
   onAudio: () => void = () => {};
@@ -818,7 +818,7 @@ export class UI {
       else if (t.id === 'calibrate') this.calibrate();
       else if (t.dataset.track) { g.trackQuest(t.dataset.track); this.lastRev = -1; }
       else if (t.dataset.book) { g.castBook(t.dataset.book, t.dataset.arg); this.lastRev = -1; }
-      else if (t.id === 'saveNow') { this.onSave(); this.log('Voyage saved.', 'good'); this.lastRev = -1; }
+      else if (t.id === 'saveNow') { if (this.onSave()) this.log('Voyage saved.', 'good'); this.lastRev = -1; }
       else if (t.id === 'resetSave') this.confirm('Erase your progress and start again?', 'Erase and restart', () => this.onReset());
     });
     c.addEventListener('contextmenu', (ev) => {

@@ -1,0 +1,129 @@
+=== PLAYTEST 60 min, seed 11 ===
+combat 3 skills attack 2, strength 1, defence 1, hitpoints 10, woodcutting 5, mining 16, fishing 8, cooking 14, smithing 1, crafting 1, fletching 1
+quests bell 2/4, knock 1/4, selkie 3/8, seam 4/8
+deaths 0 fled 0 kills 7 ate 3 eat attempts 3 idle thinks 0 wrong mark orders 0
+coins 78 gear cutlass_rusty
+--- blocked
+1 bell@1: needs 1x bar_bronze (have 0)
+1 seam@2: needs 2x bar_bronze (have 0)
+1 seam@3: needs 5x logs_pine (have 0)
+--- quest timeline
+  0:03 bell -> 1
+  1:09 bell -> 2
+  5:28 knock -> 1
+  9:19 selkie -> 1
+  9:22 selkie -> 2
+ 10:33 selkie -> 3
+ 16:18 seam -> 1
+ 17:50 seam -> 2
+ 22:53 seam -> 3
+ 45:43 seam -> 4
+--- levels
+  1:51 fishing 2 |   2:23 fishing 3 |   3:04 fishing 4 |   7:30 cooking 2 |   7:35 cooking 3 |   7:44 cooking 4 |   7:51 cooking 5 |   8:04 cooking 6 |   8:17 cooking 7 |  11:12 fishing 5 |  12:01 fishing 6 |  12:57 fishing 7 |  13:53 cooking 8 |  14:07 cooking 9 |  14:26 cooking 10 |  14:38 cooking 11 |  14:57 cooking 12 |  18:16 mining 2 |  19:51 fishing 8 |  21:02 cooking 13 |  21:20 cooking 14 |  24:21 woodcutting 2 |  26:12 mining 3 |  27:29 mining 4 |  28:53 mining 5 |  30:18 mining 6 |  31:51 mining 7 |  33:33 mining 8 |  35:53 mining 9 |  37:52 mining 10 |  39:57 mining 11 |  42:43 mining 12 |  45:43 woodcutting 5 |  46:23 mining 13 |  49:06 mining 14 |  53:12 mining 15 |  56:14 attack 2 |  56:50 mining 16
+--- top messages
+22 You burn the reef sprat.
+15 Congratulations, you've just advanced a Mining level. You are now level #.
+13 Congratulations, you've just advanced a Cooking level. You are now level #.
+11 You swing at the glimmerstone vein...
+7 Congratulations, you've just advanced a Fishing level. You are now level #.
+4 The water comes back in. Somewhere the bell stops, unanswered.
+4 The rock cracks along a hidden seam!
+4 The seam crumbles to grit. Chips sting your hands.
+3 You cast your line...
+3 You eat the ship's bread. +# health.
+3 Quest updated: The Flooded Seam
+2 You swing at the copper rock...
+2 You swing at the tin rock...
+2 Quest updated: The Selkie's Skin
+2 You swing at the saltpine...
+2 Congratulations, you've just advanced a Woodcutting level. You are now level #.
+2 Bell-time. The tide's running out further than it should, and on Crab Strand a bell is ringing where there is no bell. It's on your map.
+1 Discovered: Bellwether Quay
+1 Discovered: Bellwether
+1 New quest: The Bell at Low Water
+1 Discovered: The Old Quarry
+1 Quest updated: The Bell at Low Water
+1 Discovered: Ironcrag
+1 New quest: Knock Three Times
+1 Bell-time. The tide's running out further than it should, and among the Howes a bell is ringing where there is no bell. It's on your map.
+--- log (last 80)
+ 16:18 MSG New quest: The Flooded Seam
+ 16:18 ON Knock Three Times (stage 1)
+ 16:18 TRAIN first: Knock Three Times, combat 16 recommended (me 3)
+ 16:18 ACTIVITY woodcutting
+ 16:18 FIGHT Footpad (lvl 4, me 3) training
+ 17:09 ON The Flooded Seam (stage 1)
+ 17:38 MSG Discovered: Copperback Hills
+ 17:49 MSG Discovered: Copperback Mine
+ 17:50 MSG Quest updated: The Flooded Seam
+ 17:51 BLOCKED The Flooded Seam stage 2: needs 2x bar_bronze (have 0)
+ 17:51 GATHER ore_copper for the quest
+ 18:08 GATHER ore_tin for the quest
+ 19:41 MAKE bar_bronze at the furnace
+ 19:41 MAKE bar_bronze at the furnace
+ 19:42 GOT bar_bronze
+ 19:42 ON The Bell at Low Water (stage 2)
+ 19:42 TRAIN first: The Bell at Low Water, combat 12 recommended (me 3)
+ 20:57 ON Knock Three Times (stage 1)
+ 20:57 TRAIN first: Knock Three Times, combat 16 recommended (me 3)
+ 21:00 ON The Selkie's Skin (stage 3)
+ 21:00 TRAIN first: The Selkie's Skin, combat 20 recommended (me 3)
+ 21:00 COOK 17 fish_sprat_raw
+ 21:29 ON The Flooded Seam (stage 2)
+ 22:53 MSG Quest updated: The Flooded Seam
+ 22:54 BLOCKED The Flooded Seam stage 3: needs 5x logs_pine (have 0)
+ 22:54 GATHER logs_pine for the quest
+ 23:06 MSG Bell-time. The tide's running out further than it should, and below Wreckers' Point a bell is ringing where there is no bell. It's on your map.
+ 23:45 MSG Discovered: Saltpine Wood
+ 24:30 GOT logs_pine
+ 24:30 ON The Bell at Low Water (stage 2)
+ 24:30 TRAIN first: The Bell at Low Water, combat 12 recommended (me 3)
+ 24:30 ACTIVITY mining
+ 24:30 FIGHT Footpad (lvl 4, me 3) training
+ 25:20 ON Knock Three Times (stage 1)
+ 25:20 TRAIN first: Knock Three Times, combat 16 recommended (me 3)
+ 28:24 ON The Selkie's Skin (stage 3)
+ 28:24 TRAIN first: The Selkie's Skin, combat 20 recommended (me 3)
+ 28:53 MSG The rock cracks along a hidden seam!
+ 31:25 ON The Bell at Low Water (stage 2)
+ 31:25 TRAIN first: The Bell at Low Water, combat 12 recommended (me 3)
+ 34:24 MSG The rock cracks along a hidden seam!
+ 34:26 ON Knock Three Times (stage 1)
+ 34:26 TRAIN first: Knock Three Times, combat 16 recommended (me 3)
+ 34:26 ACTIVITY combat
+ 34:26 FIGHT Footpad (lvl 4, me 3) training
+ 34:52 ON The Selkie's Skin (stage 3)
+ 34:52 TRAIN first: The Selkie's Skin, combat 20 recommended (me 3)
+ 37:53 ON The Bell at Low Water (stage 2)
+ 37:53 TRAIN first: The Bell at Low Water, combat 12 recommended (me 3)
+ 38:22 MSG Bell-time. The tide's running out further than it should, and on Crab Strand a bell is ringing where there is no bell. It's on your map.
+ 40:54 ON Knock Three Times (stage 1)
+ 40:54 TRAIN first: Knock Three Times, combat 16 recommended (me 3)
+ 40:54 FIGHT Footpad (lvl 4, me 3) training
+ 41:26 ON The Selkie's Skin (stage 3)
+ 41:26 TRAIN first: The Selkie's Skin, combat 20 recommended (me 3)
+ 42:21 MSG The rock cracks along a hidden seam!
+ 44:26 ON The Bell at Low Water (stage 2)
+ 44:26 TRAIN first: The Bell at Low Water, combat 12 recommended (me 3)
+ 44:26 FIGHT Footpad (lvl 4, me 3) training
+ 44:58 ON The Flooded Seam (stage 3)
+ 45:43 MSG Quest updated: The Flooded Seam
+ 45:43 TRAIN first: The Flooded Seam, combat 14 recommended (me 3)
+ 48:45 ON Knock Three Times (stage 1)
+ 48:45 TRAIN first: Knock Three Times, combat 16 recommended (me 3)
+ 48:45 ACTIVITY fishing
+ 51:27 MSG The rock cracks along a hidden seam!
+ 51:46 ON The Bell at Low Water (stage 2)
+ 51:46 TRAIN first: The Bell at Low Water, combat 12 recommended (me 3)
+ 51:46 FIGHT Footpad (lvl 4, me 3) training
+ 52:49 ON The Selkie's Skin (stage 3)
+ 52:49 TRAIN first: The Selkie's Skin, combat 20 recommended (me 3)
+ 53:55 MSG Bell-time. The tide's running out further than it should, and on Crab Strand a bell is ringing where there is no bell. It's on your map.
+ 55:54 ON Knock Three Times (stage 1)
+ 55:54 TRAIN first: Knock Three Times, combat 16 recommended (me 3)
+ 55:54 FIGHT Footpad (lvl 4, me 3) training
+ 56:14 ON The Flooded Seam (stage 4)
+ 56:14 TRAIN first: The Flooded Seam, combat 14 recommended (me 3)
+ 56:14 ACTIVITY woodcutting
+ 59:15 ON The Bell at Low Water (stage 2)
+ 59:15 TRAIN first: The Bell at Low Water, combat 12 recommended (me 3)

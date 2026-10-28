@@ -57,3 +57,12 @@ last 80 lines of its log.
 
 What to look for: quests stuck on the same stage, long gaps in the level timeline, repeated "blocked" lines, deaths,
 the same warning message many times, and big differences between seeds.
+
+The scripted player uses a separate seeded decision stream as well as the game's world seed, so repeated runs
+with the same seed and code are reproducible. Its controller is tested in `scripts/playtester.test.ts`.
+`ate` counts food actually consumed; `eat attempts` also includes calls rejected by the eating cooldown.
+Older reports counted some attempts as food eaten and omitted some preparation meals, so compare those figures
+with care. Quest recommendations guide this bot's preparation; they do not restrict a human player's choices.
+
+For the confirmed-fix investigation, baseline and updated runs are retained in
+[`reports/playtest/2026-10-28-confirmed-fixes/`](../reports/playtest/2026-10-28-confirmed-fixes/README.md).

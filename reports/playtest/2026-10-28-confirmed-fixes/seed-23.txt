@@ -1,0 +1,140 @@
+=== PLAYTEST 60 min, seed 23 ===
+combat 4 skills attack 2, strength 2, defence 2, hitpoints 10, woodcutting 18, mining 2, fishing 10, cooking 15, smithing 1, crafting 1, fletching 1
+quests bell 2/4, knock 1/4, selkie 3/8, seam 4/8, wolves 1/5, bucca 2/7, wreckers 1/5
+deaths 1 fled 1 kills 12 ate 42 eat attempts 53 idle thinks 1 wrong mark orders 0
+coins 83 gear cutlass_rusty,arrow_bronze
+--- blocked
+1 bell@1: needs 1x bar_bronze (have 0)
+1 seam@2: needs 2x bar_bronze (have 0)
+1 seam@3: needs 5x logs_pine (have 0)
+1 palewing@0: needs flags bell_done
+1 fen@0: needs flags firstlock_done,palewing_done
+1 firstlock@0: needs flags collector_done
+1 collector@0: needs flags bell_done
+1 lantern@0: needs flags fen_done
+1 belly@0: needs flags lantern_done
+1 parley@0: needs flags belly_done
+--- quest timeline
+  0:03 bell -> 1
+  1:09 bell -> 2
+  3:30 knock -> 1
+  6:44 selkie -> 1
+  7:04 selkie -> 2
+  8:16 selkie -> 3
+ 12:38 seam -> 1
+ 16:24 seam -> 2
+ 20:57 seam -> 3
+ 26:19 seam -> 4
+ 28:46 wolves -> 1
+ 32:46 bucca -> 1
+ 34:44 bucca -> 2
+ 43:38 wreckers -> 1
+--- levels
+  9:04 fishing 2 |   9:41 fishing 3 |  10:22 fishing 4 |  11:11 fishing 5 |  13:52 cooking 2 |  13:59 cooking 3 |  14:07 cooking 4 |  14:16 cooking 5 |  14:29 cooking 6 |  14:42 cooking 7 |  14:51 cooking 8 |  16:58 mining 2 |  19:08 fishing 6 |  22:27 woodcutting 2 |  23:41 cooking 9 |  23:57 cooking 10 |  24:40 fishing 7 |  26:19 woodcutting 5 |  27:49 cooking 11 |  29:48 woodcutting 6 |  30:36 woodcutting 7 |  35:44 fishing 8 |  36:50 fishing 9 |  37:58 fishing 10 |  39:25 defence 2 |  40:37 strength 2 |  40:45 cooking 12 |  41:05 cooking 13 |  41:27 cooking 14 |  41:51 cooking 15 |  42:59 attack 2 |  46:17 woodcutting 8 |  47:05 woodcutting 9 |  47:58 woodcutting 10 |  49:23 woodcutting 11 |  50:28 woodcutting 12 |  51:35 woodcutting 13 |  53:11 woodcutting 14 |  54:33 woodcutting 15 |  56:05 woodcutting 16 |  57:41 woodcutting 17 |  59:31 woodcutting 18
+--- top messages
+39 You eat the grilled sprat. +# health.
+35 You swing at the saltpine...
+28 You burn the reef sprat.
+15 Congratulations, you've just advanced a Woodcutting level. You are now level #.
+14 Congratulations, you've just advanced a Cooking level. You are now level #.
+9 Congratulations, you've just advanced a Fishing level. You are now level #.
+4 You cast your line...
+4 The water comes back in. Somewhere the bell stops, unanswered.
+3 You swing at the copper rock...
+3 You swing at the tin rock...
+3 You eat the ship's bread. +# health.
+3 Quest updated: The Flooded Seam
+3 A nest tumbles out of the branches!
+2 Quest updated: The Selkie's Skin
+2 Something big takes the line! Pull on the gold, three times.
+2 The line goes slack. Whatever it was, it's gone.
+2 Bell-time. The tide's running out further than it should, and on Crab Strand a bell is ringing where there is no bell. It's on your map.
+2 The nest hits the ground and the eggs break.
+1 Discovered: Bellwether Quay
+1 Discovered: Bellwether
+1 New quest: The Bell at Low Water
+1 Discovered: The Old Quarry
+1 Quest updated: The Bell at Low Water
+1 Discovered: Millbrook Copse
+1 New collection log entry: Bronze shot.
+--- log (last 80)
+ 32:39 MSG Discovered: Gullhaven
+ 32:46 MSG New quest: The Bucca's Share
+ 32:46 ON The Bell at Low Water (stage 2)
+ 32:46 TRAIN first: The Bell at Low Water, combat 12 recommended (me 3)
+ 32:46 ACTIVITY combat
+ 32:46 FIGHT Shore beetle (lvl 2, me 3) training
+ 33:31 MSG Discovered: Wreckers' Point
+ 33:44 ON The Flooded Seam (stage 4)
+ 33:44 TRAIN first: The Flooded Seam, combat 14 recommended (me 3)
+ 33:44 FIGHT Shore beetle (lvl 2, me 3) training
+ 34:01 ON Knock Three Times (stage 1)
+ 34:01 TRAIN first: Knock Three Times, combat 16 recommended (me 3)
+ 34:01 ON The Bucca's Share (stage 1)
+ 34:44 MSG Quest updated: The Bucca's Share
+ 34:44 ON The Selkie's Skin (stage 3)
+ 34:44 TRAIN first: The Selkie's Skin, combat 20 recommended (me 3)
+ 36:01 MSG Something big takes the line! Pull on the gold, three times.
+ 38:01 ON The Bell at Low Water (stage 2)
+ 38:01 TRAIN first: The Bell at Low Water, combat 12 recommended (me 3)
+ 38:22 MSG Bell-time. The tide's running out further than it should, and on Crab Strand a bell is ringing where there is no bell. It's on your map.
+ 38:51 FIGHT Knocker (lvl 12, me 3) it attacked me
+ 39:35 FIGHT Knocker (lvl 12, me 3) it attacked me
+ 40:39 DIED
+ 40:42 ON Knock Three Times (stage 1)
+ 40:42 TRAIN first: Knock Three Times, combat 16 recommended (me 3)
+ 40:42 ON The Selkie's Skin (stage 3)
+ 40:42 TRAIN first: The Selkie's Skin, combat 20 recommended (me 3)
+ 40:42 COOK 46 fish_sprat_raw
+ 42:06 ON The Flooded Seam (stage 4)
+ 42:06 TRAIN first: The Flooded Seam, combat 14 recommended (me 3)
+ 42:06 FIGHT Reef crab (lvl 2, me 3) training
+ 42:32 MSG Discovered: Bellwether Sands
+ 42:42 ON Old Greymuzzle (stage 1)
+ 42:42 TRAIN first: Old Greymuzzle, combat 16 recommended (me 3)
+ 42:42 FIGHT Shore beetle (lvl 2, me 3) training
+ 42:43 EQUIP Bronze arrows
+ 42:59 ON The Bucca's Share (stage 2)
+ 42:59 TRAIN first: The Bucca's Share, combat 10 recommended (me 4)
+ 43:25 ON The Bell at Low Water (stage 2)
+ 43:25 TRAIN first: The Bell at Low Water, combat 12 recommended (me 4)
+ 43:25 COOK 1 crab_meat_raw
+ 43:26 ON Wreckers' Lantern (stage 0)
+ 43:38 MSG New quest: Wreckers' Lantern
+ 43:38 TRAIN first: Wreckers' Lantern, combat 17 recommended (me 4)
+ 43:38 FIGHT Footpad (lvl 4, me 4) training
+ 44:16 ON Charted Waters (stage 0)
+ 44:43 BLOCKED Charted Waters stage 0: needs flags bell_done
+ 44:43 ON The Salt in the Fen (stage 0)
+ 44:43 BLOCKED The Salt in the Fen stage 0: needs flags firstlock_done,palewing_done
+ 44:44 ON The First Lock (stage 0)
+ 44:44 BLOCKED The First Lock stage 0: needs flags collector_done
+ 44:44 ON The Key Collector (stage 0)
+ 44:44 BLOCKED The Key Collector stage 0: needs flags bell_done
+ 44:45 ON The Lantern Burns Low (stage 0)
+ 44:45 BLOCKED The Lantern Burns Low stage 0: needs flags fen_done
+ 44:45 ON Thirteen's in the Belly (stage 0)
+ 44:45 BLOCKED Thirteen's in the Belly stage 0: needs flags lantern_done
+ 44:46 ON A Parley of Tides (stage 0)
+ 44:46 BLOCKED A Parley of Tides stage 0: needs flags belly_done
+ 44:46 FIGHT Footpad (lvl 4, me 4) training
+ 48:03 MSG A nest tumbles out of the branches!
+ 48:36 ON The Bell at Low Water (stage 2)
+ 48:36 TRAIN first: The Bell at Low Water, combat 12 recommended (me 4)
+ 48:36 ACTIVITY fishing
+ 48:36 FIGHT Footpad (lvl 4, me 4) training
+ 49:04 ON Knock Three Times (stage 1)
+ 49:04 TRAIN first: Knock Three Times, combat 16 recommended (me 4)
+ 52:05 ON The Selkie's Skin (stage 3)
+ 52:05 TRAIN first: The Selkie's Skin, combat 20 recommended (me 4)
+ 52:05 FIGHT Footpad (lvl 4, me 4) training
+ 52:28 ON The Flooded Seam (stage 4)
+ 52:28 TRAIN first: The Flooded Seam, combat 14 recommended (me 4)
+ 53:38 MSG A nest tumbles out of the branches!
+ 53:55 MSG Bell-time. The tide's running out further than it should, and on Crab Strand a bell is ringing where there is no bell. It's on your map.
+ 55:29 ON The Bell at Low Water (stage 2)
+ 55:29 TRAIN first: The Bell at Low Water, combat 12 recommended (me 4)
+ 58:30 ON Knock Three Times (stage 1)
+ 58:30 TRAIN first: Knock Three Times, combat 16 recommended (me 4)
+ 58:30 ACTIVITY woodcutting
+ 58:48 MSG A nest tumbles out of the branches!

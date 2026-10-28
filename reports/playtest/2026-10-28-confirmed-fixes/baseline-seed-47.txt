@@ -1,0 +1,113 @@
+=== PLAYTEST 60 min, seed 47 ===
+combat 5 skills attack 6, strength 1, defence 1, hitpoints 10, woodcutting 1, mining 1, fishing 15, cooking 19, smithing 1, crafting 1, fletching 1
+quests bell 2/4, knock 1/4
+deaths 0 fled 10 kills 5 ate 104 idle thinks 0 wrong mark orders 0
+coins 124 gear cutlass_rusty,helm_bronze
+--- blocked
+1 bell@1: needs 1x bar_bronze (have 0)
+--- quest timeline
+  0:03 bell -> 1
+  1:12 bell -> 2
+ 10:42 knock -> 1
+--- levels
+  1:56 fishing 2 |   2:25 fishing 3 |   3:07 fishing 4 |   3:50 fishing 5 |   4:30 cooking 2 |   4:41 cooking 3 |   4:48 cooking 4 |   4:57 cooking 5 |   5:08 cooking 6 |   5:21 cooking 7 |   5:28 cooking 8 |   6:06 fishing 6 |   6:59 fishing 7 |   7:52 fishing 8 |  20:22 attack 2 |  23:40 cooking 9 |  23:51 cooking 10 |  24:02 cooking 11 |  24:18 cooking 12 |  24:44 cooking 13 |  25:20 fishing 9 |  26:31 fishing 10 |  27:41 fishing 11 |  30:19 attack 3 |  31:55 attack 4 |  34:57 cooking 14 |  35:17 cooking 15 |  35:43 cooking 16 |  36:14 cooking 17 |  37:19 fishing 12 |  38:44 fishing 13 |  42:16 attack 5 |  52:23 attack 6 |  54:51 cooking 18 |  55:24 cooking 19 |  56:53 fishing 14 |  58:38 fishing 15
+--- top messages
+98 You eat the grilled sprat. +# health.
+45 You burn the reef sprat.
+18 Congratulations, you've just advanced a Cooking level. You are now level #.
+14 Congratulations, you've just advanced a Fishing level. You are now level #.
+5 You cast your line...
+5 Something big takes the line! Pull on the gold, three times.
+5 The line goes slack. Whatever it was, it's gone.
+5 Congratulations, you've just advanced an Attack level. You are now level #.
+4 The water comes back in. Somewhere the bell stops, unanswered.
+3 You eat the ship's bread. +# health.
+2 Bell-time. The tide's running out further than it should, and on Crab Strand a bell is ringing where there is no bell. It's on your map.
+1 Discovered: Bellwether Quay
+1 Discovered: Bellwether
+1 New quest: The Bell at Low Water
+1 Discovered: The Old Quarry
+1 You swing at the copper rock...
+1 You swing at the tin rock...
+1 Quest updated: The Bell at Low Water
+1 Bell-time. The tide's running out further than it should, and among the Howes a bell is ringing where there is no bell. It's on your map.
+1 Discovered: Ironcrag
+1 New quest: Knock Three Times
+1 Bell-time. The tide's running out further than it should, and below Wreckers' Point a bell is ringing where there is no bell. It's on your map.
+1 New collection log entry: Bronze helm.
+1 You found: Hale Bronze helm of the Bulwark
+1 You equip the Hale Bronze helm of the Bulwark.
+--- log (last 80)
+  0:00 MSG Discovered: Bellwether Quay
+  0:00 MSG Discovered: Bellwether
+  0:00 ON The Bell at Low Water (stage 0)
+  0:03 MSG New quest: The Bell at Low Water
+  0:04 BLOCKED The Bell at Low Water stage 1: needs 1x bar_bronze (have 0)
+  0:04 GATHER ore_copper for the quest
+  0:27 MSG Discovered: The Old Quarry
+  0:36 GATHER ore_tin for the quest
+  1:10 MAKE bar_bronze at the furnace
+  1:10 GOT bar_bronze
+  1:12 MSG Quest updated: The Bell at Low Water
+  1:51 MSG Something big takes the line! Pull on the gold, three times.
+  4:21 COOK 44 fish_sprat_raw
+  5:39 ACTIVITY combat
+  6:52 MSG Bell-time. The tide's running out further than it should, and among the Howes a bell is ringing where there is no bell. It's on your map.
+  7:16 MSG Something big takes the line! Pull on the gold, three times.
+  8:41 ACTIVITY fishing
+  8:44 ON Knock Three Times (stage 0)
+ 10:31 MSG Discovered: Ironcrag
+ 10:42 MSG New quest: Knock Three Times
+ 10:42 ON The Bell at Low Water (stage 2)
+ 12:39 ON Knock Three Times (stage 1)
+ 14:38 FIGHT Knocker (lvl 12, me 3) it attacked me
+ 15:39 ON The Bell at Low Water (stage 2)
+ 17:39 ON Knock Three Times (stage 1)
+ 19:36 FIGHT Knocker (lvl 12, me 3) it attacked me
+ 21:31 FLEE from Knocker (no food, 31 hp)
+ 21:32 FIGHT Knocker (lvl 12, me 3) it attacked me
+ 21:32 FLEE from Knocker (no food, 31 hp)
+ 21:33 FIGHT Knocker (lvl 12, me 3) it attacked me
+ 21:33 FLEE from Knocker (no food, 31 hp)
+ 21:34 FIGHT Knocker (lvl 12, me 3) it attacked me
+ 21:34 FLEE from Knocker (no food, 31 hp)
+ 21:35 FIGHT Knocker (lvl 12, me 3) it attacked me
+ 21:35 FLEE from Knocker (no food, 31 hp)
+ 21:36 FIGHT Knocker (lvl 12, me 3) it attacked me
+ 21:36 FLEE from Knocker (no food, 31 hp)
+ 21:37 FIGHT Knocker (lvl 12, me 3) it attacked me
+ 21:37 FLEE from Knocker (no food, 10 hp)
+ 21:38 FIGHT Knocker (lvl 12, me 3) it attacked me
+ 21:39 FLEE from Knocker (no food, 10 hp)
+ 21:39 FIGHT Knocker (lvl 12, me 3) it attacked me
+ 21:40 FLEE from Knocker (no food, 10 hp)
+ 21:40 FIGHT Knocker (lvl 12, me 3) it attacked me
+ 21:41 FLEE from Knocker (no food, 10 hp)
+ 23:06 MSG Bell-time. The tide's running out further than it should, and below Wreckers' Point a bell is ringing where there is no bell. It's on your map.
+ 23:35 ON The Bell at Low Water (stage 2)
+ 23:36 COOK 46 fish_sprat_raw
+ 24:59 ACTIVITY mining
+ 25:13 MSG Something big takes the line! Pull on the gold, three times.
+ 28:04 ON Knock Three Times (stage 1)
+ 30:04 FIGHT Knocker (lvl 12, me 3) it attacked me
+ 32:51 ON The Bell at Low Water (stage 2)
+ 34:51 COOK 47 fish_sprat_raw
+ 36:16 ACTIVITY combat
+ 36:49 MSG Something big takes the line! Pull on the gold, three times.
+ 38:22 MSG Bell-time. The tide's running out further than it should, and on Crab Strand a bell is ringing where there is no bell. It's on your map.
+ 39:21 ON Knock Three Times (stage 1)
+ 41:21 FIGHT Knocker (lvl 12, me 4) it attacked me
+ 42:19 ON The Bell at Low Water (stage 2)
+ 44:21 ON Knock Three Times (stage 1)
+ 46:18 FIGHT Knocker (lvl 12, me 4) it attacked me
+ 47:30 ON The Bell at Low Water (stage 2)
+ 47:32 EQUIP Bronze helm
+ 49:33 ON Knock Three Times (stage 1)
+ 51:30 FIGHT Knocker (lvl 12, me 4) it attacked me
+ 52:24 ON The Bell at Low Water (stage 2)
+ 53:55 MSG Bell-time. The tide's running out further than it should, and on Crab Strand a bell is ringing where there is no bell. It's on your map.
+ 54:23 COOK 51 fish_sprat_raw
+ 55:55 ACTIVITY fishing
+ 56:19 MSG Something big takes the line! Pull on the gold, three times.
+ 58:58 ACTIVITY woodcutting
+ 59:01 ON Knock Three Times (stage 1)

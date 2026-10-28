@@ -1,0 +1,120 @@
+=== PLAYTEST 60 min, seed 11 ===
+combat 5 skills attack 6, strength 1, defence 1, hitpoints 10, woodcutting 1, mining 1, fishing 13, cooking 17, smithing 1, crafting 1, fletching 1
+quests bell 2/4, knock 1/4
+deaths 0 fled 18 kills 9 ate 78 idle thinks 0 wrong mark orders 91
+coins 165 gear cutlass_rusty
+--- blocked
+1 bell@1: needs 1x bar_bronze (have 0)
+--- quest timeline
+  0:03 bell -> 1
+  1:09 bell -> 2
+ 10:40 knock -> 1
+--- levels
+  1:51 fishing 2 |   2:23 fishing 3 |   3:04 fishing 4 |   3:50 fishing 5 |   4:26 cooking 2 |   4:31 cooking 3 |   4:39 cooking 4 |   4:49 cooking 5 |   4:57 cooking 6 |   5:07 cooking 7 |   5:16 cooking 8 |   5:33 cooking 9 |   6:01 fishing 6 |   6:57 fishing 7 |   7:49 fishing 8 |  20:18 attack 2 |  21:39 attack 3 |  24:17 attack 4 |  26:27 cooking 10 |  26:43 cooking 11 |  27:02 cooking 12 |  27:24 cooking 13 |  28:06 fishing 9 |  29:16 fishing 10 |  30:24 fishing 11 |  38:48 attack 5 |  48:48 attack 6 |  50:54 cooking 14 |  51:16 cooking 15 |  51:38 cooking 16 |  52:01 cooking 17 |  53:19 fishing 12 |  54:45 fishing 13
+--- top messages
+91 Knock, knock, knock. The rock goes very quiet.
+91 The knocking stops dead. Start again from the face that knocks once.
+78 You eat the grilled sprat. +# health.
+32 You burn the reef sprat.
+29 You work it out at last: rock face (knock), then rock face (knock knock), then rock face (knock knock knock).
+16 Congratulations, you've just advanced a Cooking level. You are now level #.
+12 Congratulations, you've just advanced a Fishing level. You are now level #.
+5 Congratulations, you've just advanced an Attack level. You are now level #.
+4 You cast your line...
+4 The water comes back in. Somewhere the bell stops, unanswered.
+3 You eat the ship's bread. +# health.
+2 Something big takes the line! Pull on the gold, three times.
+2 The line goes slack. Whatever it was, it's gone.
+2 Bell-time. The tide's running out further than it should, and on Crab Strand a bell is ringing where there is no bell. It's on your map.
+1 Discovered: Bellwether Quay
+1 Discovered: Bellwether
+1 New quest: The Bell at Low Water
+1 Discovered: The Old Quarry
+1 You swing at the copper rock...
+1 You swing at the tin rock...
+1 Quest updated: The Bell at Low Water
+1 Bell-time. The tide's running out further than it should, and among the Howes a bell is ringing where there is no bell. It's on your map.
+1 Discovered: Ironcrag
+1 New quest: Knock Three Times
+1 Discovered: The Broken Ring
+--- log (last 80)
+ 23:26 MSG Knock, knock, knock. The rock goes very quiet.
+ 23:26 MSG You work it out at last: rock face (knock), then rock face (knock knock), then rock face (knock knock knock).
+ 23:26 MSG Knock, knock, knock. The rock goes very quiet.
+ 23:27 MSG Knock, knock, knock. The rock goes very quiet.
+ 23:27 MSG Knock, knock, knock. The rock goes very quiet.
+ 23:27 MSG You work it out at last: rock face (knock), then rock face (knock knock), then rock face (knock knock knock).
+ 23:28 MSG Knock, knock, knock. The rock goes very quiet.
+ 23:28 MSG Knock, knock, knock. The rock goes very quiet.
+ 23:29 MSG Knock, knock, knock. The rock goes very quiet.
+ 23:29 MSG You work it out at last: rock face (knock), then rock face (knock knock), then rock face (knock knock knock).
+ 23:29 MSG Knock, knock, knock. The rock goes very quiet.
+ 23:30 MSG Knock, knock, knock. The rock goes very quiet.
+ 23:31 MSG Knock, knock, knock. The rock goes very quiet.
+ 23:31 MSG You work it out at last: rock face (knock), then rock face (knock knock), then rock face (knock knock knock).
+ 23:31 MSG Knock, knock, knock. The rock goes very quiet.
+ 23:32 MSG Knock, knock, knock. The rock goes very quiet.
+ 23:32 MSG Knock, knock, knock. The rock goes very quiet.
+ 23:32 MSG You work it out at last: rock face (knock), then rock face (knock knock), then rock face (knock knock knock).
+ 23:33 MSG Knock, knock, knock. The rock goes very quiet.
+ 23:33 FIGHT Knocker (lvl 12, me 4) it attacked me
+ 24:06 FLEE from Knocker (no food, 36 hp)
+ 24:06 FIGHT Knocker (lvl 12, me 4) it attacked me
+ 24:07 FLEE from Knocker (no food, 36 hp)
+ 24:07 FIGHT Knocker (lvl 12, me 4) it attacked me
+ 24:08 FLEE from Knocker (no food, 36 hp)
+ 24:08 FIGHT Knocker (lvl 12, me 4) it attacked me
+ 24:09 FLEE from Knocker (no food, 36 hp)
+ 24:09 FIGHT Knocker (lvl 12, me 4) it attacked me
+ 24:10 FLEE from Knocker (no food, 36 hp)
+ 24:11 FIGHT Knocker (lvl 12, me 4) it attacked me
+ 24:11 FLEE from Knocker (no food, 36 hp)
+ 24:12 FIGHT Knocker (lvl 12, me 4) it attacked me
+ 24:12 FLEE from Knocker (no food, 36 hp)
+ 24:13 FIGHT Knocker (lvl 12, me 4) it attacked me
+ 24:13 FLEE from Knocker (no food, 36 hp)
+ 24:14 FIGHT Knocker (lvl 12, me 4) it attacked me
+ 24:14 FLEE from Knocker (no food, 36 hp)
+ 24:15 FIGHT Knocker (lvl 12, me 4) it attacked me
+ 24:15 FLEE from Knocker (no food, 8 hp)
+ 24:16 FIGHT Knocker (lvl 12, me 4) it attacked me
+ 24:16 FLEE from Knocker (no food, 8 hp)
+ 24:17 FIGHT Knocker (lvl 12, me 4) it attacked me
+ 24:17 FLEE from Knocker (no food, 8 hp)
+ 24:18 FIGHT Knocker (lvl 12, me 4) it attacked me
+ 24:19 FLEE from Knocker (no food, 8 hp)
+ 24:19 FIGHT Knocker (lvl 12, me 4) it attacked me
+ 24:20 FLEE from Knocker (no food, 8 hp)
+ 24:20 FIGHT Knocker (lvl 12, me 4) it attacked me
+ 24:21 FLEE from Knocker (no food, 8 hp)
+ 26:19 ON The Bell at Low Water (stage 2)
+ 26:19 COOK 46 fish_sprat_raw
+ 27:42 ACTIVITY mining
+ 30:47 ON Knock Three Times (stage 1)
+ 32:47 FIGHT Knocker (lvl 12, me 4) it attacked me
+ 34:05 ON The Bell at Low Water (stage 2)
+ 34:05 ACTIVITY combat
+ 36:04 ON Knock Three Times (stage 1)
+ 38:01 FIGHT Knocker (lvl 12, me 4) it attacked me
+ 38:22 MSG Bell-time. The tide's running out further than it should, and on Crab Strand a bell is ringing where there is no bell. It's on your map.
+ 38:53 ON The Bell at Low Water (stage 2)
+ 40:52 ON Knock Three Times (stage 1)
+ 42:49 FIGHT Knocker (lvl 12, me 4) it attacked me
+ 43:52 ON The Bell at Low Water (stage 2)
+ 45:51 ON Knock Three Times (stage 1)
+ 47:50 FIGHT Knocker (lvl 12, me 4) it attacked me
+ 48:48 FLEE from Knocker (no food, 39 hp)
+ 48:49 FIGHT Knocker (lvl 12, me 5) it attacked me
+ 48:49 FLEE from Knocker (no food, 39 hp)
+ 48:50 FIGHT Knocker (lvl 12, me 5) it attacked me
+ 48:50 FLEE from Knocker (no food, 39 hp)
+ 48:51 FIGHT Knocker (lvl 12, me 5) it attacked me
+ 50:49 ON The Bell at Low Water (stage 2)
+ 50:49 COOK 47 fish_sprat_raw
+ 52:14 ACTIVITY fishing
+ 53:05 MSG Something big takes the line! Pull on the gold, three times.
+ 53:55 MSG Bell-time. The tide's running out further than it should, and on Crab Strand a bell is ringing where there is no bell. It's on your map.
+ 55:20 ON Knock Three Times (stage 1)
+ 57:19 FIGHT Knocker (lvl 12, me 5) it attacked me
+ 58:20 ON The Bell at Low Water (stage 2)
+ 58:20 ACTIVITY woodcutting
