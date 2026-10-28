@@ -1,0 +1,50 @@
+
+== woodcutting
+tree_pine              lvl  1 xp    25 rate 0.33  xp/h at req  12375  +20  17152
+bamboo_fire            lvl  1 xp    12 rate 0.70  xp/h at req  12600  +20  15300
+tree_oak               lvl 15 xp  37.5 rate 0.25  xp/h at req  14766  +20  19862
+tree_willow            lvl 30 xp  67.5 rate 0.25  xp/h at req  26578  +20  37088
+tree_amber             lvl 45 xp   100 rate 0.22  xp/h at req  35310  +20  48352
+tree_yew               lvl 60 xp   175 rate 0.15  xp/h at req  43706  +20  59252
+tree_star              lvl 75 xp   250 rate 0.13  xp/h at req  56858  +20  75052
+tree_cedar             lvl 90 xp   380 rate 0.10  xp/h at req  68229  +20  78054
+  to 11: 0.1h | to 21: 0.3h | to 31: 0.8h | to 51: 3.7h | to 71: 18.6h | to 91: 97.9h | to 99: 193.0h
+
+== mining
+rock_copper            lvl  1 xp  17.5 rate 0.42  xp/h at req  11025  +20  15281
+rock_tin               lvl  1 xp  17.5 rate 0.42  xp/h at req  11025  +20  15281
+rock_boulder           lvl  1 xp    10 rate 0.40  xp/h at req   6000  +20   8316
+rock_glimmer           lvl  1 xp     5 rate 0.75  xp/h at req   5625  +20   6375
+amber_seep             lvl  1 xp    14 rate 0.65  xp/h at req  13650  +20  17850
+rock_iron              lvl 15 xp    35 rate 0.29  xp/h at req  15986  +20  21504
+rock_coal              lvl 30 xp    50 rate 0.29  xp/h at req  22838  +20  31868
+rock_gold              lvl 40 xp    65 rate 0.29  xp/h at req  30254  +20  41429
+rock_storm             lvl 50 xp    80 rate 0.28  xp/h at req  37296  +20  49231
+rock_abyss             lvl 60 xp    95 rate 0.27  xp/h at req  42707  +20  57897
+rock_tide              lvl 70 xp   125 rate 0.25  xp/h at req  52031  +20  70538
+rock_cinder            lvl 75 xp   145 rate 0.22  xp/h at req  54549  +20  72005
+rock_sky               lvl 82 xp   170 rate 0.20  xp/h at req  58140  +20  73954
+rock_levi              lvl 88 xp   190 rate 0.19  xp/h at req  61731  +20  72596
+rock_ori               lvl 94 xp   220 rate 0.17  xp/h at req  63954  +20  69070 (ship)
+  to 11: 0.1h | to 21: 0.3h | to 31: 0.8h | to 51: 3.9h | to 71: 19.4h | to 91: 98.2h | to 99: 193.6h
+
+== fishing
+spot_sprat             lvl  1 xp    10 rate 0.56  xp/h at req   8400  +20  11642
+spot_storm             lvl  1 xp    15 rate 0.70  xp/h at req  15750  +20  19125
+spot_bell              lvl 10 xp    30 rate 0.29  xp/h at req  13703  +20  18087 (ship)
+spot_trout             lvl 20 xp    50 rate 0.27  xp/h at req  21263  +20  28601
+spot_salmon            lvl 20 xp    50 rate 0.25  xp/h at req  19688  +20  26483
+spot_sword             lvl 35 xp    80 rate 0.23  xp/h at req  29532  +20  40440 (ship)
+spot_lobster           lvl 40 xp    90 rate 0.22  xp/h at req  31779  +20  43516
+spot_gloom             lvl 62 xp   120 rate 0.22  xp/h at req  43956  +20  59590
+spot_shark             lvl 76 xp   110 rate 0.27  xp/h at req  50787  +20  67039 (ship)
+spot_angler            lvl 76 xp   110 rate 0.28  xp/h at req  52668  +20  69522 (ship)
+  to 11: 0.1h | to 21: 0.3h | to 31: 0.7h | to 51: 3.6h | to 71: 19.1h | to 91: 103.4h | to 99: 206.8h
+
+== production (xp/h at the best recipe for the level; 1.8 s a craft)
+smithing     recipes 144 | to 11: 0.0h | to 31: 0.2h | to 51: 0.5h | to 71: 1.9h | to 99: 17.7h
+fletching    recipes  45 | to 11: 0.1h | to 31: 0.3h | to 51: 1.1h | to 71: 3.5h | to 99: 28.2h
+gunsmithing  recipes  20 | to 11: 0.0h | to 31: 0.1h | to 51: 0.5h | to 71: 2.3h | to 99: 24.6h
+cooking      recipes  32 | to 11: 0.0h | to 31: 0.1h | to 51: 0.4h | to 71: 2.2h | to 99: 23.5h
+crafting     recipes  58 | to 11: 0.0h | to 31: 0.2h | to 51: 0.6h | to 71: 2.7h | to 99: 16.8h
+shardcraft   recipes  13 | to 11: 0.1h | to 31: 1.0h | to 51: 6.6h | to 71: 42.7h | to 99: 593.7h
