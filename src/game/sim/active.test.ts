@@ -36,6 +36,9 @@ function chop(when: number | null, secs = 900, seed = 21) {
 
 describe('active skilling', () => {
   it('the bar shows on the swing that lands a log: gold, its red heart, too soon; one tap a swing', () => {
+    const chance = MOMENTS.chance;
+    MOMENTS.chance = 0; // a nest falling mid-test would bring its own bar (its own test is below)
+    try {
     const g = fresh();
     g.give('hatchet_bronze', 1);
     const n = g.nodes.find((x) => x.def === 'tree_pine')!;
@@ -56,6 +59,7 @@ describe('active skilling', () => {
     while (g.cueState()?.struck) g.step(1 / 30);
     live(); at(ACTIVE.red[0] + 0.01);
     expect(g.strike()).toBe('red');
+    } finally { MOMENTS.chance = chance; }
   });
 
   it('gold doubles the log that lands (1.5x XP), red trebles it (2x XP); mistimed and no taps change nothing', () => {
