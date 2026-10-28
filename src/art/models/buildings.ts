@@ -18,7 +18,7 @@ const WALL_COL = { timber: 'plank', stone: 'stone', plaster: 0xe6dcc6 } as const
 /** `trim` (windows, sign) sits on the walls and hides as you walk in, since it can't be cut down with them. */
 export interface EnterableView { group: THREE.Group; walls: THREE.Group; trim: THREE.Group; roof: THREE.Group; interior: THREE.Group }
 
-export function buildEnterable(b: BuildingDef): EnterableView {
+export function buildEnterable(b: BuildingDef, coastalFinish = false): EnterableView {
   const rnd = mulberry32(b.seed);
   const group = new THREE.Group(), walls = new THREE.Group(), roof = new THREE.Group(), interior = new THREE.Group();
   const trim = new THREE.Group();
@@ -103,7 +103,20 @@ export function buildEnterable(b: BuildingDef): EnterableView {
     side.position.set(0, top + rise, 0);
     side.rotation.x = s * slope;
     const rows = Math.max(4, Math.round(slab / 0.55));
-    for (let r = 0; r < rows; r++) side.add(at(mesh(jitter(new THREE.BoxGeometry(W + 0.75, 0.1, slab / rows + 0.08), 0.03, b.seed + r * 7 + s), mat(r % 2 ? 'roof' : 0x4f4050)), 0, -r * 0.02, s * (slab / rows) * (r + 0.5)));
+    for (let r = 0; r < rows; r++) {
+      let course: THREE.BufferGeometry;
+      if (coastalFinish) {
+        // Slightly settled rafters and lifted eaves, authored across each continuous shingle course.
+        course = new THREE.BoxGeometry(W + 0.75, 0.12, slab / rows + 0.08, 8, 1, 2);
+        const p = course.getAttribute('position');
+        for (let i = 0; i < p.count; i++) {
+          const u = p.getX(i) / ((W + .75) / 2);
+          p.setY(i, p.getY(i) - .11 * (1 - u * u) + .035 * Math.sin(r / rows * Math.PI));
+        }
+        course.computeVertexNormals();
+      } else course = jitter(new THREE.BoxGeometry(W + 0.75, 0.1, slab / rows + 0.08), 0.03, b.seed + r * 7 + s);
+      side.add(at(mesh(course, mat(coastalFinish || r % 2 ? 'roof' : 0x4f4050)), 0, -r * .02, s * (slab / rows) * (r + .5)));
+    }
     roof.add(side);
   }
   roof.add(at(mesh(new THREE.CylinderGeometry(0.1, 0.1, W + 0.85, 10), beam), 0, top + rise + 0.06, 0, 0, 0, Math.PI / 2));
@@ -111,6 +124,26 @@ export function buildEnterable(b: BuildingDef): EnterableView {
   gable.moveTo(-hd, 0); gable.lineTo(hd, 0); gable.lineTo(0, rise); gable.lineTo(-hd, 0);
   for (const x of [-hw + 0.02, hw - 0.1]) roof.add(at(mesh(new THREE.ExtrudeGeometry(gable, { depth: 0.08, bevelEnabled: false }), b.style === 'stone' ? mat('stone') : wallMat), x, top, 0, 0, Math.PI / 2, 0));
   if (b.chimney !== false) for (let k = 0; k < 6; k++) roof.add(at(mesh(jitter(new THREE.CylinderGeometry(0.32 - k * 0.012, 0.34 - k * 0.012, 0.34, 12), 0.04, b.seed + 77 + k), mat(k % 2 ? 'stone' : 'stoneDark')), hw - 0.9, top + rise * 0.4 + k * 0.32, -hd * 0.45, 0, k * 0.7, 0));
+
+  if (coastalFinish) {
+    // Raking bargeboards, carved eave brackets and a chimney coping give the quay a built silhouette.
+    for (const x of [-hw - .22, hw + .22]) for (const s of [-1, 1]) {
+      roof.add(at(box(.16, .19, slab + .05, beam), x, top + rise * .5 - .03, s * hd * .5, s * slope));
+      const brace = box(.14, .66, .15, beam);
+      roof.add(at(brace, x * .93, top - .2, s * (hd - .13), s * -.65));
+    }
+    if (b.chimney !== false) {
+      roof.add(at(box(.72, .16, .72, mat('stoneDark')), hw - .9, top + rise * .4 + 1.95, -hd * .45));
+      roof.add(at(box(.4, .025, .4, mat('iron')), hw - .9, top + rise * .4 + 2.04, -hd * .45));
+    }
+    for (const [t, off, ax] of windows) {
+      const out = off > 0 ? 1 : -1;
+      for (const hand of [-1, 1]) {
+        const shutter = box(ax ? .24 : .075, .78, ax ? .075 : .24, mat('plankWorn'));
+        trim.add(at(shutter, ax ? t + hand * .56 : off + out * .07, FLOOR_Y + 1.5, ax ? off + out * .07 : t + hand * .56));
+      }
+    }
+  }
 
   for (const f of b.furniture) interior.add(furniture(f, rnd));
   return { group, walls, trim, roof, interior };

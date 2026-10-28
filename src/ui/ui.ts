@@ -1,3 +1,5 @@
+import { BELLWETHER_REDESIGN } from '../game/world/variant';
+import { BELLWETHER_OUTLINE } from '../game/world/bellwether-coast';
 import { SEEP } from '../game/sim/amberseep';
 import { onIconReady } from '../art/overrides';
 import { FIRE } from '../game/sim/greenfire';
@@ -1889,7 +1891,8 @@ export class UI {
     const here = (id: string) => g.s.region === id || (g.region.home === id && g.region.kind === 'cave');
     for (const is of ISLES) {
       c.beginPath();
-      for (let k = 0; k <= 96; k++) { const t = (k / 96) * Math.PI * 2 - Math.PI, rr = is.coast(t); const [px, py] = toPx(is.x + Math.cos(t) * rr, is.z + Math.sin(t) * rr); if (k) c.lineTo(px, py); else c.moveTo(px, py); }
+      const outline = is.id === 'bellwether' && BELLWETHER_REDESIGN ? BELLWETHER_OUTLINE : Array.from({length: 97}, (_, k) => { const t = k / 96 * Math.PI * 2 - Math.PI, r = is.coast(t); return [is.x + Math.cos(t) * r, is.z + Math.sin(t) * r]; });
+      outline.forEach(([x, z], k) => { const [px, py] = toPx(x, z); if (k) c.lineTo(px, py); else c.moveTo(px, py); });
       c.closePath(); c.fillStyle = '#e8d9a8'; c.fill(); c.lineWidth = 3; c.strokeStyle = '#8a6a3a'; c.stroke();
       c.save(); c.clip(); c.fillStyle = here(is.id) ? '#7fa65a' : '#93ab6c'; const [px, py] = toPx(is.x, is.z); c.beginPath(); c.arc(px, py, ((is.coast(0) - 10) * is.zoom) / span * W, 0, 7); c.fill(); c.restore();
     }

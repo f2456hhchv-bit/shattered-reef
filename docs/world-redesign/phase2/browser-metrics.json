@@ -1,0 +1,317 @@
+{
+  "environment": "Headless Chromium, Linux, SwiftShader software GPU. Browser measurements only, not real phone hardware.",
+  "pages": [
+    {
+      "mode": "phase2",
+      "mobile": false,
+      "bootMs": 12410,
+      "wallFps": 1.4490338566759828,
+      "frames": 20,
+      "cpuMedianMs": 8.800000000745058,
+      "cpuP95Ms": 16.599999997764826,
+      "lastFrame": {
+        "cpuMs": 7.399999998509884,
+        "wallIntervalMs": 655.5,
+        "dtMs": 100,
+        "calls": 53,
+        "triangles": 172758
+      },
+      "perf": {
+        "tier": 5,
+        "fps": 0,
+        "pr": 1
+      },
+      "gpuRenderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+      "heap": {
+        "used": 204824275,
+        "total": 270631107
+      },
+      "renderMemory": {
+        "geometries": 175,
+        "textures": 5
+      },
+      "viewport": {
+        "width": 1280,
+        "height": 800,
+        "dpr": 1
+      },
+      "navigation": {
+        "name": "http://127.0.0.1:5175/?bellwether=phase2",
+        "entryType": "navigation",
+        "startTime": 0,
+        "duration": 223.29999999701977,
+        "navigationId": 9966,
+        "initiatorType": "navigation",
+        "deliveryType": "",
+        "nextHopProtocol": "http/1.1",
+        "renderBlockingStatus": "non-blocking",
+        "contentType": "text/html",
+        "contentEncoding": "",
+        "workerStart": 0,
+        "workerRouterEvaluationStart": 0,
+        "workerCacheLookupStart": 0,
+        "workerMatchedSourceType": "",
+        "workerFinalSourceType": "",
+        "redirectStart": 0,
+        "redirectEnd": 0,
+        "fetchStart": 0.7999999970197678,
+        "domainLookupStart": 0.7999999970197678,
+        "domainLookupEnd": 0.7999999970197678,
+        "connectStart": 0.7999999970197678,
+        "secureConnectionStart": 0,
+        "connectEnd": 0.7999999970197678,
+        "requestStart": 4.199999999254942,
+        "responseStart": 7,
+        "firstInterimResponseStart": 0,
+        "finalResponseHeadersStart": 7,
+        "responseEnd": 7.199999999254942,
+        "transferSize": 1305,
+        "encodedBodySize": 1005,
+        "decodedBodySize": 1005,
+        "responseStatus": 200,
+        "serverTiming": [],
+        "unloadEventStart": 0,
+        "unloadEventEnd": 0,
+        "domInteractive": 24.299999997019768,
+        "domContentLoadedEventStart": 216.79999999701977,
+        "domContentLoadedEventEnd": 216.79999999701977,
+        "domComplete": 223.29999999701977,
+        "loadEventStart": 223.29999999701977,
+        "loadEventEnd": 223.29999999701977,
+        "type": "navigate",
+        "redirectCount": 0,
+        "activationStart": 0,
+        "criticalCHRestart": 0,
+        "notRestoredReasons": null,
+        "confidence": {
+          "randomizedTriggerRate": 0.4994798,
+          "value": "low"
+        }
+      },
+      "prototypeChunks": [
+        {
+          "name": "bellwether-shore-data-BX-D_JI8.js",
+          "duration": 78,
+          "transfer": 994865
+        },
+        {
+          "name": "bellwether-outline-D5ndDXqt.js",
+          "duration": 8.300000000745058,
+          "transfer": 15111
+        },
+        {
+          "name": "bellwether-classic-nodes-D1BRVO0B.js",
+          "duration": 31.5,
+          "transfer": 203157
+        }
+      ]
+    },
+    {
+      "mode": "classic",
+      "mobile": false,
+      "bootMs": 10309,
+      "wallFps": 1.3957805553812281,
+      "frames": 20,
+      "cpuMedianMs": 9.599999997764826,
+      "cpuP95Ms": 18.300000000745058,
+      "lastFrame": {
+        "cpuMs": 8.800000000745058,
+        "wallIntervalMs": 771.3999999985099,
+        "dtMs": 100,
+        "calls": 90,
+        "triangles": 173174
+      },
+      "perf": {
+        "tier": 5,
+        "fps": 0,
+        "pr": 1
+      },
+      "gpuRenderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+      "heap": {
+        "used": 182880584,
+        "total": 281067276
+      },
+      "renderMemory": {
+        "geometries": 216,
+        "textures": 5
+      },
+      "viewport": {
+        "width": 1280,
+        "height": 800,
+        "dpr": 1
+      },
+      "navigation": {
+        "name": "http://127.0.0.1:5175/?bellwether=classic",
+        "entryType": "navigation",
+        "startTime": 0,
+        "duration": 298.9000000022352,
+        "navigationId": 1266,
+        "initiatorType": "navigation",
+        "deliveryType": "",
+        "nextHopProtocol": "http/1.1",
+        "renderBlockingStatus": "non-blocking",
+        "contentType": "text/html",
+        "contentEncoding": "",
+        "workerStart": 0,
+        "workerRouterEvaluationStart": 0,
+        "workerCacheLookupStart": 0,
+        "workerMatchedSourceType": "",
+        "workerFinalSourceType": "",
+        "redirectStart": 0,
+        "redirectEnd": 0,
+        "fetchStart": 0.6999999992549419,
+        "domainLookupStart": 0.6999999992549419,
+        "domainLookupEnd": 0.6999999992549419,
+        "connectStart": 0.6999999992549419,
+        "secureConnectionStart": 0,
+        "connectEnd": 0.6999999992549419,
+        "requestStart": 4.699999999254942,
+        "responseStart": 7.300000000745058,
+        "firstInterimResponseStart": 0,
+        "finalResponseHeadersStart": 7.300000000745058,
+        "responseEnd": 7.699999999254942,
+        "transferSize": 1305,
+        "encodedBodySize": 1005,
+        "decodedBodySize": 1005,
+        "responseStatus": 200,
+        "serverTiming": [],
+        "unloadEventStart": 0,
+        "unloadEventEnd": 0,
+        "domInteractive": 41,
+        "domContentLoadedEventStart": 297.69999999925494,
+        "domContentLoadedEventEnd": 298.5,
+        "domComplete": 298.9000000022352,
+        "loadEventStart": 298.9000000022352,
+        "loadEventEnd": 298.9000000022352,
+        "type": "navigate",
+        "redirectCount": 0,
+        "activationStart": 0,
+        "criticalCHRestart": 0,
+        "notRestoredReasons": null,
+        "confidence": {
+          "randomizedTriggerRate": 0.4994798,
+          "value": "high"
+        }
+      },
+      "prototypeChunks": []
+    },
+    {
+      "mode": "phase2",
+      "mobile": true,
+      "bootMs": 10644,
+      "wallFps": 3.4043132649075005,
+      "frames": 20,
+      "cpuMedianMs": 30.899999998509884,
+      "cpuP95Ms": 85.59999999776483,
+      "lastFrame": {
+        "cpuMs": 23,
+        "wallIntervalMs": 303.19999999925494,
+        "dtMs": 100,
+        "calls": 81,
+        "triangles": 173158
+      },
+      "perf": {
+        "tier": 5,
+        "fps": 0,
+        "pr": 1
+      },
+      "gpuRenderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+      "heap": {
+        "used": 215665742,
+        "total": 286168446
+      },
+      "renderMemory": {
+        "geometries": 217,
+        "textures": 5
+      },
+      "viewport": {
+        "width": 390,
+        "height": 844,
+        "dpr": 1
+      },
+      "navigation": {
+        "name": "http://127.0.0.1:5175/?bellwether=phase2",
+        "entryType": "navigation",
+        "startTime": 0,
+        "duration": 242.09999999776483,
+        "navigationId": 4987,
+        "initiatorType": "navigation",
+        "deliveryType": "",
+        "nextHopProtocol": "http/1.1",
+        "renderBlockingStatus": "non-blocking",
+        "contentType": "text/html",
+        "contentEncoding": "",
+        "workerStart": 0,
+        "workerRouterEvaluationStart": 0,
+        "workerCacheLookupStart": 0,
+        "workerMatchedSourceType": "",
+        "workerFinalSourceType": "",
+        "redirectStart": 0,
+        "redirectEnd": 0,
+        "fetchStart": 0.6999999992549419,
+        "domainLookupStart": 2.199999999254942,
+        "domainLookupEnd": 2.199999999254942,
+        "connectStart": 2.199999999254942,
+        "secureConnectionStart": 0,
+        "connectEnd": 2.399999998509884,
+        "requestStart": 2.5,
+        "responseStart": 4.699999999254942,
+        "firstInterimResponseStart": 0,
+        "finalResponseHeadersStart": 4.699999999254942,
+        "responseEnd": 5.899999998509884,
+        "transferSize": 1305,
+        "encodedBodySize": 1005,
+        "decodedBodySize": 1005,
+        "responseStatus": 200,
+        "serverTiming": [],
+        "unloadEventStart": 0,
+        "unloadEventEnd": 0,
+        "domInteractive": 28.5,
+        "domContentLoadedEventStart": 241.69999999925494,
+        "domContentLoadedEventEnd": 241.89999999850988,
+        "domComplete": 242,
+        "loadEventStart": 242.09999999776483,
+        "loadEventEnd": 242.09999999776483,
+        "type": "navigate",
+        "redirectCount": 0,
+        "activationStart": 0,
+        "criticalCHRestart": 0,
+        "notRestoredReasons": null,
+        "confidence": {
+          "randomizedTriggerRate": 0.4994798,
+          "value": "low"
+        }
+      },
+      "prototypeChunks": [
+        {
+          "name": "bellwether-shore-data-BX-D_JI8.js",
+          "duration": 94.39999999850988,
+          "transfer": 994865
+        },
+        {
+          "name": "bellwether-outline-D5ndDXqt.js",
+          "duration": 4.600000001490116,
+          "transfer": 15111
+        },
+        {
+          "name": "bellwether-classic-nodes-D1BRVO0B.js",
+          "duration": 28.400000002235174,
+          "transfer": 203157
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "save": {
+    "success": true,
+    "originalUnchanged": true,
+    "geometry": "bellwether-phase2-v1",
+    "flag": true
+  },
+  "touch": {
+    "responseWallMs": 930.4000000022352,
+    "movedMetres": 0.9199999999999999,
+    "onWalkableGround": true,
+    "moveDirectionReleased": true
+  }
+}

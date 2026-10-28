@@ -2,7 +2,7 @@
 // Rules ported from Tom's the-shattered-reef: read the foe, swap the ammo. Cannonballs do everything a little; each
 // foe has one ammo that hits it properly; sharks under the water can only be reached with depth charges.
 import type { RegionId } from '../world/regions';
-import { coastPoint, sunPoint, amberPoint } from '../world/island';
+import { coastPoint, sunPoint, amberPoint, BELLWETHER_GNASHER_LAIR } from '../world/island';
 
 export type AmmoId = 'cannonball' | 'chain_shot' | 'depth_charge' | 'fire_barrel';
 
@@ -149,7 +149,7 @@ export const SEA_SPAWNS: Partial<Record<RegionId, { foe: string; x: number; z: n
     off('gull_flock', 125, 18), off('gull_flock', 205, 18), off('gull_flock', 250, 20),
     off('wreckers_cutter', 312, 22), off('wreckers_cutter', 296, 26),
     off('reef_shark', 15, 24), off('reef_shark', 165, 26), off('reef_shark', 228, 26),
-    off('old_gnasher', 45, 26),
+    { foe: 'old_gnasher', x: BELLWETHER_GNASHER_LAIR[0], z: BELLWETHER_GNASHER_LAIR[1] },
   ],
   // Sunreach's waters (15-30): brigs and fire ships round the north, serpents in the deeps, and the Red Ransom
   // anchored off the north point. Clear of Port Halyard (the south shore, 90 degrees) and of the east and west

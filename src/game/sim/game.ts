@@ -1,3 +1,5 @@
+import { shipHullFits } from '../world/shipHull';
+import { migrateBellwetherGeometry } from './geometryMigration';
 import { StormTide } from './stormtide';
 import { GreenheartFire } from './greenfire';
 import { AmberSeep } from './amberseep';
@@ -253,6 +255,7 @@ export class Game {
     this.luckyAt = this.nextLucky(0);
     const home = regionLayout('bellwether');
     this.s = opts.save ?? defaultSave(home.respawn, home.mooring!);
+    migrateBellwetherGeometry(this.s);
     // the collection log starts with what you already own (saves from before the log existed)
     if (!this.s.collected) this.s.collected = [...new Set([...this.s.player.inv, ...Object.values(this.s.player.equip), ...this.s.bank].filter((x): x is Stack => !!x).map((x) => x.id).filter((id) => COLLECTIBLE.has(id)))];
     if (this.s.flags.bell_done && !this.s.keyring.includes('keels_tooth')) this.s.keyring.push('keels_tooth'); // finished the bell quest before keys
@@ -1654,11 +1657,7 @@ export class Game {
   private laneHinted = -999;
 
   hullFits(x: number, z: number, h: number) {
-    const c = Math.cos(h), s = Math.sin(h);
-    for (const [lx, lz] of [[4.6, 0], [-3.8, 0], [0.5, 1.3], [0.5, -1.3], [2.5, 0.8], [2.5, -0.8], [-2, 1.1], [-2, -1.1]]) {
-      if (!this.world.sailable(x + lx * c - lz * s, z + lx * s + lz * c)) return false;
-    }
-    return true;
+    return shipHullFits(this.world, x, z, h);
   }
 
   // ------------------------------------------------------------------ combat

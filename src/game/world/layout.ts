@@ -1,7 +1,9 @@
+import { BELLWETHER_REDESIGN } from './variant';
+import { NODES } from '../data/content';
 import { mulberry32 } from '../../art/noise';
 import { DOORS } from '../data/doors';
 import type { ShardKey, Station } from '../data/content';
-import { BELL_TOWN, BELL_ROUNDS, BELL_OUTDOOR, flatsAt, PORT_TOWN, LAYOUT, LAGOON, SEA_SPOTS, PATHS, BEACH, coastPoint, coastDist, nearestPathDist, FLATS, SUN, SUN_LAYOUT, SUN_RADIUS, SUN_SEA_SPOTS, sunPoint, WRACK, WRACK_LAYOUT, WRACK_RADIUS, WRACK_SEA_SPOTS, wrackPoint, AMBER, AMBER_LAYOUT, AMBER_RADIUS, AMBER_SEA_SPOTS, amberPoint, LOCK, LOCK_LAYOUT, LOCK_RADIUS, LOCK_SEA_SPOTS, lockPoint, SALT, SALT_LAYOUT, SALT_RADIUS, SALT_SEA_SPOTS, MIRROR_POOL, saltPoint, LONG, LONG_LAYOUT, LONG_RADIUS, LONG_SEA_SPOTS, longPoint, rawHeight } from './island';
+import { BELLWETHER_GNASHER_LAIR, BELL_TOWN, BELL_ROUNDS, BELL_OUTDOOR, flatsAt, PORT_TOWN, LAYOUT, LAGOON, SEA_SPOTS, PATHS, BEACH, coastPoint, coastDist, nearestPathDist, FLATS, SUN, SUN_LAYOUT, SUN_RADIUS, SUN_SEA_SPOTS, sunPoint, WRACK, WRACK_LAYOUT, WRACK_RADIUS, WRACK_SEA_SPOTS, wrackPoint, AMBER, AMBER_LAYOUT, AMBER_RADIUS, AMBER_SEA_SPOTS, amberPoint, LOCK, LOCK_LAYOUT, LOCK_RADIUS, LOCK_SEA_SPOTS, lockPoint, SALT, SALT_LAYOUT, SALT_RADIUS, SALT_SEA_SPOTS, MIRROR_POOL, saltPoint, LONG, LONG_LAYOUT, LONG_RADIUS, LONG_SEA_SPOTS, longPoint, rawHeight } from './island';
 import { World } from './world';
 import { buildingSolids, doorPoints, toLocal, toWorld, type BuildingDef } from './buildings';
 import type { TownPlan } from './town';
@@ -46,6 +48,9 @@ export interface IslandLayout {
   portals: Portal[];
   respawn: { x: number; z: number };
 }
+
+// The saved-node identity contract is only needed by opted-in prototype sessions.
+const classicNodes: readonly NodePlacement[] = BELLWETHER_REDESIGN ? (await import('./bellwether-classic-nodes.json')).default : [];
 
 const cache = new Map<RegionId, IslandLayout>();
 /** A region's layout (built once, then shared: it's read-only after the build). */
@@ -517,6 +522,18 @@ function buildIslandRegion(region: IslandId): IslandLayout {
     reefs.push({ x, z, r: 0.8 + rnd() * 1.2 });
     made++;
   }
+  if (bell && BELLWETHER_REDESIGN) {
+    // Preserve the boss reef's original cover and charge lanes after relocating its lair out of the working cove.
+    const [gx, gz] = BELLWETHER_GNASHER_LAIR;
+    for (let i = reefs.length - 1; i >= 0; i--) if (Math.hypot(reefs[i].x - gx, reefs[i].z - gz) < 45) reefs.splice(i, 1);
+    for (const [dx, dz, r] of [
+      [0.82641133450325, -17.28592166037435, 1.4056366231292485],
+      [-1.77861426513209, -5.88143676594291, 1.4171603793278336],
+      [12.89158775784555, -5.84892286491459, 1.128525663074106],
+      [2.35372716269955, -17.04861212406485, 1.7403963286429645],
+      [-15.4274786520021, -13.04196827843165, 1.9771634740754962],
+    ]) reefs.push({ x: gx + dx, z: gz + dz, r });
+  }
   world.reefs.push(...reefs);
 
   // ---- vegetation and rocks (solid, every one usable): woods are dense, open country is sparse
@@ -931,9 +948,60 @@ function buildIslandRegion(region: IslandId): IslandLayout {
     made++;
   }
 
+  if (bell && BELLWETHER_REDESIGN) {
+    // The classic manifest is the persistence contract: geography never re-rolls a depleted tree into ore.
+    // Remove generated node collisions before restoring the same identities at intentional safe positions.
+    const positions = new Set(nodes.map(n => `${n.x},${n.z}`));
+    for (let i = world.solids.length - 1; i >= 0; i--) {
+      if (positions.has(`${world.solids[i].x},${world.solids[i].z}`)) world.solids.splice(i, 1);
+    }
+    const active = new Map(nodes.map(n => [`${n.def}:${n.seed}`, n]));
+    nodes.length = 0;
+    world.bake();
+    const clear = (x: number, z: number) => world.walkable(x, z) &&
+      !world.solids.some(s => Math.hypot(s.x - x, s.z - z) < ('r' in s ? s.r : Math.hypot(s.w, s.d) / 2) + 1.3) &&
+      !nodes.some(n => Math.hypot(n.x - x, n.z - z) < 2.4);
+    for (const original of classicNodes) {
+      const n: NodePlacement = { ...original };
+      const def = NODES[n.def], generated = active.get(`${n.def}:${n.seed}`);
+      if (def.fromShip || n.def.startsWith('spot_') || n.def === 'kelp_bed' || n.def === 'salt_pan') {
+        // Reuse already shore-aligned explicit placements when available; their UID comes from the manifest.
+        if (generated) { n.x = generated.x; n.z = generated.z; }
+        if (def.fromShip && !world.sailable(n.x, n.z)) {
+          const angle = Math.atan2(n.z, n.x) * 180 / Math.PI;
+          for (let out = 16; out <= 80; out += 2) {
+            const p = coastPoint(angle, -out);
+            if (world.sailable(p[0], p[1])) { [n.x, n.z] = p; break; }
+          }
+        }
+        if (!def.fromShip && !world.nearestWalkable(n.x, n.z, n.def === 'kelp_bed' ? 3.1 : 2.4)) {
+          const angle = Math.atan2(n.z, n.x) * 180 / Math.PI;
+          const p = coastPoint(angle, n.def === 'salt_pan' ? 4.5 : -0.9);
+          [n.x, n.z] = p;
+        }
+      } else if (!clear(n.x, n.z)) {
+        // Retain the original spot whenever possible; deterministic rings relocate only affected nodes.
+        let found = false;
+        for (let r = 2; r <= 180 && !found; r += 2) {
+          const steps = Math.ceil(r * Math.PI);
+          for (let k = 0; k < steps; k++) {
+            const angle = k / steps * Math.PI * 2 + n.seed;
+            const x = original.x + Math.cos(angle) * r, z = original.z + Math.sin(angle) * r;
+            if (coastDist(x, z) > 4 && clear(x, z) && !nearTown(x, z, 1.5)) {
+              n.x = x; n.z = z; found = true; break;
+            }
+          }
+        }
+      }
+      nodes.push(n);
+      if (!def.fromShip && !n.def.startsWith('spot_') && n.def !== 'kelp_bed' && n.def !== 'salt_pan' && n.def !== 'dig_spot') {
+        world.solids.push({x:n.x, z:n.z, r:n.def.startsWith('tree')?0.45:0.75});
+      }
+    }
+  }
   world.bake();
   // a tree or rock nobody can stand beside would be the one thing on the island you can't use: leave it out
-  const unreachable = nodes.filter((n) => n.scenery && !world.nearestWalkable(n.x, n.z, n.def === 'kelp_bed' ? 3.1 : 1.6));
+  const unreachable = nodes.filter((n) => !(bell && BELLWETHER_REDESIGN) && n.scenery && !world.nearestWalkable(n.x, n.z, n.def === 'kelp_bed' ? 3.1 : 1.6));
   if (unreachable.length) {
     const gone = new Set(unreachable);
     for (let i = nodes.length - 1; i >= 0; i--) if (gone.has(nodes[i])) nodes.splice(i, 1);

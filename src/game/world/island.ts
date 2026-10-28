@@ -1,3 +1,5 @@
+import { BELLWETHER_REDESIGN } from './variant';
+import { bellwetherCoastDistance, bellwetherCoastPoint } from './bellwether-coast';
 import { fbm, lerp, smooth } from '../../art/noise';
 import { townPlan, portPlan, mergePlans, type TownPlan } from './town';
 import { bellwetherPlan } from './bellwether';
@@ -175,7 +177,7 @@ function fromTable(t: Float32Array, theta: number): number {
 export function coastDist(x: number, z: number): number {
   bellTable ??= tabulate(coastR);
   sunTable ??= tabulate(sunCoastR);
-  const b = fromTable(bellTable, Math.atan2(z, x)) - Math.hypot(x, z);
+  const b = BELLWETHER_REDESIGN ? bellwetherCoastDistance(x, z) : fromTable(bellTable, Math.atan2(z, x)) - Math.hypot(x, z);
   wrackTable ??= tabulate(wrackCoastR);
   amberTable ??= tabulate(amberCoastR);
   lockTable ??= tabulate(lockCoastR);
@@ -194,6 +196,10 @@ export function islandOf(x: number, z: number): 'bellwether' | 'sunreach' {
 
 /** Point at angle theta, `inset` metres inside the coastline (negative = out at sea). */
 export function coastPoint(thetaDeg: number, inset: number): [number, number] {
+  if (BELLWETHER_REDESIGN) return bellwetherCoastPoint(deg(thetaDeg), inset);
+  return classicCoastPoint(thetaDeg, inset);
+}
+function classicCoastPoint(thetaDeg: number, inset: number): [number, number] {
   const t = deg(thetaDeg);
   const r = coastR(t) - inset;
   return [Math.cos(t) * r, Math.sin(t) * r];
@@ -202,7 +208,7 @@ export function coastPoint(thetaDeg: number, inset: number): [number, number] {
 const at = (thetaDeg: number, inset: number) => { const [x, z] = coastPoint(thetaDeg, inset); return { x, z }; };
 
 // ---- named layout -----------------------------------------------------------
-const villageZ = coastPoint(90, 0)[1] - 14;
+const villageZ = classicCoastPoint(90, 0)[1] - 14;
 /** an old Bellwether position, at the island's new size */
 const I = (x: number, z: number) => ({ x: x * BS, z: z * BS });
 export const LAYOUT = {
@@ -224,16 +230,16 @@ export const LAYOUT = {
   ruin: I(38, -32), // the Broken Ring (the Guardian)
   camp: I(48, 16), // Brigand Camp, on the east road
   cove: at(36, 13), // Smugglers' Cove on the south-east headland
-  wreck: at(316, 10), // Wreckers' Point, north-east
+  wreck: BELLWETHER_REDESIGN ? { x: 365, z: -267 } : at(316, 10), // Wreckers' Point, north-east
   summit: I(2, -60), // Ironcrag's summit: the vent forge and Cinderite
   howes: I(60, -14), // the Howes: grave mounds east of the Ring, where the haugbui keep their goods
-  islet: at(215, -42), // Leviathan's Rest, an islet off the north-west coast
-  spire: at(240, -34), // the Drowned Spire, mined from the deck
+  islet: (() => { const [x, z] = classicCoastPoint(215, -42); return {x, z}; })(), // Leviathan's Rest, an islet off the north-west coast
+  spire: (() => { const [x, z] = classicCoastPoint(240, -34); return {x, z}; })(), // the Drowned Spire, mined from the deck
   // the towns past the city (2026-10-28)
   copperback: { x: 62, z: 42 }, // Copperback: the miners' town under the hills
   saltpine: { x: -118, z: 168 }, // Saltpine: the woodcutters' village at the wood's edge
   mirewater: { x: -70, z: -66 }, // Mirewater: eel-fishers' huts on the fen
-  gullhaven: at(296, 40), // Gullhaven: a fishing village on the north shore
+  gullhaven: (() => { const [x, z] = classicCoastPoint(296, 40); return {x, z}; })(), // Gullhaven: a fishing village on the north shore
   quarry: { x: 58, z: 214 }, // the Old Quarry, a short walk north-east of the city: the first copper and tin
   copse: { x: -66, z: 236 }, // Millbrook Copse, west of the city: the first trees
   pithead: { x: 98, z: -36 }, // Copperback's mine, up the hill north of the town
@@ -313,7 +319,10 @@ export const SUN_LAYOUT = {
 const L = LAYOUT;
 /** Bellwether city (the old harbour town at its heart) and its four towns: every building, its furniture and who
  * works there; and Port Halyard. */
-const BELL = bellwetherPlan({ coastDist, coastPoint, beach: BEACH }, townPlan(L.village, L.crossroads), L.village, L.crossroads,
+const BELL = bellwetherPlan({
+  // Keep the entire signed-off settlement, including Harbour Row's curving streets and all IDs.
+  coastDist: BELLWETHER_REDESIGN ? (x, z) => { bellTable ??= tabulate(coastR); return fromTable(bellTable, Math.atan2(z, x)) - Math.hypot(x, z); } : coastDist,
+  coastPoint: classicCoastPoint, beach: BEACH }, townPlan(L.village, L.crossroads), L.village, L.crossroads,
   { copperback: L.copperback, saltpine: L.saltpine, mirewater: L.mirewater, gullhaven: L.gullhaven });
 export const BELL_TOWN: TownPlan = BELL;
 /** townsfolk's rounds and the people who stand out of doors, in Bellwether */
@@ -590,6 +599,13 @@ function shapedHeight(x: number, z: number, levelled: boolean, upto = FLATS.leng
     h = 0.05 + d * 0.35 * (0.8 + n * 0.5);
     h = Math.max(h, -6 + n);
   }
+  if (BELLWETHER_REDESIGN && d > 0 && x > 375 && x < 455 && Math.abs(z + 240) < 42) {
+    // A resistant exposed headland: steep seaward face, rounded cap, broad walkable inland descent.
+    // Elevation only: the approved signed coast, Wreckers route and settlement pads stay authoritative.
+    const p = nearestPathDist(x, z);
+    const zone = smooth(x, 375, 395) * (1 - smooth(Math.abs(z + 240), 18, 42));
+    h += 12 * zone * smooth(d, 1.5, 8) * (1 - smooth(d, 22, 60)) * smooth(p.d, p.width + 3, p.width + 9);
+  }
   if (levelled) for (const i of flatsNear(x, z)) {
     if (i >= upto) break;
     const f = FLATS[i];
@@ -661,6 +677,9 @@ export const LONG_SEA_SPOTS: Record<string, [number, number][]> = {
   spot_sword: [longPoint(130, -20)],
 };
 
+/** The southeastern reef's boss needs an unobstructed circle outside the working cove. */
+export const BELLWETHER_GNASHER_LAIR: [number, number] = BELLWETHER_REDESIGN ? [475, 400] : coastPoint(45, -26);
+
 // ---- named places (discovery) ------------------------------------------------
 // A place is only listed once it has something to do; new zones join as their content lands.
 export interface Place { id: string; name: string; x: number; z: number; r: number; sea?: boolean; region?: RegionId } // no region: Bellwether
@@ -691,7 +710,7 @@ export const ISLAND_PLACES: Place[] = [
   { id: 'wreck', name: 'Wreckers\' Point', x: W.x, z: W.z, r: 24 },
   { id: 'howes', name: 'The Howes', x: L.howes.x, z: L.howes.z, r: 24 },
   ...([['shallows', 'Bellfish Shallows', 20, -16], ['gnasher', 'Gnasher\'s Reef', 45, -26]] as const)
-    .map(([id, name, a, i]) => { const [x, z] = coastPoint(a, i); return { id, name, x, z, r: 16, sea: true }; }),
+    .map(([id, name, a, i]) => { const [x, z] = id === 'gnasher' ? BELLWETHER_GNASHER_LAIR : coastPoint(a, i); return { id, name, x, z, r: 16, sea: true }; }),
   // Sunreach Isle
   { id: 'halyard', name: 'Port Halyard', x: SL.port.x, z: SL.port.z - 6, r: 18, region: 'sunreach' },
   { id: 'greenheart', name: 'The Greenheart', x: SL.jungle.x, z: SL.jungle.z, r: 16, region: 'sunreach' },

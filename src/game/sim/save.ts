@@ -1,3 +1,4 @@
+import { BELLWETHER_REDESIGN, BELLWETHER_GEOMETRY_REVISION } from '../world/variant';
 import { ITEMS, AFFIXES, RARITY, pairGroup, offhandBlock, type Slot, type SkillId } from '../data/items';
 import { QUESTS } from '../data/quests';
 import { INV_SIZE, emptyInventory, type Inventory, type Stack } from './inventory';
@@ -15,9 +16,12 @@ import { SHIPYARD, type ShipPart } from '../data/shipyard';
 export const SAVE_VERSION = 9;
 export const BANK_MAX = 400;
 const KEY_DORMANT_MAX = 3600; // distinct entries in the strongbox
-export const SAVE_KEY = 'shattered-reef.save';
+export const CLASSIC_SAVE_KEY = 'shattered-reef.save';
+export const SAVE_KEY = BELLWETHER_REDESIGN ? `${CLASSIC_SAVE_KEY}.${BELLWETHER_GEOMETRY_REVISION}` : CLASSIC_SAVE_KEY;
 
 export interface SaveData {
+  /** Geography revision is independent of the save schema; absent on classic voyages. */
+  geometry?: string;
   version: number;
   savedAt: number;
   playTime: number;
@@ -105,6 +109,7 @@ export function defaultSave(spawn: { x: number; z: number }, ship: { x: number; 
   inv[6] = { id: 'shard_whisper', qty: 50 };
   return {
     version: SAVE_VERSION,
+    geometry: BELLWETHER_REDESIGN ? BELLWETHER_GEOMETRY_REVISION : undefined,
     savedAt: 0,
     playTime: 0,
     region: 'bellwether',
@@ -230,6 +235,7 @@ export function parseSave(json: string | null, fallback: SaveData): SaveData | n
     v++;
   }
   const d = structuredClone(fallback);
+  d.geometry = raw.geometry === BELLWETHER_GEOMETRY_REVISION ? BELLWETHER_GEOMETRY_REVISION : undefined;
   const p = (raw.player ?? {}) as Record<string, unknown>;
   const isRegion = (v: unknown): v is RegionId => typeof v === 'string' && v in REGIONS;
   d.player.x = num(p.x, d.player.x, -5000, 5000);

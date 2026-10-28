@@ -1,3 +1,5 @@
+import { BELLWETHER_REDESIGN } from '../game/world/variant';
+import { buildCoastalOak, buildErodedRock, buildOrganicOre } from '../art/models/organic';
 import { buildShark, animateShark, type SharkRig } from '../art/models/seafoes';
 import { AMMO } from '../game/data/sea';
 import * as THREE from 'three';
@@ -376,6 +378,9 @@ export class GameRenderer {
   warm() { this.renderer.compile(this.scene, this.camera); }
 
   // ------------------------------------------------------------------ static scenery
+  // The custom pine trial failed rendered species-readability review; retain the approved conifer.
+  private get organicBellwether() { return BELLWETHER_REDESIGN && this.game.s.region === 'bellwether'; }
+
   private buildStatic() {
     const L = this.game.layout, w = this.game.world;
     const root = new THREE.Group();
@@ -423,8 +428,8 @@ export class GameRenderer {
       propS = p.kind === 'web' || p.kind === 'crystal' || p.kind === 'stalagmite' ? p.s : 1;
       switch (p.kind) {
         case 'pine': { const t = buildPine(p.seed, p.s); place(t, p.x, p.z, t.rotation.y, w.ground(p.x, p.z) - 0.05); break; }
-        case 'broadleaf': { const t = buildBroadleaf(p.seed); place(t, p.x, p.z, t.rotation.y, w.ground(p.x, p.z) - 0.05); break; }
-        case 'rock': { const r = buildRock(p.seed, p.s, p.seed % 2 ? 'stone' : 'stoneDark'); r.position.set(p.x, w.ground(p.x, p.z) + p.s * 0.2, p.z); root.add(r); break; }
+        case 'broadleaf': { const t = this.organicBellwether ? buildCoastalOak(p.seed) : buildBroadleaf(p.seed); place(t, p.x, p.z, t.rotation.y, w.ground(p.x, p.z) - 0.05); break; }
+        case 'rock': { const r = (this.organicBellwether ? buildErodedRock : buildRock)(p.seed, p.s, p.seed % 2 ? 'stone' : 'stoneDark'); r.position.set(p.x, w.ground(p.x, p.z) + p.s * 0.2, p.z); root.add(r); break; }
         case 'crate': place(buildCrate(p.seed, 0.7), p.x, p.z, p.rot); break;
         case 'barrel': place(buildBarrel(0.32, 0.75), p.x, p.z, p.rot); break;
         case 'lantern': place(buildLanternPost().group, p.x, p.z, p.rot); break;
@@ -461,7 +466,7 @@ export class GameRenderer {
     for (const b of L.banks) if (!b.booth) place(buildStrongbox(), b.x, b.z, 0);
     propKey = null;
     for (const r of L.reefs) {
-      const m = buildRock(Math.round(r.x * 31 + r.z), r.r, 'stoneDark');
+      const m = (this.organicBellwether ? buildErodedRock : buildRock)(Math.round(r.x * 31 + r.z), r.r, 'stoneDark');
       m.position.set(r.x, 0.05, r.z);
       root.add(m);
     }
@@ -481,7 +486,7 @@ export class GameRenderer {
     const L = this.game.layout, w = this.game.world;
     const material = addSurfaceDetail(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: false, roughness: 0.92, metalness: 0 }), { scale: 3, tone: 0.24, bump: 0.4 });
     for (const b of L.town) {
-      const v = buildEnterable(b);
+      const v = buildEnterable(b, this.organicBellwether);
       for (const part of [v.walls, v.trim, v.roof, v.interior]) bakeFlat(part, material);
       // only the shell casts: the room is under the roof, and windows and signs are too small to matter
       for (const part of [v.trim, v.interior]) part.traverse((o) => { o.castShadow = false; });
@@ -623,7 +628,7 @@ export class GameRenderer {
       let live: THREE.Object3D, dead: THREE.Object3D | undefined, ripples: THREE.Group | undefined;
       if (def.skill === 'woodcutting') {
         const tv = TREE_LOOK[n.def] ?? TREE_LOOK.tree_pine;
-        live = n.def === 'tree_oak' && this.game.s.region === 'sunreach' ? buildJungleTree(n.seed) : tv.kind === 'broad' ? buildBroadleaf(n.seed) : buildPine(n.seed, tv.scale);
+        live = this.organicBellwether ? (tv.kind === 'broad' ? buildCoastalOak(n.seed) : buildPine(n.seed, tv.scale)) : n.def === 'tree_oak' && this.game.s.region === 'sunreach' ? buildJungleTree(n.seed) : tv.kind === 'broad' ? buildBroadleaf(n.seed) : buildPine(n.seed, tv.scale);
         if (tv.kind === 'broad') live.scale.multiplyScalar(tv.scale);
         if (tv.squash) live.scale.y *= tv.squash;
         if (tv.colours) recolour(live, tv.colours, tv.glow);
@@ -650,11 +655,11 @@ export class GameRenderer {
         live = buildSaltPan(n.seed, true);
         dead = buildSaltPan(n.seed, false);
       } else if (def.skill === 'mining') {
-        const g = buildOreRock(n.seed);
+        const g = (this.organicBellwether ? buildOrganicOre : buildOreRock)(n.seed);
         const [tint, glowK] = ORE_TINT[n.def] ?? [PAL.copper, 0.12];
         g.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh && (m.material as THREE.MeshStandardMaterial).color.getHex() === PAL.copper) m.material = mat(tint, { emissive: tint, emissiveIntensity: glowK }); });
         live = g;
-        dead = buildRock(n.seed, 1.0, 'stoneDark');
+        dead = (this.organicBellwether ? buildErodedRock : buildRock)(n.seed, 1.0, 'stoneDark');
         dead.position.y = 0.3;
         const holder = new THREE.Group();
         holder.add(dead);
@@ -710,9 +715,9 @@ export class GameRenderer {
     const V = [11, 23]; // two shape variants per kind (with per-instance rotation and scale) keep draw calls low
     if (by.has('tree_pine')) this.scenery.add(by.get('tree_pine')!, V.map((k) => geo(buildPine(k, 1))), { alt: geo(buildStump(5)) });
     // Sunreach's sea-oaks grow as jungle trees: tall trunks, buttress roots, flat canopies and lianas
-    const oak = this.game.s.region === 'sunreach' ? buildJungleTree : buildBroadleaf;
+    const oak = this.organicBellwether ? buildCoastalOak : this.game.s.region === 'sunreach' ? buildJungleTree : buildBroadleaf;
     if (by.has('tree_oak')) this.scenery.add(by.get('tree_oak')!, V.map((k) => geo(oak(k))), { alt: geo(buildStump(9)) });
-    if (by.has('rock_boulder')) this.scenery.add(by.get('rock_boulder')!, V.map((k, i) => geo(buildRock(k, 1, i % 2 ? 'stoneDark' : 'stone'))), { alt: geo(buildRock(41, 1, 'stoneDark')), altScale: [1.15, 0.35, 1.15] });
+    if (by.has('rock_boulder')) this.scenery.add(by.get('rock_boulder')!, V.map((k, i) => geo((this.organicBellwether ? buildErodedRock : buildRock)(k, 1, i % 2 ? 'stoneDark' : 'stone'))), { alt: geo((this.organicBellwether ? buildErodedRock : buildRock)(41, 1, 'stoneDark')), altScale: [1.15, 0.35, 1.15] });
     if (by.has('bush_berry')) this.scenery.add(by.get('bush_berry')!, V.map((k) => geo(buildBush(k, true))), { alt: geo(buildBush(11, false)), castShadow: false });
     if (by.has('kelp_bed')) this.scenery.add(by.get('kelp_bed')!, [geo(buildKelp(3)), geo(buildKelp(8))], { castShadow: false });
     this.region3d.add(this.scenery.group);

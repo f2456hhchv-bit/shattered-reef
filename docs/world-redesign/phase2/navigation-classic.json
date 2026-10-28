@@ -1,0 +1,85 @@
+{
+  "mode": "classic",
+  "scope": "Node cloud CPU, one cold layout build then eight walk and three sea queries; coarse path grid builds on first long route. Not a phone benchmark.",
+  "layoutBuildMilliseconds": 2117.209788,
+  "gridBytes": 13169796,
+  "routes": [
+    {
+      "kind": "walk",
+      "id": "quarry",
+      "milliseconds": 5.849739999999656,
+      "waypoints": 9,
+      "endpointError": 0
+    },
+    {
+      "kind": "walk",
+      "id": "saltpine",
+      "milliseconds": 8.093607999999676,
+      "waypoints": 6,
+      "endpointError": 0
+    },
+    {
+      "kind": "walk",
+      "id": "copperback",
+      "milliseconds": 9.060396999999739,
+      "waypoints": 7,
+      "endpointError": 0
+    },
+    {
+      "kind": "walk",
+      "id": "mirewater",
+      "milliseconds": 23.42211700000007,
+      "waypoints": 10,
+      "endpointError": 0
+    },
+    {
+      "kind": "walk",
+      "id": "gullhaven",
+      "milliseconds": 71.69358999999986,
+      "waypoints": 14,
+      "endpointError": 0
+    },
+    {
+      "kind": "walk",
+      "id": "wreck",
+      "milliseconds": 37.68912500000033,
+      "waypoints": 10,
+      "endpointError": 0
+    },
+    {
+      "kind": "walk",
+      "id": "ruin",
+      "milliseconds": 24.929907000000185,
+      "waypoints": 7,
+      "endpointError": 0
+    },
+    {
+      "kind": "walk",
+      "id": "heartwood",
+      "milliseconds": 23.749291000000085,
+      "waypoints": 11,
+      "endpointError": 0
+    },
+    {
+      "kind": "sail",
+      "id": "0,500",
+      "milliseconds": 0.17790899999999965,
+      "waypoints": 2,
+      "endpointError": 0
+    },
+    {
+      "kind": "sail",
+      "id": "600,450",
+      "milliseconds": 1.8099620000002687,
+      "waypoints": 4,
+      "endpointError": 0
+    },
+    {
+      "kind": "sail",
+      "id": "-450,-75",
+      "milliseconds": 7.360181000000011,
+      "waypoints": 13,
+      "endpointError": 0
+    }
+  ]
+}

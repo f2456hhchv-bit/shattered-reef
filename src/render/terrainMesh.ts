@@ -1,3 +1,4 @@
+import { BELLWETHER_REDESIGN } from '../game/world/variant';
 import * as THREE from 'three';
 import { fbm, smooth } from '../art/noise';
 import type { Look } from '../art/looks';
@@ -92,6 +93,12 @@ export function buildTerrainMesh(world: World, look: Look, cave = false): Terrai
       const alt = Math.abs(x) < 700 && Math.abs(z) < 700 ? 7 : 0;
       if (y > 5 + alt) tmp.lerp(rock.clone().lerp(grassD, 0.35 * n2), smooth(y + (n2 - 0.5) * 2.5, 5.5 + alt, 9.5 + alt) * 0.85);
       if (y > 0.25) tmp.lerp(rock.clone().lerp(rockD, smooth(slope, 0.9, 1.6)), smooth(slope, 0.55, 0.95));
+      if (BELLWETHER_REDESIGN && world.cx === 0 && world.cz === 0 && x > 120 && z < -110 && d > 0 && d < 30) {
+        // Exposed NE headlands: bedding follows real terrain height, with no visual/collision offset.
+        const exposed = smooth(slope, .22, .62) * (1 - smooth(d, 12, 30));
+        const bedding = .5 + .5 * Math.sin(y * 1.65 + x * .018 + z * .012);
+        tmp.lerp(rock.clone().lerp(rockD, .16 + bedding * .22), exposed);
+      }
       return cobW;
     }
   };

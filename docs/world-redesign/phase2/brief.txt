@@ -1,0 +1,312 @@
+SHATTERED REEF — BELLWETHER PHASE 2
+
+Playable Island Redesign & Organic Art Implementation
+
+You are acting as the lead environment artist, technical artist, world designer and gameplay engineer for Shattered Reef.
+
+The objective is to turn the existing Bellwether Phase 1 geographical redesign into a fully integrated, playable island prototype, with substantially improved environmental artwork.
+
+This is an implementation task, not another design-document exercise.
+
+1. START WITH THE EXISTING WORK
+
+Work from branch:
+
+design/bellwether-phase1
+
+Read and use everything relevant in:
+
+docs/world-redesign/phase1/
+
+In particular:
+
+* README.md
+* coastline.json
+* shore-distance.f32
+* validation.json
+* topology.json
+* The existing coastline comparison and concept images
+
+Preserve the work already completed. Do not regenerate the coastline from scratch unless a documented technical problem requires a targeted correction.
+
+Inspect the current Three.js renderer, terrain system, navigation, resource placement, quests, sailing, persistence and art pipeline.
+
+Read docs/ART_DIRECTION.md and inspect the approved production artwork before making visual decisions.
+
+The deliverable must be playable within the actual Shattered Reef game.
+
+Do not substitute another collection of concept images or design documents for implementation.
+
+2. IMPLEMENT THE NEW ISLAND GEOGRAPHY
+
+Replace Bellwether’s current coastline with the approved Phase 1 prototype geometry in an isolated game variant.
+
+The island must have:
+
+* Distinctive, naturally irregular shorelines.
+* Headlands, coves, bays and inlets.
+* Credible cliff formations.
+* Natural beaches and shoreline transitions.
+* Varied terrain elevation.
+* Walkable hills and valleys.
+* A functioning sheltered harbour.
+* The existing freshwater lagoon.
+* The existing separate islet.
+
+Avoid simple circular, oval or polygonal islands.
+
+The landmass must look deliberately authored rather than randomly generated.
+
+Do not increase its area further. Review the existing 22% land-area increase and avoid unnecessary travel or empty terrain.
+
+Ensure the terrain mesh, collision data, pathfinding grid and in-game maps all represent the same coastline.
+
+3. ORGANIC, STYLISED ENVIRONMENT ARTWORK
+
+This is one of the most important requirements.
+
+Shattered Reef must not look like a game built from basic geometric primitives.
+
+The target is stylised realism in shape, with clean and attractive artistic rendering.
+
+We do not require photorealistic graphics.
+
+We require convincing, organic shapes.
+
+Trees
+
+Trees must feature:
+
+* Natural trunk forms.
+* Believable branch structures.
+* Irregular, asymmetrical canopies.
+* Smooth, intentionally sculpted silhouettes.
+* Species-appropriate proportions.
+* Controlled variation between individual trees.
+
+Do not use obvious cylinders topped with cones, spheres or stacked primitive shapes.
+
+Rocks and cliffs
+
+Rock formations must have:
+
+* Organic erosion-inspired shapes.
+* Smooth but irregular outlines.
+* Convincing relationships between adjacent rock surfaces.
+* Natural variation in scale and proportion.
+* Restrained surface detailing.
+
+Avoid visible primitive cubes, pyramids, faceted crystal-like rocks and random procedural blobs.
+
+Buildings
+
+Buildings must have:
+
+* Convincing architectural proportions.
+* Carefully shaped roofs and walls.
+* Believable construction.
+* Distinctive silhouettes.
+* A consistent visual language appropriate to Bellwether’s settlement.
+
+Avoid simplistic boxes with triangular roofs presented as finished buildings.
+
+Coastlines and terrain
+
+Coastlines must show credible transitions between land, beach, cliff, shallow water and deeper water.
+
+Avoid abrupt artificial edges and obvious repeated procedural patterns.
+
+Visual finish
+
+Maintain:
+
+* Soft, cohesive daylight.
+* Matte materials.
+* Restrained highlights.
+* Attractive, consistent colours.
+* Smooth-looking organic forms.
+* Clear readability on mobile.
+* The existing approved camera perspective and overall art direction.
+
+Do not change Shattered Reef into a different visual genre.
+
+4. ART PRODUCTION METHOD
+
+Blender is not required.
+
+Use the most suitable asset-production methods available in your environment, including:
+
+* Authored or generated 3D models.
+* GLB/glTF assets.
+* Image generation for appropriate game assets.
+* Carefully controlled textures.
+* Custom organic meshes.
+* Three.js rendering improvements.
+
+Do not rely entirely on primitive geometry.
+
+Do not present technically valid but visually crude models as finished artwork.
+
+If the available tools cannot produce an asset at the required standard, report that limitation clearly and preserve the existing approved asset rather than replacing it with something inferior.
+
+Artwork must be evaluated through actual rendered screenshots from the game, not only source images.
+
+Do not bulk-replace the game’s approved artwork.
+
+For this phase, concentrate on improving the visual quality of Bellwether.
+
+5. PRESERVE GAMEPLAY
+
+Integrating the new coastline must not break existing functionality.
+
+The following systems must continue working:
+
+* Player movement.
+* Touch controls.
+* Coastline collision.
+* Pathfinding.
+* Fishing.
+* Woodcutting.
+* Mining.
+* Smithing.
+* NPC interactions.
+* Shops and banking.
+* Quest progression.
+* Combat.
+* Sailing.
+* Boarding and disembarking.
+* Harbour access.
+* Region transitions.
+* Saving and loading.
+
+Use the Phase 1 validation report to identify affected resource nodes, NPCs, quest markers and docking positions.
+
+Relocate these intentionally rather than moving everything randomly.
+
+Preserve existing content identifiers wherever possible.
+
+6. SAVE COMPATIBILITY
+
+Existing save files must be protected.
+
+A changed coastline must not strand players in water, inside cliffs or on unreachable sections of land.
+
+Implement and test an appropriate geometry migration or compatibility strategy.
+
+Preserve:
+
+* Skill XP.
+* Inventory.
+* Equipment.
+* Quests.
+* Currency.
+* Discoveries.
+* Ship ownership and upgrades.
+
+Do not silently delete, reset or overwrite player progress.
+
+7. MOBILE PERFORMANCE
+
+Shattered Reef is mobile-first.
+
+The redesigned island must remain practical on mobile devices.
+
+Use appropriate asset complexity, geometry optimisation, instancing, texture sizes and draw-call management.
+
+Evaluate:
+
+* Rendering performance.
+* Loading times.
+* Memory usage.
+* Collision and navigation performance.
+* Touch-control responsiveness.
+
+Do not sacrifice the required visual quality simply to achieve an arbitrary polygon count.
+
+Use optimisation intelligently.
+
+If real mobile hardware cannot be tested, state that limitation and report browser-based performance measurements separately.
+
+8. TEST THE ACTUAL GAME
+
+Run:
+
+* TypeScript checks.
+* The existing automated test suite.
+* The production build.
+* Relevant world-navigation tests.
+* Quest and interaction regression tests.
+* Sailing and landing tests.
+* Save/load and migration tests.
+
+Use browser testing where available.
+
+Run the redesigned island in a real browser environment.
+
+Capture actual screenshots showing:
+
+1. The overall island from the game camera.
+2. The harbour and settlement.
+3. A forested area.
+4. Rocks and cliffs.
+5. A beach and shoreline.
+6. A mobile-sized gameplay view.
+7. The old and new island silhouettes.
+
+These must be screenshots of the running game, not AI-generated concept pictures.
+
+9. ACCEPTANCE CRITERIA
+
+The phase is successful only if:
+
+* Bellwether’s redesigned geography is implemented in the game.
+* The island can be traversed normally.
+* Existing gameplay systems remain functional.
+* Sailing and harbour access work.
+* Relevant quests and resource nodes remain accessible.
+* Existing saves are protected.
+* Environmental artwork is noticeably more organic and professionally finished.
+* The result maintains Shattered Reef’s approved visual identity.
+* Actual playable screenshots are provided.
+* Testing evidence supports the implementation.
+
+A successful compilation alone does not constitute completion.
+
+Do not claim visual quality has improved without inspecting the rendered result.
+
+Do not claim mobile performance is acceptable without supporting measurements.
+
+10. SCOPE AND GIT CONTROL
+
+Work exclusively on the existing redesign branch or a dedicated implementation branch based on it.
+
+Do not merge into main.
+
+Do not redesign the other islands.
+
+Do not automatically rename Bellwether or its settlements.
+
+Do not modify combat balance, XP rates, the economy or unrelated gameplay.
+
+Do not introduce pay-to-win or monetisation systems.
+
+Do not replace existing assets with generic procedural placeholders.
+
+Preserve the existing game’s functionality while improving the environment.
+
+FINAL DELIVERABLE
+
+I expect:
+
+1. A working Bellwether prototype in the actual game.
+2. The integrated redesigned coastline.
+3. Improved organic environmental artwork where achievable.
+4. Updated collision, navigation and gameplay placement.
+5. Save compatibility protections.
+6. Actual in-game screenshots.
+7. Test results and performance measurements.
+8. A concise report explaining what was implemented, what remains incomplete and any remaining technical or artistic limitations.
+
+Prioritise a playable, visibly improved island over creating more planning documents.
+
+Do the implementation work now. Do not stop after describing how it could be done.

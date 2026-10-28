@@ -1,6 +1,7 @@
 import './ui/style.css';
+import { readVoyage, resetVoyage } from './game/sim/saveStorage';
 import { Game } from './game/sim/game';
-import { parseSave, defaultSave, SAVE_KEY } from './game/sim/save';
+import { parseSave, defaultSave, SAVE_KEY, CLASSIC_SAVE_KEY } from './game/sim/save';
 import { buildIsland } from './game/world/layout';
 import { LAYOUT } from './game/world/island';
 import type { RegionId } from './game/world/regions';
@@ -14,7 +15,7 @@ import { loadArtOverrides } from './art/overrides';
 // Boot: load (validated) save, build the world, run a fixed-step simulation under a variable-rate renderer.
 
 function readSave(): string | null {
-  try { return localStorage.getItem(SAVE_KEY); } catch { return null; }
+  try { return readVoyage(localStorage, SAVE_KEY, CLASSIC_SAVE_KEY); } catch { return null; }
 }
 
 await loadArtOverrides(); // your edited art in art/ (if any) before anything is drawn
@@ -50,7 +51,7 @@ function save() {
 ui.onSave = save;
 ui.onQuality = (q) => renderer.setQuality(q);
 ui.onReset = () => {
-  try { localStorage.removeItem(SAVE_KEY); } catch { /* storage blocked: reload still starts fresh */ }
+  try { resetVoyage(localStorage, SAVE_KEY, CLASSIC_SAVE_KEY, JSON.stringify(fallback)); } catch { /* storage blocked: reload still starts fresh */ }
   started = false;
   location.reload();
 };
