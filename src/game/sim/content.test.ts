@@ -676,11 +676,11 @@ describe('the living island', () => {
     b.done(() => count(g.p.inv, 'ore_copper') + count(g.p.inv, 'ore_tin') >= 1);
     expect(count(g.p.inv, 'ore_copper') + count(g.p.inv, 'ore_tin')).toBeGreaterThanOrEqual(1);
   });
-  it('levels follow RuneScape: oak 15, iron ore 15, coal 30, gold 40; steel gear 5, rune-tier 40; bars 1/15/30; no XP boost', () => {
+  it('levels follow RuneScape: oak 15, iron ore 15, coal 30, gold 40; iron gear 5, steel 10, rune-tier 40; bars 1/15/30; no XP boost', () => {
     const lv = (id: string) => NODES[id].level;
     expect([lv('tree_oak'), lv('tree_willow'), lv('tree_amber'), lv('tree_yew')]).toEqual([15, 30, 45, 60]);
     expect([lv('rock_iron'), lv('rock_coal'), lv('rock_gold')]).toEqual([15, 30, 40]);
-    expect([ITEMS.cutlass_steel.equip!.reqs.attack, ITEMS.plate_storm.equip!.reqs.defence, ITEMS.cutlass_cinder.equip!.reqs.attack]).toEqual([5, 10, 40]);
+    expect([ITEMS.cutlass_steel.equip!.reqs.attack, ITEMS.plate_storm.equip!.reqs.defence, ITEMS.cutlass_cinder.equip!.reqs.attack]).toEqual([10, 15, 40]); expect(ITEMS.cutlass_iron.equip!.reqs.attack).toBe(5); // bronze 1, iron 5, steel 10: each metal after the last (Tom, 2026-10-28)
     expect(['smelt_bronze', 'smelt_iron', 'smelt_steel'].map((id) => RECIPES.find((r) => r.id === id)!.level)).toEqual([1, 15, 30]);
     // the anvil: a new item every few levels within a bar's tier (dagger +0, boots +2 ... platebody +18)
     const bronze = RECIPES.filter((r) => r.station === 'anvil' && r.output.id.endsWith('_bronze')).map((r) => r.level).sort((a, b) => a - b);

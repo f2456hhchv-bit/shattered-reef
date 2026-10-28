@@ -113,13 +113,13 @@ const MAGIC_AFFIX = ['dmg_pct', 'crit', 'elite_dmg', 'accuracy', 'leech'];
 
 // ---- tiers: generated so every metal, wood and fish follows one rule set --------------------------
 /** Metals, low to high. `m` indexes the gear stat tables below. Existing early ids are kept for saves.
- * Levels follow RuneScape (Tom, 2026-10-24): gear like bronze/iron 1, steel 5, black 10, mithril 20, adamant 30,
- * rune 40, then 50/60/70 for the high metals (dragon 60, barrows 70); axes and pickaxes 1/1/6/11/21/31/41/51/61/71. */
+ * Levels follow RuneScape's spacing (Tom, 2026-10-24), but each metal comes after the one before it (Tom, 2026-10-28:
+ * "steel should unlock after iron"): bronze 1, iron 5, steel 10, stormsilver 15, then 20 to 70; tools one level on. */
 export const METALS = [
   { key: 'bronze', name: 'Bronze', color: '#c08a4a', req: 1, toolReq: 1 },
-  { key: 'iron', name: 'Iron', color: '#9aa0a4', req: 1, toolReq: 1 },
-  { key: 'steel', name: 'Steel', color: '#b9c4cc', req: 5, toolReq: 6 },
-  { key: 'storm', name: 'Stormsilver', color: '#86b6dc', req: 10, toolReq: 11 },
+  { key: 'iron', name: 'Iron', color: '#9aa0a4', req: 5, toolReq: 6 },
+  { key: 'steel', name: 'Steel', color: '#b9c4cc', req: 10, toolReq: 11 },
+  { key: 'storm', name: 'Stormsilver', color: '#86b6dc', req: 15, toolReq: 16 },
   { key: 'abyss', name: 'Abyssite', color: '#3f7a66', req: 20, toolReq: 21 },
   { key: 'tide', name: 'Tidecore', color: '#3cc6c4', req: 30, toolReq: 31 },
   { key: 'cinder', name: 'Cinderite', color: '#b8452a', req: 40, toolReq: 41 },
@@ -596,10 +596,10 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(
     // ---- tools
     I({ id: 'hatchet_chipped', name: 'Chipped hatchet', desc: 'A worn hatchet. It chops slowly.', icon: { shape: 'hatchet', color: '#7d7a74' }, stackable: false, value: 4, tool: { skill: 'woodcutting', power: 0, level: 1 } }),
     I({ id: 'hatchet_bronze', name: 'Bronze hatchet', desc: 'Chops faster than a chipped one.', icon: { shape: 'hatchet', color: '#c08a4a' }, stackable: false, value: 30, tool: { skill: 'woodcutting', power: 1, level: 1 } }),
-    I({ id: 'hatchet_iron', name: 'Iron hatchet', desc: 'Chops faster than a bronze hatchet.', icon: { shape: 'hatchet', color: '#9aa0a4' }, stackable: false, value: 80, tool: { skill: 'woodcutting', power: 2, level: 10 } }),
+    I({ id: 'hatchet_iron', name: 'Iron hatchet', desc: 'Chops faster than a bronze hatchet.', icon: { shape: 'hatchet', color: '#9aa0a4' }, stackable: false, value: 80, tool: { skill: 'woodcutting', power: 2, level: 6 } }),
     I({ id: 'pickaxe_chipped', name: 'Chipped pickaxe', desc: 'A worn pickaxe. It mines slowly.', icon: { shape: 'pickaxe', color: '#7d7a74' }, stackable: false, value: 4, tool: { skill: 'mining', power: 0, level: 1 } }),
     I({ id: 'pickaxe_bronze', name: 'Bronze pickaxe', desc: 'Mines faster than a chipped one.', icon: { shape: 'pickaxe', color: '#c08a4a' }, stackable: false, value: 30, tool: { skill: 'mining', power: 1, level: 1 } }),
-    I({ id: 'pickaxe_iron', name: 'Iron pickaxe', desc: 'Mines faster than a bronze pickaxe.', icon: { shape: 'pickaxe', color: '#9aa0a4' }, stackable: false, value: 80, tool: { skill: 'mining', power: 2, level: 10 } }),
+    I({ id: 'pickaxe_iron', name: 'Iron pickaxe', desc: 'Mines faster than a bronze pickaxe.', icon: { shape: 'pickaxe', color: '#9aa0a4' }, stackable: false, value: 80, tool: { skill: 'mining', power: 2, level: 6 } }),
     I({ id: 'fishing_rod', name: 'Fishing rod', desc: 'For fishing from the shore.', icon: { shape: 'rod', color: '#8a6440' }, stackable: false, value: 8, tool: { skill: 'fishing', power: 0, level: 1 } }),
     // ---- melee weapons (Attack requirement, Strength for damage)
     I({ id: 'cutlass_rusty', name: 'Rusty cutlass', desc: 'Your father\'s old cutlass. Rusty, but it still cuts.', icon: { shape: 'cutlass', color: '#8d7a66' }, stackable: false, value: 5,
@@ -609,16 +609,16 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(
     I({ id: 'cutlass_brigand', name: 'Brigand\'s hanger', desc: 'A brigand\'s cutlass, nicked from use.', icon: { shape: 'cutlass', color: '#b9b2a2', accent: '#7a2e22' }, stackable: false, value: 60,
       equip: { slot: 'weapon', reqs: { attack: 5 }, style: 'melee', speed: 1.8, bonus: { acc: 10, str: 9 }, affixPool: [...MELEE_AFFIX, 'leech'] } }),
     I({ id: 'cutlass_iron', name: 'Iron cutlass', desc: 'An iron cutlass. Hits harder than bronze.', icon: { shape: 'cutlass', color: '#9aa0a4' }, stackable: false, value: 110,
-      equip: { slot: 'weapon', reqs: { attack: 10 }, style: 'melee', speed: 2.4, bonus: { acc: 14, str: 13 }, affixPool: [...MELEE_AFFIX, 'leech'] } }),
+      equip: { slot: 'weapon', reqs: { attack: 5 }, style: 'melee', speed: 2.4, bonus: { acc: 14, str: 13 }, affixPool: [...MELEE_AFFIX, 'leech'] } }),
     // ---- ranged (Ranged requirement; damage comes from the shot)
     I({ id: 'pistol_flintlock', name: 'Flintlock pistol', desc: 'A flintlock pistol. Fires shot from your ammo slot.', icon: { shape: 'pistol', color: '#8a6440', accent: '#9aa0a4' }, stackable: false, value: 45,
       equip: { slot: 'weapon', reqs: { ranged: 1 }, style: 'ranged', speed: 2.4, range: 9, bonus: { acc: 10 }, affixPool: RANGED_AFFIX } }),
     I({ id: 'pistol_iron', name: 'Iron-banded pistol', desc: 'A longer barrel and a truer aim.', icon: { shape: 'pistol', color: '#6b4a30', accent: '#c9ccc8' }, stackable: false, value: 140,
-      equip: { slot: 'weapon', reqs: { ranged: 15 }, style: 'ranged', speed: 2.4, range: 10, bonus: { acc: 22 }, affixPool: RANGED_AFFIX } }),
+      equip: { slot: 'weapon', reqs: { ranged: 6 }, style: 'ranged', speed: 2.4, range: 10, bonus: { acc: 22 }, affixPool: RANGED_AFFIX } }),
     I({ id: 'shot_bronze', name: 'Bronze shot', desc: 'Pistol balls. Equip in the ammo slot.', icon: { shape: 'shot', color: '#c08a4a' }, stackable: true, value: 1,
       equip: { slot: 'ammo', reqs: { ranged: 1 }, bonus: { rangedStr: 7 }, affixPool: [] } }),
     I({ id: 'shot_iron', name: 'Iron shot', desc: 'Heavier balls. Equip in the ammo slot.', icon: { shape: 'shot', color: '#8f9396' }, stackable: true, value: 3,
-      equip: { slot: 'ammo', reqs: { ranged: 10 }, bonus: { rangedStr: 13 }, affixPool: [] } }),
+      equip: { slot: 'ammo', reqs: { ranged: 5 }, bonus: { rangedStr: 13 }, affixPool: [] } }),
     // ---- magic (any staff casts your chosen spell; spells burn shards)
     I({ id: 'staff_driftwood', name: 'Driftwood staff', desc: 'Casts your chosen spell from your shards.', icon: { shape: 'staff', color: '#8a6440', accent: '#59d0c4' }, stackable: false, value: 30,
       equip: { slot: 'weapon', reqs: { magic: 1 }, style: 'magic', speed: 2.4, range: 9, bonus: { acc: 8, defMagic: 4 }, affixPool: MAGIC_AFFIX } }),
