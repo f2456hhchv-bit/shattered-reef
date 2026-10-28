@@ -1,5 +1,6 @@
 import { mulberry32 } from '../../art/noise';
 import { DOORS } from '../data/doors';
+import type { ShardKey, Station } from '../data/content';
 import { BELL_TOWN, BELL_ROUNDS, BELL_OUTDOOR, flatsAt, PORT_TOWN, LAYOUT, LAGOON, SEA_SPOTS, PATHS, BEACH, coastPoint, coastDist, nearestPathDist, FLATS, SUN, SUN_LAYOUT, SUN_RADIUS, SUN_SEA_SPOTS, sunPoint, WRACK, WRACK_LAYOUT, WRACK_RADIUS, WRACK_SEA_SPOTS, wrackPoint, AMBER, AMBER_LAYOUT, AMBER_RADIUS, AMBER_SEA_SPOTS, amberPoint, LOCK, LOCK_LAYOUT, LOCK_RADIUS, LOCK_SEA_SPOTS, lockPoint, SALT, SALT_LAYOUT, SALT_RADIUS, SALT_SEA_SPOTS, MIRROR_POOL, saltPoint, LONG, LONG_LAYOUT, LONG_RADIUS, LONG_SEA_SPOTS, longPoint, rawHeight } from './island';
 import { World } from './world';
 import { buildingSolids, doorPoints, toLocal, toWorld, type BuildingDef } from './buildings';
@@ -34,7 +35,7 @@ export interface IslandLayout {
   nodes: NodePlacement[];
   props: Prop[];
   reefs: { x: number; z: number; r: number }[];
-  stations: { id: 'furnace' | 'anvil' | 'fire' | 'bench' | 'vent'; x: number; z: number }[];
+  stations: { id: Station; x: number; z: number }[];
   banks: { x: number; z: number; booth?: boolean }[]; // strongboxes (booth: the bank's counter, no chest drawn)
   town: BuildingDef[]; // enterable buildings
   stalls: { x: number; z: number; rot: number; colour: number }[];
@@ -71,7 +72,7 @@ const NO_TOWN: TownPlan = { buildings: [], npcs: [], stalls: [], squares: [] };
 
 function buildIslandRegion(region: IslandId): IslandLayout {
   const bell = region === 'bellwether', sun = region === 'sunreach', amb = region === 'amberhold', wrack = region === 'wrack', lock = region === 'lockhaven', salt = region === 'saltglass', long = region === 'longstrand';
-  const rnd = mulberry32(bell ? 1 : sun ? 2 : wrack ? 3 : lock ? 5 : salt ? 6 : long ? 7 : 4);
+  const rndSeed = bell ? 1 : sun ? 2 : wrack ? 3 : lock ? 5 : salt ? 6 : long ? 7 : 4, rnd = mulberry32(rndSeed);
   const world = new World(REGIONS[region].bounds, rawHeight);
   const T: TownPlan = bell ? BELL_TOWN : sun ? PORT_TOWN : NO_TOWN;
   const SL = SUN_LAYOUT, WL = WRACK_LAYOUT, AL = AMBER_LAYOUT, KL = LOCK_LAYOUT, GL = SALT_LAYOUT, NL = LONG_LAYOUT;
@@ -158,7 +159,7 @@ function buildIslandRegion(region: IslandId): IslandLayout {
   const booths = T.buildings.filter((x) => x.furniture.some((f) => f.kind === 'grille')).map((bb) => { const [x, z] = toWorld(bb, 0, 0.1); return { x, z, booth: true }; });
   const banks: IslandLayout['banks'] = [...(bell ? [{ x: V.x + 4.6, z: V.z + 2.2 }, { x: M.x + 2.5, z: M.z + 21 }, { x: LAYOUT.saltpine.x + 4, z: LAYOUT.saltpine.z - 3.5 }, { x: LAYOUT.gullhaven.x - 3.5, z: LAYOUT.gullhaven.z - 3 }] : wrack ? [{ x: WL.landing.x + 1.5, z: WL.landing.z - 6.5 }] : lock ? [{ x: KL.landing.x + 1.5, z: KL.landing.z - 6.5 }] : salt ? [{ x: GL.landing.x + 1.5, z: GL.landing.z - 6.5 }] : long ? [{ x: NL.landing.x + 1.5, z: NL.landing.z - 6.5 }] : amb ? [{ x: AL.landing.x + 1.5, z: AL.landing.z - 6.5 }] : []), ...booths];
   for (const b of banks) if (!b.booth) world.solids.push({ x: b.x, z: b.z, w: 1.2, d: 0.8 });
-  const solidOf = { furnace: 1.0, anvil: 0.45, fire: 0.7, vent: 1.2 } as const;
+  const solidOf: Record<string, number> = { furnace: 1.0, anvil: 0.45, fire: 0.7, vent: 1.2 };
   for (const st of stations) world.solids.push(st.id === 'bench' ? { x: st.x, z: st.z, w: 1.8, d: 0.9 } : { x: st.x, z: st.z, r: solidOf[st.id] });
 
   // the town: walls and furniture are solid; townsfolk stand at their posts inside
@@ -319,15 +320,15 @@ function buildIslandRegion(region: IslandId): IslandLayout {
     for (const a of arenas) if (Math.hypot(x - a.x, z - a.z) < a.r + 3) return false;
     return true;
   };
-  const scatter = (def: string, cx: number, cz: number, radius: number, count: number, clearance: number) => {
+  const scatter = (def: string, cx: number, cz: number, radius: number, count: number, clearance: number, rng = rnd) => {
     for (let tries = 0, made = 0; tries < Math.max(400, count * 60) && made < count; tries++) {
-      const a = rnd() * Math.PI * 2, r = Math.sqrt(rnd()) * radius;
+      const a = rng() * Math.PI * 2, r = Math.sqrt(rng()) * radius;
       const x = cx + Math.cos(a) * r, z = cz + Math.sin(a) * r;
       if (!free(x, z, 5, clearance)) continue;
       if (world.ground(x, z) < 0.5) continue; // not in the lagoon
       const sx = world.ground(x + 0.6, z) - world.ground(x - 0.6, z), sz = world.ground(x, z + 0.6) - world.ground(x, z - 0.6);
       if (Math.hypot(sx, sz) > 0.9) continue;
-      nodes.push({ uid: `n${uid++}`, def, x, z, seed: Math.floor(rnd() * 1e6) });
+      nodes.push({ uid: `n${uid++}`, def, x, z, seed: Math.floor(rng() * 1e6) });
       world.solids.push({ x, z, r: def.startsWith('tree') ? 0.45 : 0.75 });
       made++;
     }
@@ -877,6 +878,57 @@ function buildIslandRegion(region: IslandId): IslandLayout {
     decor('pots', SL.dockBase.x + 6, SL.dockBase.z - 1.2, 0.8, 0.3, true);
     for (let k = 0; k < 14; k++) { const [x, z] = sunPoint(k * 25.7 + rnd() * 8, 1.5 + rnd() * 5); if (Math.hypot(x - P.x, z - P.z) > 24) decor('shells', x, z, 0.5, rnd() * 6.28, false); }
     for (let k = 0; k < 10; k++) { const [x, z] = sunPoint(k * 36 + 12 + rnd() * 8, 2.5 + rnd() * 4); if (Math.hypot(x - P.x, z - P.z) > 24) decor('driftwood', x, z, 0.6, rnd() * 6.28, false); }
+  }
+
+  // ---- added 2026-10-28 on their own random stream, so everything else keeps its draws from rnd
+  const rnd2 = mulberry32(rndSeed + 1000);
+  // ---- Shardcraft's shrines (data/content.ts SHRINES), each on open ground near where it's asked for, with a few
+  // glimmerstone veins beside it so the stone needn't be carried across the sea
+  const shrine = (key: ShardKey, x0: number, z0: number, veins = 4) => {
+    for (let k = 0; k < 900; k++) {
+      const a = k * 2.39996, r = Math.sqrt(k) * 1.2, x = x0 + Math.cos(a) * r, z = z0 + Math.sin(a) * r;
+      if (!free(x, z, 6, 4) || world.ground(x, z) < 0.5) continue;
+      const sx = world.ground(x + 1.5, z) - world.ground(x - 1.5, z), sz = world.ground(x, z + 1.5) - world.ground(x, z - 1.5);
+      if (Math.hypot(sx, sz) > 0.8) continue;
+      stations.push({ id: `shrine_${key}`, x, z });
+      world.solids.push({ x, z, r: 1.3 });
+      if (veins) scatter('rock_glimmer', x, z, 12, veins, 3, rnd2);
+      return;
+    }
+    throw new Error(`no room for the ${key} shrine`);
+  };
+  if (bell) {
+    // glimmerstone in the Old Quarry and at Copperback's pithead
+    scatter('rock_glimmer', LAYOUT.quarry.x + 2, LAYOUT.quarry.z + 10, 10, 6, 2.6, rnd2);
+    scatter('rock_glimmer', LAYOUT.pithead.x + 8, LAYOUT.pithead.z + 6, 10, 4, 2.6, rnd2);
+    shrine('gale', 25, 160, 5); // on the quarry road, a short walk from the city
+    shrine('whisper', -100, 210, 0); // by Millbrook Copse
+    shrine('tide', -122, -84, 0); // on the shore of the Mirewater lagoon
+    shrine('stone', 112, -12, 0); // in the Copperback Hills, below the pithead
+    shrine('ember', 26, -214); // at the foot of Ironcrag, by the miners' forge
+    shrine('bone', 258, -50, 0); // among the Howes
+  } else if (sun) shrine('star', SL.plaza.x - 14, SL.plaza.z - 6);
+  else if (amb) { shrine('squall', AL.camp.x + 8, AL.camp.z + 8); shrine('root', AL.amberwood.x + 6, AL.amberwood.z + 12); }
+  else if (wrack) { shrine('compass', WL.landing.x - 12, WL.landing.z - 10); shrine('grave', WL.oldwood.x + 8, WL.oldwood.z - 12); }
+  else if (lock) shrine('heart', KL.doorfield.x + 12, KL.doorfield.z + 10);
+  else if (salt) shrine('wrath', GL.mirror.x + 10, GL.mirror.z + 8);
+  // trees in and around the city and the towns (Tom, 2026-10-28: the nearest tree was "quite a walk"): a few
+  // between the houses, more just past the last of them. Mostly saltpine, the tree a new player can cut.
+  const towns = !bell ? [] : [{ x: X.x, z: X.z - 60, r: 85, n: 70 }, { x: X.x - 80, z: X.z, r: 40, n: 14 }, { x: X.x + 85, z: X.z - 5, r: 40, n: 14 },
+    { x: LAYOUT.copperback.x, z: LAYOUT.copperback.z - 20, r: 42, n: 22 }, { x: LAYOUT.saltpine.x, z: LAYOUT.saltpine.z, r: 22, n: 12 },
+    { x: LAYOUT.mirewater.x, z: LAYOUT.mirewater.z, r: 15, n: 10 }, { x: LAYOUT.gullhaven.x, z: LAYOUT.gullhaven.z, r: 24, n: 12 }];
+  for (const t of towns) for (let tries = 0, made = 0; tries < 4000 && made < t.n; tries++) {
+    const a = rnd2() * Math.PI * 2, r = Math.sqrt(rnd2()) * (t.r + 20), x = t.x + Math.cos(a) * r, z = t.z + Math.sin(a) * r;
+    if (!free(x, z, BEACH + 2, 4.5)) continue;
+    const p = nearestPathDist(x, z);
+    if (p.d < p.width + 2.5) continue; // off the streets and lanes
+    const gy = world.ground(x, z);
+    if (gy < 0.5 || gy > 15) continue;
+    const sx = world.ground(x + 0.6, z) - world.ground(x - 0.6, z), sz = world.ground(x, z + 0.6) - world.ground(x, z - 0.6);
+    if (Math.hypot(sx, sz) > 0.9) continue;
+    nodes.push({ uid: `n${uid++}`, def: rnd2() < 0.7 ? 'tree_pine' : 'tree_oak', x, z, seed: Math.floor(rnd2() * 1e6), scenery: true, s: 0.85 + rnd2() * 0.3, rot: rnd2() * Math.PI * 2 });
+    world.solids.push({ x, z, r: 0.45 });
+    made++;
   }
 
   world.bake();

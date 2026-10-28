@@ -44,7 +44,7 @@ describe('content data', () => {
   });
 
   it('every gathering and production skill has something to do at every level, 1 to its top tier', () => {
-    const tops: Record<string, number> = { woodcutting: 90, mining: 85, fishing: 85, smithing: 99, gunsmithing: 90, fletching: 95, cooking: 84, magic: 80, crafting: 90 };
+    const tops: Record<string, number> = { woodcutting: 90, mining: 85, fishing: 85, smithing: 99, gunsmithing: 90, fletching: 95, cooking: 84, magic: 80, crafting: 90, shardcraft: 95 };
     for (const s of SKILLS) {
       const lv = [...new Set((UNLOCKS[s.id] ?? []).map((u) => u.level))].sort((a, b) => a - b);
       if (!(s.id in tops)) continue;
@@ -462,6 +462,38 @@ describe('end-game content works end to end', () => {
     run(g, 10, () => count(g.p.inv, 'ring_gold') >= 1);
     expect(count(g.p.inv, 'ring_gold')).toBe(1);
     expect(g.p.xp.crafting).toBeGreaterThan(600);
+  });
+
+  it('Shardcraft: glimmerstone mined at the quarry becomes gale shards at the Gale shrine, more per stone with levels', () => {
+    const g = fresh();
+    const vein = g.nodes.filter((n) => n.def === 'rock_glimmer').sort((a, b) => Math.hypot(a.x - LAYOUT.quarry.x, a.z - LAYOUT.quarry.z) - Math.hypot(b.x - LAYOUT.quarry.x, b.z - LAYOUT.quarry.z))[0];
+    for (const e of g.enemies) if (Math.hypot(e.x - vein.x, e.z - vein.z) < 25) { e.alive = false; e.respawnAt = Infinity; }
+    goTo(g, vein.x + 1.4, vein.z);
+    g.interact(`node:${vein.uid}`);
+    expect(run(g, 60, () => count(g.p.inv, 'glimmerstone') >= 3)).toBe(true);
+    // every shard has a shrine somewhere, and each island's shrines stand by their own glimmerstone
+    for (const sh of RECIPES.filter((r) => r.skill === 'shardcraft')) {
+      const isl = ['bellwether', 'sunreach', 'amberhold', 'wrack', 'lockhaven', 'saltglass'] as const;
+      expect(isl.some((r) => regionLayout(r).stations.some((st) => st.id === sh.station)), sh.station).toBe(true);
+    }
+    const gale = g.layout.stations.find((st) => st.id === 'shrine_gale')!;
+    g.give('glimmerstone', 10);
+    goTo(g, gale.x + 1.8, gale.z + 1.8);
+    const before = count(g.p.inv, 'glimmerstone'), had = count(g.p.inv, 'shard_gale');
+    g.craft('attune_gale', 2);
+    run(g, 10, () => count(g.p.inv, 'shard_gale') >= had + 2);
+    expect(count(g.p.inv, 'shard_gale')).toBe(had + 2);
+    expect(count(g.p.inv, 'glimmerstone')).toBe(before - 2);
+    expect(g.p.xp.shardcraft).toBeGreaterThanOrEqual(10);
+    // level 22: three gale shards from each stone (RuneScape's air runes: one more every 11 levels)
+    (g.p.xp as Record<string, number>).shardcraft = xpForLevel(22);
+    g.craft('attune_gale', 1);
+    run(g, 10, () => count(g.p.inv, 'shard_gale') >= had + 5);
+    expect(count(g.p.inv, 'shard_gale')).toBe(had + 5);
+    // the Whisper shrine wants level 2; the Ember shrine level 14 and its own shrine
+    const fresh2 = fresh();
+    fresh2.give('glimmerstone', 1);
+    expect(fresh2.recipeBlock(RECIPES.find((r) => r.id === 'attune_ember')!)).toMatch(/level 14/);
   });
 
   it('Bellwether\'s shore beetles drop chitin, and chitin laces into a helm at the workbench', () => {

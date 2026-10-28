@@ -24,7 +24,7 @@ export const ACTIVE = {
   /** what you hear when you nail it */
   calls: {
     woodcutting: 'Clean cut!', mining: 'Seam struck!', fishing: 'On the strike!', cooking: 'Off the heat!', smithing: 'On the beat!',
-    fletching: 'True cut!', gunsmithing: 'Tight fit!', crafting: 'Neat stitch!',
+    fletching: 'True cut!', gunsmithing: 'Tight fit!', crafting: 'Neat stitch!', shardcraft: 'Bright!',
   } as Partial<Record<SkillId, string>>,
 };
 

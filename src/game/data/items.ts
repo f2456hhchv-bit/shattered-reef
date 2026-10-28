@@ -4,7 +4,7 @@ import { GEMS } from './drops';
 export type SkillId =
   | 'attack' | 'strength' | 'defence' | 'hitpoints' | 'ranged' | 'magic'
   | 'woodcutting' | 'mining' | 'fishing'
-  | 'smithing' | 'gunsmithing' | 'fletching' | 'cooking' | 'crafting'
+  | 'smithing' | 'gunsmithing' | 'fletching' | 'cooking' | 'crafting' | 'shardcraft'
   | 'sailing';
 export type CombatStyle = 'melee' | 'ranged' | 'magic';
 /** Where an item is worn. Rings fit either ring slot (`ring` / `ring2`); one-handed weapons also fit the off-hand. */
@@ -566,6 +566,7 @@ export const ITEMS: Record<string, ItemDef> = Object.fromEntries(
     I({ id: 'bar_iron', name: 'Iron bar', desc: 'A bar of iron. Smith it into tools, weapons and armour.', icon: { shape: 'bar', color: '#8f9396' }, stackable: true, value: 40 }),
     I({ id: 'shell_fragment', name: 'Reef shell', desc: 'A piece of shell. Traders buy it.', icon: { shape: 'shell', color: '#d8c7a8', accent: '#c04a2c' }, stackable: true, value: 7 }),
     // ---- shards: magic's runes. Four elements, a catalyst for each tier of spell, root and compass
+    I({ id: 'glimmerstone', name: 'Glimmerstone', desc: 'Pale stone with a light inside it. Take it to a shrine and it becomes a shard.', icon: { shape: 'ore', color: '#dfe8f2', accent: '#a8c8e8' }, stackable: true, value: 2 }),
     I({ id: 'charm_tide', name: 'Tide shard', desc: 'The water element. Used to cast tide spells.', icon: { shape: 'charm', color: '#59d0c4', accent: '#2a7f78' }, stackable: true, value: 1 }),
     I({ id: 'shard_gale', name: 'Gale shard', desc: 'The air element. Almost every spell uses some.', icon: { shape: 'charm', color: '#d8e8ee', accent: '#8aa8b4' }, stackable: true, value: 1 }),
     I({ id: 'shard_stone', name: 'Stone shard', desc: 'The earth element. Used to cast stone spells.', icon: { shape: 'charm', color: '#9a8a6a', accent: '#5a4a32' }, stackable: true, value: 1 }),

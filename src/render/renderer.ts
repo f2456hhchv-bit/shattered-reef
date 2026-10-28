@@ -12,7 +12,7 @@ import { createWater } from '../art/water';
 import { PAL, mat, recolour, type PalKey } from '../art/materials';
 import { mulberry32 } from '../art/noise';
 import { buildSloop, buildBarrel, type ShipRig } from '../art/models/ship';
-import { buildCinderVent, buildFallenStar, buildBones, buildSpire, buildSaltPan, buildVentForge, buildLeviathan, buildCrater } from '../art/models/highnodes';
+import { buildCinderVent, buildFallenStar, buildBones, buildSpire, buildSaltPan, buildVentForge, buildLeviathan, buildCrater, buildShrine } from '../art/models/highnodes';
 import { buildNetRack, buildRowboat, buildSignpost, buildFence, buildWell, buildDriftwood, buildShells, buildPotStack, buildCannon, buildWreckRibs, buildWoodpile, buildFlowers } from '../art/models/decor';
 import { NPC_LOOKS, PLAYER_LOOK, BRIGAND_LOOK, HUMAN_LOOKS, TOWNS_LOOKS } from '../art/cast';
 import { buildEnterable, buildStall, type EnterableView } from '../art/models/buildings';
@@ -40,7 +40,7 @@ import { buildBench, buildFurnace, buildAnvil, buildCookfire, buildTent, buildSm
 import { LORE } from '../game/data/lore';
 import { DOORS } from '../game/data/doors';
 import { buildLootShard, buildItemModel, SHARD_TINT, type LootShard, type ShardKind } from '../art/models/items';
-import { NODES, PLAYER_BASE, SKILLS } from '../game/data/content';
+import { NODES, PLAYER_BASE, SKILLS, SHRINES } from '../game/data/content';
 import type { Game, GameEvent, Enemy, Telegraph } from '../game/sim/game';
 import { coastDist, nearestPathDist, BEACH, SUN, SUN_LAYOUT, WRACK, AMBER, LOCK, SALT, LONG } from '../game/world/island';
 import { HCELL } from '../game/world/world';
@@ -77,7 +77,7 @@ export const TREE_LOOK: Record<string, TreeLook> = {
 };
 export const ORE_TINT: Record<string, [number, number]> = {
   rock_copper: [PAL.copper, 0.12], rock_tin: [0xd6d9d4, 0.12], rock_iron: [0xa5543a, 0.12], rock_coal: [0x202022, 0], rock_gold: [0xe3c25e, 0.25],
-  amber_seep: [0xe8902a, 0.6], rock_storm: [0x8fc0e8, 0.35], rock_abyss: [0x3f8f6e, 0.3], rock_tide: [0x3fd8d0, 0.6],
+  amber_seep: [0xe8902a, 0.6], rock_storm: [0x8fc0e8, 0.35], rock_abyss: [0x3f8f6e, 0.3], rock_tide: [0x3fd8d0, 0.6], rock_glimmer: [0xdfeaf6, 0.45],
 };
 
 interface RigView { kind: 'human'; rig: HumanoidRig; mat: THREE.MeshStandardMaterial }
@@ -414,6 +414,7 @@ export class GameRenderer {
       if (st.id === 'furnace') { const f = buildFurnace(); f.group.traverse((o) => { if ((o as THREE.Mesh).material === f.glow) o.userData.glow = true; }); place(f.group, st.x, st.z, 0); }
       else if (st.id === 'anvil') place(buildAnvil(), st.x, st.z, 0.3);
       else if (st.id === 'bench') place(buildBench(), st.x, st.z, 0);
+      else if (st.id.startsWith('shrine_')) { const sh = SHRINES.find((s) => `shrine_${s.key}` === st.id)!; const f = buildShrine(sh.colour, sh.level + 7); f.group.traverse((o) => { if ((o as THREE.Mesh).material === f.glow) o.userData.glow = true; }); place(f.group, st.x, st.z, 0); }
       else if (st.id === 'vent') { const f = buildVentForge(); f.group.traverse((o) => { if ((o as THREE.Mesh).material === f.glow) o.userData.glow = true; }); place(f.group, st.x, st.z, 0); }
       else { const f = buildCookfire(); f.flames.forEach((m) => (m.userData.flame = true)); place(f.group, st.x, st.z, 0); }
     }
@@ -1513,7 +1514,8 @@ export class GameRenderer {
       case 'craftFx': {
         const st = g.layout.stations.find((s) => s.id === e.station);
         if (!st) break;
-        this.particles.burst(st.x, g.world.ground(st.x, st.z) + 0.9, st.z, 10, e.station === 'fire' ? 0xffb04a : 0xffd38a, { speed: 2, up: 3, size: 0.07, life: 0.5 });
+        const shrine = SHRINES.find((s) => `shrine_${s.key}` === e.station);
+        this.particles.burst(st.x, g.world.ground(st.x, st.z) + (shrine ? 1.5 : 0.9), st.z, shrine ? 16 : 10, shrine ? shrine.colour : e.station === 'fire' ? 0xffb04a : 0xffd38a, { speed: 2, up: 3, size: 0.07, life: 0.5 });
         break;
       }
     }

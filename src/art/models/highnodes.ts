@@ -129,3 +129,23 @@ export function buildCrater(): THREE.Group {
   for (let k = 0; k < 4; k++) { const a = rnd() * 6.28, r = 7 + rnd() * 2; g.add(at(mesh(new THREE.CylinderGeometry(0.18, 0.25, 0.6 + rnd() * 0.8, 7), mat(0x1a1612)), Math.cos(a) * r, 0.3, Math.sin(a) * r, rnd() * 0.3, 0, rnd() * 0.3)); }
   return g;
 }
+
+/** A Shardcraft shrine: a ring of standing stones round a low altar, a crystal of the shard's colour floating over it. */
+export function buildShrine(colour: number, seed = 1): { group: THREE.Group; glow: THREE.MeshStandardMaterial } {
+  const g = new THREE.Group(), rnd = mulberry32(seed);
+  const glow = new THREE.MeshStandardMaterial({ color: colour, emissive: colour, emissiveIntensity: 1.6, flatShading: true });
+  g.add(at(mesh(new THREE.CylinderGeometry(1.25, 1.4, 0.18, 10), mat('stone')), 0, 0.09, 0));
+  g.add(at(mesh(jitter(new THREE.CylinderGeometry(0.5, 0.6, 0.7, 6), 0.04, seed), mat('stoneDark')), 0, 0.53, 0));
+  g.add(at(mesh(new THREE.CircleGeometry(0.42, 6), glow, false), 0, 0.89, 0, -Math.PI / 2));
+  // the crystal: a double point, hovering
+  const gem = mesh(new THREE.OctahedronGeometry(0.32, 0), glow, false);
+  gem.scale.y = 1.7;
+  g.add(at(gem, 0, 1.55, 0));
+  for (let k = 0; k < 5; k++) {
+    const a = (k / 5) * Math.PI * 2 + rnd() * 0.3, h = 1.1 + rnd() * 0.6;
+    const s = mesh(jitter(new THREE.BoxGeometry(0.34, h, 0.24), 0.04, seed + k), mat('stone'));
+    g.add(at(s, Math.cos(a) * 1.05, h / 2 + 0.1, Math.sin(a) * 1.05, 0, -a, (rnd() - 0.5) * 0.12));
+    g.add(at(mesh(new THREE.BoxGeometry(0.06, 0.3, 0.02), glow, false), Math.cos(a) * 0.86, h * 0.6, Math.sin(a) * 0.86, 0, -a + Math.PI / 2, 0)); // a carved mark
+  }
+  return { group: g, glow };
+}
