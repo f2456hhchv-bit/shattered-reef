@@ -4,7 +4,7 @@ import { INV_SIZE, emptyInventory, type Inventory, type Stack } from './inventor
 import { MAX_XP, xpForLevel } from './xp';
 import type { Stance } from './gear';
 import { REGIONS, regionAt, type RegionId } from '../world/regions';
-import { SUN } from '../world/island';
+import { SUN, BS, EAST } from '../world/island';
 import { KEY, STARTER_KEY } from '../data/keys';
 import { BOARDS, CREW_BY, BOUNTY_CONFIG, type Contract } from '../data/bounties';
 import { ENEMIES } from '../data/content';
@@ -12,7 +12,7 @@ import { SHIPYARD, type ShipPart } from '../data/shipyard';
 
 // Versioned, validated save. Anything invalid is dropped or defaulted, never trusted.
 
-export const SAVE_VERSION = 8;
+export const SAVE_VERSION = 9;
 export const BANK_MAX = 400;
 const KEY_DORMANT_MAX = 3600; // distinct entries in the strongbox
 export const SAVE_KEY = 'shattered-reef.save';
@@ -151,7 +151,7 @@ const MIGRATIONS: Record<number, (d: Record<string, unknown>) => Record<string, 
   2: (d) => ({ ...d, version: 3, bank: [] }),
   // v3 had one seamless world with Sunreach at x = 190; v4 loads one region at a time and moved Sunreach east
   3: (d) => {
-    const OLD_SUN_X = 190, shift = SUN.x - OLD_SUN_X;
+    const OLD_SUN_X = 190, shift = SUN.x - EAST - OLD_SUN_X; // to where Sunreach stood in v4 (v9 moves it on east)
     const onSun = (x: unknown, z: unknown) => typeof x === 'number' && typeof z === 'number' && Math.hypot(x - OLD_SUN_X, z - SUN.z) < 115 && x > 95;
     const p = { ...((d.player ?? {}) as Record<string, unknown>) }, sh = { ...((d.ship ?? {}) as Record<string, unknown>) };
     const pSun = onSun(p.x, p.z), sSun = onSun(sh.x, sh.z);
@@ -193,6 +193,22 @@ const MIGRATIONS: Record<number, (d: Record<string, unknown>) => Record<string, 
   6: (d) => ({ ...d, version: 7, keyring: [STARTER_KEY], key: STARTER_KEY, keyDormant: 0 }),
   // v7 had no bounties or crew
   7: (d) => ({ ...d, version: 8, bounty: 0, boards: {}, contracts: [], crew: [], mate: null, hunterAt: 0 }),
+  // v8 had Bellwether at its old size, the other islands 400 m further west; v9's Bellwether is 4.5x the size
+  // (its places scaled about the island's middle), and the Selkie's Skin has more steps
+  8: (d) => {
+    const move = (o: Record<string, unknown>, reg: unknown) => {
+      if (typeof o.x !== 'number' || typeof o.z !== 'number') return o;
+      if (reg === 'bellwether' || reg === undefined) return { ...o, x: o.x * BS, z: o.z * BS };
+      if (reg === 'smugglers_caves') return o;
+      return { ...o, x: o.x + EAST }; // every other region moved east with its island (the Ember Deep sits under Sunreach)
+    };
+    const p = move({ ...((d.player ?? {}) as Record<string, unknown>) }, d.region);
+    const shIn = { ...((d.ship ?? {}) as Record<string, unknown>) }, sh = move(shIn, shIn.region);
+    const tr = d.treasure && typeof d.treasure === 'object' ? move({ ...(d.treasure as Record<string, unknown>) }, (d.treasure as Record<string, unknown>).region) : d.treasure;
+    const q = { ...((d.quests ?? {}) as Record<string, number>) };
+    if (typeof q.selkie === 'number') q.selkie = ({ 3: 7, 4: 8 } as Record<number, number>)[q.selkie] ?? q.selkie; // holding the skin: give it back; done: done
+    return { ...d, version: 9, player: p, ship: sh, treasure: tr, quests: q };
+  },
 };
 
 /** Parse + validate untrusted JSON. Returns null when unusable (caller starts fresh). */

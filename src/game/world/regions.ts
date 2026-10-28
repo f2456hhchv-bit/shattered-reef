@@ -30,7 +30,7 @@ export interface RegionDef {
 
 export const REGIONS: Record<RegionId, RegionDef> = {
   bellwether: {
-    id: 'bellwether', name: 'Bellwether Isle', kind: 'island', bounds: { cx: 0, cz: 0, half: 150 }, home: 'bellwether', band: [1, 20],
+    id: 'bellwether', name: 'Bellwether Isle', kind: 'island', bounds: { cx: 0, cz: 0, half: 620 }, home: 'bellwether', band: [1, 20],
     exits: [{ side: 'e', to: 'sunreach' }],
     tip: 'Levels 1-20. Sail east off the edge of the chart to cross to Sunreach, or pay Wynn at the dock for passage.',
   },

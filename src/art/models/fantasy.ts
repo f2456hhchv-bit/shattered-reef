@@ -119,6 +119,8 @@ const HOUND: Record<string, { coat: number; dark: number; eye: number; spots?: n
   moon: { coat: 0x9a9aa8, dark: 0x4e4e5c, eye: 0x9ad8ff }, // pale hounds
   warg: { coat: 0xd8d4c8, dark: 0x6a645a, eye: 0xe8b84a }, // Amberhold's wargs: big, white-grey, amber-eyed
   nokk: { coat: 0x3a4a44, dark: 0x1e2a26, eye: 0x8affe8, horse: true }, // the nøkk: a dark water-horse, weed for a mane
+  wolf: { coat: 0x7a7266, dark: 0x3e3a34, eye: 0xd8a83a }, // Bellwether's grey wolves
+  greymuzzle: { coat: 0xb8b4aa, dark: 0x5a564e, eye: 0xe8c04a }, // the old pack leader, grey to the muzzle
 };
 function hound(look: string, seed: number): FantasyRig {
   const L = HOUND[look] ?? HOUND.moon;

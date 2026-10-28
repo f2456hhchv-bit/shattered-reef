@@ -55,21 +55,78 @@ describe('Bellwether\'s quests', () => {
     expect(count(g.p.inv, 'knockers_lamp')).toBe(1);
   });
 
-  it('The Selkie\'s Skin: dig the wet sand, then give the skin back (ring) or to Dougal (cloak)', () => {
+  it('The Selkie\'s Skin: Dougal, the furrier, the smugglers\' cove and their hold; the skin back to Muirne (ring) or Dougal (cloak)', () => {
     for (const who of ['muirne', 'dougal'] as const) {
       const g = fresh();
-      talk(g, 'muirne'); talk(g, 'dougal');
-      expect(g.questStage('selkie')).toBe(2);
-      use(g, 'selkie', 'dry1');
+      talk(g, 'muirne'); talk(g, 'dougal'); talk(g, 'wren');
+      expect(g.questStage('selkie')).toBe(3);
+      for (let k = 0; k < 3; k++) expect(beat(g, 'smuggler')).toBe(true);
+      expect(g.questStage('selkie')).toBe(4);
+      use(g, 'selkie', 'ledger');
+      expect(g.questStage('selkie')).toBe(5);
+      // down into the caves: the wrong crates hold brandy and cod; the salted one holds the skin
+      g.travel({ to: 'smugglers_caves', how: 'portal', from: 'bellwether' }); g.step(1 / 30);
+      expect(g.s.region).toBe('smugglers_caves');
+      use(g, 'selkie', 'c_fish');
       expect(count(g.p.inv, 'sealskin')).toBe(0);
-      use(g, 'selkie', 'wet');
+      use(g, 'selkie', 'c_salt');
       expect(count(g.p.inv, 'sealskin')).toBe(1);
+      expect(beat(g, 'quartermaster')).toBe(true);
+      expect(g.questStage('selkie')).toBe(7);
+      g.travel({ to: 'bellwether', how: 'portal', from: 'smugglers_caves' }); g.step(1 / 30);
       talk(g, who);
       expect(g.questStage('selkie')).toBe(QUESTS.selkie.stages.length - 1);
       expect(count(g.p.inv, 'sealskin')).toBe(0);
       expect(count(g.p.inv, who === 'muirne' ? 'ring_selkie' : 'cloak_selkie')).toBe(1);
       expect(g.s.flags[who === 'muirne' ? 'selkie_freed' : 'selkie_kept']).toBe(true);
     }
+  });
+
+  it('The Flooded Seam: bronze and pine for the pump, the pump worked in order, knockers beaten, the miners out', () => {
+    const g = fresh();
+    talk(g, 'agnes'); talk(g, 'wat');
+    talk(g, 'wat');
+    expect(g.questStage('seam')).toBe(2); // no bronze yet
+    g.give('bar_bronze', 2); talk(g, 'wat');
+    g.give('logs_pine', 5); talk(g, 'wat');
+    expect(g.questStage('seam')).toBe(4);
+    use(g, 'seam', 'handle'); // out of order
+    expect(g.questStage('seam')).toBe(4);
+    for (const m of ['trough', 'sluice', 'handle']) use(g, 'seam', m);
+    expect(g.questStage('seam')).toBe(5);
+    for (let k = 0; k < 4; k++) expect(beat(g, 'knocker')).toBe(true);
+    use(g, 'seam', 'rocks');
+    talk(g, 'agnes');
+    expect(g.s.flags.seam_done).toBe(true);
+    expect(count(g.p.inv, 'pickaxe_iron')).toBe(1);
+  });
+
+  it('Old Greymuzzle: follow the trail (decoys reset it), beat the pack and their leader', () => {
+    const g = fresh();
+    talk(g, 'ewan');
+    use(g, 'wolves', 'fleece'); use(g, 'wolves', 'decoy2');
+    expect(g.questStage('wolves')).toBe(1);
+    for (const m of ['fleece', 'stream', 'bones']) use(g, 'wolves', m);
+    expect(g.questStage('wolves')).toBe(2);
+    for (let k = 0; k < 4; k++) expect(beat(g, 'grey_wolf')).toBe(true);
+    expect(beat(g, 'greymuzzle')).toBe(true);
+    talk(g, 'ewan');
+    expect(g.s.flags.wolves_done).toBe(true);
+  });
+
+  it('The Bucca\'s Share: Jowan\'s custom, five sprats on the stone, the chapel\'s stones back, the crabs told', () => {
+    const g = fresh();
+    talk(g, 'elspeth'); talk(g, 'jowan');
+    use(g, 'bucca', 'stone');
+    expect(g.questStage('bucca')).toBe(2); // no fish
+    g.give('fish_sprat_raw', 5); use(g, 'bucca', 'stone');
+    expect(count(g.p.inv, 'fish_sprat_raw')).toBe(0);
+    for (const m of ['s_door', 's_window', 's_altar']) use(g, 'bucca', m);
+    expect(g.questStage('bucca')).toBe(4);
+    use(g, 'bucca', 'back');
+    for (let k = 0; k < 4; k++) expect(beat(g, 'rock_crab')).toBe(true);
+    talk(g, 'elspeth');
+    expect(g.s.flags.bucca_done).toBe(true);
   });
 
   it('Wreckers\' Lantern: douse the light, sink two cutters at sea, beat the chief; the swivel gun hits harder', () => {

@@ -846,7 +846,7 @@ describe('bounties and crew', () => {
     g.on((e) => { if (e.type === 'hunters') warned = true; });
     g.addBounty(6000);
     expect(g.s.hunterAt).toBeGreaterThan(0);
-    const far = g.enemies.find((e) => e.def.id === 'reef_crab')!;
+    const far = g.enemies.filter((e) => e.def.id === 'reef_crab').sort((a, b) => Math.hypot(b.x - g.layout.respawn.x, b.z - g.layout.respawn.z) - Math.hypot(a.x - g.layout.respawn.x, a.z - g.layout.respawn.z))[0]; // the furthest from town
     g.p.x = far.x + 3; g.p.z = far.z;
     g.s.playTime = g.s.hunterAt + 1;
     run(g, 0.2);

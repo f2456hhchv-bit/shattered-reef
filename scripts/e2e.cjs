@@ -94,7 +94,8 @@ const sizes = [
         near(iven.x, iven.z + 4);
         return out;
       });
-      await p.waitForTimeout(300);
+      // let the camera settle on the new spot first (software rendering runs a frame or two a second)
+      { const t0 = await p.evaluate(() => window.__reef.game.time); await p.waitForFunction((t0) => window.__reef.game.time > t0 + 2, t0, { timeout: 90000 }); }
       const pos = await p.evaluate(() => { const r = window.__reef, n = r.game.layout.npcs.find((x) => x.id === 'iven'); return r.renderer.project(n.x, r.game.world.standY(n.x, n.z) + 1.3, n.z); });
       await p.mouse.click(pos.x, pos.y);
       await p.waitForFunction(() => !!document.getElementById('dialog'), null, { timeout: 90000 }).catch(() => {});

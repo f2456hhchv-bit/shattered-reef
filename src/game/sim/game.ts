@@ -175,6 +175,8 @@ export class Game {
   private boardRnd: () => number;
   /** lucky swings roll on their own stream; the timing bar shows on the first item-landing swing or craft after this */
   private luckRnd: () => number;
+  /** foes' idle ambling has its own dice, so how many foes an island holds never changes how a fight rolls */
+  private wanderRnd: () => number;
   luckyAt = 0;
   /** your first mate, when ashore */
   mate: Mate | null = null;
@@ -246,6 +248,7 @@ export class Game {
     this.keyRnd = mulberry32(((opts.seed ?? Date.now()) ^ 0x6b657973) >>> 0);
     this.boardRnd = mulberry32(((opts.seed ?? Date.now()) ^ 0x626f6172) >>> 0);
     this.luckRnd = mulberry32(((opts.seed ?? Date.now()) ^ 0x6c75636b) >>> 0);
+    this.wanderRnd = mulberry32(((opts.seed ?? Date.now()) ^ 0x77616e64) >>> 0);
     this.luckyAt = this.nextLucky(0);
     const home = regionLayout('bellwether');
     this.s = opts.save ?? defaultSave(home.respawn, home.mooring!);
@@ -2800,9 +2803,22 @@ export class Game {
     const playerHittable = !this.dead && !this.p.onShip;
     const inSafe = Math.hypot(px - this.layout.respawn.x, pz - this.layout.respawn.z) < SAFE_RADIUS;
     for (const e of this.enemies) {
+      const f = e.fx;
+      // asleep far off with nothing on it (most of a big island's foes): only its wander dice roll, as they always did
+      if (e.alive && e.state === 'idle' && !e.def.boss && e.hitFlash === 0 && Math.abs(px - e.x) + Math.abs(pz - e.z) > SLEEP_RANGE
+        && f.root + f.disarm + f.slow + f.shatter + f.lesson + f.weak + f.ward + f.bite + f.turn + f.spoil + f.fuse + (f.confuse || 0) + (f.weaken || 0) + (f.cursed || 0) === 0) {
+        e.moving = false;
+        e.cd = Math.max(0, e.cd - dt);
+        e.t -= dt;
+        if (e.t <= 0) {
+          e.t = 2 + this.wanderRnd() * 4;
+          const a = this.wanderRnd() * Math.PI * 2;
+          e.wander = this.wanderRnd() < 0.6 ? { x: e.spawnX + Math.cos(a) * 3, z: e.spawnZ + Math.sin(a) * 3 } : null;
+        }
+        continue;
+      }
       e.hitFlash = Math.max(0, e.hitFlash - dt);
       e.moving = false;
-      const f = e.fx;
       f.root = Math.max(0, f.root - dt); f.disarm = Math.max(0, f.disarm - dt); f.slow = Math.max(0, f.slow - dt); f.shatter = Math.max(0, f.shatter - dt); f.lesson = Math.max(0, f.lesson - dt);
       f.weak = Math.max(0, f.weak - dt); f.ward = Math.max(0, f.ward - dt); f.bite = Math.max(0, f.bite - dt); f.turn = Math.max(0, f.turn - dt);
       if (f.confuse) f.confuse = Math.max(0, f.confuse - dt); if (f.weaken) f.weaken = Math.max(0, f.weaken - dt); if (f.cursed) f.cursed = Math.max(0, f.cursed - dt);
@@ -2834,9 +2850,9 @@ export class Game {
           if (playerHittable && !inSafe && e.def.hostile && !calmed && dP < e.def.aggro * (e.elite && this.activeKey()?.passive.kind === 'listening' ? 1.5 : 1)) { e.state = 'chase'; break; }
           e.t -= dt;
           if (e.t <= 0) {
-            e.t = 2 + this.rnd() * 4;
-            const a = this.rnd() * Math.PI * 2;
-            e.wander = this.rnd() < 0.6 ? { x: e.spawnX + Math.cos(a) * 3, z: e.spawnZ + Math.sin(a) * 3 } : null;
+            e.t = 2 + this.wanderRnd() * 4;
+            const a = this.wanderRnd() * Math.PI * 2;
+            e.wander = this.wanderRnd() < 0.6 ? { x: e.spawnX + Math.cos(a) * 3, z: e.spawnZ + Math.sin(a) * 3 } : null;
           }
           // far off: it still decides where to amble (same dice, same world) but doesn't walk there; a big island
           // has hundreds of these and their pathing is the cost
@@ -2886,8 +2902,8 @@ export class Game {
       }
     }
     this.enemies = this.enemies.filter((e) => e.alive || !e.summoned);
-    // separation so swarms don't stack into one sprite
-    const live = this.enemies.filter((e) => e.alive);
+    // separation so swarms don't stack into one sprite (only where you are: the sleepers far off don't move)
+    const live = this.enemies.filter((e) => e.alive && Math.abs(px - e.x) + Math.abs(pz - e.z) < SLEEP_RANGE);
     for (let i = 0; i < live.length; i++) {
       for (let j = i + 1; j < live.length; j++) {
         const a = live[i], b = live[j];

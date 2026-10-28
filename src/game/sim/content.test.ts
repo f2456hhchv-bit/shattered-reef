@@ -7,7 +7,7 @@ import { ITEMS } from '../data/items';
 import { levelForXp } from './xp';
 import { NODES, RECIPES, ENEMIES, LOOT, SHOPS, UNLOCKS, SKILLS, SPELLS, UTILITY_SPELLS } from '../data/content';
 import { BOOK } from '../data/spellbook';
-import { LAYOUT, WRACK_LAYOUT, nearestPathDist } from '../world/island';
+import { LAYOUT, WRACK_LAYOUT, SUN, nearestPathDist } from '../world/island';
 import { toWorld, toLocal, doorPoints, isInside } from '../world/buildings';
 import { regionLayout } from '../world/layout';
 import { AMMO } from '../data/sea';
@@ -164,7 +164,7 @@ describe('content placement', () => {
     const peak = inRegion('wrack').placeInfo('thundercrag')!;
     expect(peak.foes![0]).toBeGreaterThanOrEqual(55);
     expect(peak.gather.map((n) => n.name)).toContain('Abyssite vein');
-    expect(g.placeInfo('wood')!.foes).toBeNull();
+    expect(g.placeInfo('wood')!.foes).toEqual([7, 11]); // wild boar on its edge, grey wolves in its west (2026-10-28)
   });
 
   it('a new player can walk from the quay to every starter zone without passing a foe above the Guardian\'s level', () => {
@@ -353,7 +353,7 @@ describe('content placement', () => {
     delete v3.region;
     const d = parseSave(JSON.stringify(v3), fb)!;
     expect(d.region).toBe('sunreach');
-    expect(d.player.x).toBe(420);
+    expect(d.player.x).toBe(SUN.x); // 420, then 400 further east when Bellwether grew
     expect(d.ship.region).toBe('sunreach');
     const g1 = new Game({ seed: 1, save: d });
     expect(g1.world.walkable(g1.p.x, g1.p.z)).toBe(true);

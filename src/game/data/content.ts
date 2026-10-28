@@ -398,6 +398,65 @@ SHOPS.anchor = {
   wants: [{ prefix: 'fish_', mul: 1.4, note: 'Rell pays well for fish' }, { prefix: 'boar_meat', mul: 1.5, note: 'and boar.' }],
 };
 
+// Bellwether city and its towns (the island at 4.5x): the island's starter gear, spread round its shops
+SHOPS.fishmonger = {
+  id: 'fishmonger', name: 'Meg\'s Fish Stall', keeper: 'marlow',
+  stock: [{ id: 'fish_sprat', qty: 1 }, { id: 'fish_mackerel', qty: 1 }, { id: 'crab_meat', qty: 1 }, { id: 'fish_sprat_raw', qty: 5 }],
+  buyMul: 1.1, sellMul: 0.5,
+  wants: [{ prefix: 'fish_', mul: 1.6, note: 'Meg pays well for fish' }, { prefix: 'crab_meat', mul: 1.5, note: 'and crab.' }],
+};
+SHOPS.blades = {
+  id: 'blades', name: 'Bracken\'s Blades', keeper: 'bracken',
+  stock: [{ id: 'dagger_bronze', qty: 1 }, { id: 'cutlass_bronze', qty: 1 }, { id: 'pike_bronze', qty: 1 }, { id: 'greatsword_bronze', qty: 1 }, { id: 'dagger_iron', qty: 1 }, { id: 'cutlass_iron', qty: 1 }, { id: 'pike_iron', qty: 1 }, { id: 'greatsword_iron', qty: 1 },
+    { id: 'shortbow_pine', qty: 1 }, { id: 'arrow_bronze', qty: 25 }, { id: 'arrow_iron', qty: 25 }, { id: 'crossbow_bronze', qty: 1 }, { id: 'bolt_bronze', qty: 20 }],
+  buyMul: 1.1, sellMul: 0.5,
+  wants: [{ prefix: 'bar_', mul: 1.3, note: 'Hal pays well for metal bars.' }],
+};
+SHOPS.armour = {
+  id: 'armour', name: 'Holt\'s Armoury', keeper: 'sabine',
+  stock: [{ id: 'helm_bronze', qty: 1 }, { id: 'plate_bronze', qty: 1 }, { id: 'legs_bronze', qty: 1 }, { id: 'boots_bronze', qty: 1 }, { id: 'gloves_bronze', qty: 1 }, { id: 'shield_bronze', qty: 1 },
+    { id: 'helm_iron', qty: 1 }, { id: 'plate_iron', qty: 1 }, { id: 'legs_iron', qty: 1 }, { id: 'boots_iron', qty: 1 }, { id: 'gloves_iron', qty: 1 }, { id: 'shield_iron', qty: 1 },
+    { id: 'cap_leather', qty: 1 }, { id: 'coat_padded', qty: 1 }, { id: 'chaps_leather', qty: 1 }, { id: 'boots_leather', qty: 1 }, { id: 'gloves_leather', qty: 1 }],
+  buyMul: 1.1, sellMul: 0.5,
+  wants: [{ prefix: 'leather', mul: 1.4, note: 'Sabine pays well for leather.' }],
+};
+SHOPS.gull_inn = {
+  id: 'gull_inn', name: 'The Gull and Anchor', keeper: 'tam',
+  stock: [{ id: 'ale', qty: 1 }, { id: 'bread', qty: 1 }, { id: 'fish_pie', qty: 1 }, { id: 'fish_stew', qty: 1 }, { id: 'crab_cakes', qty: 1 }],
+  buyMul: 1.15, sellMul: 0.45,
+  wants: [{ prefix: 'fish_', mul: 1.3, note: 'Tam pays a little extra for fish' }, { prefix: 'boar_meat', mul: 1.4, note: 'and boar.' }],
+};
+SHOPS.bakery = {
+  id: 'bakery', name: 'Rowan\'s Bakery', keeper: 'bess',
+  stock: [{ id: 'bread', qty: 1 }, { id: 'pie_berry', qty: 1 }, { id: 'fish_pie', qty: 1 }],
+  buyMul: 1.0, sellMul: 0.45,
+  wants: [{ prefix: 'berries', mul: 2, note: 'Bess pays double for berries.' }],
+};
+SHOPS.miners = {
+  id: 'miners', name: 'Coyle\'s Mining Supplies', keeper: 'rudd',
+  stock: [{ id: 'pickaxe_chipped', qty: 1 }, { id: 'pickaxe_bronze', qty: 1 }, { id: 'pickaxe_iron', qty: 1 }, { id: 'hatchet_chipped', qty: 1 }, { id: 'bread', qty: 1 }, { id: 'shard_stone', qty: 25 }],
+  buyMul: 1.05, sellMul: 0.5,
+  wants: [{ prefix: 'ore_', mul: 1.4, note: 'Rudd pays well for ore' }, { prefix: 'bar_', mul: 1.2, note: 'and bars.' }],
+};
+SHOPS.pick_inn = {
+  id: 'pick_inn', name: 'The Pick and Lantern', keeper: 'molly',
+  stock: [{ id: 'ale', qty: 1 }, { id: 'bread', qty: 1 }, { id: 'boar_meat', qty: 1 }, { id: 'fish_stew', qty: 1 }],
+  buyMul: 1.15, sellMul: 0.45,
+  wants: [{ prefix: 'boar_meat', mul: 1.5, note: 'Molly pays well for boar meat.' }],
+};
+SHOPS.sawmill = {
+  id: 'sawmill', name: 'Saltpine Sawmill', keeper: 'tilda',
+  stock: [{ id: 'hatchet_chipped', qty: 1 }, { id: 'hatchet_bronze', qty: 1 }, { id: 'hatchet_iron', qty: 1 }, { id: 'shortbow_pine', qty: 1 }],
+  buyMul: 1.05, sellMul: 0.5,
+  wants: [{ prefix: 'logs_', mul: 1.5, note: 'Tilda pays well for logs.' }],
+};
+SHOPS.gullhaven = {
+  id: 'gullhaven', name: 'Morrow\'s Fish and Tackle', keeper: 'kit',
+  stock: [{ id: 'fishing_rod', qty: 1 }, { id: 'lobster_pot', qty: 1 }, { id: 'harpoon', qty: 1 }, { id: 'kelp', qty: 5 }, { id: 'sea_salt', qty: 5 }, { id: 'fish_sprat', qty: 1 }],
+  buyMul: 1.05, sellMul: 0.5,
+  wants: [{ prefix: 'fish_', mul: 1.5, note: 'Kit pays half as much again for fish.' }],
+};
+
 /** Marta's store: the shop the tutorial and older code mean by "the shop". */
 export const SHOP = SHOPS.general;
 
@@ -496,7 +555,7 @@ export const PLAYER_BASE = {
 // ---- enemies -------------------------------------------------------------------
 export type EnemyModel = 'crab' | 'brigand' | 'gunner' | 'guardian' | 'boar' | 'spider' | 'snake' | 'golem' | 'hound' | 'bat' | 'beetle' | 'door';
 /** Visual variant: crab shell / humanoid outfit / stone tint, chosen by the renderer. */
-export type EnemyLook = 'reef' | 'mire' | 'ironshell' | 'brigand' | 'gunner' | 'smuggler' | 'poacher' | 'drowned' | 'captain' | 'sentinel' | 'cave' | 'giant' | 'jungle' | 'ember' | 'sunscale' | 'hunter' | 'moon' | 'amber' | 'oak' | 'queen' | 'shore' | 'gull' | 'thorn' | 'knocker' | 'leech' | 'howe' | 'troll' | 'seadraugr' | 'wrecker' | 'ant' | 'mantis' | 'douen' | 'centipede' | 'souc' | 'warg' | 'nokk' | 'hornet' | 'bark' | 'mosstroll' | 'draugr' | 'draugrtroll' | 'jotunn' | 'starstruck' | 'hushed' | 'greenteeth' | 'ninefold' | 'corva' | 'lockjaw' | 'elder' | 'glass' | 'reflection' | 'finfolk' | 'finwife';
+export type EnemyLook = 'reef' | 'mire' | 'ironshell' | 'brigand' | 'gunner' | 'smuggler' | 'poacher' | 'drowned' | 'captain' | 'sentinel' | 'cave' | 'giant' | 'jungle' | 'ember' | 'sunscale' | 'hunter' | 'moon' | 'amber' | 'oak' | 'queen' | 'shore' | 'gull' | 'thorn' | 'knocker' | 'leech' | 'howe' | 'troll' | 'seadraugr' | 'wrecker' | 'ant' | 'mantis' | 'douen' | 'centipede' | 'souc' | 'warg' | 'nokk' | 'hornet' | 'bark' | 'mosstroll' | 'draugr' | 'draugrtroll' | 'jotunn' | 'starstruck' | 'hushed' | 'greenteeth' | 'ninefold' | 'corva' | 'lockjaw' | 'elder' | 'glass' | 'reflection' | 'finfolk' | 'finwife' | 'footpad' | 'rock' | 'wolf' | 'wood' | 'greymuzzle' | 'quartermaster';
 
 export interface EnemyDef {
   id: string;
@@ -582,6 +641,23 @@ export const ENEMIES: Record<string, EnemyDef> = {
     speed: 2.4, radius: 0.5, aggro: 5, attack: { kind: 'melee', range: 1.5, windup: 0.4, cooldown: 2.2 }, loot: 'bog_leech', respawn: 25, scale: 0.9 },
   haugbui: { hostile: true, id: 'haugbui', name: 'Haugbui', model: 'brigand', look: 'howe', level: 18, hp: 22, att: 17, def: 14, defBonus: { melee: 20, ranged: 15, magic: -10 }, weakness: 'magic', style: 'melee', accBonus: 13, maxHit: 4,
     speed: 2.6, radius: 0.45, aggro: 8, attack: { kind: 'melee', range: 1.7, windup: 0.5, cooldown: 2.6 }, loot: 'haugbui', respawn: 35, scale: 1.15 },
+  // Bellwether's wider country (2026-10-28, the island at 4.5x): boar in the meadows, footpads on the roads, rock
+  // crabs on the north shore, wolves in Saltpine Wood, spiders in the Heartwood
+  wild_boar: { id: 'wild_boar', name: 'Wild boar', model: 'boar', level: 7, hp: 12, att: 6, def: 5, defBonus: { melee: 10, ranged: -5, magic: 5 }, weakness: 'ranged', style: 'melee', accBonus: 5, maxHit: 2,
+    speed: 3.0, radius: 0.6, aggro: 6, attack: { kind: 'melee', range: 1.6, windup: 0.45, cooldown: 2.4 }, loot: 'wild_boar', respawn: 25, scale: 0.8 },
+  footpad: { id: 'footpad', name: 'Footpad', model: 'brigand', look: 'footpad', level: 4, hp: 7, att: 3, def: 3, defBonus: { melee: 5, ranged: -5, magic: 0 }, weakness: 'ranged', style: 'melee', accBonus: 2, maxHit: 1,
+    speed: 3.0, radius: 0.4, aggro: 6, attack: { kind: 'melee', range: 1.5, windup: 0.45, cooldown: 2.4 }, loot: 'footpad', respawn: 25, scale: 1 },
+  rock_crab: { id: 'rock_crab', name: 'Rock crab', model: 'crab', look: 'rock', level: 8, hp: 12, att: 6, def: 8, defBonus: { melee: 20, ranged: 15, magic: -15 }, weakness: 'magic', style: 'melee', accBonus: 4, maxHit: 2,
+    speed: 2.2, radius: 0.7, aggro: 5, attack: { kind: 'melee', range: 1.5, windup: 0.45, cooldown: 2.4 }, loot: 'crab', respawn: 22, scale: 1.3 },
+  grey_wolf: { hostile: true, id: 'grey_wolf', name: 'Grey wolf', model: 'hound', look: 'wolf', level: 11, hp: 15, att: 11, def: 8, defBonus: { melee: 10, ranged: 10, magic: -5 }, weakness: 'magic', style: 'melee', accBonus: 9, maxHit: 3,
+    speed: 4.0, radius: 0.55, aggro: 8, attack: { kind: 'melee', range: 1.6, windup: 0.35, cooldown: 2.2 }, loot: 'wolf', respawn: 28, scale: 0.85 },
+  wood_spider: { hostile: true, id: 'wood_spider', name: 'Wood spider', model: 'spider', look: 'wood', level: 11, hp: 14, att: 10, def: 8, defBonus: { melee: 5, ranged: 10, magic: -15 }, weakness: 'magic', style: 'melee', accBonus: 8, maxHit: 3,
+    speed: 3.2, radius: 0.5, aggro: 7, attack: { kind: 'melee', range: 1.5, windup: 0.4, cooldown: 2.4 }, loot: 'cave_spider', respawn: 25, scale: 0.8 },
+  // their quest foes
+  greymuzzle: { hostile: true, id: 'greymuzzle', name: 'Old Greymuzzle', model: 'hound', look: 'greymuzzle', level: 16, hp: 36, att: 15, def: 12, defBonus: { melee: 15, ranged: 15, magic: -5 }, weakness: 'magic', style: 'melee', accBonus: 12, maxHit: 4,
+    speed: 4.2, radius: 0.65, aggro: 12, attack: { kind: 'melee', range: 1.8, windup: 0.4, cooldown: 2.3 }, loot: 'greymuzzle', respawn: 0, scale: 1.25 },
+  quartermaster: { hostile: true, id: 'quartermaster', name: 'Quartermaster Slade', model: 'brigand', look: 'quartermaster', level: 21, hp: 40, att: 19, def: 15, defBonus: { melee: 20, ranged: 5, magic: 10 }, weakness: 'ranged', style: 'melee', accBonus: 15, maxHit: 4,
+    speed: 3.2, radius: 0.45, aggro: 11, attack: { kind: 'melee', range: 1.7, windup: 0.45, cooldown: 2.4 }, loot: 'quartermaster', respawn: 0, scale: 1.15 },
   // Sunreach (15-30): Caribbean jungle folklore and giant insects (docs/ISLANDS.md slice 2)
   leafcutter_ant: { id: 'leafcutter_ant', name: 'Leafcutter ant', model: 'beetle', look: 'ant', level: 16, hp: 18, att: 14, def: 12, defBonus: { melee: 15, ranged: 20, magic: -10 }, weakness: 'magic', style: 'melee', accBonus: 10, maxHit: 3,
     speed: 3.0, radius: 0.5, aggro: 6, attack: { kind: 'melee', range: 1.5, windup: 0.4, cooldown: 2.4 }, loot: 'ant', respawn: 25, scale: 0.95 },
@@ -800,6 +876,12 @@ export const LOOT: Record<string, LootTable> = {
   douen: { coins: [8, 20], drops: [{ item: 'shard_whisper', chance: 0.6, qty: [4, 10] }, { item: 'casket', chance: 0.02 }],
     gear: { chance: 0.04, items: ['amulet_brass', 'ring_brass', 'wand_coral'], weights: { common: 55, fine: 38, rare: 7 } } },
   centipede: { coins: [6, 15], drops: [{ item: 'chitin', chance: 0.5, qty: [1, 3] }, { item: 'ore_coal', chance: 0.3 }] },
+  wild_boar: { coins: [1, 6], drops: [{ item: 'boar_meat_raw', chance: 0.9 }, { item: 'boar_hide', chance: 0.5 }] },
+  footpad: { coins: [3, 12], drops: [{ item: 'bread', chance: 0.3 }, { item: 'shard_whisper', chance: 0.3, qty: [2, 5] }], gear: { chance: 0.04, items: ['dagger_bronze', 'cap_leather', 'ring_brass'], weights: { common: 60, fine: 35, rare: 5 } } },
+  wolf: { coins: [2, 8], drops: [{ item: 'boar_hide', chance: 0.5 }, { item: 'shard_bone', chance: 0.4, qty: [2, 5] }] },
+  greymuzzle: { coins: [20, 45], drops: [{ item: 'boar_hide', chance: 1, qty: [3, 5] }, { item: 'shard_bone', chance: 1, qty: [10, 20] }] },
+  quartermaster: { coins: [40, 90], drops: [{ item: 'charm_tide', chance: 1, qty: [10, 20] }, { item: 'shot_bronze', chance: 1, qty: [10, 20] }],
+    gear: { chance: 1, items: ['cutlass_iron', 'pistol_iron', 'helm_iron', 'coat_padded'], weights: { fine: 70, rare: 30 } } },
   shore_beetle: { coins: [1, 3], drops: [{ item: 'chitin', chance: 0.6 }, { item: 'shell_fragment', chance: 0.2 }] },
   gull: { coins: [1, 5], drops: [{ item: 'fish_sprat_raw', chance: 0.5 }, { item: 'shard_gale', chance: 0.2, qty: [2, 4] }] }, // the fish it stole off someone
   spriggan: { coins: [3, 10], drops: [{ item: 'logs_oak', chance: 0.5, qty: [1, 2] }, { item: 'berries', chance: 0.5, qty: [2, 4] }],

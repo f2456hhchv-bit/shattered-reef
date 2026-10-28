@@ -1,5 +1,6 @@
 import { fbm, lerp, smooth } from '../../art/noise';
-import { townPlan, portPlan, mergePlans } from './town';
+import { townPlan, portPlan, mergePlans, type TownPlan } from './town';
+import { bellwetherPlan } from './bellwether';
 import type { RegionId } from './regions';
 
 // The islands: terrain shape + named layout. Pure data/maths, no rendering. Bellwether (the starter island) sits at
@@ -10,15 +11,21 @@ import type { RegionId } from './regions';
 // The starter island holds a zone for every level band of every skill, so it grows outward
 // from the quay: easy content near the village, harder content toward the far coasts and peak.
 
-export const ISLAND_RADIUS = 80;
+/** Bellwether is 4.5 times the size it was, every way (Tom, 2026-10-28: "make each island 450% bigger"): its outline,
+ * zones and hills are scaled by this; buildings, rooms, stations and people stay life-size. */
+export const BS = 4.5;
+export const ISLAND_RADIUS = 80 * BS;
 /** Width of the sand belt around the island, in metres (the beach climbs gently to grass beyond it). */
 export const BEACH = 10;
+/** the other islands sit this much further east than they did, clear of Bellwether's bigger waters */
+export const EAST = 400;
 
 // 'auto': level at the natural height there; 'pad': level at the height the earlier flats left there (a building's pad)
-export interface Flat { x: number; z: number; r: number; h: number | 'auto' | 'pad'; soft?: number } // soft: blend width (m, default 4)
+export interface Flat { x: number; z: number; r: number; h: number | 'auto' | 'pad'; soft?: number; /** a building's footprint: dead level inside it, whatever its neighbours' pads or a road do */ rect?: { w: number; d: number; rot: number } } // soft: blend width (m, default 4)
 export interface Hill { x: number; z: number; r: number; h: number }
 export interface Dip { x: number; z: number; r: number; floor: number }
-export interface PathDef { pts: [number, number][]; width: number }
+/** `paved`: a cobbled street (drawn as stone, not dirt) */
+export interface PathDef { pts: [number, number][]; width: number; paved?: boolean }
 
 const wrap = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
 const deg = (d: number) => (d * Math.PI) / 180;
@@ -31,7 +38,7 @@ const lobe = (theta: number, centreDeg: number, widthDeg: number, amount: number
 /** Angle convention: radians, 0 = east, PI/2 = south, PI = west, 3PI/2 = north. */
 export function coastR(theta: number): number {
   const c = Math.cos(theta), s = Math.sin(theta);
-  return ISLAND_RADIUS + (fbm(c * 2.1 + 7, s * 2.1 + 7, 4, 17) - 0.5) * 30
+  const old = 80 + (fbm(c * 2.1 + 7, s * 2.1 + 7, 4, 17) - 0.5) * 30
     - lobe(theta, 90, 9, 9) // the quay's sheltered bay
     + lobe(theta, 36, 9, 20) // Smugglers' headland
     - lobe(theta, 62, 6, 7) // the cove's inlet
@@ -39,10 +46,13 @@ export function coastR(theta: number): number {
     + lobe(theta, 226, 16, 10) // Heartwood shoulder
     - lobe(theta, 178, 7, 11) // west cove
     - lobe(theta, 282, 8, 6); // north bight under the peak
+  // at this size the old outline's bays are long sweeps: a finer wobble gives the coasts their own coves and points
+  // (left out of the city's bay, so the harbour stays sheltered)
+  return old * BS + (fbm(c * 7 + 3, s * 7 + 3, 3, 29) - 0.5) * 44 * (1 - lobe(theta, 90, 16, 1));
 }
 
 // ---- Sunreach Isle: a warm jungle island east of Bellwether, its harbour in a bay on the south shore ----------
-export const SUN = { x: 420, z: -20 }; // far enough east that neither island's waters reach the other's region
+export const SUN = { x: 420 + EAST, z: -20 }; // far enough east that neither island's waters reach the other's region
 export const SUN_RADIUS = 54;
 export function sunCoastR(theta: number): number {
   const c = Math.cos(theta), s = Math.sin(theta);
@@ -60,7 +70,7 @@ export function sunPoint(thetaDeg: number, inset: number): [number, number] {
 }
 const sunAt = (thetaDeg: number, inset: number) => { const [x, z] = sunPoint(thetaDeg, inset); return { x, z }; };
 // ---- Amberhold Isle: the third island (levels 25-50): amberwood, Goldvein Hill, the poachers' camp ---------
-export const AMBER = { x: 840, z: -20 };
+export const AMBER = { x: 840 + EAST, z: -20 };
 export const AMBER_RADIUS = 56;
 export function amberCoastR(theta: number): number {
   const c = Math.cos(theta), s = Math.sin(theta);
@@ -77,7 +87,7 @@ export function amberPoint(thetaDeg: number, inset: number): [number, number] {
 }
 const amberAt = (thetaDeg: number, inset: number) => { const [x, z] = amberPoint(thetaDeg, inset); return { x, z }; };
 // ---- Stormwrack Isle: the first island past 50 (mixed levels), far east: wrecks, storm crags, the high metals --
-export const WRACK = { x: 1260, z: -20 };
+export const WRACK = { x: 1260 + EAST, z: -20 };
 export const WRACK_RADIUS = 58;
 export function wrackCoastR(theta: number): number {
   const c = Math.cos(theta), s = Math.sin(theta);
@@ -97,7 +107,7 @@ const wrackAt = (thetaDeg: number, inset: number) => { const [x, z] = wrackPoint
 // ---- Lockhaven: the Wardwrights' own island, uncharted since the Breaking (levels 60-90, Act III onward) ------
 // A town of thirteen Houses that fell down round their doors: the doors are still standing, in fields, with nothing
 // behind them. The forges where the keys were cut. A wood of starbark the Wardwrights planted. A well with a Lock in it.
-export const LOCK = { x: 1680, z: -20 };
+export const LOCK = { x: 1680 + EAST, z: -20 };
 export const LOCK_RADIUS = 54;
 export function lockCoastR(theta: number): number {
   const c = Math.cos(theta), s = Math.sin(theta);
@@ -117,7 +127,7 @@ const lockAt = (thetaDeg: number, inset: number) => { const [x, z] = lockPoint(t
 // ---- Saltglass: where the star came down hottest, a thousand years ago (levels 70-95, Act IV) ------------------
 // The beaches fused to glass; the pools in the middle are mirrors that show you a moment late. Mira of the Tide's Lock
 // lies under the Drowned Mirror at the north end. Hale's charts mark it as an anchorage.
-export const SALT = { x: 2100, z: -20 };
+export const SALT = { x: 2100 + EAST, z: -20 };
 export const SALT_RADIUS = 52;
 export function saltCoastR(theta: number): number {
   const c = Math.cos(theta), s = Math.sin(theta);
@@ -137,7 +147,7 @@ const saltAt = (thetaDeg: number, inset: number) => { const [x, z] = saltPoint(t
 // ---- Longstrand: a sandbar island the length of a town, levels 75-99 (Act IV) ---------------------------------
 // Saoirse of the Line's island: a fishing village on stilts, drowned to the knees; the Netting Grounds at the east end
 // where the Line House hung its brass nets; the Finfolk's haaf at the west end. The Fifth Lock is under the Weir.
-export const LONG = { x: 2520, z: -20 };
+export const LONG = { x: 2520 + EAST, z: -20 };
 export const LONG_RADIUS = 46;
 export function longCoastR(theta: number): number {
   const c = Math.cos(theta), s = Math.sin(theta);
@@ -152,6 +162,30 @@ export function longPoint(thetaDeg: number, inset: number): [number, number] {
   return [LONG.x + Math.cos(t) * r, LONG.z + Math.sin(t) * r];
 }
 const longAt = (thetaDeg: number, inset: number) => { const [x, z] = longPoint(thetaDeg, inset); return { x, z }; };
+
+// The coastlines depend only on the angle, so they're tabulated once (the world build asks ~10^6 times)
+const COAST_STEPS = 2048;
+const tabulate = (f: (t: number) => number) => Float32Array.from({ length: COAST_STEPS + 1 }, (_, i) => f((i / COAST_STEPS) * Math.PI * 2 - Math.PI));
+let bellTable: Float32Array | null = null, sunTable: Float32Array | null = null, wrackTable: Float32Array | null = null, amberTable: Float32Array | null = null, lockTable: Float32Array | null = null, saltTable: Float32Array | null = null, longTable: Float32Array | null = null;
+function fromTable(t: Float32Array, theta: number): number {
+  const f = ((theta + Math.PI) / (Math.PI * 2)) * COAST_STEPS, i = Math.max(0, Math.min(COAST_STEPS - 1, Math.floor(f)));
+  return t[i] + (t[i + 1] - t[i]) * (f - i);
+}
+/** Signed distance inside the nearest coastline (positive on land), over both islands. */
+export function coastDist(x: number, z: number): number {
+  bellTable ??= tabulate(coastR);
+  sunTable ??= tabulate(sunCoastR);
+  const b = fromTable(bellTable, Math.atan2(z, x)) - Math.hypot(x, z);
+  wrackTable ??= tabulate(wrackCoastR);
+  amberTable ??= tabulate(amberCoastR);
+  lockTable ??= tabulate(lockCoastR);
+  saltTable ??= tabulate(saltCoastR);
+  longTable ??= tabulate(longCoastR);
+  const nx = x - LONG.x, nz = z - LONG.z;
+  const dx = x - SUN.x, dz = z - SUN.z, wx = x - WRACK.x, wz = z - WRACK.z, ax = x - AMBER.x, az = z - AMBER.z, kx = x - LOCK.x, kz = z - LOCK.z, gx = x - SALT.x, gz = z - SALT.z;
+  return Math.max(b, fromTable(sunTable, Math.atan2(dz, dx)) - Math.hypot(dx, dz), fromTable(wrackTable, Math.atan2(wz, wx)) - Math.hypot(wx, wz),
+    fromTable(amberTable, Math.atan2(az, ax)) - Math.hypot(ax, az), fromTable(lockTable, Math.atan2(kz, kx)) - Math.hypot(kx, kz), fromTable(saltTable, Math.atan2(gz, gx)) - Math.hypot(gx, gz), fromTable(longTable, Math.atan2(nz, nx)) - Math.hypot(nx, nz));
+}
 
 /** Which island a point belongs to (the nearer coast). */
 export function islandOf(x: number, z: number): 'bellwether' | 'sunreach' {
@@ -169,29 +203,41 @@ const at = (thetaDeg: number, inset: number) => { const [x, z] = coastPoint(thet
 
 // ---- named layout -----------------------------------------------------------
 const villageZ = coastPoint(90, 0)[1] - 14;
+/** an old Bellwether position, at the island's new size */
+const I = (x: number, z: number) => ({ x: x * BS, z: z * BS });
 export const LAYOUT = {
-  village: { x: 0, z: villageZ },
+  village: { x: 0, z: villageZ }, // Bellwether's quay square, in the old town by the harbour
   dockBase: { x: 0, z: coastPoint(90, 0)[1] - 2.5 },
-  crossroads: { x: 0, z: villageZ - 22 },
+  crossroads: { x: 0, z: villageZ - 22 }, // the market square, where the city's roads leave
   store: { x: -10, z: villageZ - 2 },
   chartHouse: { x: 10, z: villageZ - 4 },
   smithy: { x: 15, z: villageZ + 4 },
   cookfire: { x: -4, z: villageZ + 5 },
-  strand: at(138, 4), // crabs, shore fishing
-  forest: { x: -36, z: 20 }, // Saltpine Wood: low trees
-  grove: { x: -54, z: 4 }, // oak grove
-  fen: { x: -21, z: -16 }, // Mirewater Fen: east shore of the lagoon
-  heartwood: { x: -46, z: -50 }, // ancient trees, deep west
-  hills: { x: 20, z: -6 }, // Copperback Hills: low ores
-  peak: { x: 2, z: -54 }, // Ironcrag: high ores on the mountain
-  ruin: { x: 38, z: -32 }, // the Broken Ring (quest boss)
-  camp: { x: 48, z: 16 }, // Brigand Camp
-  cove: at(36, 13), // Smugglers' Cove on the SE headland
-  wreck: at(316, 10), // Wreckers' Point, NE
-  summit: { x: 2, z: -60 }, // Ironcrag's summit: the vent forge and Cinderite
-  howes: { x: 60, z: -14 }, // the Howes: grave mounds east of the Ring, where the haugbui keep their goods
+  strand: at(138, 4), // Crab Strand: crabs, shore fishing, Muirne on the rocks
+  sands: at(108, 4), // Bellwether Sands, the city's own beach: the first crabs and beetles
+  forest: I(-36, 20), // Saltpine Wood: low trees
+  grove: I(-54, 4), // the Sea-oak Grove
+  fen: I(-21, -16), // Mirewater Fen: east shore of the lagoon
+  heartwood: I(-46, -50), // ancient trees, deep west
+  hills: I(20, -6), // Copperback Hills: copper, tin, iron
+  peak: I(2, -54), // Ironcrag: the mountain, iron all the way up
+  ruin: I(38, -32), // the Broken Ring (the Guardian)
+  camp: I(48, 16), // Brigand Camp, on the east road
+  cove: at(36, 13), // Smugglers' Cove on the south-east headland
+  wreck: at(316, 10), // Wreckers' Point, north-east
+  summit: I(2, -60), // Ironcrag's summit: the vent forge and Cinderite
+  howes: I(60, -14), // the Howes: grave mounds east of the Ring, where the haugbui keep their goods
   islet: at(215, -42), // Leviathan's Rest, an islet off the north-west coast
   spire: at(240, -34), // the Drowned Spire, mined from the deck
+  // the towns past the city (2026-10-28)
+  copperback: { x: 62, z: 42 }, // Copperback: the miners' town under the hills
+  saltpine: { x: -118, z: 168 }, // Saltpine: the woodcutters' village at the wood's edge
+  mirewater: { x: -70, z: -66 }, // Mirewater: eel-fishers' huts on the fen
+  gullhaven: at(296, 40), // Gullhaven: a fishing village on the north shore
+  quarry: { x: 58, z: 214 }, // the Old Quarry, a short walk north-east of the city: the first copper and tin
+  copse: { x: -66, z: 236 }, // Millbrook Copse, west of the city: the first trees
+  pithead: { x: 98, z: -36 }, // Copperback's mine, up the hill north of the town
+  bucca: at(301, 4), // the Bucca Stone, on the point by Gullhaven
 };
 const sunQuay = sunAt(90, 0);
 const wrackQuay = wrackAt(90, 0);
@@ -265,27 +311,36 @@ export const SUN_LAYOUT = {
 };
 
 const L = LAYOUT;
-/** Bellwether town and Port Halyard: every building, its furniture and who works there. */
-export const BELL_TOWN = townPlan(L.village, L.crossroads);
+/** Bellwether city (the old harbour town at its heart) and its four towns: every building, its furniture and who
+ * works there; and Port Halyard. */
+const BELL = bellwetherPlan({ coastDist, coastPoint, beach: BEACH }, townPlan(L.village, L.crossroads), L.village, L.crossroads,
+  { copperback: L.copperback, saltpine: L.saltpine, mirewater: L.mirewater, gullhaven: L.gullhaven });
+export const BELL_TOWN: TownPlan = BELL;
+/** townsfolk's rounds and the people who stand out of doors, in Bellwether */
+export const BELL_ROUNDS = BELL.rounds, BELL_OUTDOOR = BELL.outdoor;
 export const PORT_TOWN = portPlan(SUN_LAYOUT.port);
 export const TOWN = mergePlans(BELL_TOWN, PORT_TOWN);
 const SL = SUN_LAYOUT, WL = WRACK_LAYOUT, AL = AMBER_LAYOUT, KL = LOCK_LAYOUT, GL = SALT_LAYOUT, NL = LONG_LAYOUT;
 /** Offshore islets: land you reach by ship. */
 export const ISLETS = [{ x: L.islet.x, z: L.islet.z, r: 13 }, { x: WL.islet.x, z: WL.islet.z, r: 13 }];
-export const LAGOON = { x: -34, z: -22, r: 9 };
+export const LAGOON = { x: -34 * BS, z: -22 * BS, r: 24 };
 
 export const FLATS: Flat[] = [
   { x: L.village.x, z: L.village.z, r: 16, h: 1.1 },
   { x: L.dockBase.x, z: L.dockBase.z - 1, r: 3, h: 1.0 },
-  { x: L.ruin.x, z: L.ruin.z, r: 9, h: 3.0 },
-  { x: L.camp.x, z: L.camp.z, r: 6, h: 1.6 },
+  { x: L.ruin.x, z: L.ruin.z, r: 9, h: 'auto' },
+  { x: L.camp.x, z: L.camp.z, r: 7, h: 'auto' },
   { x: L.cove.x, z: L.cove.z, r: 6, h: 1.2 },
   { x: L.crossroads.x, z: L.crossroads.z, r: 11, h: 'auto' }, // the market square
   // the smithy and its gunsmith's bench sit at the village's edge: same level as the square
   { x: L.smithy.x + 1.5, z: L.smithy.z + 0.5, r: 5.5, h: 1.1 },
   // a pad under the Ironcrag camp (forge, anvil, strongbox) so nothing sits in a slope
-  { x: L.peak.x + 6, z: L.peak.z + 20, r: 5.5, h: 'auto' },
-  { x: L.summit.x, z: L.summit.z, r: 4.5, h: 'auto' }, // the vent forge stands on a levelled summit
+  { x: L.peak.x + 6, z: L.peak.z + 20, r: 6.5, h: 'auto' },
+  { x: L.summit.x, z: L.summit.z, r: 5, h: 'auto' }, // the vent forge stands on a levelled summit
+  { x: L.pithead.x, z: L.pithead.z, r: 7, h: 'auto' }, // the pithead's yard
+  { x: L.gullhaven.x, z: L.gullhaven.z, r: 24, h: 'auto', soft: 10 }, // Gullhaven sits on a shelf above the shore
+  // the towns' squares
+  ...([L.copperback, L.saltpine, L.mirewater, L.gullhaven] as const).map((t, i) => ({ x: t.x, z: t.z, r: [10, 8, 6, 8][i], h: 'auto' as const })),
   // Port Halyard: the quay square and the plaza, the dock's landing, the temple's floor
   { x: SL.port.x, z: SL.port.z, r: 17, h: 1.1 },
   { x: SL.plaza.x, z: SL.plaza.z, r: 9, h: 'pad', soft: 3 }, // levelled from the quay square's height, so the forge between them sits flat
@@ -316,22 +371,27 @@ export const FLATS: Flat[] = [
   { x: NL.weir.x, z: NL.weir.z, r: 6, h: 'auto' },
   { x: NL.stiltwick.x, z: NL.stiltwick.z, r: 8, h: 'auto' },
   // a level pad under every town building, at the height of the ground already there (so the quay's stay on the quay)
-  ...TOWN.buildings.map((b) => ({ x: b.x, z: b.z, r: Math.hypot(b.w, b.d) / 2 + 0.6, h: 'pad' as const, soft: 2.5 })),
+  ...TOWN.buildings.map((b) => ({ x: b.x, z: b.z, r: Math.hypot(b.w, b.d) / 2 + 0.6, h: 'pad' as const, soft: 2.5, rect: { w: b.w + 2.6, d: b.d + 2.6, rot: b.rot } })),
 ];
 
 export const HILLS: Hill[] = [
-  { x: L.peak.x, z: L.peak.z - 6, r: 19, h: 12 },
-  { x: L.peak.x - 17, z: L.peak.z + 4, r: 11, h: 5.5 },
-  { x: L.peak.x + 17, z: L.peak.z + 1, r: 10, h: 6 },
-  { x: L.hills.x + 6, z: L.hills.z - 5, r: 11, h: 5 },
-  { x: L.hills.x - 7, z: L.hills.z + 4, r: 7, h: 2.5 },
-  { x: L.heartwood.x - 6, z: L.heartwood.z - 6, r: 14, h: 3.5 },
-  { x: L.forest.x - 8, z: L.forest.z - 6, r: 14, h: 2.5 },
-  { x: L.cove.x + 5, z: L.cove.z - 6, r: 8, h: 3 },
+  // Ironcrag: a real mountain now, the summit thirty metres up
+  { x: L.summit.x, z: L.summit.z, r: 85, h: 30 },
+  { x: L.peak.x - 76, z: L.peak.z + 18, r: 50, h: 12 },
+  { x: L.peak.x + 76, z: L.peak.z + 4, r: 45, h: 13 },
+  // the Copperback Hills
+  { x: L.hills.x + 27, z: L.hills.z - 22, r: 50, h: 11 },
+  { x: L.hills.x - 31, z: L.hills.z + 18, r: 31, h: 5 },
+  { x: L.heartwood.x - 27, z: L.heartwood.z - 27, r: 63, h: 7 },
+  { x: L.forest.x - 36, z: L.forest.z - 27, r: 63, h: 5 },
+  { x: L.cove.x + 22, z: L.cove.z - 27, r: 36, h: 6 },
   // the Howes: three grassy grave mounds
-  { x: L.howes.x - 5, z: L.howes.z - 3, r: 4.5, h: 2.2 },
-  { x: L.howes.x + 5, z: L.howes.z - 4, r: 4, h: 1.8 },
-  { x: L.howes.x, z: L.howes.z + 5, r: 4, h: 2.0 },
+  { x: L.howes.x - 7, z: L.howes.z - 4, r: 6, h: 2.6 },
+  { x: L.howes.x + 7, z: L.howes.z - 6, r: 5.5, h: 2.2 },
+  { x: L.howes.x, z: L.howes.z + 7, r: 5.5, h: 2.4 },
+  // the downs between the towns: long low rises so the country isn't flat
+  { x: -250, z: -110, r: 60, h: 8 }, { x: 110, z: -215, r: 70, h: 8 }, { x: 150, z: 160, r: 55, h: 6 }, { x: -40, z: 60, r: 60, h: 5 },
+  { x: 250, z: -10, r: 50, h: 6 }, { x: -200, z: 150, r: 45, h: 4 },
   { x: SL.ember.x, z: SL.ember.z, r: 15, h: 9 },
   { x: SL.ember.x + 8, z: SL.ember.z + 10, r: 9, h: 4 },
   { x: SL.jungle.x - 4, z: SL.jungle.z - 6, r: 16, h: 3 },
@@ -357,25 +417,50 @@ export const DIPS: Dip[] = [{ x: LAGOON.x, z: LAGOON.z, r: LAGOON.r, floor: -1.8
 
 const V = L.village, X = L.crossroads, F = L.forest, HW = L.heartwood, CH = L.hills, M = L.peak;
 const R = L.ruin, C = L.camp, SC = L.cove, W = L.wreck, ST = L.strand;
+/** a country road: straight legs broken into ~22 m pieces that wander a little either side (the ends stay put) */
+function road(width: number, pts: [number, number][], seed: number): PathDef {
+  const out: [number, number][] = [pts[0]];
+  for (let k = 0; k < pts.length - 1; k++) {
+    const [ax, az] = pts[k], [bx, bz] = pts[k + 1], len = Math.hypot(bx - ax, bz - az) || 1, n = Math.max(1, Math.round(len / 22));
+    const nx = -(bz - az) / len, nz = (bx - ax) / len;
+    for (let i = 1; i <= n; i++) {
+      const f = i / n, wob = i === n ? 0 : (fbm(seed * 1.7 + k * 3.1 + f * 2.3, seed * 0.7 + 5, 2, 41) - 0.5) * Math.min(14, len * 0.12);
+      out.push([ax + (bx - ax) * f + nx * wob, az + (bz - az) * f + nz * wob]);
+    }
+  }
+  return { pts: out, width };
+}
+const CB = L.copperback, SP = L.saltpine, MW = L.mirewater, GH = L.gullhaven;
+const end = (p: [number, number][]) => p[p.length - 1];
+const [hsEnd, esEnd, wsEnd, weEnd] = [BELL.streets[2].pts, BELL.streets[3].pts, BELL.streets[4].pts, BELL.streets[1].pts].map(end);
 export const PATHS: PathDef[] = [
-  // quay road: dock -> village -> crossroads
-  { width: 1.5, pts: [[0, L.dockBase.z], [0, V.z + 3], [0, X.z]] },
-  // west road: Saltpine -> lagoon shore -> Heartwood
-  { width: 1.3, pts: [[0, X.z], [-24, X.z], [F.x + 9, F.z + 3], [F.x, F.z], [F.x - 4, F.z - 14], [LAGOON.x + LAGOON.r + 4, LAGOON.z + 6], [HW.x + 12, HW.z + 14], [HW.x, HW.z]] },
-  // north road: Copperback Hills -> foot of Ironcrag
-  { width: 1.3, pts: [[0, X.z], [5, X.z - 14], [CH.x - 7, CH.z + 7], [CH.x - 5, CH.z - 6], [M.x + 6, M.z + 22], [M.x + 3, M.z + 13]] },
+  // the city: the quay road from the dock to the market square, and its streets
+  { width: 2.4, paved: true, pts: [[0, L.dockBase.z], [0, V.z + 3], [0, X.z]] },
+  ...BELL.streets.map((st) => ({ width: st.width, pts: st.pts, paved: st.paved })),
+  // the North Road: up High Street, out to Copperback, through the hills to the Ironcrag camp
+  road(2.0, [hsEnd, [30, 120], [CB.x - 4, CB.z + 11]], 1),
+  road(1.4, [[CB.x + 16, CB.z - 62], [L.pithead.x - 6, L.pithead.z + 8]], 16),
+  road(1.8, [[CB.x + 16, CB.z - 62], [CH.x - 20, CH.z + 34], [CH.x - 5, CH.z - 6], [M.x + 22, M.z + 70], [M.x + 6, M.z + 24], [M.x + 3, M.z + 13]], 2),
   // a switchback trail from the Ironcrag camp up to the summit
-  { width: 1.0, pts: [[M.x + 3, M.z + 13], [M.x - 6, M.z + 6], [M.x + 4, M.z - 1], [L.summit.x, L.summit.z + 3]] },
-  // hills -> Broken Ring -> Wreckers' Point
-  { width: 1.1, pts: [[CH.x - 5, CH.z - 6], [R.x - 10, R.z + 12], [R.x, R.z + 7]] },
-  { width: 1.1, pts: [[R.x + 7, R.z], [W.x - 8, W.z + 8], [W.x, W.z]] },
-  // the Broken Ring -> the Howes
-  { width: 1.0, pts: [[R.x + 7, R.z + 2], [L.howes.x - 8, L.howes.z - 4], [L.howes.x - 2, L.howes.z]] },
-  // east road: Brigand Camp -> Smugglers' Cove
-  { width: 1.2, pts: [[0, X.z], [28, X.z], [C.x - 9, C.z + 5], [C.x, C.z]] },
-  { width: 1.1, pts: [[C.x + 2, C.z + 6], [SC.x - 5, SC.z - 9], [SC.x, SC.z]] },
-  // village -> Crab Strand
-  { width: 1.1, pts: [[-6, V.z + 3], [-16, V.z + 1.4], [ST.x + 9, ST.z - 6], [ST.x, ST.z]] },
+  { width: 1.1, pts: [[M.x + 3, M.z + 13], [M.x - 12, M.z + 2], [M.x + 8, M.z - 12], [M.x - 4, M.z - 20], [L.summit.x, L.summit.z + 4]] },
+  // the hills to the Broken Ring, on to Gullhaven and Wreckers' Point; the Ring to the Howes
+  road(1.6, [[CH.x - 5, CH.z - 6], [R.x - 30, R.z + 40], [R.x - 2, R.z + 9]], 3),
+  road(1.6, [[R.x + 8, R.z - 2], [GH.x + 10, GH.z + 50], [GH.x + 2, GH.z + 9]], 4),
+  road(1.4, [[GH.x + 9, GH.z - 2], [W.x - 40, W.z + 16], [W.x, W.z]], 5),
+  road(1.4, [[R.x + 8, R.z + 3], [L.howes.x - 30, L.howes.z - 10], [L.howes.x - 10, L.howes.z]], 6),
+  // the East Road: out along East Street to the Brigand Camp, and on to Smugglers' Cove
+  road(1.8, [esEnd, [150, 190], [C.x - 20, C.z + 20], [C.x - 6, C.z + 5]], 7),
+  road(1.5, [[C.x + 5, C.z + 6], [SC.x - 40, SC.z - 40], [SC.x - 5, SC.z - 9], [SC.x, SC.z]], 8),
+  // the West Road: West Street to Saltpine, through the wood to Mirewater, on to the Heartwood
+  road(1.8, [wsEnd, [L.copse.x - 20, L.copse.z - 14], [SP.x + 10, SP.z + 6]], 9),
+  road(1.6, [[SP.x - 6, SP.z - 8], [F.x + 18, F.z + 20], [F.x, F.z], [F.x + 10, F.z - 60], [MW.x - 2, MW.z + 9]], 10),
+  road(1.5, [[MW.x - 8, MW.z - 4], [LAGOON.x + 10, LAGOON.z - LAGOON.r - 14], [HW.x + 40, HW.z + 40], [HW.x, HW.z]], 11),
+  // Saltpine to the Sea-oak Grove; Mirewater over to the hills; the High Street to the Old Quarry
+  road(1.3, [[SP.x - 8, SP.z + 2], [L.grove.x + 50, L.grove.z + 70], [L.grove.x + 6, L.grove.z + 6]], 12),
+  road(1.4, [[MW.x + 8, MW.z - 1], [-10, -48], [CH.x - 30, CH.z + 12]], 13),
+  road(1.4, [BELL.streets[2].pts[2], [36, X.z - 74], [L.quarry.x - 6, L.quarry.z + 6]], 14),
+  // the West End's road along the shore to Crab Strand
+  road(1.4, [weEnd, [ST.x + 30, ST.z - 16], [ST.x + 6, ST.z - 4]], 15),
   // Sunreach: the high street from the dock through the quay square and plaza, on into the jungle
   { width: 1.5, pts: [[SL.dockBase.x, SL.dockBase.z], [SL.port.x, SL.port.z], [SL.plaza.x, SL.plaza.z], [SL.jungle.x + 6, SL.jungle.z + 8], [SL.jungle.x, SL.jungle.z]] },
   { width: 1.2, pts: [[SL.plaza.x, SL.plaza.z], [SL.ember.x - 6, SL.ember.z + 14], [SL.ember.x - 2, SL.ember.z + 6]] },
@@ -412,48 +497,65 @@ export const PATHS: PathDef[] = [
   { width: 1.1, pts: [[LONG.x - 2, LONG.z + 2], [NL.weir.x - 2, NL.weir.z + 8], [NL.weir.x, NL.weir.z + 4]] },
 ];
 
-function pathDist(p: PathDef, x: number, z: number): number {
-  let best = Infinity;
-  for (let k = 0; k < p.pts.length - 1; k++) {
-    const [ax, az] = p.pts[k], [bx, bz] = p.pts[k + 1];
-    const dx = bx - ax, dz = bz - az;
-    const t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / (dx * dx + dz * dz || 1)));
-    best = Math.min(best, Math.hypot(x - (ax + dx * t), z - (az + dz * t)));
+// Paths are many short segments now (roads wander), so they're looked up through a grid: each cell lists the
+// segments that pass within PATH_REACH of it. Past that, a path is "far": callers only ever ask about the near ones.
+const PATH_CELL = 16, PATH_REACH = 12;
+let pathGrid: Map<number, number[]> | null = null;
+let pathSegs: { ax: number; az: number; bx: number; bz: number; p: PathDef }[] = [];
+const pkey = (i: number, j: number) => (i + 4096) * 8192 + (j + 4096);
+function buildPathGrid() {
+  pathGrid = new Map();
+  pathSegs = [];
+  for (const p of PATHS) for (let k = 0; k < p.pts.length - 1; k++) {
+    const [ax, az] = p.pts[k], [bx, bz] = p.pts[k + 1], id = pathSegs.length;
+    pathSegs.push({ ax, az, bx, bz, p });
+    const r = PATH_REACH + p.width;
+    for (let i = Math.floor((Math.min(ax, bx) - r) / PATH_CELL); i <= Math.floor((Math.max(ax, bx) + r) / PATH_CELL); i++)
+      for (let j = Math.floor((Math.min(az, bz) - r) / PATH_CELL); j <= Math.floor((Math.max(az, bz) + r) / PATH_CELL); j++) {
+        const k2 = pkey(i, j);
+        let l = pathGrid.get(k2);
+        if (!l) pathGrid.set(k2, (l = []));
+        l.push(id);
+      }
   }
-  return best;
 }
 
-export function nearestPathDist(x: number, z: number): { d: number; width: number } {
-  let d = Infinity, width = 1;
-  for (const p of PATHS) {
-    const pd = pathDist(p, x, z);
-    if (pd < d) { d = pd; width = p.width; }
+/** The nearest path's distance and width (and whether it's a paved street); nothing within ~12 m reads as far away. */
+export function nearestPathDist(x: number, z: number): { d: number; width: number; paved: boolean } {
+  if (!pathGrid) buildPathGrid();
+  let d = Infinity, width = 1, paved = false;
+  const list = pathGrid!.get(pkey(Math.floor(x / PATH_CELL), Math.floor(z / PATH_CELL)));
+  if (list) for (const id of list) {
+    const s = pathSegs[id], dx = s.bx - s.ax, dz = s.bz - s.az;
+    const t = Math.max(0, Math.min(1, ((x - s.ax) * dx + (z - s.az) * dz) / (dx * dx + dz * dz || 1)));
+    const pd = Math.hypot(x - (s.ax + dx * t), z - (s.az + dz * t));
+    if (pd < d) { d = pd; width = s.p.width; paved = !!s.p.paved; }
   }
-  return { d, width };
+  return { d: d === Infinity ? 1e3 : d, width, paved };
 }
 
-// The coastlines depend only on the angle, so they're tabulated once (the world build asks ~10^6 times)
-const COAST_STEPS = 2048;
-const tabulate = (f: (t: number) => number) => Float32Array.from({ length: COAST_STEPS + 1 }, (_, i) => f((i / COAST_STEPS) * Math.PI * 2 - Math.PI));
-let bellTable: Float32Array | null = null, sunTable: Float32Array | null = null, wrackTable: Float32Array | null = null, amberTable: Float32Array | null = null, lockTable: Float32Array | null = null, saltTable: Float32Array | null = null, longTable: Float32Array | null = null;
-function fromTable(t: Float32Array, theta: number): number {
-  const f = ((theta + Math.PI) / (Math.PI * 2)) * COAST_STEPS, i = Math.max(0, Math.min(COAST_STEPS - 1, Math.floor(f)));
-  return t[i] + (t[i + 1] - t[i]) * (f - i);
-}
-/** Signed distance inside the nearest coastline (positive on land), over both islands. */
-export function coastDist(x: number, z: number): number {
-  bellTable ??= tabulate(coastR);
-  sunTable ??= tabulate(sunCoastR);
-  const b = fromTable(bellTable, Math.atan2(z, x)) - Math.hypot(x, z);
-  wrackTable ??= tabulate(wrackCoastR);
-  amberTable ??= tabulate(amberCoastR);
-  lockTable ??= tabulate(lockCoastR);
-  saltTable ??= tabulate(saltCoastR);
-  longTable ??= tabulate(longCoastR);
-  const nx = x - LONG.x, nz = z - LONG.z;
-  const dx = x - SUN.x, dz = z - SUN.z, wx = x - WRACK.x, wz = z - WRACK.z, ax = x - AMBER.x, az = z - AMBER.z, kx = x - LOCK.x, kz = z - LOCK.z, gx = x - SALT.x, gz = z - SALT.z;
-  return Math.max(b, fromTable(sunTable, Math.atan2(dz, dx)) - Math.hypot(dx, dz), fromTable(wrackTable, Math.atan2(wz, wx)) - Math.hypot(wx, wz),
-    fromTable(amberTable, Math.atan2(az, ax)) - Math.hypot(ax, az), fromTable(lockTable, Math.atan2(kz, kx)) - Math.hypot(kx, kz), fromTable(saltTable, Math.atan2(gz, gx)) - Math.hypot(gx, gz), fromTable(longTable, Math.atan2(nz, nx)) - Math.hypot(nx, nz));
+// flats looked up through a grid too (a city's worth of building pads), in their own order: a pad levels to the
+// height the flats before it left
+const FLAT_CELL = 16;
+let flatGrid: Map<number, number[]> | null = null;
+const NONE: number[] = [];
+/** the flats (by index into FLATS) whose levelled ground reaches (x, z) */
+export function flatsAt(x: number, z: number): readonly number[] { return flatsNear(x, z); }
+function flatsNear(x: number, z: number): number[] {
+  if (!flatGrid) {
+    flatGrid = new Map();
+    FLATS.forEach((f, idx) => {
+      const r = f.r + (f.soft ?? 4) + 0.5;
+      for (let i = Math.floor((f.x - r) / FLAT_CELL); i <= Math.floor((f.x + r) / FLAT_CELL); i++)
+        for (let j = Math.floor((f.z - r) / FLAT_CELL); j <= Math.floor((f.z + r) / FLAT_CELL); j++) {
+          const k = pkey(i, j);
+          let l = flatGrid!.get(k);
+          if (!l) flatGrid!.set(k, (l = []));
+          l.push(idx);
+        }
+    });
+  }
+  return flatGrid.get(pkey(Math.floor(x / FLAT_CELL), Math.floor(z / FLAT_CELL))) ?? NONE;
 }
 
 export function rawHeight(x: number, z: number): number {
@@ -463,25 +565,33 @@ export function rawHeight(x: number, z: number): number {
 /** Natural ground height, optionally levelled by the flats (auto flats take the natural height at their centre). */
 function shapedHeight(x: number, z: number, levelled: boolean, upto = FLATS.length): number {
   const d = coastDist(x, z);
-  const n = fbm(x * 0.06 + 40, z * 0.06 + 40, 4, 3);
+  // the eastern islands moved EAST metres when Bellwether grew: their ground noise is read where it was, so their
+  // terrain didn't change
+  const qx = x > 650 ? x - EAST : x;
+  const n = fbm(qx * 0.06 + 40, z * 0.06 + 40, 4, 3);
   // open sea (most of the world): nothing but seabed out here, so skip the flats, roads and hills
   if (d < -10 && !ISLETS.some((is) => Math.hypot(x - is.x, z - is.z) < is.r + 14)) return Math.max(0.05 + d * 0.35 * (0.8 + n * 0.5), -6 + n);
   let h: number;
   if (d > 0) {
-    const broad = fbm(x * 0.022 + 3, z * 0.022 + 3, 3, 9);
+    const broad = fbm(qx * 0.022 + 3, z * 0.022 + 3, 3, 9);
     // a wide, gently climbing beach, then the island's rolling ground. The toe keeps the seabed's slope
     // going for the first few metres, so the waterline crosses a real slope instead of hugging a flat shelf
     // (a shelf just above the water makes the shoreline trace the height grid as a staircase)
     h = 0.05 + 0.3 * (1 - Math.exp(-d / 1.1)) + Math.min(d / BEACH, 1) * 0.3 + smooth(d, BEACH - 1, BEACH + 12) * (0.5 + n * 2.0 + broad * 1.6);
+    // (Bellwether's big hills ease down over 45 m to the shore instead of 6, so its coasts stay walkable)
+    const inland = smooth(d, BEACH * 0.4, BEACH + (Math.abs(x) < 700 && Math.abs(z) < 700 ? 45 : 6));
     for (const hl of HILLS) {
-      const k = Math.exp(-((x - hl.x) ** 2 + (z - hl.z) ** 2) / (hl.r * hl.r));
-      h += hl.h * k * smooth(d, BEACH * 0.4, BEACH + 6);
+      const q = ((x - hl.x) ** 2 + (z - hl.z) ** 2) / (hl.r * hl.r);
+      if (q < 9) h += hl.h * Math.exp(-q) * inland;
     }
+    // Bellwether's wide country rolls: slow swells a few metres high, so a long walk goes up and down
+    if (Math.abs(x) < 700 && Math.abs(z) < 700) h += fbm(x * 0.0065 + 11, z * 0.0065 + 11, 3, 13) * 4.5 * smooth(d, BEACH, BEACH + 40);
   } else {
     h = 0.05 + d * 0.35 * (0.8 + n * 0.5);
     h = Math.max(h, -6 + n);
   }
-  if (levelled) for (let i = 0; i < upto; i++) {
+  if (levelled) for (const i of flatsNear(x, z)) {
+    if (i >= upto) break;
     const f = FLATS[i];
     const k = 1 - smooth(Math.hypot(x - f.x, z - f.z), f.r, f.r + (f.soft ?? 4));
     if (k > 0) h = lerp(h, f.h === 'auto' ? (f.h = Math.max(0.6, shapedHeight(f.x, f.z, false))) : f.h === 'pad' ? (f.h = Math.max(0.6, shapedHeight(f.x, f.z, true, i))) : f.h, k);
@@ -493,6 +603,14 @@ function shapedHeight(x: number, z: number, levelled: boolean, upto = FLATS.leng
   if (d > 1.5) {
     const p = nearestPathDist(x, z);
     h -= (1 - smooth(p.d, p.width * 0.5, p.width + 1.5)) * 0.12;
+  }
+  // a building's floor is its pad's height, edge to edge (in a crowded street the next pad's slope would tilt it)
+  if (levelled) for (const i of flatsNear(x, z)) {
+    if (i >= upto) break;
+    const f = FLATS[i];
+    if (!f.rect || typeof f.h !== 'number') continue;
+    const c = Math.cos(f.rect.rot), sn = Math.sin(f.rect.rot), dx = x - f.x, dz = z - f.z;
+    if (Math.abs(dx * c + dz * sn) <= f.rect.w / 2 && Math.abs(-dx * sn + dz * c) <= f.rect.d / 2) h = f.h;
   }
   for (const is of ISLETS) {
     const a = Math.atan2(z - is.z, x - is.x);
@@ -550,19 +668,29 @@ export interface Place { id: string; name: string; x: number; z: number; r: numb
 /** The islands' places; `places.ts` adds the caves'. */
 export const ISLAND_PLACES: Place[] = [
   { id: 'quay', name: 'Bellwether Quay', x: V.x, z: V.z + 6, r: 18 },
-  { id: 'strand', name: 'Crab Strand', x: ST.x, z: ST.z, r: 14 },
-  { id: 'wood', name: 'Saltpine Wood', x: F.x, z: F.z, r: 18 },
-  { id: 'hills', name: 'Copperback Hills', x: CH.x, z: CH.z, r: 16 },
-  { id: 'camp', name: 'Brigand Camp', x: C.x, z: C.z, r: 11 },
-  { id: 'ruin', name: 'The Broken Ring', x: R.x, z: R.z, r: 11 },
-  { id: 'grove', name: 'Sea-oak Grove', x: L.grove.x, z: L.grove.z, r: 12 },
-  { id: 'fen', name: 'Mirewater Fen', x: LAGOON.x, z: LAGOON.z, r: 18 },
-  { id: 'heartwood', name: 'Heartwood', x: HW.x, z: HW.z, r: 20 },
-  { id: 'peak', name: 'Ironcrag', x: M.x, z: M.z + 6, r: 20 },
-  { id: 'cove', name: 'Smugglers\' Cove', x: SC.x, z: SC.z, r: 12 },
-  { id: 'wreck', name: 'Wreckers\' Point', x: W.x, z: W.z, r: 13 },
-  { id: 'howes', name: 'The Howes', x: L.howes.x, z: L.howes.z, r: 11 },
-  ...([['shallows', 'Bellfish Shallows', 20, -16], ['gnasher', 'Gnasher\'s Reef', 50, -26]] as const)
+  { id: 'city', name: 'Bellwether', x: X.x, z: X.z - 40, r: 70 },
+  { id: 'harbourrow', name: 'Harbour Row', x: coastPoint(76, 30)[0], z: coastPoint(76, 30)[1], r: 30 },
+  { id: 'sands', name: 'Bellwether Sands', x: L.sands.x, z: L.sands.z, r: 22 },
+  { id: 'quarry', name: 'The Old Quarry', x: L.quarry.x, z: L.quarry.z, r: 16 },
+  { id: 'copse', name: 'Millbrook Copse', x: L.copse.x, z: L.copse.z, r: 20 },
+  { id: 'copperback', name: 'Copperback', x: L.copperback.x, z: L.copperback.z, r: 26 },
+  { id: 'saltpine', name: 'Saltpine', x: L.saltpine.x, z: L.saltpine.z, r: 20 },
+  { id: 'mirewater', name: 'Mirewater', x: L.mirewater.x, z: L.mirewater.z, r: 16 },
+  { id: 'gullhaven', name: 'Gullhaven', x: L.gullhaven.x, z: L.gullhaven.z, r: 22 },
+  { id: 'pithead', name: 'Copperback Mine', x: L.pithead.x, z: L.pithead.z, r: 14 },
+  { id: 'strand', name: 'Crab Strand', x: ST.x, z: ST.z, r: 30 },
+  { id: 'wood', name: 'Saltpine Wood', x: F.x, z: F.z, r: 60 },
+  { id: 'hills', name: 'Copperback Hills', x: CH.x, z: CH.z, r: 50 },
+  { id: 'camp', name: 'Brigand Camp', x: C.x, z: C.z, r: 24 },
+  { id: 'ruin', name: 'The Broken Ring', x: R.x, z: R.z, r: 20 },
+  { id: 'grove', name: 'Sea-oak Grove', x: L.grove.x, z: L.grove.z, r: 40 },
+  { id: 'fen', name: 'Mirewater Fen', x: LAGOON.x, z: LAGOON.z, r: 45 },
+  { id: 'heartwood', name: 'Heartwood', x: HW.x, z: HW.z, r: 70 },
+  { id: 'peak', name: 'Ironcrag', x: M.x, z: M.z + 6, r: 70 },
+  { id: 'cove', name: 'Smugglers\' Cove', x: SC.x, z: SC.z, r: 22 },
+  { id: 'wreck', name: 'Wreckers\' Point', x: W.x, z: W.z, r: 24 },
+  { id: 'howes', name: 'The Howes', x: L.howes.x, z: L.howes.z, r: 24 },
+  ...([['shallows', 'Bellfish Shallows', 20, -16], ['gnasher', 'Gnasher\'s Reef', 45, -26]] as const)
     .map(([id, name, a, i]) => { const [x, z] = coastPoint(a, i); return { id, name, x, z, r: 16, sea: true }; }),
   // Sunreach Isle
   { id: 'halyard', name: 'Port Halyard', x: SL.port.x, z: SL.port.z - 6, r: 18, region: 'sunreach' },

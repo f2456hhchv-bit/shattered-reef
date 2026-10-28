@@ -30,7 +30,9 @@ describe('weather at sea', () => {
     expect(run(g, WEATHER.every[0] + 5, () => g.naval.weather.kind !== null)).toBe(true);
     expect(WEATHER.kinds.sunreach).toContain(g.naval.weather.kind);
     const xp = g.p.xp.sailing;
-    run(g, WEATHER.lasts[1] + 2, () => g.naval.weather.kind === null);
+    // ride it out at anchor (a gale would carry a drifting ship off the chart, whichever way the dice blow it)
+    const hold = { x: g.ship.x, z: g.ship.z };
+    run(g, WEATHER.lasts[1] + 2, () => { Object.assign(g.ship, hold); g.p.x = hold.x; g.p.z = hold.z; return g.naval.weather.kind === null; });
     expect(g.naval.weather.kind).toBeNull();
     expect(g.p.xp.sailing).toBeGreaterThanOrEqual(xp + WEATHER.xp);
   });

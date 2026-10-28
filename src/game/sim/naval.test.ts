@@ -34,7 +34,7 @@ function fight(g: Game, f: SeaFoe, secs = 240, charges = false) {
     // swing to bring a side to bear, no faster than the ship can turn (~1.25 rad/s)
     const want = Math.atan2(f.z - sh.z, f.x - sh.x) - Math.PI / 2, diff = Math.atan2(Math.sin(want - sh.heading), Math.cos(want - sh.heading));
     sh.heading += Math.max(-1.25 / 30, Math.min(1.25 / 30, diff));
-    if (charges && (f.under || f.state === 'charge') && Math.hypot(f.x - sh.x, f.z - sh.z) < 7 && g.naval.reloadCd === 0) { g.naval.ammo = 'depth_charge'; g.naval.fire(); }
+    if (charges && (f.under || f.state === 'charge') && Math.hypot(f.x - sh.x, f.z - sh.z) < 9.5 && g.naval.reloadCd === 0) { g.naval.ammo = 'depth_charge'; g.naval.fire(); }
     else if (!f.under && g.naval.reloadCd === 0) { g.naval.ammo = charges && count(g.p.inv, 'depth_charge') > 0 && f.def.counter === 'depth_charge' && Math.hypot(f.x - sh.x, f.z - sh.z) < 6 ? 'depth_charge' : 'cannonball'; g.naval.fire(); }
     g.step(1 / 30);
     if (!g.p.onShip || Math.hypot(g.ship.x - g.layout.mooring!.x, g.ship.z - g.layout.mooring!.z) < 1) return false; // towed home
