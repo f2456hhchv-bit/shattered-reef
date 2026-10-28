@@ -19,3 +19,11 @@ Command failed: gh api --method GET user
 Get "https://api.github.com/user": Forbidden
 
 Get "https://api.github.com/user": Forbidden
+
+Resumed after environment network publication:
+GET /user succeeds for f2456hhchv-bit.
+GET production Pages succeeds: build_type workflow, branch main.
+POST /user/repos returns HTTP403 Resource not accessible by integration.
+GET separate preview repository returns404; expected public URL returns HTTP404.
+Production HTML before/after SHA256 identical:42ec4404fe00c8c534261568745793504a5ec43c783c4cde427084de63734c9c.
+Alternative workflow: actionlint v1.7.7 exit0; YAML and repository guards validated.

@@ -2,7 +2,9 @@
 
 The publication tooling uses a **separate public repository**, `f2456hhchv-bit/shattered-reef-bellwether-preview`, with branch `preview-site`. Source remains on `design/bellwether-phase2` in the original repository. The publisher has no operation that pushes to original main or edits original Pages settings/workflows.
 
-**Status: public publication is blocked by environment access.** Calls to `api.github.com` currently return Forbidden. The saved environment configuration draft adds only that API hostname and `f2456hhchv-bit.github.io` for public verification, retaining the existing font rules and package presets. A successful draft save does not apply it; the user must review/save the draft in Environment settings and publish the environment configuration. This action does not publish the game. API authentication readiness can only be determined after the hostname becomes accessible; no credential values are requested in chat.
+**Status: network access is now working, but account repository creation is blocked.** GitHub reads and production Pages inspection succeed. The actual publication attempt stops at `POST https://api.github.com/user/repos` with **HTTP403, `Resource not accessible by integration`**. This is a GitHub integration permission restriction, not an environment allowlist restriction. The separate repository does not exist yet, and the expected public URL was checked and returns404. No further environment network change is needed to resolve this permission boundary.
+
+Use the [iPhone-only setup guide](IPHONE_DEPLOY.md). It provides a prefilled repository link and one-file workflow link. The account owner creates the separate public repository in Safari; its own GitHub Actions token then builds and publishes the public redesign branch. No personal token, paid hosting or iPhone installation is needed. The workflow is stored here as reference only, outside `.github/workflows/`, and cannot run in the original production repository.
 
 The eventual preview path is `/shattered-reef-bellwether-preview/` on the account's GitHub Pages host. **It is not reported live until the separate repository/site exists and its HTTPS URL passes verification.** The existing `/shattered-reef/` site is not used as the preview destination.
 
@@ -56,4 +58,13 @@ It records a 390×844 screenshot and results under `/workspace/game-review/publi
 
 Source/build revision `6580d1c`: 350/350 tests passed with both preview flags, TypeScript and production build passed. The compiled site was tested at a local project subpath with a 390×844 mobile viewport: credits skip, calibration write/clear, touch movement/release, save/reload and original-storage protection all passed. No same-origin asset failures or JavaScript errors were recorded. See [browser results](local-browser-results.json), [mobile screenshot](local-mobile-preview.png), [command evidence](verification.txt) and [publication status](status.json).
 
-Actual publication was attempted and stopped at the first GitHub API authentication/read request: `GET https://api.github.com/user` returned `Forbidden`. No preview repository or Pages site was created by that attempt, and no public preview URL is verified. The environment still enforces only the two font-host custom rules; the saved API/Pages-host draft has not been applied. Production main remains `0c11573032516b2daaf28b92225a8160186a78e2`.
+The initial publication attempt, before the network configuration was applied, stopped at `GET https://api.github.com/user` with `Forbidden`. That network restriction has since been resolved. The resumed attempt reached repository creation and was denied by GitHub's integration permissions; see the resumed check below. No public preview URL is verified. Production main remains `0c11573032516b2daaf28b92225a8160186a78e2`.
+
+
+## Resumed publication check
+
+After the environment was published, `GET /user` identified the correct owner and `GET /repos/f2456hhchv-bit/shattered-reef/pages` succeeded. Creating the new site repository was denied with HTTP403 `Resource not accessible by integration`. The public source is confirmed public, so the alternative workflow can check out its redesign branch without a personal token.
+
+The prepared workflow passed actionlint v1.7.7 and YAML validation. It has an explicit repository guard on both jobs, deploys only the new repository’s Pages site, and checks the public HTML and build marker after deployment. It has not been executed in a new repository yet. The expected URL currently returns404; no public preview success is claimed. Production’s before/after HTML SHA256 is identical: `42ec4404fe00c8c534261568745793504a5ec43c783c4cde427084de63734c9c`. Original main remains `0c11573032516b2daaf28b92225a8160186a78e2`, with Pages still configured as workflow deployment from main.
+
+Once the iPhone workflow method is selected, refresh the preview using Run workflow in the new repository. The CLI publisher targets branch-based Pages and deliberately refuses to replace an existing workflow-based Pages configuration.

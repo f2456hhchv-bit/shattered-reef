@@ -1,0 +1,69 @@
+# Add this file ONLY to f2456hhchv-bit/shattered-reef-bellwether-preview,
+# at .github/workflows/bellwether-preview.yml. Do not add it to the live game repository.
+name: Bellwether redesign preview
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/bellwether-preview.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: bellwether-preview
+  cancel-in-progress: true
+
+jobs:
+  build:
+    if: github.repository == 'f2456hhchv-bit/shattered-reef-bellwether-preview'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Read the public redesign branch
+        uses: actions/checkout@v4
+        with:
+          repository: f2456hhchv-bit/shattered-reef
+          ref: design/bellwether-phase2
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Test the preview variant
+        run: npm test
+        env:
+          VITE_BELLWETHER_REDESIGN: '1'
+          VITE_BELLWETHER_PREVIEW: '1'
+      - name: Build the isolated preview artifact
+        run: node scripts/bellwether-preview.mjs --prepare-only
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .preview-dist/site
+
+  deploy:
+    if: github.repository == 'f2456hhchv-bit/shattered-reef-bellwether-preview'
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/configure-pages@v5
+      - name: Publish only this preview repository's Pages site
+        id: deployment
+        uses: actions/deploy-pages@v4
+      - name: Verify the public page and build identity
+        env:
+          PREVIEW_URL: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          test "$PREVIEW_URL" = 'https://f2456hhchv-bit.github.io/shattered-reef-bellwether-preview/'
+          curl --fail --show-error --silent --retry 12 --retry-delay 5 --retry-all-errors "$PREVIEW_URL" -o preview.html
+          grep -F 'Bellwether Preview' preview.html
+          curl --fail --show-error --silent --retry 12 --retry-delay 5 --retry-all-errors "${PREVIEW_URL}preview.json" -o preview.json
+          node -e "const p=require('./preview.json'); if(p.kind!=='shattered-reef-bellwether-preview'||p.sourceBranch!=='design/bellwether-phase2'||!p.redesignDefault)process.exit(1); console.log(p);"
