@@ -1,0 +1,14 @@
+{
+  "status": "blocked-before-publication",
+  "previewRepository": "f2456hhchv-bit/shattered-reef-bellwether-preview",
+  "sourceBranch": "design/bellwether-phase2",
+  "testedBuildCommit": "6580d1cbe4d9f0ff71439eee55722d16585fc197",
+  "publicUrlVerified": false,
+  "apiError": "GET https://api.github.com/user: Forbidden",
+  "networkDraftSaved": true,
+  "requiresEnvironmentPublish": true,
+  "productionMainBefore": "0c11573032516b2daaf28b92225a8160186a78e2",
+  "productionWorkflowsModified": false,
+  "previewSuitePassed": 350,
+  "localMobileBrowserPassed": true
+}

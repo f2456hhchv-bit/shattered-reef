@@ -1,0 +1,33 @@
+{
+  "url": "http://127.0.0.1:5180/site/",
+  "engine": "Chromium with touch/mobile emulation; not an actual iPhone or Safari/WebKit test",
+  "errors": [],
+  "artifact": {
+    "kind": "shattered-reef-bellwether-preview",
+    "sourceRepository": "f2456hhchv-bit/shattered-reef",
+    "sourceBranch": "design/bellwether-phase2",
+    "sourceCommit": "6580d1cbe4d9f0ff71439eee55722d16585fc197",
+    "previewRepository": "f2456hhchv-bit/shattered-reef-bellwether-preview",
+    "siteBranch": "preview-site",
+    "redesignDefault": true,
+    "saveKey": "shattered-reef.save.bellwether-phase2-v1",
+    "publishedAt": "2026-10-28T21:04:09.731Z"
+  },
+  "calibration": [
+    12,
+    9
+  ],
+  "touch": {
+    "moved": 0.45999999999999996,
+    "walkable": true,
+    "released": true
+  },
+  "persistence": {
+    "xp": 1234,
+    "flag": true,
+    "geometry": "bellwether-phase2-v1"
+  },
+  "productionStorageUnchanged": true,
+  "sameOriginAssetFailures": [],
+  "passed": true
+}

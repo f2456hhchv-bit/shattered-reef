@@ -1,0 +1,21 @@
+ ✓ src/game/sim/saveStorage.test.ts (3 tests) 2ms
+ ✓ src/game/world/bellwether-phase2.test.ts (7 tests) 3355ms
+   ✓ Bellwether compatibility and access > retains every classic resource identity and type without increasing rewards  3221ms
+ ✓ src/game/sim/saveload.test.ts (2 tests) 5ms
+
+ Test Files  46 passed (46)
+      Tests  350 passed (350)
+   Start at  21:00:03
+   Duration  86.10s (transform 1.92s, setup 0ms, collect 91.38s, tests 156.39s, environment 7ms, prepare 2.60s)
+
+
+> shattered-reef@0.0.1 typecheck
+> tsc --noEmit
+
+Publication attempt:
+✓ built in 2.93s
+Prepared preview-only artifact: /workspace/shattered-reef/.preview-dist/site
+Command failed: gh api --method GET user
+Get "https://api.github.com/user": Forbidden
+
+Get "https://api.github.com/user": Forbidden

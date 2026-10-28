@@ -51,3 +51,9 @@ For the public site, set `REEF_PREVIEW_URL` to the verified HTTPS preview URL. T
 - Actual save/reload persistence and separate storage keys.
 
 It records a 390×844 screenshot and results under `/workspace/game-review/public-preview` by default. `REEF_PREVIEW_EVIDENCE`, `PLAYWRIGHT_MODULE` and `CHROMIUM_PATH` are configurable. Browser testing here uses Chromium mobile/touch emulation: Safari/WebKit and physical iPhone hardware are unavailable. Do not describe those checks as a real iPhone certification. An actual public URL must be checked before reporting publication complete.
+
+## Recorded result
+
+Source/build revision `6580d1c`: 350/350 tests passed with both preview flags, TypeScript and production build passed. The compiled site was tested at a local project subpath with a 390×844 mobile viewport: credits skip, calibration write/clear, touch movement/release, save/reload and original-storage protection all passed. No same-origin asset failures or JavaScript errors were recorded. See [browser results](local-browser-results.json), [mobile screenshot](local-mobile-preview.png), [command evidence](verification.txt) and [publication status](status.json).
+
+Actual publication was attempted and stopped at the first GitHub API authentication/read request: `GET https://api.github.com/user` returned `Forbidden`. No preview repository or Pages site was created by that attempt, and no public preview URL is verified. The environment still enforces only the two font-host custom rules; the saved API/Pages-host draft has not been applied. Production main remains `0c11573032516b2daaf28b92225a8160186a78e2`.
