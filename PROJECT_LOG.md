@@ -346,6 +346,8 @@ Reflects the actual repository, not the roadmap.
     - Code: `SHRINES` and `Recipe.multi`/`pace` in `data/content.ts`; `shrine_<shard>` stations; placed last in `world/layout.ts` on their own random stream so nothing else on the islands moved. Old saves get Shardcraft at level 1 (no migration needed).
     - Checked: 293 tests (new: mine glimmerstone, attune, three shards a stone at level 22, every shrine exists and is reachable); browser tests; frame budget.
 
+  - **AI testing** (2026-10-28; Tom: "an AI test environment so I'm not biased playing the game"). `scripts/agent-play.ts` plays the real game in text: `look` lists numbered things nearby, `do N` walks there and uses it, plus pack, skills, quests, shops, bank, crafting, ferry, ship, saves between runs (`--save`). `.github/workflows/playtest.yml` runs the scripted player for an hour of game time on three seeds and the skill probe after every game change on main and weekly, committing `reports/playtest/`. Brief for the AI and how to read the reports: `docs/AI_TESTING.md`.
+
 ## Known issues / limitations
 - `touch-e2e` intermittently taps the pack slot 0/3 times (2026-10-24, twice on 2026-10-25). Not root-caused. **Correction:** the low health in those reports (4, 14) was not an attacker: the test sets health to 4 itself, and it regenerates. Ten runs on 2026-10-25 all passed with no level-up card on screen. The test now records what was under the finger on every missed tap, so the next failure names its cause.
 - The ten new foes have no painted art yet (they render from their 3D models, like the rest).
