@@ -34,6 +34,57 @@ describe('player character animation rig', () => {
     expect(rig.current).toBe('run');
   });
 
+  it('bends both knees forward during the walk cycle', () => {
+    const rig = buildPlayerCharacterRig();
+    rig.setMotion('walk');
+    for (let i = 0; i < 5; i++) rig.update(0.1);
+    expect(rig.bones.LowerLeg_L.rotation.x).toBeGreaterThan(0);
+    expect(rig.bones.LowerLeg_R.rotation.x).toBeGreaterThan(0);
+  });
+
+  it('weights the continuous arm surface across upper-arm and forearm bones', () => {
+    const rig = buildPlayerCharacterRig();
+    for (const side of ['L', 'R']) {
+      const arm = rig.root.getObjectByName(`Arm_Skin_${side}`) as THREE.SkinnedMesh;
+      expect(arm).toBeInstanceOf(THREE.SkinnedMesh);
+      expect(arm.skeleton).toBe(rig.skeleton);
+      const indices = arm.geometry.getAttribute('skinIndex');
+      const weights = arm.geometry.getAttribute('skinWeight');
+      const upper = rig.skeleton.bones.indexOf(rig.bones[`UpperArm_${side}`]);
+      const forearm = rig.skeleton.bones.indexOf(rig.bones[`Forearm_${side}`]);
+      let weightedAcrossElbow = false;
+      for (let i = 0; i < weights.count; i++) {
+        expect(weights.getX(i) + weights.getY(i) + weights.getZ(i) + weights.getW(i)).toBeCloseTo(1, 5);
+        if ((indices.getX(i) === upper && indices.getY(i) === forearm) || (indices.getX(i) === forearm && indices.getY(i) === upper)) {
+          if (weights.getX(i) > 0.1 && weights.getY(i) > 0.1) weightedAcrossElbow = true;
+        }
+      }
+      expect(weightedAcrossElbow).toBe(true);
+    }
+  });
+
+  it('aligns shoulder and elbow pivots to the authored arm joints', () => {
+    const rig = buildPlayerCharacterRig();
+    rig.root.updateMatrixWorld(true);
+    const upper = new THREE.Vector3();
+    const elbow = new THREE.Vector3();
+    rig.bones.UpperArm_R.getWorldPosition(upper);
+    rig.bones.Forearm_R.getWorldPosition(elbow);
+    expect(upper.distanceTo(new THREE.Vector3(0.07, 1.37, 0))).toBeLessThan(0.001);
+    expect(elbow.distanceTo(new THREE.Vector3(0.325, 1.15, 0))).toBeLessThan(0.001);
+  });
+
+  it('keeps the run cycle continuous as it loops', () => {
+    const rig = buildPlayerCharacterRig();
+    rig.setMotion('run');
+    for (let i = 0; i < 6; i++) rig.update(0.1);
+    rig.update(0.04);
+    const thighBeforeLoop = rig.bones.UpperLeg_L.rotation.x;
+    rig.update(0.02);
+    const thighAfterLoop = rig.bones.UpperLeg_L.rotation.x;
+    expect(Math.abs(thighAfterLoop - thighBeforeLoop)).toBeLessThan(0.18);
+  });
+
   it('attaches the equipped blade and shield to their respective hand joints', () => {
     const rig = buildPlayerCharacterRig('greatsword');
     expect(rig.held.parent?.name).toBe('Hand_R');
@@ -83,6 +134,17 @@ describe('player character animation rig', () => {
     rig.setOffhand(false);
     expect(rig.offhand).toBeNull();
     expect(shield?.parent).toBeNull();
+  });
+
+  it('registers renderer-created offhand shields so they can be replaced or removed', () => {
+    const rig = buildPlayerCharacterRig();
+    const first = addOffhand(rig, 'shield');
+    expect(rig.offhand).toBe(first);
+    const replacement = addOffhand(rig, 'shield');
+    expect(rig.offhand).toBe(replacement);
+    expect(rig.bones.Hand_L.children.filter(child => child.name === 'OffhandAttachment')).toHaveLength(1);
+    rig.setOffhand(false);
+    expect(replacement.parent).toBeNull();
   });
 
   it('plays the melee wind-up and follow-through on the equipped hand', () => {

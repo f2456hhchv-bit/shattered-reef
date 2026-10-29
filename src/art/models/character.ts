@@ -47,6 +47,8 @@ export interface HumanoidRig {
   elbowR: THREE.Object3D;
   held: THREE.Group;
   leftHand?: THREE.Object3D;
+  offhand?: THREE.Group | null;
+  setOffhand?(enabled: boolean): void;
 }
 
 /** Turned profile: [radius, y] pairs from top to bottom; closed at both ends when radius 0. */
@@ -274,6 +276,10 @@ export function animateFish(r: HumanoidRig, t: number) {
 
 /** Whatever is in the left hand: a second weapon, a shield, an orb or a book, mirroring the right hand's grip. */
 export function addOffhand(rig: HumanoidRig, kind: HeldKind) {
+  if (kind === 'shield' && rig.setOffhand && rig.offhand !== undefined) {
+    rig.setOffhand(true);
+    return rig.offhand!;
+  }
   const g = new THREE.Group();
   g.position.copy(rig.held.position);
   g.scale.copy(rig.held.scale);

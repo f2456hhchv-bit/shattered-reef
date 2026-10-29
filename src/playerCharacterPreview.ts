@@ -1,11 +1,13 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { buildPlayerCharacterRig, type PlayerMainHand, type PlayerMotion } from './art/models/playerCharacterRig';
+import { gameCameraDistance } from './playerCharacterPreviewCamera';
 
 const stage = document.querySelector<HTMLElement>('#stage');
 const canvas = document.querySelector<HTMLCanvasElement>('#viewer');
 const fpsLabel = document.querySelector<HTMLOutputElement>('#fps');
 if (!stage || !canvas || !fpsLabel) throw new Error('Character preview elements are missing');
+const stageElement: HTMLElement = stage;
 const fpsOutput: HTMLOutputElement = fpsLabel;
 
 const scene = new THREE.Scene();
@@ -34,6 +36,7 @@ ground.receiveShadow = true;
 scene.add(ground);
 
 const rig = buildPlayerCharacterRig();
+rig.root.scale.setScalar(1.2);
 rig.setMainHand('sword');
 rig.setOffhand(true);
 scene.add(rig.root);
@@ -59,14 +62,17 @@ function setCamera(mode: 'inspection' | 'game') {
   document.body.classList.toggle('game-camera', mode === 'game');
   if (mode === 'game') {
     controls.target.set(0, 0.8, 0);
-    const aspect = window.innerWidth / window.innerHeight;
-    const gameDistance = Math.max(29, 17 / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * aspect));
+    const gameDistance = gameCameraDistance(window.innerWidth, window.innerHeight, camera.fov);
+    controls.maxDistance = Math.max(35, gameDistance);
+    stageElement.dataset.gameCameraDistance = String(gameDistance);
     camera.position.set(0, 0.8 + Math.sin(THREE.MathUtils.degToRad(54)) * gameDistance, Math.cos(THREE.MathUtils.degToRad(54)) * gameDistance);
     controls.minDistance = 1.8;
   } else {
     controls.target.copy(inspectionPose.target);
     camera.position.copy(inspectionPose.position);
     controls.minDistance = 1.8;
+    controls.maxDistance = 35;
+    delete stageElement.dataset.gameCameraDistance;
   }
   controls.update();
   updatePressed('[data-camera]', 'data-camera', mode);
@@ -165,15 +171,16 @@ function frame(now: number) {
 }
 
 const resize = () => {
-  const width = stage.clientWidth;
-  const height = stage.clientHeight;
+  const width = stageElement.clientWidth;
+  const height = stageElement.clientHeight;
   if (!width || !height) return;
   camera.aspect = width / height;
   camera.updateProjectionMatrix();
   renderer.setSize(width, height, false);
 };
 const observer = new ResizeObserver(resize);
-observer.observe(stage);
+observer.observe(stageElement);
+window.addEventListener('resize', () => { if (cameraMode === 'game') setCamera('game'); });
 resize();
 frameId = requestAnimationFrame(frame);
 window.addEventListener('pagehide', () => {

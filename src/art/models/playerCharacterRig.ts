@@ -63,6 +63,61 @@ function scalar(path: string, times: number[], values: number[]): THREE.NumberKe
   return new THREE.NumberKeyframeTrack(path, times, values);
 }
 
+function armSkinGeometry(side: -1 | 1, upperBoneIndex: number, forearmBoneIndex: number): THREE.BufferGeometry {
+  const points = [
+    new THREE.Vector3(side * 0.07, 1.37, 0),
+    new THREE.Vector3(side * 0.325, 1.15, 0),
+    new THREE.Vector3(side * 0.347, 0.875, 0),
+  ];
+  const curve = new THREE.CatmullRomCurve3(points, false, 'centripetal');
+  const rings = 24, segments = 12;
+  const positions: number[] = [], indices: number[] = [], skinIndices: number[] = [], skinWeights: number[] = [];
+  for (let ring = 0; ring <= rings; ring++) {
+    const t = ring / rings;
+    const center = curve.getPoint(t);
+    const tangent = curve.getTangent(t).normalize();
+    const across = new THREE.Vector3(tangent.y, -tangent.x, 0).normalize();
+    const depth = new THREE.Vector3(0, 0, 1);
+    const radius = t <= 0.5 ? THREE.MathUtils.lerp(0.061, 0.052, t * 2) : THREE.MathUtils.lerp(0.052, 0.042, (t - 0.5) * 2);
+    const depthRadius = t <= 0.5 ? THREE.MathUtils.lerp(0.057, 0.048, t * 2) : THREE.MathUtils.lerp(0.048, 0.042, (t - 0.5) * 2);
+    const upperWeight = THREE.MathUtils.clamp((0.55 - t) / 0.1, 0, 1);
+    for (let segment = 0; segment < segments; segment++) {
+      const angle = segment / segments * Math.PI * 2;
+      const position = center.clone()
+        .addScaledVector(across, Math.cos(angle) * radius)
+        .addScaledVector(depth, Math.sin(angle) * depthRadius);
+      positions.push(position.x, position.y, position.z);
+      skinIndices.push(upperBoneIndex, forearmBoneIndex, 0, 0);
+      skinWeights.push(upperWeight, 1 - upperWeight, 0, 0);
+    }
+  }
+  for (let ring = 0; ring < rings; ring++) for (let segment = 0; segment < segments; segment++) {
+    const a = ring * segments + segment;
+    const b = ring * segments + (segment + 1) % segments;
+    indices.push(a, a + segments, b + segments, a, b + segments, b);
+  }
+  const startCap = positions.length / 3;
+  positions.push(points[0].x, points[0].y, points[0].z);
+  skinIndices.push(upperBoneIndex, forearmBoneIndex, 0, 0); skinWeights.push(1, 0, 0, 0);
+  const endCap = positions.length / 3;
+  positions.push(points[2].x, points[2].y, points[2].z);
+  skinIndices.push(upperBoneIndex, forearmBoneIndex, 0, 0); skinWeights.push(0, 1, 0, 0);
+  for (let segment = 0; segment < segments; segment++) {
+    const next = (segment + 1) % segments;
+    const last = rings * segments + segment;
+    const lastNext = rings * segments + next;
+    indices.push(startCap, next, segment, endCap, last, lastNext);
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(skinIndices, 4));
+  geometry.setAttribute('skinWeight', new THREE.Float32BufferAttribute(skinWeights, 4));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  geometry.computeBoundingSphere();
+  return geometry;
+}
+
 function animationClips(): Record<PlayerMotion, THREE.AnimationClip> {
   const idleTimes = [0, 0.5, 1];
   const cycle = [0, 0.25, 0.5, 0.75, 1];
@@ -80,17 +135,17 @@ function animationClips(): Record<PlayerMotion, THREE.AnimationClip> {
     walk: clip('PlayerWalk', 1, [
       scalar('Pelvis.position[y]', cycle, [0.9, 0.92, 0.9, 0.92, 0.9]),
       scalar('UpperLeg_L.rotation[x]', cycle, walk), scalar('UpperLeg_R.rotation[x]', cycle, opposite(walk)),
-      scalar('LowerLeg_L.rotation[x]', cycle, kneeWalk), scalar('LowerLeg_R.rotation[x]', cycle, opposite(kneeWalk)),
+      scalar('LowerLeg_L.rotation[x]', cycle, kneeWalk), scalar('LowerLeg_R.rotation[x]', cycle, kneeWalk),
       scalar('Shoulder_L.rotation[x]', cycle, opposite(walk.map(v => v * 0.75))),
       scalar('Shoulder_R.rotation[x]', cycle, walk.map(v => v * 0.75)),
       scalar('Forearm_L.rotation[x]', cycle, [-0.16, -0.28, -0.16, -0.04, -0.16]),
       scalar('Forearm_R.rotation[x]', cycle, [-0.16, -0.04, -0.16, -0.28, -0.16]),
     ]),
-    run: clip('PlayerRun', 0.72, [
+    run: clip('PlayerRun', 1, [
       scalar('Pelvis.position[y]', cycle, [0.9, 0.935, 0.9, 0.935, 0.9]),
       scalar('Spine.rotation[x]', cycle, [0.08, 0.12, 0.08, 0.04, 0.08]),
       scalar('UpperLeg_L.rotation[x]', cycle, run), scalar('UpperLeg_R.rotation[x]', cycle, opposite(run)),
-      scalar('LowerLeg_L.rotation[x]', cycle, kneeRun), scalar('LowerLeg_R.rotation[x]', cycle, opposite(kneeRun)),
+      scalar('LowerLeg_L.rotation[x]', cycle, kneeRun), scalar('LowerLeg_R.rotation[x]', cycle, kneeRun),
       scalar('Shoulder_L.rotation[x]', cycle, opposite(run)), scalar('Shoulder_R.rotation[x]', cycle, run),
       scalar('Forearm_L.rotation[x]', cycle, [-0.22, -0.42, -0.22, -0.04, -0.22]),
       scalar('Forearm_R.rotation[x]', cycle, [-0.22, -0.04, -0.22, -0.42, -0.22]),
@@ -138,10 +193,10 @@ export function buildPlayerCharacterRig(heldKind: HeldKind = 'none'): PlayerChar
   const feet: THREE.Bone[] = [];
   for (const side of [-1, 1] as const) {
     const suffix = side < 0 ? 'L' : 'R';
-    const shoulder = bones[`Shoulder_${suffix}`] = bone(`Shoulder_${suffix}`, chest, [side * 0.18, 0.01, 0]);
-    const upperArm = bones[`UpperArm_${suffix}`] = bone(`UpperArm_${suffix}`, shoulder, [side * 0.08, -0.02, 0]);
-    const forearm = bones[`Forearm_${suffix}`] = bone(`Forearm_${suffix}`, upperArm, [side * 0.14, -0.21, 0]);
-    const hand = bones[`Hand_${suffix}`] = bone(`Hand_${suffix}`, forearm, [side * 0.02, -0.27, 0]);
+    const shoulder = bones[`Shoulder_${suffix}`] = bone(`Shoulder_${suffix}`, chest, [side * 0.03, 0.07, 0]);
+    const upperArm = bones[`UpperArm_${suffix}`] = bone(`UpperArm_${suffix}`, shoulder, [side * 0.04, 0.04, 0]);
+    const forearm = bones[`Forearm_${suffix}`] = bone(`Forearm_${suffix}`, upperArm, [side * 0.255, -0.22, 0]);
+    const hand = bones[`Hand_${suffix}`] = bone(`Hand_${suffix}`, forearm, [side * 0.022, -0.275, 0]);
     const upperLeg = bones[`UpperLeg_${suffix}`] = bone(`UpperLeg_${suffix}`, pelvis, [side * 0.12, -0.01, 0]);
     const lowerLeg = bones[`LowerLeg_${suffix}`] = bone(`LowerLeg_${suffix}`, upperLeg, [0, -0.45, 0]);
     const foot = bones[`Foot_${suffix}`] = bone(`Foot_${suffix}`, lowerLeg, [0, -0.39, 0]);
@@ -155,6 +210,12 @@ export function buildPlayerCharacterRig(heldKind: HeldKind = 'none'): PlayerChar
   const attach = (object: THREE.Object3D, target: THREE.Bone) => target.attach(object);
   for (const child of [...model.children]) {
     const name = child.name;
+    if (/^(UpperArm|Forearm)_[LR]$/.test(name)) {
+      const mesh = child as THREE.Mesh;
+      mesh.geometry?.dispose();
+      model.remove(child);
+      continue;
+    }
     if (/^(Head_Skin|Hair_|Ear_|Eye_|Brow_|Nose)/.test(name)) attach(child, head);
     else if (name === 'Neck') attach(child, neck);
     else if (/^(Torso_Shirt|Shoulder_Strap_|Strap_Buckle)/.test(name)) attach(child, chest);
@@ -183,6 +244,19 @@ export function buildPlayerCharacterRig(heldKind: HeldKind = 'none'): PlayerChar
 
   const skeleton = new THREE.Skeleton(Object.values(bones));
   skeleton.calculateInverses();
+  for (const side of [-1, 1] as const) {
+    const suffix = side < 0 ? 'L' : 'R';
+    const skin = new THREE.SkinnedMesh(
+      armSkinGeometry(side, skeleton.bones.indexOf(bones[`UpperArm_${suffix}`]), skeleton.bones.indexOf(bones[`Forearm_${suffix}`])),
+      mat(0xc98250, { side: THREE.DoubleSide }),
+    );
+    skin.name = `Arm_Skin_${suffix}`;
+    skin.castShadow = true;
+    skin.receiveShadow = true;
+    body.add(skin);
+    root.updateMatrixWorld(true);
+    skin.bind(skeleton);
+  }
   const mixer = new THREE.AnimationMixer(root);
   const clips = animationClips();
   const actions = Object.fromEntries(Object.entries(clips).map(([key, value]) => [key, mixer.clipAction(value)])) as Record<PlayerMotion, THREE.AnimationAction>;
