@@ -20,7 +20,7 @@ export default defineConfig({
   plugins: [artOverrides()],
   build: {
     rollupOptions: {
-      input: { main: 'index.html', 'style-test': 'style-test.html' },
+      input: { main: 'index.html', 'style-test': 'style-test.html', 'player-preview': 'player-preview.html' },
     },
   },
   // Bellwether at 4.5x takes a couple of seconds to build in each test file: more than the 5 s default leaves room for

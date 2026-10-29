@@ -2,9 +2,10 @@ import * as THREE from 'three';
 import { mat } from '../materials';
 import { buildHeld, type HeldKind, type HumanoidRig } from './character';
 import { buildPlayerCharacterGeometry } from './playerCharacter';
-import { buildPlayerArmourPieces, buildPlayerCape, buildPlayerStaff, buildPlayerSword, type PlayerArmourSet } from './playerEquipment';
+import { buildPlayerArmourPieces, buildPlayerCape, buildPlayerStaff, buildPlayerSword, buildWoodenShield, type PlayerArmourSet } from './playerEquipment';
 
 export type PlayerMotion = 'idle' | 'walk' | 'run' | 'attack';
+export type PlayerMainHand = 'none' | 'sword' | 'cutlass' | 'staff';
 
 export interface PlayerEquipmentVisuals {
   head?: string;
@@ -34,9 +35,13 @@ export interface PlayerCharacterRig extends HumanoidRig {
   mixer: THREE.AnimationMixer;
   current: PlayerMotion;
   armour: PlayerArmourSet;
+  mainHand: PlayerMainHand;
+  offhand: THREE.Group | null;
   setMotion(motion: PlayerMotion): void;
   setArmour(armour: PlayerArmourSet): void;
   setEquipment(equipment: PlayerEquipmentVisuals): void;
+  setMainHand(kind: PlayerMainHand): void;
+  setOffhand(enabled: boolean): void;
   setCape(colour?: number): void;
   face(angle: number, dt: number): void;
   update(dt: number): void;
@@ -192,6 +197,8 @@ export function buildPlayerCharacterRig(heldKind: HeldKind = 'none'): PlayerChar
   if (heldKind === 'greatsword') held.add(buildPlayerSword());
   else if (heldKind === 'staff') held.add(buildPlayerStaff());
   else if (heldKind !== 'none') buildHeld(held, body, heldKind);
+  let mainHand: PlayerMainHand = heldKind === 'greatsword' ? 'sword' : heldKind === 'staff' ? 'staff' : heldKind === 'cutlass' ? 'cutlass' : 'none';
+  let offhand: THREE.Group | null = null;
   let cape: THREE.Mesh | null = null;
   const originalMaterials = new Map<string, THREE.Material | THREE.Material[]>();
   root.traverse(object => {
@@ -270,6 +277,8 @@ export function buildPlayerCharacterRig(heldKind: HeldKind = 'none'): PlayerChar
     mixer,
     get current() { return current; },
     get armour() { return currentArmour; },
+    get mainHand() { return mainHand; },
+    get offhand() { return offhand; },
     setMotion(motion) {
       if (motion === current) return;
       const next = actions[motion];
@@ -295,6 +304,36 @@ export function buildPlayerCharacterRig(heldKind: HeldKind = 'none'): PlayerChar
       } : {});
     },
     setEquipment: applyEquipment,
+    setMainHand(kind) {
+      for (const child of [...held.children]) {
+        child.traverse(object => {
+          const mesh = object as THREE.Mesh;
+          if (mesh.geometry) mesh.geometry.dispose();
+        });
+        held.remove(child);
+      }
+      if (kind === 'sword') held.add(buildPlayerSword());
+      else if (kind === 'cutlass') buildHeld(held, body, 'cutlass');
+      else if (kind === 'staff') held.add(buildPlayerStaff());
+      mainHand = kind;
+    },
+    setOffhand(enabled) {
+      if (offhand) {
+        offhand.traverse(object => {
+          const mesh = object as THREE.Mesh;
+          if (mesh.geometry) mesh.geometry.dispose();
+        });
+        offhand.parent?.remove(offhand);
+        offhand = null;
+      }
+      if (enabled) {
+        offhand = new THREE.Group();
+        offhand.name = 'OffhandAttachment';
+        offhand.position.copy(held.position);
+        hands[0].add(offhand);
+        offhand.add(buildWoodenShield());
+      }
+    },
     setCape,
     face(angle, dt) {
       const difference = Math.atan2(Math.sin(angle - root.rotation.y), Math.cos(angle - root.rotation.y));

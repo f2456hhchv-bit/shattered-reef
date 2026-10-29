@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+  <meta name="theme-color" content="#182024">
+  <title>Character Preview — Shattered Reef</title>
+  <style>
+    :root { color-scheme: dark; font: 15px/1.35 system-ui, sans-serif; background:#182024; color:#f2eee6; }
+    * { box-sizing:border-box; }
+    html,body { width:100%; height:100%; margin:0; overflow:hidden; }
+    body { display:flex; flex-direction:column; padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom); }
+    header { min-height:48px; display:flex; align-items:center; justify-content:space-between; padding:8px 14px; background:#202a2e; border-bottom:1px solid #394449; }
+    header strong { font-family:Georgia,serif; letter-spacing:.04em; }
+    a { color:#e0bd77; text-decoration:none; }
+    #stage { position:relative; flex:1 1 auto; min-height:160px; touch-action:none; background:linear-gradient(#30383b,#1d2528); }
+    #viewer { width:100%; height:100%; display:block; }
+    #fps { position:absolute; top:10px; left:10px; padding:5px 8px; border-radius:4px; color:#d3ddda; background:#101618aa; font-size:12px; pointer-events:none; }
+    #hint { position:absolute; bottom:8px; left:0; right:0; text-align:center; color:#d8d2c6aa; font-size:12px; pointer-events:none; }
+    #game-camera-exit { display:none; position:absolute; z-index:1; top:10px; right:10px; }
+    body.game-camera header, body.game-camera #controls, body.game-camera #hint { display:none; }
+    body.game-camera #stage { min-height:0; }
+    body.game-camera #game-camera-exit { display:block; }
+    #controls { flex:0 0 auto; max-height:47vh; overflow:auto; padding:10px 12px calc(10px + env(safe-area-inset-bottom)); background:#202a2e; border-top:1px solid #394449; overscroll-behavior:contain; }
+    .row { display:flex; gap:7px; align-items:center; margin:7px 0; }
+    .row label { width:65px; flex:none; color:#c8c2b7; font-size:13px; }
+    .buttons { display:flex; flex:1; flex-wrap:wrap; gap:6px; }
+    button { border:1px solid #536064; border-radius:6px; min-height:38px; padding:7px 11px; color:#f3efe8; background:#303b3f; font:inherit; touch-action:manipulation; }
+    button[aria-pressed="true"] { border-color:#d1ae69; background:#4b4435; color:#ffe2a5; }
+    button:focus-visible,a:focus-visible { outline:2px solid #f2cb77; outline-offset:2px; }
+    @media (min-width:800px) { #controls { max-height:220px; } }
+  </style>
+</head>
+<body>
+  <header><strong>Character Inspection</strong><a href="./">Back to game</a></header>
+  <main id="stage" aria-label="Interactive 3D character viewer">
+    <canvas id="viewer" aria-label="Rotate and inspect the 3D character"></canvas>
+    <output id="fps">Starting renderer…</output>
+    <button id="game-camera-exit">Return to inspection</button>
+    <div id="hint">Drag to rotate · pinch or use controls to zoom</div>
+  </main>
+  <section id="controls" aria-label="Character preview controls">
+    <div class="row"><label>Outfit</label><div class="buttons">
+      <button data-outfit="starter" aria-pressed="true">Starter</button><button data-outfit="leather" aria-pressed="false">Leather</button><button data-outfit="iron" aria-pressed="false">Iron</button>
+    </div></div>
+    <div class="row"><label>Weapon</label><div class="buttons">
+      <button data-weapon="none" aria-pressed="false">None</button><button data-weapon="sword" aria-pressed="true">Straight sword</button><button data-weapon="cutlass" aria-pressed="false">Cutlass</button><button data-weapon="staff" aria-pressed="false">Staff</button><button id="shield" aria-pressed="true">Shield on</button>
+    </div></div>
+    <div class="row"><label>Motion</label><div class="buttons">
+      <button data-motion="idle" aria-pressed="true">Idle</button><button data-motion="walk" aria-pressed="false">Walk</button><button data-motion="run" aria-pressed="false">Run</button><button id="attack" aria-pressed="false">Sword attack</button>
+    </div></div>
+    <div class="row"><label>Camera</label><div class="buttons">
+      <button data-camera="inspection" aria-pressed="true">Inspection</button><button data-camera="game" aria-pressed="false">Game camera</button>
+      <button id="zoom-in" aria-label="Zoom in">+</button><button id="zoom-out" aria-label="Zoom out">−</button><button id="reset">Reset view</button>
+    </div></div>
+  </section>
+  <script type="module" src="./src/playerCharacterPreview.ts"></script>
+</body>
+</html>

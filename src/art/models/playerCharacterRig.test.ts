@@ -43,6 +43,48 @@ describe('player character animation rig', () => {
     expect(shield.children.length).toBeGreaterThan(0);
   });
 
+  it('replaces and unequips main-hand visuals without detaching the hand socket', () => {
+    const rig = buildPlayerCharacterRig();
+    rig.setMainHand('sword');
+    expect(rig.held.parent?.name).toBe('Hand_R');
+    expect(rig.held.getObjectByName('StraightSword')).toBeTruthy();
+    rig.setMainHand('cutlass');
+    expect(rig.held.children.length).toBeGreaterThan(0);
+    expect(rig.held.getObjectByName('StraightSword')).toBeUndefined();
+    rig.setMainHand('staff');
+    expect(rig.held.getObjectByName('BasicStaff')).toBeTruthy();
+    rig.setMainHand('none');
+    expect(rig.held.children).toHaveLength(0);
+  });
+
+  it('keeps shared cached materials alive when replacing hand equipment', () => {
+    const rig = buildPlayerCharacterRig();
+    rig.setMainHand('sword');
+    const blade = rig.held.getObjectByName('Sword_Blade') as THREE.Mesh;
+    let disposeEvents = 0;
+    const bladeMaterial = Array.isArray(blade.material) ? blade.material[0] : blade.material;
+    bladeMaterial.addEventListener('dispose', () => disposeEvents++);
+    rig.setMainHand('cutlass');
+    expect(disposeEvents).toBe(0);
+    rig.setOffhand(true);
+    const shield = rig.offhand?.getObjectByName('Shield_Backing') as THREE.Mesh;
+    const shieldMaterial = Array.isArray(shield.material) ? shield.material[0] : shield.material;
+    shieldMaterial.addEventListener('dispose', () => disposeEvents++);
+    rig.setOffhand(false);
+    expect(disposeEvents).toBe(0);
+  });
+
+  it('toggles the wooden shield at the left-hand socket', () => {
+    const rig = buildPlayerCharacterRig();
+    rig.setOffhand(true);
+    const shield = rig.offhand;
+    expect(shield?.parent?.name).toBe('Hand_L');
+    expect(shield?.getObjectByName('WoodenShield')).toBeTruthy();
+    rig.setOffhand(false);
+    expect(rig.offhand).toBeNull();
+    expect(shield?.parent).toBeNull();
+  });
+
   it('plays the melee wind-up and follow-through on the equipped hand', () => {
     const rig = buildPlayerCharacterRig('greatsword');
     rig.setMotion('attack');
