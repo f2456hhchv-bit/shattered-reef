@@ -45,11 +45,11 @@ function limb(points: readonly (readonly [number, number, number])[], radius: nu
   const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(p, 3)); geo.setIndex(ix); geo.computeVertexNormals(); return geo;
 }
 
-function foliage(width: number, depth: number, height: number, phase: number) {
+function foliage(width: number, depth: number, height: number, phase: number, scallop = 1) {
   // Broad shoulders, off-centre crown and scalloped lower edges. These are authored lobes, not vertex noise.
   const profile = [[0, .12], [.14, .64], [.39, 1], [.66, .94], [.87, .65], [1, .025]];
   return loft(profile.map(([t, r]) => [Math.sin(t * 2) * width * .13, t * height, t * depth * .1, width * r, depth * r]), 24,
-    (a, t) => 1 + .12 * Math.sin(a * 3 + phase) + .07 * Math.cos(a * 5 - phase) + (1 - t) * .055 * Math.sin(a * 7));
+    (a, t) => 1 + scallop * (.12 * Math.sin(a * 3 + phase) + .07 * Math.cos(a * 5 - phase)) + (1 - t) * .055 * Math.sin(a * 7));
 }
 
 /** Coastal Scots pine: wind-bent scaffold and a broad, interlocking crown of drooping needle sprays. */
@@ -95,24 +95,22 @@ export function buildCoastalOak(seed: number): THREE.Group {
   const out = collapse(g); out.rotation.y = rnd() * Math.PI * 2; out.scale.setScalar(.95 + rnd() * .1); return out;
 }
 
-/** The quay's salt oak: a branch-led silhouette and low, overlapping, wind-combed leaf fans. */
+/** The quay's salt oak: a raised, spreading canopy held by visible forked boughs. */
 export function buildHarbourOak(seed: number): THREE.Group {
   const rnd=mulberry32(seed), g=new THREE.Group();
-  g.add(mesh(limb([[0,0,0],[-.05,.6,0],[-.19,1.45,.08],[-.25,2.25,-.04]],.27),mat('trunk')));
-  const fans: [number,number,number,number,number,number][]=[
-    [-1.2,2.2,-.73,.66,.54,.08],[-.55,2.55,-1.18,.64,.55,-.12],
-    [.52,2.35,-1.18,.67,.54,.21],[1.21,2.57,-.48,.68,.58,.16],
-    [1.38,2.23,.55,.69,.54,-.1],[.48,2.49,1.24,.68,.58,.15],
-    [-.66,2.17,1.11,.68,.56,-.12],[-1.33,2.38,.22,.71,.58,.11],
+  g.add(mesh(limb([[0,0,0],[-.08,.75,.04],[-.2,1.72,.08],[-.12,2.65,-.05],[.08,3.35,-.12]],.3),mat('trunk')));
+  const boughs: [number,number,number][]=[[-1.22,3.02,-.46],[-.66,3.22,.98],[.94,3.08,-.76],[1.27,2.94,.28],[.14,3.38,.49]];
+  boughs.forEach(([x,y,z],i)=>g.add(mesh(limb([[0,1.12,.02],[x*.32,1.92,z*.34],[x*.72,y-.28,z*.72],[x,y,z]],.115-i*.008),mat('trunk'))));
+  const crown=mesh(foliage(1.46,1.36,1.52,seed*.11,1.65),mat('harbourLeafDeep'));
+  crown.position.set(-.08,2.55,-.04); crown.rotation.y=rnd()*.32; g.add(crown);
+  const clusters: [number,number,number,number,number,number][]=[
+    [-1.18,3.02,-.5,.82,.77,.82],[-.52,3.17,1.08,.79,.74,.88],
+    [.98,3.0,-.72,.86,.79,.82],[1.22,3.02,.46,.83,.76,.77],
+    [.02,3.29,.18,.82,.79,.9],
   ];
-  fans.forEach(([x,y,z,w,d,tilt],i)=>{
-    g.add(mesh(limb([[-.2,1.0,.02],[x*.45,1.65,z*.38],[x*.82,y-.1,z*.84]],.11-i*.005),mat('trunk')));
-    const geo=loft([
-      [0,0,0,w*.36,d*.33],[-.05,.04,0,w*.82,d*.76],[0,.12,0,w,d],
-      [.04,.22,-.02,w*.82,d*.77],[.06,.31,-.03,w*.46,d*.44],[.06,.33,-.03,.015,.015]
-    ],24,(a,t)=>1+.08*Math.sin(a*5+i*1.3)+.035*Math.cos(a*8-t*4));
-    const fan=mesh(geo,mat(i%4===0?'harbourLeafSun':i%3===0?'harbourLeafDeep':'harbourLeaf'));
-    fan.position.set(x,y,z);fan.rotation.set(tilt,rnd()*Math.PI*2,-tilt*.7);g.add(fan);
+  clusters.forEach(([x,y,z,w,d,h],i)=>{
+    const lobe=mesh(foliage(w,d,h,i*.83+seed*.07,1.8),mat(i===2?'harbourLeafSun':i===4?'harbourLeaf':'harbourLeafDeep'));
+    lobe.position.set(x,y,z); lobe.rotation.y=rnd()*.45; g.add(lobe);
   });
   const out=collapse(g);out.rotation.y=rnd()*Math.PI*2;out.scale.setScalar(.98+rnd()*.07);return out;
 }

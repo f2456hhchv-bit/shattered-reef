@@ -1,30 +1,29 @@
-# Bellwether Phase 3: first integrated environment art pass
+# Bellwether Phase 3: environment art prototype
 
-This is an **in-progress art pass**, not Phase 3 acceptance. The first section is Bellwether Quay: Harbour Goods, the Chart House, Reed's Tackle, and the verge west of the store. The starting island's geometry, town collision, door points, interiors, resources, quest positions, and save format remain the Phase 2 versions.
+This is an integrated, playable art pass on `design/bellwether-phase2`. It covers the quay and the verge west of Harbour Goods. The environment-art milestone remains in progress; it has not been merged into `main`.
 
-## What is in the game
+## Implemented in the game
 
-- Three liftable roof assemblies now have separate silhouettes: Harbour Goods has a weathered curved cedar gable with filled ends; the Chart House has a shallow hip and observation lantern; Reed's Tackle has a low swept salt-shed roof. The original enterable interiors and simulation walls remain.
-- One harbour oak uses a new branch-led low canopy with darker matte foliage. A few sculpted erosion rocks and salt shrubs are composed along the verge, with collision and road clearance checked before placement. Curved grass fans replace the old cone tufts in the nearby streamed cells, still using one instanced mesh per cell.
-- The player model was inspected but has not been replaced. The existing pivot rig, basic animation functions and equipment tint system remain. The requested skeletal character milestone is subsequent work.
+- Three liftable roof assemblies give Harbour Goods, the Chart House and Reed's Tackle distinct coastal silhouettes. Walls, entrances, interiors and their simulation collision remain the existing versions.
+- The old quay shader pattern is replaced locally by a single vertex-coloured mesh of shallow bevelled setts. The layout uses deterministic irregular sites, clipped stone cells and a curved edge into compacted earth. It adds no texture or per-stone draw calls. The settlement's walk grid, collision, doors, NPC routes, resource nodes, quests and saves are untouched.
+- A raised salt-oak crown is carried by visible forked boughs. Erosion rocks, salt shrubs and curved grass fans remain composed along the west verge. Their placements retain the existing navigation clearance.
+- The current player model and its basic pivot animations are unchanged. A reusable skeletal GLB character and equipment pipeline is the following character milestone, after this environment section is reviewed.
 
-## Visual review
+## Visual evidence
 
-All images in [evidence](evidence) were captured from the **running Three.js game** with the same camera script and comparable staged player positions. The before captures use the published Phase 2 preview; the after captures use the Phase 3 local build. Compare `before-quay-desktop.png` with `after-quay-desktop.png`, each `*-close.png` pair, `before-verge.png` with `after-verge.png`, and the two mobile views. The capture script is [bellwether-phase3-browser.cjs](../../../scripts/bellwether-phase3-browser.cjs).
+The screenshots in [evidence](evidence) show the running game, not concept art. Compare the Phase 2 `before-*` files with `after-quay-desktop.png`, the three building close-ups, `after-verge.png` and `after-quay-mobile.png`. The capture tool is [bellwether-phase3-browser.cjs](../../../scripts/bellwether-phase3-browser.cjs).
 
-The new roofs and planting are a visible improvement, but the quay is still dominated by the old polygon paving. Several replacement approaches were rendered and rejected because they read as scattered markers, a grid, or noisy paving; none was retained. The new oak's canopy is better coloured and more open, but it still needs a stronger tree silhouette at the gameplay camera. The repeated neighbouring building shells and the current character also limit the scene's cohesion. **The environment-art milestone is not finished.**
+The roofs and paving now have distinct in-game geometry, and the tree silhouette is taller and less disk-like. The current camera still shows a cellular stone rhythm; review the paving and overall art cohesion on the iPhone before treating this as the new standard. The surrounding settlement, player character, other buildings and wider terrain are outside this prototype.
 
-## Performance and gameplay evidence
+## Performance and validation
 
-The same headless Chromium/SwiftShader machine produced these samples at the quay camera. Timing varies widely on software rendering and is not an iPhone FPS measurement.
+Headless Chromium with SwiftShader is a software-rendering check, not a physical-device FPS measurement. The published preview baseline and the local updated build were captured at the same mobile-emulation viewport after 12 seconds of scene settling:
 
-| View | Version | Draw calls | Triangles | Median renderer CPU |
-| --- | --- | ---: | ---: | ---: |
-| Desktop | Phase 2 | 257 | 342,992 | 32.7 ms |
-| Desktop | Local Phase 3 | 274 | 366,220 | 24.9 ms |
-| Mobile emulation | Phase 2 | 290 | 326,116 | 73.6 ms |
-| Mobile emulation | Local Phase 3 | 294 | 346,804 | 70.1 ms |
+| Mobile-emulated capture | Draw calls | Triangles | Median renderer CPU |
+| --- | ---: | ---: | ---: |
+| Published preview before this change | 392 | 386,569 | 70.7 ms |
+| Local updated preview | 390 | 421,654 | 149.7 ms |
 
-The mobile view adds four calls and about 20,700 visible triangles; it has no new texture. The local renderer reported no browser errors after fixing the grass wind uniform. Phase 2 ran at 60 FPS on the owner's iPhone, but **Phase 3's 60 FPS target is unverified on that device**.
+The renderer timing is variable under SwiftShader, but this sample is slower and carries about 35,000 more visible triangles. The prototype has not been measured on the owner's iPhone; its 60 FPS target remains unverified. Check the updated preview on-device before approving the art pass.
 
-Validation: `VITE_BELLWETHER_REDESIGN=1 VITE_BELLWETHER_PREVIEW=1 npm test` passed 355 tests in 48 files; `VITE_BELLWETHER_REDESIGN=1 VITE_BELLWETHER_PREVIEW=1 npm run build` passed TypeScript and Vite. The separate preview's packaged touch, save/reload and public deployment checks must be repeated after this branch is published.
+Validation completed locally: `VITE_BELLWETHER_REDESIGN=1 VITE_BELLWETHER_PREVIEW=1 npm test` passed 358 tests in 49 files; the TypeScript and production build passed; the desktop and mobile-emulated captures reported no browser errors. Existing navigation tests cover Bellwether reachability, NPCs, stations, doors, sailing, landing and cave access. The new paving test checks deterministic placement, building clearance, geometry validity and its single-mesh batch.

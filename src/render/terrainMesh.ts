@@ -5,6 +5,7 @@ import type { Look } from '../art/looks';
 import { BELL_TOWN, coastDist, nearestPathDist, FLATS, LAYOUT, BEACH, SUN_LAYOUT, SUN, SUN_RADIUS, WRACK, WRACK_RADIUS, WRACK_LAYOUT, AMBER, AMBER_RADIUS, AMBER_LAYOUT } from '../game/world/island';
 import { World, HCELL } from '../game/world/world';
 import { CAVE_FLOOR } from '../game/world/caves';
+import { buildQuayPaving } from '../art/models/quayPaving';
 
 // Smooth terrain from the simulation's height grid: shared vertices, smooth normals,
 // colours blended per vertex (no triangle checkerboard), plus drifting cloud shadows.
@@ -30,6 +31,8 @@ export function buildTerrainMesh(world: World, look: Look, cave = false): Terrai
   const meadow = C(0x86ad55), moss = C(0x4f7a3a);
   const cobble = C(0xb3a486), cobbleD = C(0x9a8c72);
   const R = HN + 1, H = world.heights;
+  const bellwetherQuay = BELLWETHER_REDESIGN && world.cx === 0 && world.cz === 0 && !cave;
+  const quayJoint = C(0x857966);
   // cobbled squares (Bellwether's quay, Port Halyard's) and paved ruins (the Broken Ring, the Sunken Temple)
   const squares = [...BELL_TOWN.squares, FLATS[0], FLATS.find((f) => f.x === SUN_LAYOUT.port.x && f.z === SUN_LAYOUT.port.z)!, FLATS.find((f) => f.x === WRACK_LAYOUT.landing.x && f.z === WRACK_LAYOUT.landing.z)!, FLATS.find((f) => f.x === AMBER_LAYOUT.landing.x && f.z === AMBER_LAYOUT.landing.z)!];
   const paved = [LAYOUT.ruin, SUN_LAYOUT.temple];
@@ -98,6 +101,18 @@ export function buildTerrainMesh(world: World, look: Look, cave = false): Terrai
         const exposed = smooth(slope, .22, .62) * (1 - smooth(d, 12, 30));
         const bedding = .5 + .5 * Math.sin(y * 1.65 + x * .018 + z * .012);
         tmp.lerp(rock.clone().lerp(rockD, .16 + bedding * .22), exposed);
+      }
+      if (bellwetherQuay) {
+        const dx = x - LAYOUT.village.x, dz = z - LAYOUT.village.z;
+        if (Math.abs(dx) < 18.5 && Math.abs(dz) < 18.5) {
+          const distance = Math.hypot(dx, dz);
+          const angle = Math.atan2(dz, dx), edge = 14.2 + .4 * Math.sin(angle * 3 + .2) + .22 * Math.cos(angle * 5 - .7);
+          const plaza = 1 - smooth(distance, edge - 2, edge + 1.8);
+          if (plaza > 0) {
+            tmp.lerp(quayJoint, plaza);
+            cobW *= 1 - plaza;
+          }
+        }
       }
       return cobW;
     }
@@ -204,6 +219,7 @@ gl_FragColor.rgb *= 1.0 - smoothstep(0.55, 0.75, cloud) * 0.18;`}`);
   };
   // streaming (Tom: big islands that load in as you go): chunks are built when you come near, freed when you leave
   const group = new THREE.Group();
+  if (bellwetherQuay) group.add(buildQuayPaving(world));
   const live = new Map<number, THREE.Mesh>();
   const build = (ci: number, cj: number) => {
     const k = cj * nC + ci;

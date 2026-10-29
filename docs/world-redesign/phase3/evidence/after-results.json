@@ -1,67 +1,31 @@
 {
   "url": "http://127.0.0.1:5175/",
   "engine": "Headless Chromium SwiftShader (software GPU), not physical iPhone Safari",
+  "settleMs": 12000,
   "views": [
     {
       "mobile": false,
       "geometry": "bellwether-phase2-v1",
-      "quayBuildings": [
-        {
-          "id": "store",
-          "x": -11,
-          "z": 313.13876469547677
-        },
-        {
-          "id": "chart",
-          "x": 11,
-          "z": 312.13876469547677
-        },
-        {
-          "id": "tackle",
-          "x": -9,
-          "z": 325.63876469547677
-        }
-      ],
-      "fpsReported": 4.2724409104332315,
-      "cpuMedianMs": 24.90000000037253,
-      "calls": 274,
-      "triangles": 366220,
-      "renderMemory": {
-        "geometries": 315,
-        "textures": 18
-      },
-      "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+      "cpuMedianMs": 24.3,
+      "calls": 263,
+      "triangles": 399435,
+      "renderMemory": { "geometries": 310, "textures": 18 }
     },
     {
       "mobile": true,
       "geometry": "bellwether-phase2-v1",
-      "quayBuildings": [
-        {
-          "id": "store",
-          "x": -11,
-          "z": 313.13876469547677
-        },
-        {
-          "id": "chart",
-          "x": 11,
-          "z": 312.13876469547677
-        },
-        {
-          "id": "tackle",
-          "x": -9,
-          "z": 325.63876469547677
-        }
-      ],
-      "fpsReported": 4,
-      "cpuMedianMs": 70.09999999962747,
-      "calls": 294,
-      "triangles": 346804,
-      "renderMemory": {
-        "geometries": 282,
-        "textures": 18
-      },
-      "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+      "cpuMedianMs": 149.7,
+      "calls": 390,
+      "triangles": 421654,
+      "renderMemory": { "geometries": 367, "textures": 18 }
     }
   ],
+  "publishedMobileBaseline": {
+    "url": "https://f2456hhchv-bit.github.io/shattered-reef-bellwether-preview/",
+    "cpuMedianMs": 70.7,
+    "calls": 392,
+    "triangles": 386569,
+    "renderMemory": { "geometries": 361, "textures": 18 }
+  },
   "errors": []
 }

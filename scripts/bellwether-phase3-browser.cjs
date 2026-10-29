@@ -10,7 +10,8 @@ fs.mkdirSync(out, { recursive: true });
   const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium', args: ['--no-sandbox', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
   const result = { url: base, engine: 'Headless Chromium SwiftShader (software GPU), not physical iPhone Safari', views: [], errors: [] };
   try {
-    for (const mobile of process.env.REEF_ART_DESKTOP_ONLY ? [false] : [false, true]) {
+    const modes = process.env.REEF_ART_MOBILE_ONLY ? [true] : process.env.REEF_ART_DESKTOP_ONLY ? [false] : [false, true];
+    for (const mobile of modes) {
       const ctx = await browser.newContext({ viewport: mobile ? { width: 390, height: 844 } : { width: 1280, height: 800 }, isMobile: mobile, hasTouch: mobile, deviceScaleFactor: 1, reducedMotion: 'reduce' });
       const page = await ctx.newPage();
       page.on('pageerror', e => result.errors.push(String(e)));
@@ -37,7 +38,7 @@ fs.mkdirSync(out, { recursive: true });
           if (window.__artFrames.length > 40) window.__artFrames.shift();
         };
       }, mobile);
-      await page.waitForTimeout(2200);
+      await page.waitForTimeout(Number(process.env.REEF_ART_SETTLE_MS || 2200));
       await page.screenshot({ path: path.join(out, mobile ? 'quay-mobile.png' : 'quay-desktop.png'), timeout: 180000 });
       const view = await page.evaluate(() => {
         const frames = window.__artFrames.slice(-12), cpu = frames.map(f => f.cpuMs).sort((a, b) => a - b), r = window.__reef.renderer;

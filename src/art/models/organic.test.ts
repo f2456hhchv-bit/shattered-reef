@@ -47,3 +47,12 @@ it('windgrown coastal pine has a broad continuous crown rather than a tall stack
   const size = crown.getSize(new THREE.Vector3());
   expect(Math.max(size.x, size.z)).toBeGreaterThan(size.y * 1.25);
 });
+
+it('harbour oak keeps a raised, spreading canopy in the quay camera view', () => {
+  const geo = mergeColoured(buildHarbourOak(11));
+  geo.computeBoundingBox();
+  const bounds = geo.boundingBox!;
+  const size = bounds.getSize(new THREE.Vector3());
+  expect(bounds.max.y).toBeGreaterThan(4.1);
+  expect(Math.max(size.x, size.z)).toBeGreaterThan(3.1);
+});
