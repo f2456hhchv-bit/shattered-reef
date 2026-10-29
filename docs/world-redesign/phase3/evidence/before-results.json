@@ -1,0 +1,67 @@
+{
+  "url": "https://f2456hhchv-bit.github.io/shattered-reef-bellwether-preview/",
+  "engine": "Headless Chromium SwiftShader (software GPU), not physical iPhone Safari",
+  "views": [
+    {
+      "mobile": false,
+      "geometry": "bellwether-phase2-v1",
+      "quayBuildings": [
+        {
+          "id": "store",
+          "x": -11,
+          "z": 313.13876469547677
+        },
+        {
+          "id": "chart",
+          "x": 11,
+          "z": 312.13876469547677
+        },
+        {
+          "id": "tackle",
+          "x": -9,
+          "z": 325.63876469547677
+        }
+      ],
+      "fpsReported": 30.030030030026328,
+      "cpuMedianMs": 32.700000000186265,
+      "calls": 257,
+      "triangles": 342992,
+      "renderMemory": {
+        "geometries": 318,
+        "textures": 18
+      },
+      "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+    },
+    {
+      "mobile": true,
+      "geometry": "bellwether-phase2-v1",
+      "quayBuildings": [
+        {
+          "id": "store",
+          "x": -11,
+          "z": 313.13876469547677
+        },
+        {
+          "id": "chart",
+          "x": 11,
+          "z": 312.13876469547677
+        },
+        {
+          "id": "tackle",
+          "x": -9,
+          "z": 325.63876469547677
+        }
+      ],
+      "fpsReported": 4,
+      "cpuMedianMs": 73.59999999962747,
+      "calls": 290,
+      "triangles": 326116,
+      "renderMemory": {
+        "geometries": 275,
+        "textures": 18
+      },
+      "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)"
+    }
+  ],
+  "errors": []
+}

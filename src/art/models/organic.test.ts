@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
-import { buildCoastalPine, buildCoastalOak, buildErodedRock, buildOrganicOre } from './organic';
+import { buildCoastalPine, buildCoastalOak, buildHarbourOak, buildErodedRock, buildOrganicOre } from './organic';
 import { mergeColoured } from '../../render/bake';
 
 describe('Bellwether authored organic geometry', () => {
   for (const [name, build, budget] of [
-    ['pine', buildCoastalPine, 2600], ['oak', buildCoastalOak, 2600],
+    ['pine', buildCoastalPine, 2600], ['oak', buildCoastalOak, 2600], ['harbour oak',buildHarbourOak,4200],
     ['rock', buildErodedRock, 550], ['ore', buildOrganicOre, 850],
   ] as const) {
     it(`${name} has finite smooth normals, bounded geometry and one instancable colour mesh`, () => {

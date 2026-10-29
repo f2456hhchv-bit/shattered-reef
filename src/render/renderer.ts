@@ -18,6 +18,8 @@ import { buildCinderVent, buildFallenStar, buildBones, buildSpire, buildSaltPan,
 import { buildNetRack, buildRowboat, buildSignpost, buildFence, buildWell, buildDriftwood, buildShells, buildPotStack, buildCannon, buildWreckRibs, buildWoodpile, buildFlowers } from '../art/models/decor';
 import { NPC_LOOKS, PLAYER_LOOK, BRIGAND_LOOK, HUMAN_LOOKS, TOWNS_LOOKS } from '../art/cast';
 import { buildEnterable, buildStall, type EnterableView } from '../art/models/buildings';
+import { applyQuayArchitecture } from '../art/models/quayArchitecture';
+import { buildQuayPlanting, buildHarbourGrass } from '../art/models/quayPlanting';
 import { isInside, toLocal, WALL_H, type BuildingDef } from '../game/world/buildings';
 import { buildHumanoid, addOffhand, animateIdle, animateWalk, animateSwing, animateWork, animateFish, type HeldKind, type HumanoidRig, type HumanoidLook } from '../art/models/character';
 import { item, pairGroup, weaponKind, type WeaponKind } from '../game/data/items';
@@ -44,7 +46,7 @@ import { DOORS } from '../game/data/doors';
 import { buildLootShard, buildItemModel, SHARD_TINT, type LootShard, type ShardKind } from '../art/models/items';
 import { NODES, PLAYER_BASE, SKILLS, SHRINES } from '../game/data/content';
 import type { Game, GameEvent, Enemy, Telegraph } from '../game/sim/game';
-import { coastDist, nearestPathDist, BEACH, SUN, SUN_LAYOUT, WRACK, AMBER, LOCK, SALT, LONG } from '../game/world/island';
+import { coastDist, nearestPathDist, BEACH, LAYOUT, SUN, SUN_LAYOUT, WRACK, AMBER, LOCK, SALT, LONG } from '../game/world/island';
 import { HCELL } from '../game/world/world';
 import { buildTerrainMesh, LOAD_R } from './terrainMesh';
 import { bakeRig, bakeStatic, bakeFlat, mergeColoured } from './bake';
@@ -465,6 +467,7 @@ export class GameRenderer {
     propKey = 'strongbox';
     for (const b of L.banks) if (!b.booth) place(buildStrongbox(), b.x, b.z, 0);
     propKey = null;
+    if (this.organicBellwether) root.add(buildQuayPlanting(w));
     for (const r of L.reefs) {
       const m = (this.organicBellwether ? buildErodedRock : buildRock)(Math.round(r.x * 31 + r.z), r.r, 'stoneDark');
       m.position.set(r.x, 0.05, r.z);
@@ -487,6 +490,7 @@ export class GameRenderer {
     const material = addSurfaceDetail(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: false, roughness: 0.92, metalness: 0 }), { scale: 3, tone: 0.24, bump: 0.4 });
     for (const b of L.town) {
       const v = buildEnterable(b, this.organicBellwether);
+      if (this.organicBellwether) applyQuayArchitecture(v, b);
       for (const part of [v.walls, v.trim, v.roof, v.interior]) bakeFlat(part, material);
       // only the shell casts: the room is under the roof, and windows and signs are too small to matter
       for (const part of [v.trim, v.interior]) part.traverse((o) => { o.castShadow = false; });
@@ -610,7 +614,8 @@ export class GameRenderer {
       const [, ci, cj] = want[n], pts = this.grassPoints(ci, cj);
       let m: THREE.InstancedMesh | null = null;
       if (pts.length) {
-        m = buildGrass(pts, ci * 31 + cj);
+        const harbourCell = this.organicBellwether && Math.hypot((ci + .5) * CELL - LAYOUT.village.x, (cj + .5) * CELL - LAYOUT.village.z) < 48;
+        m = harbourCell ? buildHarbourGrass(pts, ci * 31 + cj) : buildGrass(pts, ci * 31 + cj);
         m.computeBoundingSphere();
         this.grass.add(m);
       }

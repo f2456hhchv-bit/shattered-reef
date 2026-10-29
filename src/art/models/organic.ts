@@ -95,6 +95,44 @@ export function buildCoastalOak(seed: number): THREE.Group {
   const out = collapse(g); out.rotation.y = rnd() * Math.PI * 2; out.scale.setScalar(.95 + rnd() * .1); return out;
 }
 
+/** The quay's salt oak: a branch-led silhouette and low, overlapping, wind-combed leaf fans. */
+export function buildHarbourOak(seed: number): THREE.Group {
+  const rnd=mulberry32(seed), g=new THREE.Group();
+  g.add(mesh(limb([[0,0,0],[-.05,.6,0],[-.19,1.45,.08],[-.25,2.25,-.04]],.27),mat('trunk')));
+  const fans: [number,number,number,number,number,number][]=[
+    [-1.2,2.2,-.73,.66,.54,.08],[-.55,2.55,-1.18,.64,.55,-.12],
+    [.52,2.35,-1.18,.67,.54,.21],[1.21,2.57,-.48,.68,.58,.16],
+    [1.38,2.23,.55,.69,.54,-.1],[.48,2.49,1.24,.68,.58,.15],
+    [-.66,2.17,1.11,.68,.56,-.12],[-1.33,2.38,.22,.71,.58,.11],
+  ];
+  fans.forEach(([x,y,z,w,d,tilt],i)=>{
+    g.add(mesh(limb([[-.2,1.0,.02],[x*.45,1.65,z*.38],[x*.82,y-.1,z*.84]],.11-i*.005),mat('trunk')));
+    const geo=loft([
+      [0,0,0,w*.36,d*.33],[-.05,.04,0,w*.82,d*.76],[0,.12,0,w,d],
+      [.04,.22,-.02,w*.82,d*.77],[.06,.31,-.03,w*.46,d*.44],[.06,.33,-.03,.015,.015]
+    ],24,(a,t)=>1+.08*Math.sin(a*5+i*1.3)+.035*Math.cos(a*8-t*4));
+    const fan=mesh(geo,mat(i%4===0?'harbourLeafSun':i%3===0?'harbourLeafDeep':'harbourLeaf'));
+    fan.position.set(x,y,z);fan.rotation.set(tilt,rnd()*Math.PI*2,-tilt*.7);g.add(fan);
+  });
+  const out=collapse(g);out.rotation.y=rnd()*Math.PI*2;out.scale.setScalar(.98+rnd()*.07);return out;
+}
+
+/** Shore hawthorn: a low wind-pruned hedge with visible stems and a single interlocking crown. */
+export function buildSaltShrub(seed: number): THREE.Group {
+  const rnd=mulberry32(seed), g=new THREE.Group();
+  const stems: [number,number,number][][] = [
+    [[0,0,0],[-.22,.28,.05],[-.58,.54,.12]],
+    [[0,0,0],[.18,.31,-.11],[.55,.62,-.18]],
+    [[0,0,0],[.04,.36,.16],[.12,.72,.42]],
+  ];
+  for(const points of stems) g.add(mesh(limb(points,.055),mat('trunk')));
+  const leaves=mesh(loft([
+    [0,.28,0,.45,.37],[-.11,.39,.03,.76,.51],[-.06,.59,.02,.84,.57],[.04,.82,-.05,.68,.48],[.13,.96,-.08,.38,.31],[.14,1.02,-.08,.02,.02]
+  ],20,(a,t)=>1+.09*Math.sin(a*4+seed*.2)+.04*Math.cos(a*7-t*3)),mat('leaf'));
+  g.add(leaves);
+  const out=collapse(g);out.rotation.y=rnd()*Math.PI*2;out.scale.set(.86+rnd()*.25,.78+rnd()*.18,.8+rnd()*.2);return out;
+}
+
 export function buildErodedRock(seed: number, size = 1, colour: 'stone' | 'stoneDark' = 'stone'): THREE.Mesh {
   const rnd = mulberry32(seed), phase = rnd() * .45;
   // Undercut foot, weathered shoulder, sloping crown: one continuous rounded bedding form.
