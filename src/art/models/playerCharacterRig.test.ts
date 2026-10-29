@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { addOffhand } from './character';
 import { buildPlayerCharacterRig } from './playerCharacterRig';
 
 describe('player character animation rig', () => {
@@ -30,5 +31,24 @@ describe('player character animation rig', () => {
     expect(Math.abs(walkLeg)).toBeGreaterThan(0);
     expect(Number.isFinite(runLeg)).toBe(true);
     expect(rig.current).toBe('run');
+  });
+
+  it('attaches the equipped blade and shield to their respective hand joints', () => {
+    const rig = buildPlayerCharacterRig('greatsword');
+    expect(rig.held.parent?.name).toBe('Hand_R');
+    expect(rig.held.children.length).toBeGreaterThan(0);
+    const shield = addOffhand(rig, 'shield');
+    expect(shield.parent?.name).toBe('Hand_L');
+    expect(shield.children.length).toBeGreaterThan(0);
+  });
+
+  it('plays the melee wind-up and follow-through on the equipped hand', () => {
+    const rig = buildPlayerCharacterRig('greatsword');
+    rig.setMotion('attack');
+    rig.update(0.1);
+    expect(rig.current).toBe('attack');
+    expect(Math.abs(rig.bones.Shoulder_R.rotation.x)).toBeGreaterThan(0.1);
+    rig.update(0.1);
+    expect(Math.abs(rig.bones.Forearm_R.rotation.x)).toBeGreaterThan(0.1);
   });
 });

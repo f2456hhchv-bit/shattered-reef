@@ -1,8 +1,9 @@
 import * as THREE from 'three';
 import { buildHeld, type HeldKind, type HumanoidRig } from './character';
 import { buildPlayerCharacterGeometry } from './playerCharacter';
+import { buildPlayerStaff, buildPlayerSword } from './playerEquipment';
 
-export type PlayerMotion = 'idle' | 'walk' | 'run';
+export type PlayerMotion = 'idle' | 'walk' | 'run' | 'attack';
 
 export interface PlayerCharacterRig extends HumanoidRig {
   skeleton: THREE.Skeleton;
@@ -61,6 +62,16 @@ function animationClips(): Record<PlayerMotion, THREE.AnimationClip> {
       scalar('Shoulder_L.rotation[x]', cycle, opposite(run)), scalar('Shoulder_R.rotation[x]', cycle, run),
       scalar('Forearm_L.rotation[x]', cycle, [-0.22, -0.42, -0.22, -0.04, -0.22]),
       scalar('Forearm_R.rotation[x]', cycle, [-0.22, -0.04, -0.22, -0.42, -0.22]),
+    ]),
+    attack: clip('PlayerMeleeSlash', 0.7, [
+      scalar('Pelvis.rotation[y]', [0, 0.18, 0.38, 0.7], [0, -0.12, 0.12, 0]),
+      scalar('Spine.rotation[y]', [0, 0.18, 0.38, 0.7], [0, -0.12, 0.12, 0]),
+      scalar('Chest.rotation[y]', [0, 0.18, 0.38, 0.7], [0, -0.04, 0.04, 0]),
+      scalar('Shoulder_R.rotation[x]', [0, 0.18, 0.38, 0.7], [0, -1.25, -0.45, 0]),
+      scalar('Shoulder_R.rotation[z]', [0, 0.18, 0.38, 0.7], [0, 0.12, -0.52, 0]),
+      scalar('Forearm_R.rotation[x]', [0, 0.18, 0.38, 0.7], [0, -0.82, -0.28, 0]),
+      scalar('LowerLeg_L.rotation[x]', [0, 0.18, 0.38, 0.7], [0, 0.12, 0.12, 0]),
+      scalar('LowerLeg_R.rotation[x]', [0, 0.18, 0.38, 0.7], [0, 0.12, 0.12, 0]),
     ]),
   };
 }
@@ -138,9 +149,11 @@ export function buildPlayerCharacterRig(heldKind: HeldKind = 'none'): PlayerChar
   active.play();
   const held = new THREE.Group();
   held.name = 'MainHandAttachment';
-  held.position.set(0, -0.27, 0.045);
-  forearms[1].add(held);
-  if (heldKind !== 'none') buildHeld(held, body, heldKind);
+  held.position.set(0, 0, 0.045);
+  hands[1].add(held);
+  if (heldKind === 'greatsword') held.add(buildPlayerSword());
+  else if (heldKind === 'staff') held.add(buildPlayerStaff());
+  else if (heldKind !== 'none') buildHeld(held, body, heldKind);
 
   const rig: PlayerCharacterRig = {
     root,
@@ -150,6 +163,7 @@ export function buildPlayerCharacterRig(heldKind: HeldKind = 'none'): PlayerChar
     legL: upperLegs[0], legR: upperLegs[1],
     kneeL: lowerLegs[0], kneeR: lowerLegs[1],
     elbowL: forearms[0], elbowR: forearms[1],
+    leftHand: hands[0],
     held,
     skeleton,
     bones,
@@ -160,7 +174,10 @@ export function buildPlayerCharacterRig(heldKind: HeldKind = 'none'): PlayerChar
       const next = actions[motion];
       next.reset();
       next.enabled = true;
-      next.timeScale = motion === 'run' ? 1.12 : 1;
+      const oneShot = motion === 'attack';
+      next.setLoop(oneShot ? THREE.LoopOnce : THREE.LoopRepeat, oneShot ? 1 : Infinity);
+      next.clampWhenFinished = oneShot;
+      next.timeScale = motion === 'run' ? 1.12 : oneShot ? 2 : 1;
       next.fadeIn(0.16).play();
       active.fadeOut(0.16);
       active = next;

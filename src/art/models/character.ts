@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { mat, mesh, type PalKey } from '../materials';
 import { buildToy } from './toy';
 import { buildLowPoly } from './lowpoly';
+import { buildWoodenShield } from './playerEquipment';
 
 // Jointed humanoid, ~1.8m. Faces +z. Rigid parts on pivots, animated in code (no skinning).
 // Built from turned (lathe) profiles, capsules and spheres so every silhouette is rounded:
@@ -45,6 +46,7 @@ export interface HumanoidRig {
   elbowL: THREE.Object3D;
   elbowR: THREE.Object3D;
   held: THREE.Group;
+  leftHand?: THREE.Object3D;
 }
 
 /** Turned profile: [radius, y] pairs from top to bottom; closed at both ends when radius 0. */
@@ -275,7 +277,8 @@ export function addOffhand(rig: HumanoidRig, kind: HeldKind) {
   const g = new THREE.Group();
   g.position.copy(rig.held.position);
   g.scale.copy(rig.held.scale);
-  rig.elbowL.add(g);
-  buildHeld(g, rig.body, kind);
+  (rig.leftHand ?? rig.elbowL).add(g);
+  if (rig.leftHand && kind === 'shield') g.add(buildWoodenShield());
+  else buildHeld(g, rig.body, kind);
   return g;
 }

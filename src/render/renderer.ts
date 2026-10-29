@@ -1755,7 +1755,7 @@ export class GameRenderer {
       if (g.dead > 0) { pr.root.rotation.x = -Math.PI / 2 * Math.min(1, (3 - g.dead) * 3); pr.root.position.y += 0.3; }
       else pr.root.rotation.x = 0;
       if (hasPlayerSkeleton) {
-        characterRig.setMotion!(g.dead > 0 ? 'idle' : g.rollT > 0 ? 'run' : g.moving ? 'walk' : 'idle');
+        characterRig.setMotion!(g.dead > 0 ? 'idle' : this.playerSwing > 0 ? 'attack' : g.rollT > 0 ? 'run' : g.moving ? 'walk' : 'idle');
         characterRig.update!(dt);
       } else if (g.dead > 0) { /* lying down */ }
       else if (g.rollT > 0) {
