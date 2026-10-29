@@ -24,6 +24,7 @@ import { applyQuayArchitecture } from '../art/models/quayArchitecture';
 import { buildQuayPlanting, buildHarbourGrass } from '../art/models/quayPlanting';
 import { isInside, toLocal, WALL_H, type BuildingDef } from '../game/world/buildings';
 import { buildHumanoid, addOffhand, animateIdle, animateWalk, animateSwing, animateWork, animateFish, type HeldKind, type HumanoidRig, type HumanoidLook } from '../art/models/character';
+import { buildPlayerCharacterRig, type PlayerCharacterRig } from '../art/models/playerCharacterRig';
 import { item, pairGroup, weaponKind, type WeaponKind } from '../game/data/items';
 import { CREW_BY } from '../game/data/bounties';
 
@@ -164,13 +165,18 @@ export class GameRenderer {
     // only a handful of outfits are kept built: the oldest go when you change clothes a lot
     if (this.playerRigs.size >= 8) for (const [k, r] of this.playerRigs) { if (r === this.player) continue; this.scene.remove(r.root); this.disposeObject(r.root); this.playerRigs.delete(k); break; }
     const held: HeldKind = HELD_OF[kind];
-    rig = buildHumanoid({ ...PLAYER_LOOK, ...outfit.look, held });
+    const usePlayerCharacter = import.meta.env.VITE_PLAYER_CHARACTER_PREVIEW === '1';
+    rig = usePlayerCharacter
+      ? buildPlayerCharacterRig(held)
+      : buildHumanoid({ ...PLAYER_LOOK, ...outfit.look, held });
     if (off !== 'none') addOffhand(rig, off);
     rig.root.scale.setScalar(HERO);
-    bakeRig(rig.root, addSurfaceDetail(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: false, roughness: 0.9 }), CHAR_SURFACE));
-    humanoidShadow(rig);
-    const art = artOverride('characters', 'player');
-    if (art) spriteSwap(rig.root, art);
+    if (!usePlayerCharacter) {
+      bakeRig(rig.root, addSurfaceDetail(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: false, roughness: 0.9 }), CHAR_SURFACE));
+      humanoidShadow(rig);
+      const art = artOverride('characters', 'player');
+      if (art) spriteSwap(rig.root, art);
+    }
     rig.root.visible = false;
     this.scene.add(rig.root);
     this.playerRigs.set(key, rig);
@@ -349,6 +355,7 @@ export class GameRenderer {
   private updatePlayerGlb(dt: number, fallback: HumanoidRig, equipment: PlayerEquipmentIds) {
     const model = this.playerGlb;
     if (!model) return;
+    if (import.meta.env.VITE_PLAYER_CHARACTER_PREVIEW === '1') { model.root.visible = false; return; }
     if (import.meta.env.VITE_BELLWETHER_PREVIEW !== '1' || this.game.s.region !== 'bellwether') { model.root.visible = false; return; }
     if (!supportsGlbLoadout(equipment)) { model.root.visible = false; return; }
     if (syncPlayerRoot(model.root, fallback.root, [...this.playerRigs.values()].map(rig => rig.root))) {
@@ -1722,6 +1729,8 @@ export class GameRenderer {
     const want = this.playerRig(g.stats.kind, offHeld(g.p.equip.offhand?.id), outfitOf(g.p.equip));
     if (want !== this.player) { this.player.root.visible = false; this.player = want; }
     const pr = this.player;
+    const characterRig = pr as Partial<PlayerCharacterRig>;
+    const hasPlayerSkeleton = typeof characterRig.setMotion === 'function';
     pr.root.visible = true;
     this.playerSwing = Math.max(0, this.playerSwing - dt);
     this.playerHit = Math.max(0, this.playerHit - dt);
@@ -1731,14 +1740,24 @@ export class GameRenderer {
     if (p.onShip) {
       const c = Math.cos(sh.heading), s = Math.sin(sh.heading);
       pr.root.position.set(sh.x - c * 3.1, 1.0 + this.ship.hull.position.y, sh.z - s * 3.1);
-      pr.root.rotation.y = -sh.heading + Math.PI / 2;
-      if (g.action?.type === 'gather') animateFish(pr, t); else animateIdle(pr, t);
+      if (hasPlayerSkeleton) {
+        characterRig.face!(-sh.heading + Math.PI / 2, dt);
+        characterRig.setMotion!('idle');
+        characterRig.update!(dt);
+      } else {
+        pr.root.rotation.y = -sh.heading + Math.PI / 2;
+        if (g.action?.type === 'gather') animateFish(pr, t); else animateIdle(pr, t);
+      }
     } else {
       pr.root.position.set(p.x, world.standY(p.x, p.z), p.z);
-      pr.root.rotation.y = Math.PI / 2 - g.facing;
+      if (hasPlayerSkeleton) characterRig.face!(Math.PI / 2 - g.facing, dt);
+      else pr.root.rotation.y = Math.PI / 2 - g.facing;
       if (g.dead > 0) { pr.root.rotation.x = -Math.PI / 2 * Math.min(1, (3 - g.dead) * 3); pr.root.position.y += 0.3; }
       else pr.root.rotation.x = 0;
-      if (g.dead > 0) { /* lying down */ }
+      if (hasPlayerSkeleton) {
+        characterRig.setMotion!(g.dead > 0 ? 'idle' : g.rollT > 0 ? 'run' : g.moving ? 'walk' : 'idle');
+        characterRig.update!(dt);
+      } else if (g.dead > 0) { /* lying down */ }
       else if (g.rollT > 0) {
         const k = 1 - g.rollT / PLAYER_BASE.rollTime;
         animateWalk(pr, t * 2);

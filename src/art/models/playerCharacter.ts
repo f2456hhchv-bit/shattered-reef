@@ -199,7 +199,7 @@ export function buildPlayerCharacterGeometry(): THREE.Group {
     const suffix = side < 0 ? 'L' : 'R';
     const x = side * 0.12;
     loft(root, `Starter_Trousers_${suffix}`, [
-      { y: 0.38, x, rx: 0.064, rz: 0.07 }, { y: 0.49, x, rx: 0.073, rz: 0.078 },
+      { y: 0.28, x, rx: 0.064, rz: 0.07 }, { y: 0.35, x, rx: 0.073, rz: 0.078 },
       { y: 0.72, x: side * 0.13, rx: 0.087, rz: 0.088 }, { y: 0.91, x: side * 0.115, rx: 0.096, rz: 0.091 },
       { y: 0.98, x: side * 0.105, rx: 0.082, rz: 0.08 },
     ], COLOR.trousers, 12);

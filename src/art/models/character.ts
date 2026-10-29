@@ -35,15 +35,15 @@ export interface HumanoidLook {
 export interface HumanoidRig {
   root: THREE.Group;
   body: THREE.Group;
-  head: THREE.Group;
-  armL: THREE.Group;
-  armR: THREE.Group;
-  legL: THREE.Group;
-  legR: THREE.Group;
-  kneeL: THREE.Group;
-  kneeR: THREE.Group;
-  elbowL: THREE.Group;
-  elbowR: THREE.Group;
+  head: THREE.Object3D;
+  armL: THREE.Object3D;
+  armR: THREE.Object3D;
+  legL: THREE.Object3D;
+  legR: THREE.Object3D;
+  kneeL: THREE.Object3D;
+  kneeR: THREE.Object3D;
+  elbowL: THREE.Object3D;
+  elbowR: THREE.Object3D;
   held: THREE.Group;
 }
 
