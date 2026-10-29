@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import * as THREE from 'three';
 import { addOffhand } from './character';
-import { buildPlayerCharacterRig } from './playerCharacterRig';
+import { buildPlayerCharacterRig, playerEquipmentIdsFromKey } from './playerCharacterRig';
 
 describe('player character animation rig', () => {
   it('builds the required reusable humanoid bone hierarchy', () => {
@@ -50,5 +51,50 @@ describe('player character animation rig', () => {
     expect(Math.abs(rig.bones.Shoulder_R.rotation.x)).toBeGreaterThan(0.1);
     rig.update(0.1);
     expect(Math.abs(rig.bones.Forearm_R.rotation.x)).toBeGreaterThan(0.1);
+  });
+
+  it('switches shared-skeleton starter, leather and iron appearance immediately', () => {
+    const rig = buildPlayerCharacterRig();
+    expect(rig.armour).toBe('starter');
+    rig.setArmour('leather');
+    expect(rig.armour).toBe('leather');
+    expect(rig.root.getObjectByName('Chest_leather')?.visible).toBe(true);
+    expect(rig.root.getObjectByName('Chest_iron')?.visible).toBe(false);
+    rig.setArmour('iron');
+    expect(rig.root.getObjectByName('Chest_leather')?.visible).toBe(false);
+    expect(rig.root.getObjectByName('Chest_iron')?.visible).toBe(true);
+    expect(rig.root.getObjectByName('Iron_Helm_Dome')?.visible).toBe(true);
+  });
+
+  it('shows and removes a cloak without changing the shared skeleton', () => {
+    const rig = buildPlayerCharacterRig();
+    const bones = rig.skeleton.bones;
+    rig.setCape(0x6a6e72);
+    const cape = rig.root.getObjectByName('PlayerCape');
+    expect(cape?.parent?.name).toBe('Chest');
+    expect((cape as THREE.Mesh).material).toBeInstanceOf(THREE.MeshStandardMaterial);
+    rig.setCape();
+    expect(rig.root.getObjectByName('PlayerCape')).toBeUndefined();
+    expect(rig.skeleton.bones).toBe(bones);
+  });
+
+  it('changes individual equipment slots without silently replacing unequipped gear', () => {
+    const rig = buildPlayerCharacterRig();
+    rig.setEquipment({ head: 'helm_iron' });
+    expect(rig.root.getObjectByName('Head_iron')?.visible).toBe(true);
+    expect(rig.root.getObjectByName('Chest_iron')?.visible).toBe(false);
+    expect(rig.root.getObjectByName('Torso_Shirt')?.visible).toBe(true);
+    rig.setEquipment({ body: 'cloak_selkie', bodyColor: 0x6a6e72 });
+    expect(rig.root.getObjectByName('PlayerCape')?.visible).toBe(true);
+    expect(rig.root.getObjectByName('Chest_iron')?.visible).toBe(false);
+    expect(rig.root.getObjectByName('Torso_Shirt')?.visible).toBe(true);
+  });
+
+  it('parses an empty appearance key without inventing missing item IDs', () => {
+    expect(playerEquipmentIdsFromKey('')).toEqual({});
+    expect(playerEquipmentIdsFromKey('-,-,-,-,-')).toEqual({});
+    expect(playerEquipmentIdsFromKey('helm_iron,cloak_selkie,legs_leather,-,gloves_iron')).toEqual({
+      head: 'helm_iron', body: 'cloak_selkie', legs: 'legs_leather', hands: 'gloves_iron',
+    });
   });
 });

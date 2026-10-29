@@ -24,7 +24,7 @@ import { applyQuayArchitecture } from '../art/models/quayArchitecture';
 import { buildQuayPlanting, buildHarbourGrass } from '../art/models/quayPlanting';
 import { isInside, toLocal, WALL_H, type BuildingDef } from '../game/world/buildings';
 import { buildHumanoid, addOffhand, animateIdle, animateWalk, animateSwing, animateWork, animateFish, type HeldKind, type HumanoidRig, type HumanoidLook } from '../art/models/character';
-import { buildPlayerCharacterRig, type PlayerCharacterRig } from '../art/models/playerCharacterRig';
+import { buildPlayerCharacterRig, playerEquipmentIdsFromKey, type PlayerCharacterRig } from '../art/models/playerCharacterRig';
 import { item, pairGroup, weaponKind, type WeaponKind } from '../game/data/items';
 import { CREW_BY } from '../game/data/bounties';
 
@@ -166,9 +166,17 @@ export class GameRenderer {
     if (this.playerRigs.size >= 8) for (const [k, r] of this.playerRigs) { if (r === this.player) continue; this.scene.remove(r.root); this.disposeObject(r.root); this.playerRigs.delete(k); break; }
     const held: HeldKind = HELD_OF[kind];
     const usePlayerCharacter = import.meta.env.VITE_PLAYER_CHARACTER_PREVIEW === '1';
-    rig = usePlayerCharacter
-      ? buildPlayerCharacterRig(held)
-      : buildHumanoid({ ...PLAYER_LOOK, ...outfit.look, held });
+    if (usePlayerCharacter) {
+      const character = buildPlayerCharacterRig(held);
+      const equipment = playerEquipmentIdsFromKey(outfit.key);
+      const colour = (id?: string) => id ? Number.parseInt(item(id).icon.color.replace('#', ''), 16) : undefined;
+      character.setEquipment({
+        ...equipment,
+        feetColor: colour(equipment.feet),
+        bodyColor: colour(equipment.body),
+      });
+      rig = character;
+    } else rig = buildHumanoid({ ...PLAYER_LOOK, ...outfit.look, held });
     if (off !== 'none') addOffhand(rig, off);
     rig.root.scale.setScalar(HERO);
     if (!usePlayerCharacter) {

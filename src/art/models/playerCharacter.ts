@@ -206,13 +206,25 @@ export function buildPlayerCharacterGeometry(): THREE.Group {
     const shoulder = new THREE.Vector3(side * 0.03, 1.33, 0);
     const elbow = new THREE.Vector3(side * 0.325, 1.15, 0);
     const wrist = new THREE.Vector3(side * 0.347, 0.875, 0);
-    const palm = new THREE.Vector3(side * 0.35, 0.735, 0.005);
     // Each sleeve overlaps the chest and bare upper arm so no open end reads as a detached primitive.
     limb(root, `Sleeve_${suffix}`, shoulder, new THREE.Vector3(side * 0.312, 1.205, 0), 0.084, 0.066, 0.074, COLOR.shirt);
     limb(root, `UpperArm_${suffix}`, new THREE.Vector3(side * 0.07, 1.37, 0), elbow, 0.061, 0.052, 0.057, COLOR.skin);
     limb(root, `Forearm_${suffix}`, elbow, wrist, 0.052, 0.042, 0.048, COLOR.skin);
     limb(root, `Forearm_Guard_${suffix}`, new THREE.Vector3(side * 0.332, 1.13, 0), new THREE.Vector3(side * 0.346, 0.90, 0), 0.065, 0.057, 0.062, COLOR.leather);
-    limb(root, `Hand_${suffix}`, new THREE.Vector3(side * 0.347, 0.90, 0), palm, 0.05, 0.046, 0.044, COLOR.skin);
+    const handShape = new THREE.Shape();
+    handShape.moveTo(-0.038, 0.895); handShape.lineTo(0.035, 0.895);
+    handShape.lineTo(0.045, 0.835); handShape.lineTo(0.054, 0.785); handShape.lineTo(0.052, 0.75);
+    handShape.quadraticCurveTo(0.049, 0.725, 0.034, 0.73); handShape.lineTo(0.022, 0.762);
+    handShape.lineTo(0.016, 0.718); handShape.quadraticCurveTo(0.014, 0.7, 0, 0.706);
+    handShape.lineTo(-0.008, 0.75); handShape.lineTo(-0.02, 0.713);
+    handShape.quadraticCurveTo(-0.027, 0.697, -0.04, 0.71); handShape.lineTo(-0.036, 0.76);
+    handShape.lineTo(-0.05, 0.775); handShape.quadraticCurveTo(-0.07, 0.785, -0.063, 0.81);
+    handShape.lineTo(-0.049, 0.836); handShape.closePath();
+    const handGeo = new THREE.ExtrudeGeometry(handShape, { depth: 0.052, bevelEnabled: true, bevelSize: 0.006, bevelThickness: 0.004, bevelSegments: 1 });
+    handGeo.translate(0, 0, -0.025);
+    const hand = mesh(root, `Hand_${suffix}`, handGeo, COLOR.skin, THREE.DoubleSide);
+    hand.position.set(side * 0.35, 0, 0);
+    hand.scale.x = side;
 
     loft(root, `Boot_${suffix}`, [
       { y: 0.02, x, z: 0.045, rx: 0.07, rz: 0.124 }, { y: 0.09, x, z: 0.035, rx: 0.073, rz: 0.12 },
@@ -226,8 +238,8 @@ export function buildPlayerCharacterGeometry(): THREE.Group {
   }
 
   loft(root, 'Sash_Waist', [
-    { y: 0.88, rx: 0.205, rz: 0.125 }, { y: 0.91, rx: 0.216, rz: 0.132 },
-    { y: 1.015, rx: 0.212, rz: 0.13 }, { y: 1.045, rx: 0.202, rz: 0.12 },
+    { y: 0.88, rx: 0.22, rz: 0.142 }, { y: 0.91, rx: 0.23, rz: 0.15 },
+    { y: 1.015, rx: 0.227, rz: 0.148 }, { y: 1.045, rx: 0.218, rz: 0.137 },
   ], COLOR.sash, 14);
   mesh(root, 'Sash_Tail', panelGeometry([[0.11, 0.95], [0.20, 0.975], [0.17, 0.57], [0.10, 0.64]], 0.045, 0.012), COLOR.sashLight, THREE.DoubleSide);
   mesh(root, 'Shoulder_Strap_Front', ribbonGeometry([

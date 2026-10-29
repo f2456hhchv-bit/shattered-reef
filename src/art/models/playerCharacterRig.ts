@@ -1,16 +1,43 @@
 import * as THREE from 'three';
+import { mat } from '../materials';
 import { buildHeld, type HeldKind, type HumanoidRig } from './character';
 import { buildPlayerCharacterGeometry } from './playerCharacter';
-import { buildPlayerStaff, buildPlayerSword } from './playerEquipment';
+import { buildPlayerArmourPieces, buildPlayerCape, buildPlayerStaff, buildPlayerSword, type PlayerArmourSet } from './playerEquipment';
 
 export type PlayerMotion = 'idle' | 'walk' | 'run' | 'attack';
+
+export interface PlayerEquipmentVisuals {
+  head?: string;
+  body?: string;
+  legs?: string;
+  feet?: string;
+  hands?: string;
+  feetColor?: number;
+  headColor?: number;
+  bodyColor?: number;
+}
+
+export function playerEquipmentIdsFromKey(key: string): PlayerEquipmentVisuals {
+  const [head, body, legs, feet, hands] = key.split(',');
+  const result: PlayerEquipmentVisuals = {};
+  if (head && head !== '-') result.head = head;
+  if (body && body !== '-') result.body = body;
+  if (legs && legs !== '-') result.legs = legs;
+  if (feet && feet !== '-') result.feet = feet;
+  if (hands && hands !== '-') result.hands = hands;
+  return result;
+}
 
 export interface PlayerCharacterRig extends HumanoidRig {
   skeleton: THREE.Skeleton;
   bones: Record<string, THREE.Bone>;
   mixer: THREE.AnimationMixer;
   current: PlayerMotion;
+  armour: PlayerArmourSet;
   setMotion(motion: PlayerMotion): void;
+  setArmour(armour: PlayerArmourSet): void;
+  setEquipment(equipment: PlayerEquipmentVisuals): void;
+  setCape(colour?: number): void;
   face(angle: number, dt: number): void;
   update(dt: number): void;
 }
@@ -139,12 +166,23 @@ export function buildPlayerCharacterRig(heldKind: HeldKind = 'none'): PlayerChar
     else if (/^(Boot_R|Boot_Cuff_R)/.test(name)) attach(child, lowerLegs[1]);
   }
 
+  const leather = buildPlayerArmourPieces('leather');
+  const iron = buildPlayerArmourPieces('iron');
+  const attachPieces = (pieces: ReturnType<typeof buildPlayerArmourPieces>) => {
+    chest.attach(pieces.chest); head.attach(pieces.head);
+    upperLegs[0].attach(pieces.legs[0]); upperLegs[1].attach(pieces.legs[1]);
+    forearms[0].attach(pieces.arms[0]); forearms[1].attach(pieces.arms[1]);
+  };
+  attachPieces(leather); attachPieces(iron);
+  for (const group of [leather.chest, leather.head, ...leather.legs, ...leather.arms, iron.chest, iron.head, ...iron.legs, ...iron.arms]) group.visible = false;
+
   const skeleton = new THREE.Skeleton(Object.values(bones));
   skeleton.calculateInverses();
   const mixer = new THREE.AnimationMixer(root);
   const clips = animationClips();
   const actions = Object.fromEntries(Object.entries(clips).map(([key, value]) => [key, mixer.clipAction(value)])) as Record<PlayerMotion, THREE.AnimationAction>;
   let current: PlayerMotion = 'idle';
+  let currentArmour: PlayerArmourSet = 'starter';
   let active = actions.idle;
   active.play();
   const held = new THREE.Group();
@@ -154,6 +192,68 @@ export function buildPlayerCharacterRig(heldKind: HeldKind = 'none'): PlayerChar
   if (heldKind === 'greatsword') held.add(buildPlayerSword());
   else if (heldKind === 'staff') held.add(buildPlayerStaff());
   else if (heldKind !== 'none') buildHeld(held, body, heldKind);
+  let cape: THREE.Mesh | null = null;
+  const originalMaterials = new Map<string, THREE.Material | THREE.Material[]>();
+  root.traverse(object => {
+    const item = object as THREE.Mesh;
+    if (item.isMesh) originalMaterials.set(item.name, item.material);
+  });
+  const visualSet = (id?: string): PlayerArmourSet | null => {
+    if (!id) return null;
+    if (/leather|chitin|snake|silk|hide/.test(id)) return 'leather';
+    if (/helm_|plate_|legs_|body_|gloves_|boots_/.test(id)) return 'iron';
+    return null;
+  };
+  const setCape = (colour?: number) => {
+    if (cape) { cape.parent?.remove(cape); cape.geometry.dispose(); cape = null; }
+    if (colour !== undefined) {
+      cape = buildPlayerCape(colour);
+      chest.attach(cape);
+    }
+  };
+  const applyEquipment = (equipment: PlayerEquipmentVisuals) => {
+    const bodySet = visualSet(equipment.body);
+    const headSet = visualSet(equipment.head);
+    const legsSet = visualSet(equipment.legs);
+    const handsSet = visualSet(equipment.hands);
+    currentArmour = bodySet ?? legsSet ?? headSet ?? handsSet ?? 'starter';
+    for (const [set, pieces] of [['leather', leather], ['iron', iron]] as const) {
+      pieces.chest.visible = bodySet === set;
+      pieces.head.visible = headSet === set || (!!equipment.head && !headSet && set === 'leather');
+      for (const group of pieces.legs) group.visible = legsSet === set;
+      for (const group of pieces.arms) group.visible = handsSet === set;
+    }
+    const torso = root.getObjectByName('Torso_Shirt');
+    if (torso) torso.visible = !bodySet;
+    for (const suffix of ['L', 'R']) {
+      const trousers = root.getObjectByName(`Starter_Trousers_${suffix}`);
+      if (trousers) trousers.visible = !legsSet;
+      const guard = root.getObjectByName(`Forearm_Guard_${suffix}`) as THREE.Mesh | undefined;
+      if (guard) guard.visible = handsSet !== 'iron';
+      const sleeve = root.getObjectByName(`Sleeve_${suffix}`) as THREE.Mesh | undefined;
+      if (sleeve) sleeve.material = bodySet === 'iron' ? mat(0xaab2b6, { side: THREE.DoubleSide }) : originalMaterials.get(sleeve.name)!;
+      if (guard) {
+        guard.material = equipment.hands && handsSet === 'leather'
+          ? mat(0x805a3c, { side: THREE.DoubleSide })
+          : originalMaterials.get(guard.name)!;
+      }
+      for (const name of [`Boot_${suffix}`, `Boot_Cuff_${suffix}`]) {
+        const boot = root.getObjectByName(name) as THREE.Mesh | undefined;
+        if (boot) boot.material = equipment.feetColor ? mat(equipment.feetColor, { side: THREE.DoubleSide }) : originalMaterials.get(name)!;
+      }
+    }
+    const headCovered = !!equipment.head;
+    for (const name of ['Hair_Cap', 'Hair_Fringe']) {
+      const object = root.getObjectByName(name);
+      if (object) object.visible = !headCovered;
+    }
+    const strap = root.getObjectByName('Shoulder_Strap_Front');
+    const buckle = root.getObjectByName('Strap_Buckle');
+    const armouredBody = !!bodySet;
+    if (strap) strap.position.z = armouredBody ? 0.025 : 0;
+    if (buckle) buckle.position.z = armouredBody ? 0.025 : 0;
+    setCape(equipment.body?.startsWith('cloak_') ? equipment.bodyColor ?? 0x6a6e72 : undefined);
+  };
 
   const rig: PlayerCharacterRig = {
     root,
@@ -169,6 +269,7 @@ export function buildPlayerCharacterRig(heldKind: HeldKind = 'none'): PlayerChar
     bones,
     mixer,
     get current() { return current; },
+    get armour() { return currentArmour; },
     setMotion(motion) {
       if (motion === current) return;
       const next = actions[motion];
@@ -183,6 +284,18 @@ export function buildPlayerCharacterRig(heldKind: HeldKind = 'none'): PlayerChar
       active = next;
       current = motion;
     },
+    setArmour(armour) {
+      const suffix = armour === 'starter' ? '' : armour;
+      applyEquipment(suffix ? {
+        head: armour === 'iron' ? 'helm_iron' : 'hood_leather',
+        body: `body_${armour}`,
+        legs: `legs_${armour}`,
+        hands: `gloves_${armour}`,
+        feetColor: armour === 'iron' ? 0x9da5aa : 0x60432f,
+      } : {});
+    },
+    setEquipment: applyEquipment,
+    setCape,
     face(angle, dt) {
       const difference = Math.atan2(Math.sin(angle - root.rotation.y), Math.cos(angle - root.rotation.y));
       root.rotation.y += difference * (1 - Math.exp(-Math.max(0, dt) * 10));
