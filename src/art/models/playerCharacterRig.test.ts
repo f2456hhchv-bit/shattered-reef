@@ -63,6 +63,25 @@ describe('player character animation rig', () => {
     }
   });
 
+  it('weights trouser surfaces across upper and lower leg bones at each knee', () => {
+    const rig = buildPlayerCharacterRig();
+    for (const side of ['L', 'R']) {
+      const trouser = rig.root.getObjectByName(`Starter_Trousers_${side}`) as THREE.SkinnedMesh;
+      expect(trouser).toBeInstanceOf(THREE.SkinnedMesh);
+      expect(trouser.skeleton).toBe(rig.skeleton);
+      const indices = trouser.geometry.getAttribute('skinIndex');
+      const weights = trouser.geometry.getAttribute('skinWeight');
+      const upper = rig.skeleton.bones.indexOf(rig.bones[`UpperLeg_${side}`]);
+      const lower = rig.skeleton.bones.indexOf(rig.bones[`LowerLeg_${side}`]);
+      let weightedAcrossKnee = false;
+      for (let i = 0; i < weights.count; i++) {
+        expect(weights.getX(i) + weights.getY(i) + weights.getZ(i) + weights.getW(i)).toBeCloseTo(1, 5);
+        if (indices.getX(i) === upper && indices.getY(i) === lower && weights.getX(i) > 0.1 && weights.getY(i) > 0.1) weightedAcrossKnee = true;
+      }
+      expect(weightedAcrossKnee).toBe(true);
+    }
+  });
+
   it('aligns shoulder and elbow pivots to the authored arm joints', () => {
     const rig = buildPlayerCharacterRig();
     rig.root.updateMatrixWorld(true);

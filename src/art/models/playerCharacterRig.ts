@@ -63,12 +63,13 @@ function scalar(path: string, times: number[], values: number[]): THREE.NumberKe
   return new THREE.NumberKeyframeTrack(path, times, values);
 }
 
-function armSkinGeometry(side: -1 | 1, upperBoneIndex: number, forearmBoneIndex: number): THREE.BufferGeometry {
-  const points = [
-    new THREE.Vector3(side * 0.07, 1.37, 0),
-    new THREE.Vector3(side * 0.325, 1.15, 0),
-    new THREE.Vector3(side * 0.347, 0.875, 0),
-  ];
+function skinnedLimbGeometry(
+  points: [THREE.Vector3, THREE.Vector3, THREE.Vector3],
+  firstBoneIndex: number,
+  secondBoneIndex: number,
+  radii: [number, number, number],
+  depths: [number, number, number],
+): THREE.BufferGeometry {
   const curve = new THREE.CatmullRomCurve3(points, false, 'centripetal');
   const rings = 24, segments = 12;
   const positions: number[] = [], indices: number[] = [], skinIndices: number[] = [], skinWeights: number[] = [];
@@ -78,17 +79,17 @@ function armSkinGeometry(side: -1 | 1, upperBoneIndex: number, forearmBoneIndex:
     const tangent = curve.getTangent(t).normalize();
     const across = new THREE.Vector3(tangent.y, -tangent.x, 0).normalize();
     const depth = new THREE.Vector3(0, 0, 1);
-    const radius = t <= 0.5 ? THREE.MathUtils.lerp(0.061, 0.052, t * 2) : THREE.MathUtils.lerp(0.052, 0.042, (t - 0.5) * 2);
-    const depthRadius = t <= 0.5 ? THREE.MathUtils.lerp(0.057, 0.048, t * 2) : THREE.MathUtils.lerp(0.048, 0.042, (t - 0.5) * 2);
-    const upperWeight = THREE.MathUtils.clamp((0.55 - t) / 0.1, 0, 1);
+    const radius = t <= 0.5 ? THREE.MathUtils.lerp(radii[0], radii[1], t * 2) : THREE.MathUtils.lerp(radii[1], radii[2], (t - 0.5) * 2);
+    const depthRadius = t <= 0.5 ? THREE.MathUtils.lerp(depths[0], depths[1], t * 2) : THREE.MathUtils.lerp(depths[1], depths[2], (t - 0.5) * 2);
+    const firstWeight = THREE.MathUtils.clamp((0.55 - t) / 0.1, 0, 1);
     for (let segment = 0; segment < segments; segment++) {
       const angle = segment / segments * Math.PI * 2;
       const position = center.clone()
         .addScaledVector(across, Math.cos(angle) * radius)
         .addScaledVector(depth, Math.sin(angle) * depthRadius);
       positions.push(position.x, position.y, position.z);
-      skinIndices.push(upperBoneIndex, forearmBoneIndex, 0, 0);
-      skinWeights.push(upperWeight, 1 - upperWeight, 0, 0);
+      skinIndices.push(firstBoneIndex, secondBoneIndex, 0, 0);
+      skinWeights.push(firstWeight, 1 - firstWeight, 0, 0);
     }
   }
   for (let ring = 0; ring < rings; ring++) for (let segment = 0; segment < segments; segment++) {
@@ -98,10 +99,10 @@ function armSkinGeometry(side: -1 | 1, upperBoneIndex: number, forearmBoneIndex:
   }
   const startCap = positions.length / 3;
   positions.push(points[0].x, points[0].y, points[0].z);
-  skinIndices.push(upperBoneIndex, forearmBoneIndex, 0, 0); skinWeights.push(1, 0, 0, 0);
+  skinIndices.push(firstBoneIndex, secondBoneIndex, 0, 0); skinWeights.push(1, 0, 0, 0);
   const endCap = positions.length / 3;
   positions.push(points[2].x, points[2].y, points[2].z);
-  skinIndices.push(upperBoneIndex, forearmBoneIndex, 0, 0); skinWeights.push(0, 1, 0, 0);
+  skinIndices.push(firstBoneIndex, secondBoneIndex, 0, 0); skinWeights.push(0, 1, 0, 0);
   for (let segment = 0; segment < segments; segment++) {
     const next = (segment + 1) % segments;
     const last = rings * segments + segment;
@@ -210,7 +211,7 @@ export function buildPlayerCharacterRig(heldKind: HeldKind = 'none'): PlayerChar
   const attach = (object: THREE.Object3D, target: THREE.Bone) => target.attach(object);
   for (const child of [...model.children]) {
     const name = child.name;
-    if (/^(UpperArm|Forearm)_[LR]$/.test(name)) {
+    if (/^(UpperArm|Forearm)_[LR]$|^Starter_Trousers_[LR]$/.test(name)) {
       const mesh = child as THREE.Mesh;
       mesh.geometry?.dispose();
       model.remove(child);
@@ -220,10 +221,8 @@ export function buildPlayerCharacterRig(heldKind: HeldKind = 'none'): PlayerChar
     else if (name === 'Neck') attach(child, neck);
     else if (/^(Torso_Shirt|Shoulder_Strap_|Strap_Buckle)/.test(name)) attach(child, chest);
     else if (/^(Sash_)/.test(name)) attach(child, pelvis);
-    else if (/^Starter_Trousers_L/.test(name)) attach(child, upperLegs[0]);
-    else if (/^Starter_Trousers_R/.test(name)) attach(child, upperLegs[1]);
-    else if (/^(Sleeve_L|UpperArm_L)/.test(name)) attach(child, upperArms[0]);
-    else if (/^(Sleeve_R|UpperArm_R)/.test(name)) attach(child, upperArms[1]);
+    else if (name === 'Sleeve_L') attach(child, upperArms[0]);
+    else if (name === 'Sleeve_R') attach(child, upperArms[1]);
     else if (/^(Forearm_L|Forearm_Guard_L)/.test(name)) attach(child, forearms[0]);
     else if (/^(Forearm_R|Forearm_Guard_R)/.test(name)) attach(child, forearms[1]);
     else if (name === 'Hand_L') attach(child, hands[0]);
@@ -244,18 +243,27 @@ export function buildPlayerCharacterRig(heldKind: HeldKind = 'none'): PlayerChar
 
   const skeleton = new THREE.Skeleton(Object.values(bones));
   skeleton.calculateInverses();
-  for (const side of [-1, 1] as const) {
-    const suffix = side < 0 ? 'L' : 'R';
-    const skin = new THREE.SkinnedMesh(
-      armSkinGeometry(side, skeleton.bones.indexOf(bones[`UpperArm_${suffix}`]), skeleton.bones.indexOf(bones[`Forearm_${suffix}`])),
-      mat(0xc98250, { side: THREE.DoubleSide }),
-    );
-    skin.name = `Arm_Skin_${suffix}`;
+  const bindSkin = (name: string, geometry: THREE.BufferGeometry, material: THREE.Material) => {
+    const skin = new THREE.SkinnedMesh(geometry, material);
+    skin.name = name;
     skin.castShadow = true;
     skin.receiveShadow = true;
     body.add(skin);
     root.updateMatrixWorld(true);
     skin.bind(skeleton);
+  };
+  for (const side of [-1, 1] as const) {
+    const suffix = side < 0 ? 'L' : 'R';
+    bindSkin(`Arm_Skin_${suffix}`, skinnedLimbGeometry(
+      [new THREE.Vector3(side * 0.07, 1.37, 0), new THREE.Vector3(side * 0.325, 1.15, 0), new THREE.Vector3(side * 0.347, 0.875, 0)],
+      skeleton.bones.indexOf(bones[`UpperArm_${suffix}`]), skeleton.bones.indexOf(bones[`Forearm_${suffix}`]),
+      [0.061, 0.052, 0.042], [0.057, 0.048, 0.042],
+    ), mat(0xc98250, { side: THREE.DoubleSide }));
+    bindSkin(`Starter_Trousers_${suffix}`, skinnedLimbGeometry(
+      [new THREE.Vector3(side * 0.105, 0.975, 0), new THREE.Vector3(side * 0.12, 0.44, 0), new THREE.Vector3(side * 0.12, 0.28, 0)],
+      skeleton.bones.indexOf(bones[`UpperLeg_${suffix}`]), skeleton.bones.indexOf(bones[`LowerLeg_${suffix}`]),
+      [0.086, 0.074, 0.066], [0.082, 0.077, 0.07],
+    ), mat(0x3b3b3d, { side: THREE.DoubleSide }));
   }
   const mixer = new THREE.AnimationMixer(root);
   const clips = animationClips();
