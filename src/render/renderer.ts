@@ -6,6 +6,8 @@ import * as THREE from 'three';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { LOOK_BRIGHT as LOOK } from '../art/looks';
 import { createGradePass } from '../art/grade';
 import { addSurfaceDetail, surfaceUniforms } from '../art/surface';
@@ -51,6 +53,7 @@ import { HCELL } from '../game/world/world';
 import { buildTerrainMesh, LOAD_R } from './terrainMesh';
 import { bakeRig, bakeStatic, bakeFlat, mergeColoured } from './bake';
 import { humanoidShadow, blobShadow } from './shadowProxy';
+import { applyPlayerEquipment, playerAnimationFor, supportsGlbLoadout, syncPlayerRoot, type PlayerAnimation, type PlayerEquipmentIds } from '../art/models/playerGlb';
 import { QualityGovernor } from './governor';
 import { InstancedField, type FieldItem } from './instanced';
 import { Particles } from './fx';
@@ -61,6 +64,15 @@ const HERO = 1.2; // characters drawn larger than life so they read on phones
 /** Fine cloth/skin grain and a warm rim light so people stand out from the ground; coarser grain on props. */
 const CHAR_SURFACE = { scale: 7, tone: 0.12, bump: 0.18, rim: 0.1 };
 const PROP_SURFACE = { scale: 3, tone: 0.24, bump: 0.42 };
+
+interface PlayerGlbInstance {
+  root: THREE.Object3D;
+  mixer: THREE.AnimationMixer;
+  actions: Map<string, THREE.AnimationAction>;
+  current: string;
+  equipmentKey: string;
+  lastPosition: THREE.Vector3;
+}
 
 export const CRAB_SHELLS: Record<string, Partial<Record<PalKey, number>>> = {
   mire: { crabShell: 0x5e7a3a, crabDark: 0x3c5228, crabBelly: 0xb8bc8a, barnacle: 0x7a8a5a },
@@ -141,6 +153,8 @@ export class GameRenderer {
   private quality: 'auto' | 'max' | 'low' = 'auto';
 
   private player: HumanoidRig;
+  /** Authored skeletal player model; the pivot model remains a runtime loading fallback. */
+  private playerGlb: PlayerGlbInstance | null = null;
   /** one rig per weapon + off-hand pairing, built the first time it's worn */
   private playerRigs = new Map<string, HumanoidRig>();
   private playerRig(kind: WeaponKind, off: HeldKind = 'none', outfit: { look: Partial<HumanoidLook>; key: string } = { look: {}, key: '' }): HumanoidRig {
@@ -163,6 +177,8 @@ export class GameRenderer {
     return rig;
   }
   private playerSwing = 0;
+  private playerAttackStyle: 'melee' | 'ranged' | 'magic' = 'melee';
+  private playerHit = 0;
   /** your first mate ashore: built when they first come ashore, swapped when you change mates */
   private mateRig: { id: string; rig: HumanoidRig } | null = null;
   private mateSwing = 0;
@@ -283,6 +299,7 @@ export class GameRenderer {
 
     // one rig per weapon family, built the first time it's wielded, so the right weapon is in hand
     this.player = this.playerRig('cutlass');
+    this.loadPlayerGlb();
 
     this.ship = buildSloop();
     { const art = artOverride('props', 'sloop'); if (art) spriteSwap(this.ship.root, art); }
@@ -306,6 +323,67 @@ export class GameRenderer {
     this.scene.add(this.whirlFx);
 
     game.on((e) => this.onEvent(e));
+  }
+
+  private loadPlayerGlb() {
+    if (import.meta.env.VITE_BELLWETHER_PREVIEW !== '1' || this.game.s.region !== 'bellwether') return;
+    const url = `${import.meta.env.BASE_URL}assets/characters/bellwether-player.glb`;
+    new GLTFLoader().load(url, gltf => {
+      const root = cloneSkinned(gltf.scene);
+      root.scale.setScalar(HERO);
+      root.position.copy(this.player.root.position);
+      root.rotation.copy(this.player.root.rotation);
+      const mixer = new THREE.AnimationMixer(root);
+      const actions = new Map<string, THREE.AnimationAction>();
+      for (const clip of gltf.animations) actions.set(clip.name, mixer.clipAction(clip));
+      // One shadow proxy replaces per-piece skinned shadow draws on mobile.
+      blobShadow(root, root);
+      root.visible = false;
+      this.scene.add(root);
+      this.playerGlb = { root, mixer, actions, current: '', equipmentKey: '', lastPosition: root.position.clone() };
+    }, undefined, error => {
+      console.warn('Bellwether player GLB unavailable; retaining the built-in character.', error);
+    });
+  }
+
+  private updatePlayerGlb(dt: number, fallback: HumanoidRig, equipment: PlayerEquipmentIds) {
+    const model = this.playerGlb;
+    if (!model) return;
+    if (import.meta.env.VITE_BELLWETHER_PREVIEW !== '1' || this.game.s.region !== 'bellwether') { model.root.visible = false; return; }
+    if (!supportsGlbLoadout(equipment)) { model.root.visible = false; return; }
+    if (syncPlayerRoot(model.root, fallback.root, [...this.playerRigs.values()].map(rig => rig.root))) {
+      const key = applyPlayerEquipment(model.root, equipment);
+      if (key !== model.equipmentKey) model.equipmentKey = key;
+      const speed = model.lastPosition.distanceTo(model.root.position) / Math.max(0.001, dt);
+      model.lastPosition.copy(model.root.position);
+      const g = this.game;
+      const action = g.action;
+      let fishing = false, working = false;
+      if (action?.type === 'gather') {
+        const node = g.nodes.find(n => n.uid === action.node);
+        fishing = !!node && NODES[node.def].skill === 'fishing';
+        working = !fishing;
+      } else if (action?.type === 'craft') working = true;
+      const next: PlayerAnimation = playerAnimationFor({
+        dead: g.dead > 0, attacking: this.playerSwing > 0, attackStyle: this.playerAttackStyle, moving: g.moving && !g.p.onShip,
+        hit: this.playerHit > 0, speed, fishing, working,
+      });
+      if (next !== model.current) {
+        const previous = model.actions.get(model.current);
+        const selected = model.actions.get(next) ?? model.actions.get('Idle');
+        if (selected) {
+          selected.reset();
+          const oneShot = next === 'MeleeSlash' || next === 'RangedShot' || next === 'Spellcast' || next === 'HitReact';
+          selected.setLoop(oneShot ? THREE.LoopOnce : THREE.LoopRepeat, oneShot ? 1 : Infinity);
+          selected.clampWhenFinished = oneShot;
+          selected.timeScale = oneShot ? 1.6 : 1;
+          selected.fadeIn(0.12).play();
+          previous?.fadeOut(0.12);
+          model.current = next;
+        }
+      }
+      model.mixer.update(dt);
+    }
   }
 
   // ------------------------------------------------------------------ regions
@@ -1429,6 +1507,7 @@ export class GameRenderer {
     switch (e.type) {
       case 'hit': {
         const y = g.world.standY(e.x, e.z) + 1.0;
+        if (e.target === 'player') this.playerHit = 0.28;
         this.particles.burst(e.x, y, e.z, e.crit ? 14 : 7, e.target === 'player' ? 0xd84a3a : 0xfff0c8, { speed: 3.5, up: 2.5, size: 0.11, life: 0.4 });
         if (e.target === 'player') this.shake = Math.max(this.shake, 0.25);
         else if (e.crit) this.shake = Math.max(this.shake, 0.15);
@@ -1441,7 +1520,8 @@ export class GameRenderer {
         this.particles.burst(e.x, y, e.z, 6, 0xffffff, { speed: 2, up: 2, size: 0.06, life: 0.3, grav: 2 });
         break;
       }
-      case 'swing': this.playerSwing = 0.35; this.slashT = 0.18; break;
+      case 'swing': this.playerSwing = 0.35; this.playerAttackStyle = 'melee'; this.slashT = 0.18; break;
+      case 'shoot': this.playerSwing = 0.42; this.playerAttackStyle = 'ranged'; break;
       case 'region': this.loadRegion(); break;
       case 'teleport': {
         // a column of spray where you left and where you land, and the camera cuts to you
@@ -1450,6 +1530,8 @@ export class GameRenderer {
         break;
       }
       case 'spellFx': {
+        this.playerSwing = 0.5;
+        this.playerAttackStyle = 'magic';
         // a curse is a sickly violet haze; a bind, green roots bursting up round the feet
         const y = g.world.standY(e.x, e.z) + (e.kind === 'bind' ? 0.2 : 1.1);
         this.particles.burst(e.x, y, e.z, 18, e.kind === 'bind' ? 0x6f9a4a : 0x9a5ab4, { speed: e.kind === 'bind' ? 1.6 : 1.1, up: e.kind === 'bind' ? 2.2 : 0.6, size: 0.16, life: 0.7, grav: e.kind === 'bind' ? 2 : -0.5 });
@@ -1642,6 +1724,7 @@ export class GameRenderer {
     const pr = this.player;
     pr.root.visible = true;
     this.playerSwing = Math.max(0, this.playerSwing - dt);
+    this.playerHit = Math.max(0, this.playerHit - dt);
     pr.body.rotation.set(0, 0, 0);
     pr.body.position.y = 0;
     pr.armR.rotation.z = 0.08;
@@ -1670,6 +1753,11 @@ export class GameRenderer {
       } else if (g.action?.type === 'craft') animateWork(pr, t * 0.8);
       else animateIdle(pr, t);
     }
+    this.updatePlayerGlb(dt, pr, {
+      head: g.p.equip.head?.id, body: g.p.equip.body?.id, legs: g.p.equip.legs?.id,
+      feet: g.p.equip.feet?.id, hands: g.p.equip.hands?.id, cape: g.p.equip.neck?.id,
+      weapon: g.p.equip.weapon?.id, offhand: g.p.equip.offhand?.id,
+    });
 
     // npcs: look toward the player when close
     for (const n of g.layout.npcs) {

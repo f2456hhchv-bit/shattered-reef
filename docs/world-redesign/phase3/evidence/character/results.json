@@ -1,0 +1,114 @@
+{
+  "url": "http://127.0.0.1:5181/",
+  "engine": "Mobile Chromium touch emulation + SwiftShader; not physical iPhone Safari",
+  "screenshots": [
+    "deckhand-idle.png",
+    "harbourguard-sword-shield.png",
+    "snakeskin-set.png",
+    "melee-slash.png",
+    "walking.png",
+    "running.png",
+    "stopped.png"
+  ],
+  "animations": [
+    "MeleeSlash",
+    "Walk",
+    "Run"
+  ],
+  "equipmentVisibility": {
+    "guard": {
+      "Harbourguard_Armour": true,
+      "Harbourguard_Legs": true,
+      "Gear_Head_Helm": true,
+      "Gear_Glove": true,
+      "Gear_Boot_Cuff": true,
+      "Mainhand_Cutlass": true,
+      "Offhand_Shield": true
+    },
+    "ranger": {
+      "Snakeskin_Body": true,
+      "Snakeskin_Legwrap": true,
+      "Gear_Head_Cap": true,
+      "Harbourguard_Armour": false
+    }
+  },
+  "errors": [],
+  "requests": [],
+  "model": {
+    "meshes": 31,
+    "skinnedMeshes": 29,
+    "clips": [
+      "Fishing",
+      "HitReact",
+      "Idle",
+      "MeleeSlash",
+      "RangedShot",
+      "Run",
+      "Spellcast",
+      "Walk",
+      "Work"
+    ],
+    "visible": true,
+    "position": [
+      0,
+      0.9800000190734863,
+      316.9720980288101
+    ],
+    "player": [
+      0,
+      316.9720980288101
+    ],
+    "walkable": true,
+    "movementDirection": {
+      "x": 1,
+      "z": 0,
+      "clear": 8
+    },
+    "uprightHeadAboveFootAtYaw0And90": [
+      1.2683430423686608,
+      1.2683430423686608
+    ]
+  },
+  "combat": {
+    "accepted": true,
+    "emittedStyle": "melee",
+    "events": [
+      "swing",
+      "hit",
+      "xp",
+      "xp"
+    ],
+    "target": "Reef crab",
+    "dead": 0,
+    "hp": 100,
+    "swingTimer": 0.35,
+    "animation": "Idle",
+    "afterRender": {
+      "animation": "MeleeSlash",
+      "dead": 0,
+      "hp": 100,
+      "swingTimer": 0.1333333333333333,
+      "visible": true
+    }
+  },
+  "movement": {
+    "dead": 0,
+    "roll": 0,
+    "hp": 100,
+    "moving": true,
+    "animation": "Walk",
+    "walkSpeed": 4.6,
+    "position": [
+      0.27599999999999997,
+      316.9720980288101
+    ],
+    "rootRotation": [
+      0,
+      1.5707963267948966,
+      0,
+      "XYZ"
+    ]
+  },
+  "video": "character-gameplay.mp4",
+  "recordedFrames": 32
+}

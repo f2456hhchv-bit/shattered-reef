@@ -34,7 +34,7 @@ function surface(w: number, d: number, columns: number, rows: number,
   return roof;
 }
 
-function bentBeam(points: [number, number, number][], radius: number, colour: keyof typeof PAL): THREE.Mesh {
+function bentBeam(points: [number, number, number][], radius: number, colour: keyof typeof PAL | number): THREE.Mesh {
   const curve = new THREE.CatmullRomCurve3(points.map(p => new THREE.Vector3(...p)));
   return mesh(new THREE.TubeGeometry(curve, 16, radius, 6, false), mat(colour));
 }
@@ -116,11 +116,84 @@ function tackleRoof(v: EnterableView, b: BuildingDef) {
   v.trim.add(bentBeam([[-hw+.3,top-.25,hd+.28],[0,top-.32,hd+.35],[hw-.3,top-.25,hd+.28]],.06,'woodDark'));
 }
 
+/** Facade details identify each building by how it is used; these stay on the hideable wall trim. */
+function storeFront(v: EnterableView, b: BuildingDef) {
+  const feature = new THREE.Group();
+  feature.userData.quayFacade = 'goods-awning';
+  const hd = b.d / 2, top = .12 + WALL_H * (b.storeys ?? 1);
+  const awning = surface(4.25, .82, 12, 4, (u, q) => [
+    (u - .5) * 4.25, top - .18 - q * .34 + .05 * Math.sin(u * Math.PI), hd + .13 + q * .82,
+  ], 0x8b4e42, b.seed);
+  awning.material = new THREE.MeshStandardMaterial({ color: 0x8b4e42, roughness: 1, metalness: 0, side: THREE.DoubleSide });
+  awning.castShadow = true;
+  feature.add(awning);
+  for (const x of [-1.95, 1.95]) feature.add(bentBeam([[x, top - .7, hd + .1], [x, top - .38, hd + .35], [x, top - .16, hd + .73]], .055, 'woodDark'));
+  v.trim.add(feature);
+}
+
+function chartFront(v: EnterableView, b: BuildingDef) {
+  const feature = new THREE.Group();
+  feature.userData.quayFacade = 'chart-display';
+  const hd = b.d / 2, x = b.door < 0 ? 2.12 : -2.12;
+  const frame = mesh(new THREE.ShapeGeometry(new THREE.Shape().setFromPoints([
+    new THREE.Vector2(-.56, -.62), new THREE.Vector2(.56, -.62), new THREE.Vector2(.56, .35),
+    new THREE.Vector2(0, .68), new THREE.Vector2(-.56, .35),
+  ])), mat('woodDark'));
+  frame.position.set(x, 1.93, hd + .19);
+  feature.add(frame);
+  const panel = mesh(new THREE.ShapeGeometry(new THREE.Shape().setFromPoints([
+    new THREE.Vector2(-.43, -.49), new THREE.Vector2(.43, -.49), new THREE.Vector2(.43, .29),
+    new THREE.Vector2(0, .54), new THREE.Vector2(-.43, .29),
+  ])), mat(0xd6c49e));
+  panel.position.set(x, 1.93, hd + .205);
+  feature.add(panel);
+  // A restrained coast-chart line is cut into the board, as a raised route rather than printed texture.
+  feature.add(bentBeam([[x - .31, 1.85, hd + .23], [x - .11, 1.97, hd + .23], [x + .02, 1.92, hd + .23], [x + .28, 2.08, hd + .23]], .018, 0x607e87));
+  for (const [dx, dy] of [[-.25, -.32], [.24, .22]] as const) {
+    const pin = mesh(new THREE.SphereGeometry(.045, 8, 6), mat('brass'));
+    pin.position.set(x + dx, 1.93 + dy, hd + .25);
+    feature.add(pin);
+  }
+  v.trim.add(feature);
+}
+
+function tackleFront(v: EnterableView, b: BuildingDef) {
+  const feature = new THREE.Group();
+  feature.userData.quayFacade = 'net-drying-rack';
+  const hd = b.d / 2, center = b.door < 0 ? 1.6 : -1.6;
+  const width = .92, bottom = 1.35, top = 2.38, z = hd + .2;
+  feature.add(bentBeam([[center - width, top, z], [center, top + .08, z], [center + width, top, z]], .045, 'woodDark'));
+  feature.add(bentBeam([[center - width, bottom, z + .02], [center, bottom - .04, z + .02], [center + width, bottom, z + .02]], .035, 'woodDark'));
+  const points: number[] = [];
+  for (let i = 0; i <= 6; i++) {
+    const x = center - width + i * width * 2 / 6;
+    points.push(x, bottom, z + .035, x, top, z + .035);
+  }
+  for (let i = 0; i <= 4; i++) {
+    const y = bottom + i * (top - bottom) / 4;
+    points.push(center - width, y, z + .035, center + width, y, z + .035);
+  }
+  const netGeo = new THREE.BufferGeometry();
+  netGeo.setAttribute('position', new THREE.Float32BufferAttribute(points, 3));
+  const net = new THREE.LineSegments(netGeo, new THREE.LineBasicMaterial({ color: 0xc7ad83 }));
+  net.userData.quayFacade = 'net-drying-rack';
+  feature.add(net);
+  for (const dx of [-.65, .55]) {
+    const float = mesh(new THREE.SphereGeometry(.095, 8, 6), mat(dx < 0 ? 0x9a614b : 0xd0b878));
+    float.position.set(center + dx, bottom + .16, z + .06);
+    feature.add(float);
+  }
+  v.trim.add(feature);
+}
+
 export function applyQuayArchitecture(v: EnterableView, b: BuildingDef): boolean {
   if (!isQuayArtId(b.id)) return false;
   v.roof.clear();
   if (b.id === 'store') storeRoof(v,b);
   else if (b.id === 'chart') chartRoof(v,b);
   else tackleRoof(v,b);
+  if (b.id === 'store') storeFront(v,b);
+  else if (b.id === 'chart') chartFront(v,b);
+  else tackleFront(v,b);
   return true;
 }
