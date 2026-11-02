@@ -1,6 +1,6 @@
 # Playtest reports
 
-Generated 2026-10-28 09:34 UTC from commit d988ca1. A scripted new player plays 60 minutes of game time per seed: it follows the quest tracker, fights, eats, gathers, cooks and banks like a person would. How to read these: docs/AI_TESTING.md.
+Generated 2026-11-02 11:00 UTC from commit 0c11573. A scripted new player plays 60 minutes of game time per seed: it follows the quest tracker, fights, eats, gathers, cooks and banks like a person would. How to read these: docs/AI_TESTING.md.
 
 ## Seed 11
 ```
